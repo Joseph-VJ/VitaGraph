@@ -1,3 +1,4 @@
 [loop 0] Baseline: backend 38/38 green; graph engine live; site-design prototype static.
 Reality contract: no timers, no static graph.json, SSE-driven UI (plan §2.4, §20.1).
 [US-01] Repo + loop hygiene: git repo initialized on vitagraph-completion; AGENTS.md, tasks/prd.json, progress.txt, root .gitignore verified. Initial commit created. Backend 38/38 green, site design npm run build exit 0. Passes: true.
+[US-02] Adopt Instrument&Paper prototype as shipping frontend: Added :5174 to backend CORS allow_origins in main.py; archived old 3-column App.tsx to legacy/App.tsx; verified site design build exit 0; backend 38/38 green. Passes: true.
