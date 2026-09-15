@@ -10,25 +10,42 @@ interface SparklineCardProps {
 
 export const SparklineCard: React.FC<SparklineCardProps> = ({
   title = "Retrieval latency",
-  sub = "Last 24 hours",
-  footnote = "p50 38 ms / p95 121 ms",
+  sub = "Client measured",
+  footnote,
+  points = [],
   className = "",
 }) => {
-  // Sample path representing retrieval latency across 24h
-  const points = [
-    35, 42, 38, 48, 32, 40, 52, 38, 44, 39, 41, 195, 48, 42, 38, 55, 40, 36, 68, 45, 52, 43, 49, 38
-  ];
-  const maxVal = 300;
+  const activePoints = points.length > 0 ? points : [];
+  const maxVal = activePoints.length > 0 ? Math.max(50, Math.ceil(Math.max(...activePoints) * 1.15)) : 100;
+  const midVal = Math.round(maxVal / 2);
   const width = 280;
   const height = 70;
 
-  const polylinePoints = points
-    .map((pt, i) => {
-      const x = (i / (points.length - 1)) * width;
-      const y = height - (pt / maxVal) * height;
-      return `${x},${y}`;
-    })
-    .join(" ");
+  // Calculate p50 and p95 dynamically
+  let dynamicFootnote = footnote;
+  if (!dynamicFootnote) {
+    if (activePoints.length === 0) {
+      dynamicFootnote = "No latency samples recorded";
+    } else {
+      const sorted = [...activePoints].sort((a, b) => a - b);
+      const p50 = sorted[Math.floor(sorted.length * 0.5)];
+      const p95 = sorted[Math.floor(sorted.length * 0.95)] || sorted[sorted.length - 1];
+      dynamicFootnote = `p50 ${p50} ms / p95 ${p95} ms (latest ${activePoints[activePoints.length - 1]} ms)`;
+    }
+  }
+
+  const polylinePoints =
+    activePoints.length > 1
+      ? activePoints
+          .map((pt, i) => {
+            const x = (i / (activePoints.length - 1)) * width;
+            const y = height - (Math.min(pt, maxVal) / maxVal) * height;
+            return `${x},${y}`;
+          })
+          .join(" ")
+      : activePoints.length === 1
+      ? `0,${height - (activePoints[0] / maxVal) * height} ${width},${height - (activePoints[0] / maxVal) * height}`
+      : "";
 
   return (
     <div
@@ -42,8 +59,8 @@ export const SparklineCard: React.FC<SparklineCardProps> = ({
       <div className="flex gap-2">
         {/* Y-axis */}
         <div className="flex flex-col justify-between text-right type-mono-sm text-[var(--dim)] h-[70px] pr-1 select-none">
-          <span>300</span>
-          <span>150</span>
+          <span>{maxVal}</span>
+          <span>{midVal}</span>
           <span>0</span>
         </div>
 
@@ -84,30 +101,32 @@ export const SparklineCard: React.FC<SparklineCardProps> = ({
             />
 
             {/* Sparkline curve */}
-            <polyline
-              fill="none"
-              stroke="var(--verdigris)"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              points={polylinePoints}
-            />
+            {polylinePoints && (
+              <polyline
+                fill="none"
+                stroke="var(--verdigris)"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points={polylinePoints}
+              />
+            )}
           </svg>
         </div>
       </div>
 
       {/* X-axis labels */}
       <div className="flex justify-between pl-7 pr-1 mt-1.5 type-mono-sm text-[var(--dim)] select-none">
-        <span>00:00</span>
-        <span>06:00</span>
-        <span>12:00</span>
-        <span>18:00</span>
-        <span>24:00</span>
+        <span>-60m</span>
+        <span>-45m</span>
+        <span>-30m</span>
+        <span>-15m</span>
+        <span>now</span>
       </div>
 
       {/* Footnote */}
       <div className="mt-3 pt-2 border-t border-[var(--line-faint)] text-right type-mono-sm text-[var(--dim)]">
-        {footnote}
+        {dynamicFootnote}
       </div>
     </div>
   );
