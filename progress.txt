@@ -1,2 +1,3 @@
 [loop 0] Baseline: backend 38/38 green; graph engine live; site-design prototype static.
 Reality contract: no timers, no static graph.json, SSE-driven UI (plan §2.4, §20.1).
+[US-01] Repo + loop hygiene: git repo initialized on vitagraph-completion; AGENTS.md, tasks/prd.json, progress.txt, root .gitignore verified. Initial commit created. Backend 38/38 green, site design npm run build exit 0. Passes: true.
