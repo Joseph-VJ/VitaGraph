@@ -1,0 +1,12 @@
+1 user created: usr_b9860fde90ae consent=False
+2 consent accepted: True
+3 upload OK in 218ms: id=rpt_25b0d2ece00d pages=1 chunks=12 status=ready version=
+4 pages: p1:native/1016ch
+5 answer in 730ms: status=answered classification=educational evidence=5
+   summary: The following values were found in your uploaded reports:
+   top evidence: synthetic_panel_2025-06-20.pdf p.1 score=0.654 chunk=chk_c8058c4280ed
+6 graph: nodes=34 edges=36 communities=7 modularity=0.5841
+7 subgraph: nodes=19 active_concepts=[HDL Cholesterol, Hemoglobin, LDL Cholesterol, Vitamin B12, Vitamin D]
+8 timeline events: 6 types=[question_asked, answer_generated, persona_created, consent_accepted, report_uploaded, report_indexed]
+9 cleanup: deleted usr_b9860fde90ae
+=== E2E loop complete 2026-09-09 16:37:14 ===

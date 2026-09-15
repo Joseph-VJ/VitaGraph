@@ -1,0 +1,2 @@
+[loop 0] Baseline: backend 38/38 green; graph engine live; site-design prototype static.
+Reality contract: no timers, no static graph.json, SSE-driven UI (plan §2.4, §20.1).

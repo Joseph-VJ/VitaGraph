@@ -1,0 +1,62 @@
+/* DESIGN.md Appendix A & §4 — Frozen Tokens */
+:root {
+  /* Instrument theme (default, dark) */
+  --ink-900: #0E1116;
+  --ink-800: #141920;
+  --ink-700: #1A2028;
+  --ink-600: #232B35;
+
+  --line-strong: #2B3440;
+  --line-faint: #1E2530;
+
+  --bone: #E6E4DE;
+  --dim: #98A2AD;
+  --faint: #6B7683;
+
+  --verdigris: #79B8A6;
+  --ochre: #D9A441;
+  --cornflower: #86A9D9;
+  --lilac: #A992D0;
+  --madder: #D9808D;
+
+  --paper: #EDE7DA;
+  --paper-ink: #2A2620;
+  --paper-fold: #D8CFBC;
+
+  --r-4: 4px;
+  --r-6: 6px;
+  --r-10: 10px;
+  --r-14: 14px;
+  --r-pill: 999px;
+
+  --t-fast: 120ms;
+  --t-med: 240ms;
+  --ease: cubic-bezier(.2, .7, .3, 1);
+
+  --shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.40);
+}
+
+/* Paper theme (§4.2) */
+[data-theme="paper"] {
+  --ink-900: #F2F3F1;
+  --ink-800: #FAFAF8;
+  --ink-700: #FFFFFF;
+  --ink-600: #EAECE8;
+
+  --line-strong: #D8DBD6;
+  --line-faint: #E7E9E5;
+
+  --bone: #16181D;
+  --dim: #5A6470;
+  --faint: #8E98A5;
+
+  --verdigris: #4E8F7F;
+  --ochre: #B88528;
+  --cornflower: #5D82B5;
+  --lilac: #8068A8;
+  --madder: #B85664;
+
+  --paper: #FFFFFF;
+  --paper-ink: #16181D;
+  --paper-fold: #D8DBD6;
+}

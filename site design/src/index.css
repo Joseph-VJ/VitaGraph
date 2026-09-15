@@ -1,0 +1,242 @@
+@import "tailwindcss";
+@import "./theme/tokens.css";
+
+@theme {
+  --color-ink-900: var(--ink-900);
+  --color-ink-800: var(--ink-800);
+  --color-ink-700: var(--ink-700);
+  --color-ink-600: var(--ink-600);
+
+  --color-line-strong: var(--line-strong);
+  --color-line-faint: var(--line-faint);
+
+  --color-bone: var(--bone);
+  --color-dim: var(--dim);
+  --color-faint: var(--faint);
+
+  --color-verdigris: var(--verdigris);
+  --color-ochre: var(--ochre);
+  --color-cornflower: var(--cornflower);
+  --color-lilac: var(--lilac);
+  --color-madder: var(--madder);
+
+  --color-paper: var(--paper);
+  --color-paper-ink: var(--paper-ink);
+  --color-paper-fold: var(--paper-fold);
+
+  --font-serif: "Spectral", Georgia, serif;
+  --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+
+  --radius-chip: 4px;
+  --radius-input: 6px;
+  --radius-card: 10px;
+  --radius-frame: 14px;
+  --radius-full: 999px;
+}
+
+/* Base resets & typography defaults per DESIGN.md §3 */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--ink-900);
+  color: var(--bone);
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+}
+
+/* Tabular numbers for all machine data, counts, timestamps */
+.tabular-nums,
+.font-mono,
+[data-tabular] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Exact typography classes per DESIGN.md §3 */
+.type-display {
+  font-family: "Spectral", Georgia, serif;
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 600;
+  color: var(--bone);
+}
+
+.type-screen-sub {
+  font-family: "Spectral", Georgia, serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--dim);
+}
+
+.type-card-title {
+  font-family: "Spectral", Georgia, serif;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--bone);
+}
+
+.type-reading {
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 13.5px;
+  line-height: 21px;
+  font-weight: 400;
+  max-width: 68ch;
+  color: var(--bone);
+}
+
+.type-body {
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--bone);
+}
+
+.type-label {
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.type-meta {
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 400;
+  color: var(--dim);
+}
+
+.type-quote {
+  font-family: "Spectral", Georgia, serif;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.type-mono {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.type-mono-sm {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 400;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.type-stat {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 24px;
+  line-height: 28px;
+  font-weight: 500;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.type-marginalia {
+  font-family: "Spectral", Georgia, serif;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 500;
+  font-style: italic;
+  display: inline-block;
+  transform: rotate(-2deg);
+  opacity: 0.60;
+  color: var(--bone);
+}
+
+/* Quality floor focus ring (§4.8) */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--verdigris);
+  outline-offset: 2px;
+}
+
+/* Texture overlays (§4.7) */
+.grain-overlay {
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+.canvas-grid {
+  background-image: radial-gradient(rgba(230, 228, 222, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.paper-slip-grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+}
+
+/* Breathe animation for live LEDs (§7.1) */
+@keyframes breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.95); }
+}
+
+.animate-breathe {
+  animation: breathe 2s ease-in-out infinite;
+}
+
+/* Node pulse glow (§4.6, §7.12) */
+@keyframes nodePulse {
+  0% { box-shadow: 0 0 0 1px currentColor, 0 0 0 0 currentColor; }
+  50% { box-shadow: 0 0 0 1px currentColor, 0 0 0 6px currentColor; }
+  100% { box-shadow: 0 0 0 1px currentColor, 0 0 0 0 currentColor; }
+}
+
+.animate-pulse-once {
+  animation: nodePulse 400ms ease-out 1;
+}
+
+/* Skeleton shimmer (§7.24) */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--ink-800) 25%, var(--ink-700) 50%, var(--ink-800) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+
+/* Reduced motion support (§8.1) */
+@media (prefers-reduced-motion: reduce) {
+  .animate-breathe,
+  .animate-pulse-once,
+  .skeleton-shimmer {
+    animation: none !important;
+  }
+}
+
+/* Subtle scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--dim);
+}

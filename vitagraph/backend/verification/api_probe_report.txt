@@ -1,0 +1,59 @@
+﻿=== VitaGraph API probe v2 2026-09-09 16:28:02 ===
+[health] GET http://127.0.0.1:8000/api/health -> 200 OK
+    {"status":"ok","retrieval_store":{"status":"ok","chunks":104},"ai_service":"enabled","ai_service_model":"deepseek-v4-flash","embedding_model":"sentence-transformers/all-MiniLM-L6-v2"}
+[users-list] GET http://127.0.0.1:8000/api/users -> 200 OK
+    [{"id":"usr_e3234cb10379","display_label":"DeepSeek Tester 2","created_at":"2026-09-03T16:19:20+00:00","status":"active","consent_accepted":true},{"id":"usr_ffdbe7bacf51","display_label":"DeepSeek Tester","created_at":"2026-09-03T16:18:53+00:00","status":"active","consent_accepted":true},{"id":"usr_ac57adab2cbe","display_label":"E2E Persona","created_at":"2026-09-03T15:33:43+00 ...[truncated]
+[users-create-invalid-missing-label] POST http://127.0.0.1:8000/api/users -> 422 ERROR-RESPONSE
+    {"detail":[{"type":"missing","loc":["body","display_label"],"msg":"Field required","input":{}}]}
+[users-create-valid] POST http://127.0.0.1:8000/api/users -> 201 OK
+    {"id":"usr_838351390809","display_label":"Probe User 162802","created_at":"2026-09-09T10:58:02+00:00","status":"active","consent_accepted":false}
+[user-consent-valid] POST http://127.0.0.1:8000/api/users/usr_838351390809/consent -> 200 OK
+    {"id":"usr_838351390809","display_label":"Probe User 162802","created_at":"2026-09-09T10:58:02+00:00","status":"active","consent_accepted":true}
+[user-consent-unknown-user] POST http://127.0.0.1:8000/api/users/NOPE-404/consent -> 404 ERROR-RESPONSE
+    {"detail":"User not found."}
+[reports-upload-invalid-no-file] POST http://127.0.0.1:8000/api/reports/upload -> 422 ERROR-RESPONSE
+    {"detail":[{"type":"missing","loc":["body","user_id"],"msg":"Field required","input":null},{"type":"missing","loc":["body","file"],"msg":"Field required","input":null}]}
+[reports-list-unknown-user] GET http://127.0.0.1:8000/api/reports?user_id=NOPE-404 -> 404 ERROR-RESPONSE
+    {"detail":"User not found."}
+[reports-list-valid] GET http://127.0.0.1:8000/api/reports?user_id=VG-2026-001 -> 200 OK
+    [{"id":"rpt_342a6bd93d45","user_id":"VG-2026-001","original_filename":"VitaGraph-Report2-Followup-2025-12-10.pdf","file_hash":"6b127c9fea7950f2f6bbd374f3d6064b683cde73b109c555bc5654dab1fa6064","report_date":"2025-12-10","upload_time":"2026-09-03T17:50:10+00:00","version":1,"status":"ready","page_count":2,"error_message":null},{"id":"rpt_ea08f31e9a66","user_id":"VG-2026-001","or ...[truncated]
+[report-status-valid] GET http://127.0.0.1:8000/api/reports/rpt_342a6bd93d45/status -> 200 OK
+    {"id":"rpt_342a6bd93d45","status":"ready","page_count":2,"chunk_count":12,"error_message":null}
+[report-pages-valid] GET http://127.0.0.1:8000/api/reports/rpt_342a6bd93d45/pages -> 200 OK
+    [{"page_number":1,"extraction_method":"native","text_length":2247,"quality":"good","extracted_text":"VitaCare Diagnostics - Chennai\n123 Anna Nagar, Chennai 600040 | NABL Accredited | Ph: 044-XXXX XXXX\nSYNTHETIC TEST DATA - FOR VITAGRAPH PROJECT TESTING ONLY - NOT A REAL MEDICAL REPORT - NOT FOR CLINICAL USE\nReport ID: VITATEST-2025-1210-002\nDate: 2025-12-10\nPatient ID: VG_ ...[truncated]
+[report-pages-unknown] GET http://127.0.0.1:8000/api/reports/rpt_does_not_exist/pages -> 404 ERROR-RESPONSE
+    {"detail":"Report not found."}
+[trends-valid] GET http://127.0.0.1:8000/api/reports/VG-2026-001/trends?test=hemoglobin -> 200 OK
+    {"test_name":"Hemoglobin","unit":"g/dL","points":[{"date":"15 January 2025","value":13.8,"flag":"NORMAL","report_id":"rpt_64ca6fec5c08","page_number":1},{"date":"20 June 2025","value":14.1,"flag":"NORMAL","report_id":"rpt_ea08f31e9a66","page_number":1}],"trend_direction":"improving","start_value":13.8,"latest_value":14.1}
+[trends-unknown-user] GET http://127.0.0.1:8000/api/reports/NOPE-404/trends?test=hemoglobin -> 404 ERROR-RESPONSE
+    {"detail":"User not found."}
+[reports-upload-valid] POST /api/reports/upload -> 0 ERROR
+    A parameter cannot be found that matches parameter name 'Form'.
+[ask-valid-hemoglobin] POST http://127.0.0.1:8000/api/questions -> 200 OK
+    {"question_id":"qst_e67d7437f97a","classification":"educational","status":"answered","summary_text":"The following values were found in your uploaded reports:\n- Hemoglobin: 14.1 g/dL (20 June 2025, p. 1); 13.8 g/dL (15 January 2025, p. 1), report range 12.0 - 15.5 g/dL\n\nFrom 2025-12-10, p. 1:\n\"Method\nHemoglobin\n14.1\ng/dL\n13.0 - 17.0\nCyanmethemoglobin\nWBC Count\n7100\ ...[truncated]
+[ask-insufficient-evidence] POST http://127.0.0.1:8000/api/questions -> 200 OK
+    {"question_id":"qst_5d67fb5e367c","classification":"educational","status":"insufficient_evidence","summary_text":"The uploaded reports do not contain enough information to address this question. No matching evidence was retrieved, and VitaGraph does not fill gaps with general medical knowledge.","evidence":[],"limitations_text":"No evidence was found for this question. Consider ...[truncated]
+[ask-diagnosis-refusal] POST http://127.0.0.1:8000/api/questions -> 200 OK
+    {"question_id":"qst_cfa05ad5c673","classification":"out_of_bounds","status":"refused","summary_text":"This request falls outside VitaGraph's boundary. VitaGraph is an educational system that organizes and explains what your uploaded reports contain; it cannot diagnose conditions, recommend or change medication, select treatments, or triage urgent medical problems. If this conce ...[truncated]
+[ask-invalid-empty-text] POST http://127.0.0.1:8000/api/questions -> 422 ERROR-RESPONSE
+    {"detail":[{"type":"string_too_short","loc":["body","text"],"msg":"String should have at least 3 characters","input":"","ctx":{"min_length":3}}]}
+[ask-invalid-unknown-user] POST http://127.0.0.1:8000/api/questions -> 404 ERROR-RESPONSE
+    {"detail":"User not found."}
+[ask-probe-user-valid] POST http://127.0.0.1:8000/api/questions -> 200 OK
+    {"question_id":"qst_4872b8b315b3","classification":"educational","status":"insufficient_evidence","summary_text":"The uploaded reports do not contain enough information to address this question. No matching evidence was retrieved, and VitaGraph does not fill gaps with general medical knowledge.","evidence":[],"limitations_text":"No evidence was found for this question. Consider ...[truncated]
+[graph-valid] GET http://127.0.0.1:8000/api/graph/VG-2026-001 -> 200 OK
+    {"nodes":[{"id":"rep_rpt_64ca6fec5c08","label":"Arjun_Lab_Report_Jan2025.pdf (15 January 2025)","type":"report","report_id":"rpt_64ca6fec5c08","date":"15 January 2025","color":"#3B82F6","r":15,"betweenness":0.3232,"community":2},{"id":"rep_rpt_ea08f31e9a66","label":"Arjun_Lab_Report_Jun2025.pdf (20 June 2025)","type":"report","report_id":"rpt_ea08f31e9a66","date":"20 June 2025" ...[truncated]
+[graph-unknown-user] GET http://127.0.0.1:8000/api/graph/NOPE-404 -> 404 ERROR-RESPONSE
+    {"detail":"User not found."}
+    (subgraph uses 4 retrieved chunk ids)
+[graph-subgraph-valid] POST http://127.0.0.1:8000/api/graph/subgraph -> 200 OK
+    {"nodes":[{"id":"test_Fasting_Glucose","label":"Fasting Glucose","type":"test","test_name":"Fasting Glucose","category":"Metabolic Panel","color":"#10B981","r":16,"betweenness":0.4998,"community":2},{"id":"cat_Metabolic_Panel","label":"Metabolic Panel","type":"category","category":"Metabolic Panel","color":"#06B6D4","r":14,"betweenness":0.059,"community":1},{"id":"rep_rpt_342a6 ...[truncated]
+[graph-subgraph-unknown-user] POST http://127.0.0.1:8000/api/graph/subgraph -> 404 ERROR-RESPONSE
+    {"detail":"User not found."}
+[timeline-valid] GET http://127.0.0.1:8000/api/timeline/VG-2026-001 -> 200 OK
+    [{"id":"evt_f98c3a64c7eb","user_id":"VG-2026-001","event_type":"question_asked","timestamp":"2026-09-09T10:58:04+00:00","payload":{"question_id":"qst_e67d7437f97a","classification":"educational","status":"answered","question_rewritten_for_retrieval":false}},{"id":"evt_a8b0997eb561","user_id":"VG-2026-001","event_type":"answer_generated","timestamp":"2026-09-09T10:58:04+00:00"," ...[truncated]
+[timeline-unknown-user] GET http://127.0.0.1:8000/api/timeline/NOPE-404 -> 404 ERROR-RESPONSE
+    {"detail":"User not found."}
+[user-delete-cascade] DELETE http://127.0.0.1:8000/api/users/usr_838351390809 -> 200 OK
+    {"deleted":"usr_838351390809","records":"reports, pages, chunks, questions, answers, timeline, vectors, raw files"}
+=== probe v2 complete 2026-09-09 16:28:04 ===

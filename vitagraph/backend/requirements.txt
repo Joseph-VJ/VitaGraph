@@ -1,0 +1,17 @@
+# VitaGraph backend dependencies (first release, frozen stack)
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+pydantic>=2.7
+pydantic-settings>=2.3
+pymupdf>=1.24
+sentence-transformers>=3.0
+chromadb>=0.5
+httpx>=0.27
+python-dotenv>=1.0
+pytest>=8.0
+networkx>=3.2
+
+# NOTE on Haystack: the project plan freezes Haystack as the RAG orchestrator.
+# It is installed optionally (see README). Retrieval is isolated behind
+# app/rag/vector_store.py so Haystack can be adopted without touching callers.

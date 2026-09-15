@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VitaGraph - Evidence-Linked Knowledge Graph & AI Assistant</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{font-family:Inter,sans-serif}
+.jakarta{font-family:'Plus Jakarta Sans',sans-serif}
+.mono{font-family:'JetBrains Mono',monospace}
+@keyframes pulseFast { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.animate-pulse-fast { animation: pulseFast 1s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+</style>
+</head>
+<body class="bg-[#F5F7FA] text-slate-900 min-h-screen antialiased selection:bg-blue-100">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
+  <div class="max-w-[1720px] mx-auto px-6 h-[68px] flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold jakarta text-lg shadow-sm">V</div>
+      <div>
+        <div class="font-bold jakarta text-[16px] leading-tight">VitaGraph</div>
+        <div class="text-[11px] text-slate-500">Evidence-Linked Knowledge Graph & Privacy-Aware RAG</div>
+      </div>
+      <span class="hidden xl:inline-flex ml-4 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-800">
+        ✓ Complete End-to-End Workflow
+      </span>
+    </div>
+
+    <div class="flex items-center gap-2.5">
+      <!-- AI API Status / Settings Button -->
+      <button onclick="openAiModal()" id="aiStatusPill" class="flex items-center gap-2 px-3.5 py-2 rounded-full border shadow-sm bg-violet-50 hover:bg-violet-100 border-violet-200 text-violet-900 transition text-[12px] font-medium cursor-pointer">
+        <span class="w-2 h-2 rounded-full bg-violet-600 animate-pulse"></span>
+        <span id="aiStatusPillText">AI API: Google Gemini 1.5 (Ready)</span>
+        <span class="text-[10px] bg-white px-2 py-0.5 rounded-full border border-violet-200 font-bold">Configure</span>
+      </button>
+
+      <div class="hidden md:flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-white border shadow-sm">
+        <img src="https://i.pravatar.cc/100?img=32" class="w-7 h-7 rounded-full border border-slate-200" alt="Patient Avatar">
+        <div class="text-left leading-none">
+          <div class="text-[13px] font-bold">Arjun R • VG-2026-001</div>
+          <div class="text-[10px] text-slate-500">Isolated Workspace • 3 reports</div>
+        </div>
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+      </div>
+
+      <button id="resetBtn" class="px-4 py-2 rounded-xl bg-white border text-[13px] font-medium hover:bg-slate-50 transition cursor-pointer">
+        Reset demo
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-[1720px] mx-auto px-4 md:px-6 py-5">
+  <!-- CLINICAL ADVISORY -->
+  <div class="mb-4 flex items-center justify-between px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[12px] text-amber-800">
+    <div class="flex items-center gap-2">
+      <span class="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[11px] font-bold">!</span>
+      <span><strong>Educational & Clinical AI Prototype:</strong> All answers are grounded exclusively in retrieved document evidence with character spans. Never use for independent diagnosis or medication adjustment.</span>
+    </div>
+    <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-100 border border-amber-300">Grounded Mode</span>
+  </div>
+
+  <!-- TOP STEPPER BAR -->
+  <div class="bg-white rounded-[20px] border-2 border-slate-200 p-4 mb-5 shadow-sm">
+    <div class="flex items-center justify-between gap-2">
+      <div id="stepper" class="flex items-center gap-1 flex-1 overflow-x-auto"></div>
+      <div class="hidden lg:flex items-center gap-3 text-[11px] text-slate-500 shrink-0 ml-4 pl-4 border-l">
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> FastAPI Linked</span>
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Chroma Private DB</span>
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-violet-500"></span> LLM RAG Grounded</span>
+      </div>
+    </div>
+    <div class="mt-3 flex items-center gap-2 text-[11px]">
+      <span id="stageBadge" class="px-3 py-1 rounded-full bg-blue-600 text-white font-bold"></span>
+      <span id="stageDesc" class="text-slate-600 font-medium"></span>
+      <span class="ml-auto text-[11px] text-slate-400">Step <span id="stepCounter">1</span> of 6 • Active Doctor Pipeline</span>
+    </div>
+  </div>
+
+  <!-- 3-COLUMN LAYOUT -->
+  <div class="grid grid-cols-1 xl:grid-cols-[380px_1fr_380px] gap-5 items-start">
+
+    <!-- LEFT: TECHNICAL PANEL -->
+    <div class="order-2 xl:order-1 space-y-4 xl:sticky xl:top-[152px]">
+      <div class="bg-[#0B1220] rounded-[20px] border border-slate-800 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-white/10 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold">⚡</div>
+            <div>
+              <div class="font-bold text-white text-[13px]">BACKGROUND PIPELINE</div>
+              <div class="text-[11px] text-white/50">Asynchronous execution engine</div>
+            </div>
+          </div>
+          <span class="px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold animate-pulse">● LIVE</span>
+        </div>
+        <div class="p-3 grid grid-cols-2 gap-2">
+          <div class="rounded-xl bg-white/[0.05] border border-white/10 p-2.5">
+            <div class="text-[10px] text-white/40 font-bold tracking-widest">FRONTEND</div>
+            <div class="text-[12px] font-bold text-white">React + TS Client</div>
+            <div class="text-[10px] text-emerald-300">● Interactive UI</div>
+          </div>
+          <div class="rounded-xl bg-white/[0.05] border border-white/10 p-2.5">
+            <div class="text-[10px] text-white/40 font-bold tracking-widest">BACKEND</div>
+            <div class="text-[12px] font-bold text-white">FastAPI Core</div>
+            <div class="text-[10px] text-blue-300">● 100% fail-closed</div>
+          </div>
+          <div class="rounded-xl bg-white/[0.05] border border-white/10 p-2.5">
+            <div class="text-[10px] text-white/40 font-bold tracking-widest">EXTRACTION</div>
+            <div class="text-[12px] font-bold text-white">PyMuPDF</div>
+            <div class="text-[10px] text-amber-300">+ Tesseract OCR</div>
+          </div>
+          <div class="rounded-xl bg-white/[0.05] border border-white/10 p-2.5">
+            <div class="text-[10px] text-white/40 font-bold tracking-widest">EMBEDDING</div>
+            <div class="text-[12px] font-bold text-white">MiniLM-L6-v2</div>
+            <div class="text-[10px] text-violet-300">384d/768d vectors</div>
+          </div>
+          <div class="rounded-xl bg-white/[0.05] border border-white/10 p-2.5">
+            <div class="text-[10px] text-white/40 font-bold tracking-widest">VECTOR DB</div>
+            <div class="text-[12px] font-bold text-white">Chroma</div>
+            <div class="text-[10px] text-emerald-300">user_id isolated ✓</div>
+          </div>
+          <div class="rounded-xl bg-white/[0.05] border border-white/10 p-2.5">
+            <div class="text-[10px] text-white/40 font-bold tracking-widest">SQL AUDIT</div>
+            <div class="text-[12px] font-bold text-white">SQLite</div>
+            <div class="text-[10px] text-white/60">Immutable provenance</div>
+          </div>
+          <div class="rounded-xl bg-white/[0.05] border border-white/10 p-2.5 col-span-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-[10px] text-white/40 font-bold tracking-widest">LLM SERVICE</div>
+                <div id="techLlmModelName" class="text-[12px] font-bold text-white">Google Gemini 1.5 Flash</div>
+              </div>
+              <button onclick="openAiModal()" class="text-[10px] px-2.5 py-1 rounded-lg bg-violet-600 hover:bg-violet-700 text-white font-medium cursor-pointer transition">
+                Change Key
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="px-3 pb-2">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-[11px] font-bold tracking-widest text-white/40">REAL-TIME EXECUTION LOG</span>
+            <button onclick="document.getElementById('detailedLog').innerHTML=''" class="text-[10px] px-2 py-1 rounded-full bg-white/10 border border-white/10 text-white/60 hover:text-white cursor-pointer">Clear</button>
+          </div>
+          <div id="detailedLog" class="mono text-[11px] leading-[1.6] bg-black/40 border border-white/10 rounded-xl p-3 h-[360px] overflow-y-auto"></div>
+        </div>
+        <div class="p-3 border-t border-white/10">
+          <div class="text-[11px] font-bold tracking-widest text-white/40 mb-2">STAGE PIPELINE STATE</div>
+          <div id="pipelineStatus" class="space-y-2"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER: MAIN WORKFLOW DISPLAY -->
+    <div class="order-1 xl:order-2 bg-white rounded-[24px] border-2 border-slate-200 shadow-sm overflow-hidden min-h-[720px] flex flex-col relative">
+      <div id="mainContent" class="flex-1 p-6 md:p-8 min-h-[600px]"></div>
+
+      <!-- FOOTER NAVIGATION BAR -->
+      <div class="px-6 md:px-8 py-4 bg-slate-50 border-t-2 border-slate-200 flex items-center justify-between">
+        <button id="backBtn" onclick="handleBack()" class="px-5 py-2.5 rounded-xl bg-white border-2 border-slate-200 text-[13px] font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer shadow-xs">
+          Back
+        </button>
+        <div class="flex items-center gap-3">
+          <span class="hidden md:block text-[11px] text-slate-400">Animated Transitions & Real-Time RAG Assistant</span>
+          <button id="nextBtn" onclick="handleNext()" class="px-7 py-3 rounded-xl bg-blue-600 text-white text-[14px] font-bold hover:bg-blue-700 transition cursor-pointer shadow-sm">
+            Next →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: CRM PATIENT FILE -->
+    <div class="order-3 space-y-4 xl:sticky xl:top-[152px]">
+      <div class="bg-white rounded-[22px] border-2 border-slate-200 p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bold jakarta text-[14px]">Patient File (CRM)</h3>
+          <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] border-2 border-emerald-200 font-bold">Active • Arjun R</span>
+        </div>
+        <div class="flex gap-3 mb-4">
+          <img src="https://i.pravatar.cc/100?img=32" class="w-12 h-12 rounded-2xl border-2 border-slate-200" alt="Arjun R">
+          <div>
+            <div class="font-bold text-[14px]">Arjun R</div>
+            <div class="text-[12px] text-slate-500">24y • Male • Chennai</div>
+            <div class="text-[11px] text-slate-400 font-mono">ID: VG-2026-001 • 3 reports saved</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 mb-4">
+          <div class="rounded-xl bg-slate-50 border-2 p-2.5 text-center">
+            <div class="text-[20px] font-bold text-slate-800">3</div>
+            <div class="text-[10px] text-slate-500 font-bold">Reports</div>
+          </div>
+          <div class="rounded-xl bg-slate-50 border-2 p-2.5 text-center">
+            <div class="text-[20px] font-bold text-slate-800">24</div>
+            <div class="text-[10px] text-slate-500 font-bold">Findings</div>
+          </div>
+          <div class="rounded-xl bg-blue-50 border-2 border-blue-200 p-2.5 text-center">
+            <div class="text-[20px] font-bold text-blue-700">100%</div>
+            <div class="text-[10px] text-blue-700 font-bold">Private</div>
+          </div>
+        </div>
+        <div id="timeline" class="space-y-2 text-[11px]"></div>
+        <div class="mt-4 p-3 rounded-xl bg-blue-50 border-2 border-blue-200">
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-[11px] font-bold text-blue-800">Hemoglobin Trend</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-white border-2 text-emerald-700 font-bold">↑ improving</span>
+          </div>
+          <svg width="100%" height="36" viewBox="0 0 200 40">
+            <path d="M0 28 Q 60 22, 100 14 T 200 6" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="100" cy="14" r="3.5" fill="#2563EB" stroke="white" stroke-width="2"/>
+            <circle cx="200" cy="6" r="5" fill="#2563EB" stroke="white" stroke-width="2.5"/>
+          </svg>
+          <div class="flex justify-between text-[10px] text-slate-600">
+            <span>13.1 → 14.0 g/dL</span>
+            <span>Jan 2024 → Feb 2026</span>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-[20px] border-2 border-slate-200 p-4 shadow-sm">
+        <div class="text-[11px] font-bold tracking-widest text-slate-400 uppercase">Clinical Activity Log</div>
+        <div id="simpleLog" class="mt-2 space-y-1 text-[11px] max-h-[160px] overflow-y-auto"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- UPLOAD PROGRESS MODAL -->
+<div id="uploadModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl max-w-lg w-full p-8 shadow-2xl border border-slate-200 text-center">
+    <div class="w-16 h-16 rounded-2xl bg-blue-50 border-2 border-blue-200 flex items-center justify-center mx-auto text-3xl mb-4">
+      📄
+    </div>
+    <h3 class="jakarta font-bold text-xl text-slate-900">Processing Medical Report</h3>
+    <p id="uploadFileName" class="text-sm text-slate-500 mt-1 font-mono">Arjun_Lab_Report_Feb2026.pdf</p>
+
+    <div class="mt-6">
+      <div class="flex justify-between text-xs font-semibold text-slate-600 mb-2">
+        <span id="uploadStageTitle">Extracting text streams (PyMuPDF)...</span>
+        <span id="uploadPercent" class="font-bold text-blue-600">0%</span>
+      </div>
+      <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
+        <div id="uploadBarFill" class="bg-blue-600 h-full rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- 5 Pipeline Checkpoints -->
+    <div class="mt-6 space-y-2.5 text-left text-xs bg-slate-50 rounded-2xl p-4 border border-slate-200" id="uploadStepList">
+      <div id="up-step-0" class="flex items-center gap-3 text-slate-400">
+        <div class="w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center text-[10px]">1</div>
+        <span>PyMuPDF parsing & digital text extraction</span>
+      </div>
+      <div id="up-step-1" class="flex items-center gap-3 text-slate-400">
+        <div class="w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center text-[10px]">2</div>
+        <span>Tesseract OCR engine on scanned attachments</span>
+      </div>
+      <div id="up-step-2" class="flex items-center gap-3 text-slate-400">
+        <div class="w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center text-[10px]">3</div>
+        <span>Semantic chunking & bounding-box provenance</span>
+      </div>
+      <div id="up-step-3" class="flex items-center gap-3 text-slate-400">
+        <div class="w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center text-[10px]">4</div>
+        <span>Dense vector embedding (all-MiniLM-L6-v2)</span>
+      </div>
+      <div id="up-step-4" class="flex items-center gap-3 text-slate-400">
+        <div class="w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center text-[10px]">5</div>
+        <span>ChromaDB isolated indexing (where: user_id)</span>
+      </div>
+    </div>
+
+    <div class="mt-4 flex items-center justify-center gap-2 text-xs text-slate-400">
+      <span class="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
+      <span id="uploadElapsed">Elapsed: 0.0s • 100% Private to Arjun R</span>
+    </div>
+  </div>
+</div>
+
+<!-- STAGE TRANSITION LOADER OVERLAY -->
+<div id="transitionOverlay" class="hidden fixed inset-0 z-40 bg-white/70 backdrop-blur-[2px] flex flex-col items-center justify-center transition-all duration-200">
+  <div class="bg-white rounded-2xl px-6 py-4 border-2 border-blue-200 shadow-xl flex items-center gap-3">
+    <div class="w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+    <div>
+      <div id="transitionTitle" class="text-sm font-bold text-slate-900">Advancing Pipeline...</div>
+      <div id="transitionSub" class="text-xs text-slate-500">Preparing stage view</div>
+    </div>
+  </div>
+</div>
+
+<!-- AI SETTINGS MODAL -->
+<div id="aiSettingsModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl max-w-lg w-full p-7 shadow-2xl border border-slate-200 text-left">
+    <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-violet-50 border border-violet-200 flex items-center justify-center text-xl">
+          🤖
+        </div>
+        <div>
+          <h3 class="jakarta font-bold text-lg text-slate-900">AI Model & API Key Configuration</h3>
+          <p class="text-xs text-slate-500">Connect Google Gemini, OpenAI, Groq, or OpenRouter</p>
+        </div>
+      </div>
+      <button onclick="closeAiModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center font-bold text-sm cursor-pointer">✕</button>
+    </div>
+
+    <div class="mt-5 space-y-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">AI Provider</label>
+        <select id="aiProviderSelect" onchange="handleProviderChange()" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 text-sm font-medium bg-white focus:border-violet-500 focus:outline-none">
+          <option value="gemini">Google Gemini (gemini-1.5-flash) - Recommended</option>
+          <option value="openai">OpenAI (gpt-4o-mini)</option>
+          <option value="groq">Groq (llama-3.3-70b-versatile)</option>
+          <option value="openrouter">OpenRouter (meta-llama/llama-3-8b-instruct)</option>
+          <option value="custom">Custom Compatible API Endpoint</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">API Key</label>
+        <div class="relative">
+          <input type="password" id="aiApiKeyInput" placeholder="AIzaSy... or sk-..." value="AIzaSyDemoSampleKeyForVitaGraphActive" class="w-full px-4 py-2.5 pr-20 rounded-xl border-2 border-slate-200 text-sm font-mono bg-white focus:border-violet-500 focus:outline-none">
+          <button onclick="toggleKeyVisibility()" class="absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-slate-600 font-medium px-2 py-0.5 rounded bg-slate-100 cursor-pointer">Show</button>
+        </div>
+        <p class="text-[11px] text-slate-500 mt-1">Keys are kept local. Never logged or shared.</p>
+      </div>
+
+      <div class="p-3 bg-violet-50 rounded-xl border border-violet-200 text-xs text-violet-900 leading-relaxed">
+        <strong>Privacy Isolation Guarantee:</strong> Queries to the AI assistant only transmit retrieved evidence passages from <code>VG-2026-001</code>. The AI model is strictly prohibited from fabricating ungrounded medical diagnosis.
+      </div>
+    </div>
+
+    <div class="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+      <button onclick="closeAiModal()" class="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200 transition cursor-pointer">
+        Cancel
+      </button>
+      <button onclick="saveAiSettings()" class="px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-2">
+        <span id="saveAiBtnText">Test Connection & Save</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// STATE DEFINITIONS
+const stages = [
+  { id: 'upload', label: 'Upload Report', sub: 'PDF Ingestion', icon: '📄', desc: 'Drag-and-drop or select lab report — triggers animated 5-step processing pipeline' },
+  { id: 'archive', label: 'Save Forever?', sub: 'Your choice', icon: '🔒', desc: 'Save immediately to immutable SQLite or preview findings first' },
+  { id: 'understand', label: 'Understanding', sub: 'Dynamic AI Parse', icon: '🔍', desc: 'PyMuPDF text extraction + dynamic AI biomarker breakdown' },
+  { id: 'rag', label: 'AI Health Assistant', sub: 'Interactive Chat', icon: '🤖', desc: 'Ask questions to your AI Health Assistant with verified character spans' },
+  { id: 'thinking', label: 'AI Thinking & Graph', sub: 'Graph Dynamics', icon: '🧠', desc: 'Interactive NetworkX knowledge graph with entity centrality' },
+  { id: 'record', label: 'Patient Record', sub: 'CRM File', icon: '📁', desc: 'Longitudinal record tracking Arjun R across multiple visits' },
+];
+
+let current = 0;
+let saveChoice = null;
+let currentProvider = 'gemini';
+let currentModel = 'gemini-1.5-flash';
+let isAiReady = true;
+
+// INTERACTIVE CHAT STATE
+let chatMessages = [
+  {
+    role: 'assistant',
+    text: 'Hello Arjun. I am your VitaGraph AI Clinical Assistant. I have indexed your 3 longitudinal reports (Jan 2024, Aug 2024, and Feb 2026). How can I assist with your lab results today?',
+    citations: ['Page 1 • Feb 2026', 'Page 2 • Aug 2024'],
+    timestamp: 'Just now'
+  }
+];
+
+const SUGGESTED_QUESTIONS = [
+  "What does my hemoglobin trend show over time?",
+  "Are there any low vitamin levels in my records?",
+  "Summarize my latest Feb 2026 lab report",
+  "Is my platelet count in the normal reference range?"
+];
+
+// DYNAMIC BIOMARKERS STATE
+let dynamicBiomarkers = [
+  { name: "Hemoglobin", value: "14.0 g/dL", status: "Optimal", ref: "13.0 - 17.0 g/dL", page: "Page 1" },
+  { name: "White Blood Cells (WBC)", value: "6,200 /µL", status: "Normal", ref: "4,500 - 11,000 /µL", page: "Page 1" },
+  { name: "Platelet Count", value: "245,000 /µL", status: "Optimal", ref: "150,000 - 450,000 /µL", page: "Page 1" },
+  { name: "Vitamin D (25-OH)", value: "32.0 ng/mL", status: "Normal (Up from 18)", ref: "30.0 - 100.0 ng/mL", page: "Page 4" },
+  { name: "Vitamin B12", value: "480 pg/mL", status: "Optimal", ref: "200 - 900 pg/mL", page: "Page 4" },
+  { name: "Fasting Blood Glucose", value: "94 mg/dL", status: "Normal", ref: "70 - 99 mg/dL", page: "Page 2" }
+];
+
+function logDetailed(msg, type = 'info') {
+  const el = document.getElementById('detailedLog');
+  if (!el) return;
+  const t = new Date().toLocaleTimeString('en-IN', { hour12: false }) + '.' + String(Date.now() % 1000).padStart(3, '0');
+  const colors = {
+    info: 'text-white/60',
+    ok: 'text-emerald-300',
+    warn: 'text-amber-300',
+    py: 'text-blue-300',
+    db: 'text-violet-300',
+    llm: 'text-fuchsia-300',
+    tool: 'text-cyan-300'
+  };
+  const c = colors[type] || colors.info;
+  el.innerHTML = `<div class="flex gap-2"><span class="text-white/20 shrink-0 text-[10px]">${t}</span><span class="${c}">${msg}</span></div>` + el.innerHTML;
+}
+
+function logSimple(msg) {
+  const el = document.getElementById('simpleLog');
+  if (!el) return;
+  const t = new Date().toLocaleTimeString('en-IN', { hour12: false });
+  el.innerHTML = `<div class="flex gap-2"><span class="text-slate-400">${t}</span><span>${msg}</span></div>` + el.innerHTML;
+}
+
+function renderStepper() {
+  const el = document.getElementById('stepper');
+  if (!el) return;
+  el.innerHTML = stages.map((s, i) => {
+    const active = i === current, done = i < current;
+    return `
+      <button onclick="navigateWithTransition(${i})" class="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-left shrink-0 transition cursor-pointer ${active ? 'bg-blue-600 text-white shadow-md' : done ? 'bg-emerald-50 border-2 border-emerald-200 text-emerald-800' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-white'}">
+        <span class="w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-bold ${active ? 'bg-white/20' : done ? 'bg-emerald-500 text-white' : 'bg-white border'}">${done ? '✓' : s.icon}</span>
+        <span class="hidden md:block">
+          <span class="block text-[12px] font-bold leading-none">${s.label}</span>
+          <span class="block text-[10px] opacity-70 mt-0.5">${s.sub}</span>
+        </span>
+      </button>
+      <span class="hidden md:block w-6 h-px bg-slate-200 shrink-0 ${i === stages.length - 1 ? 'hidden' : ''}"></span>
+    `;
+  }).join('');
+
+  document.getElementById('stageBadge').textContent = `Step ${current + 1} of ${stages.length} • ${stages[current].label}`;
+  document.getElementById('stageDesc').textContent = stages[current].desc;
+  document.getElementById('stepCounter').textContent = current + 1;
+  document.getElementById('backBtn').disabled = current === 0;
+  document.getElementById('nextBtn').textContent = current === stages.length - 1 ? 'Restart full demo' : 'Next →';
+}
+
+function renderPipelineStatus() {
+  const el = document.getElementById('pipelineStatus');
+  if (!el) return;
+  const status = {
+    0: [{ label: 'Upload PDF', state: 'active' }, { label: 'PyMuPDF extraction', state: 'idle' }, { label: 'Chunking 24 notes', state: 'idle' }, { label: 'Embedding 768d', state: 'idle' }, { label: 'Chroma upsert', state: 'idle' }],
+    1: [{ label: 'Upload done', state: 'done' }, { label: 'SQLite immutable save', state: 'active' }, { label: 'Chunking + provenance', state: 'idle' }, { label: 'Embedding', state: 'idle' }],
+    2: [{ label: 'SQLite save', state: 'done' }, { label: 'PyMuPDF + Tesseract OCR', state: 'done' }, { label: 'Dynamic Biomarker Parsing', state: 'active' }, { label: 'Chroma private DB', state: 'done' }],
+    3: [{ label: 'Embedding query', state: 'active' }, { label: 'Chroma query (user_id filter)', state: 'active' }, { label: 'LLM RAG Inference', state: 'active' }, { label: 'Citation Verification', state: 'active' }],
+    4: [{ label: 'RAG complete', state: 'done' }, { label: 'Graph dot-by-dot build', state: 'active' }, { label: 'Betweenness centrality', state: 'active' }, { label: 'NetworkX export', state: 'done' }],
+    5: [{ label: 'All pipeline done', state: 'done' }, { label: 'CRM timeline updated', state: 'done' }, { label: 'Patient file locked', state: 'done' }],
+  };
+  const items = status[current] || status[0];
+  el.innerHTML = items.map(it => `
+    <div class="flex items-center gap-2.5">
+      <div class="w-2 h-2 rounded-full ${it.state === 'done' ? 'bg-emerald-400' : it.state === 'active' ? 'bg-amber-400 animate-pulse' : 'bg-white/20'}"></div>
+      <div class="text-[11px] ${it.state === 'active' ? 'text-white font-bold' : 'text-white/60'}">${it.label} ${it.state === 'active' ? '• RUNNING' : it.state === 'done' ? '• done' : ''}</div>
+    </div>
+  `).join('');
+}
+
+function renderTimeline() {
+  const el = document.getElementById('timeline');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="flex gap-2.5">
+      <div class="flex flex-col items-center">
+        <div class="w-2.5 h-2.5 rounded-full bg-slate-300 mt-1"></div>
+        <div class="w-px h-8 bg-slate-200"></div>
+      </div>
+      <div class="pb-3">
+        <div class="font-bold text-[12px]">Jan 2024 • Initial Baseline</div>
+        <div class="text-[11px] text-slate-500">CBC + Vit D • 5 pages • Saved forever</div>
+      </div>
+    </div>
+    <div class="flex gap-2.5">
+      <div class="flex flex-col items-center">
+        <div class="w-2.5 h-2.5 rounded-full bg-blue-500 mt-1"></div>
+        <div class="w-px h-8 bg-slate-200"></div>
+      </div>
+      <div class="pb-3">
+        <div class="font-bold text-[12px]">Aug 2024 • Follow-up Review</div>
+        <div class="text-[11px] text-slate-500">4 pages • Private to Arjun R</div>
+      </div>
+    </div>
+    <div class="flex gap-2.5">
+      <div class="flex flex-col items-center">
+        <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100 mt-0.5"></div>
+      </div>
+      <div>
+        <div class="font-bold text-[12px]">Feb 2026 • Latest ${saveChoice === null ? '(Choose save)' : saveChoice ? '(Saved forever)' : '(Preview mode)'}</div>
+        <div class="text-[11px] text-slate-500">Version 3 • ${saveChoice === false ? 'Preview only' : 'Immutable forever in SQLite'}</div>
+        <span class="mt-1 inline-block px-2 py-0.5 rounded-full bg-emerald-50 border-2 border-emerald-200 text-[10px] text-emerald-700 font-bold">✓ Isolated VG-2026-001</span>
+      </div>
+    </div>
+  `;
+}
+
+// STAGE TRANSITION SYSTEM
+function navigateWithTransition(targetStage) {
+  if (targetStage === current) return;
+  const overlay = document.getElementById('transitionOverlay');
+  const title = document.getElementById('transitionTitle');
+  const sub = document.getElementById('transitionSub');
+
+  title.textContent = `Loading: ${stages[targetStage].label}...`;
+  sub.textContent = stages[targetStage].desc;
+  overlay.classList.remove('hidden');
+
+  logDetailed(`[Workflow] Transitioning to Step ${targetStage + 1}: ${stages[targetStage].label}`, 'info');
+
+  setTimeout(() => {
+    current = targetStage;
+    renderStepper();
+    renderMain();
+    renderPipelineStatus();
+    renderTimeline();
+    overlay.classList.add('hidden');
+    logSimple(`→ Navigated to ${stages[targetStage].label}`);
+  }, 450);
+}
+
+function handleNext() {
+  if (current === stages.length - 1) {
+    navigateWithTransition(0);
+  } else {
+    navigateWithTransition(current + 1);
+  }
+}
+
+function handleBack() {
+  if (current > 0) {
+    navigateWithTransition(current - 1);
+  }
+}
+
+// UPLOAD SIMULATION SYSTEM WITH PROGRESS BAR
+function triggerUploadWorkflow(fileName = "Arjun_Lab_Report_Feb2026.pdf") {
+  const modal = document.getElementById('uploadModal');
+  const fill = document.getElementById('uploadBarFill');
+  const pct = document.getElementById('uploadPercent');
+  const title = document.getElementById('uploadStageTitle');
+  const elapsed = document.getElementById('uploadElapsed');
+  const fileLabel = document.getElementById('uploadFileName');
+
+  fileLabel.textContent = fileName;
+  modal.classList.remove('hidden');
+
+  const steps = [
+    { p: 15, text: 'Extracting digital text streams (PyMuPDF)...', log: '[PyMuPDF] Opened PDF • 5 pages • Text streams extracted', type: 'tool', stepIdx: 0 },
+    { p: 40, text: 'Executing OCR engine on scanned page 5...', log: '[Tesseract] OCR completed on page 5 • 312 characters bounding-box marked', type: 'tool', stepIdx: 1 },
+    { p: 65, text: 'Chunking text into cohesive clinical passages...', log: '[Chunker] 24 semantic chunks created • Metadata tags: user_id=VG-2026-001', type: 'py', stepIdx: 2 },
+    { p: 85, text: 'Generating dense vector embeddings (all-MiniLM-L6-v2)...', log: '[Embedding] model.encode(chunks) • 24 x 768d vectors generated', type: 'py', stepIdx: 3 },
+    { p: 100, text: 'Indexing vectors into ChromaDB with user_id isolation...', log: '[ChromaDB] Upserted 24 embeddings with where={user_id: "VG-2026-001"}', type: 'db', stepIdx: 4 }
+  ];
+
+  let currentStep = 0;
+  const startTime = Date.now();
+
+  const timer = setInterval(() => {
+    const passed = ((Date.now() - startTime) / 1000).toFixed(1);
+    elapsed.textContent = `Elapsed: ${passed}s • Private to Arjun R`;
+  }, 100);
+
+  function executeStep() {
+    if (currentStep >= steps.length) {
+      clearInterval(timer);
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        logDetailed('[FastAPI] Ingestion complete • Report ready for search and analysis', 'ok');
+        logSimple('📄 File uploaded and indexed • Proceeding to Save Choice');
+        navigateWithTransition(1);
+      }, 500);
+      return;
+    }
+
+    const s = steps[currentStep];
+    fill.style.width = s.p + '%';
+    pct.textContent = s.p + '%';
+    title.textContent = s.text;
+
+    for (let i = 0; i <= s.stepIdx; i++) {
+      const row = document.getElementById(`up-step-${i}`);
+      if (row) {
+        row.className = 'flex items-center gap-3 text-emerald-700 font-medium';
+        row.firstElementChild.className = 'w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold';
+        row.firstElementChild.textContent = '✓';
+      }
+    }
+
+    logDetailed(s.log, s.type);
+    currentStep++;
+    setTimeout(executeStep, 450);
+  }
+
+  executeStep();
+}
+
+// MAIN CONTENT RENDERER
+function renderMain() {
+  const c = document.getElementById('mainContent');
+  if (!c) return;
+
+  // STAGE 0: UPLOAD
+  if (stages[current].id === 'upload') {
+    c.innerHTML = `
+      <div class="max-w-[680px] mx-auto text-center">
+        <div class="w-20 h-20 rounded-[24px] bg-blue-50 border-2 border-blue-100 flex items-center justify-center mx-auto text-4xl shadow-xs">📄</div>
+        <h2 class="jakarta text-[30px] font-bold mt-5 text-slate-900">Upload Health Report</h2>
+        <p class="text-[14px] text-slate-500 mt-2">
+          Drop a multi-page medical PDF. The animated pipeline will extract text, perform OCR, chunk findings, and generate dense vectors.
+        </p>
+
+        <div id="dropZone" onclick="triggerUploadWorkflow()" class="mt-8 border-[3px] border-dashed border-slate-200 rounded-[28px] p-10 bg-[#FBFCFE] hover:bg-blue-50/60 hover:border-blue-400 transition cursor-pointer group">
+          <div class="text-[46px] mb-3 group-hover:scale-110 transition duration-200">⬆️</div>
+          <div class="font-bold text-[17px] text-slate-800">Drop PDF here or click to choose</div>
+          <div class="text-[13px] text-slate-500 mt-1">
+            Arjun_Lab_Report_Feb2026.pdf • Private to VG-2026-001
+          </div>
+          <button class="mt-5 px-6 py-2.5 rounded-xl bg-white border-2 border-slate-200 text-[13px] font-bold text-slate-700 shadow-xs group-hover:border-blue-300">
+            Choose file & start pipeline
+          </button>
+        </div>
+
+        <div class="mt-8 grid grid-cols-3 gap-4 text-left">
+          <div class="rounded-2xl bg-white border-2 border-slate-100 p-4 shadow-xs">
+            <div class="text-xl mb-1">🔒</div>
+            <div class="text-[13px] font-bold text-slate-800">100% Private</div>
+            <div class="text-[11px] text-slate-500 mt-1">user_id isolation enforced in SQLite and Chroma.</div>
+          </div>
+          <div class="rounded-2xl bg-white border-2 border-slate-100 p-4 shadow-xs">
+            <div class="text-xl mb-1">⚡</div>
+            <div class="text-[13px] font-bold text-slate-800">Evidence RAG</div>
+            <div class="text-[11px] text-slate-500 mt-1">Character spans and page numbers bound to every answer.</div>
+          </div>
+          <div class="rounded-2xl bg-white border-2 border-slate-100 p-4 shadow-xs">
+            <div class="text-xl mb-1">🤖</div>
+            <div class="text-[13px] font-bold text-slate-800">AI Assistant</div>
+            <div class="text-[11px] text-slate-500 mt-1">Powered by Google Gemini / Groq / OpenAI.</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+  // STAGE 1: SAVE FOREVER
+  } else if (stages[current].id === 'archive') {
+    c.innerHTML = `
+      <div class="max-w-[760px] mx-auto">
+        <div class="text-center mb-8">
+          <div class="w-18 h-18 rounded-[24px] bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center mx-auto text-3xl">🔒</div>
+          <h2 class="jakarta text-[28px] font-bold mt-4 text-slate-900">Save forever now or preview first?</h2>
+          <p class="text-[14px] text-slate-500 mt-2">
+            Choose whether to lock the report permanently into immutable SQLite or preview findings first.
+          </p>
+        </div>
+
+        <div class="rounded-[22px] border-2 border-slate-200 bg-white p-6 flex gap-5 items-center shadow-xs">
+          <div class="w-16 h-20 rounded-xl bg-blue-50 border-2 border-blue-100 flex items-center justify-center text-3xl shrink-0">📄</div>
+          <div class="flex-1">
+            <div class="font-bold text-[17px] text-slate-900">Arjun_Lab_Report_Feb2026.pdf</div>
+            <div class="text-[13px] text-slate-500">5 pages • 2.3 MB • VG-2026-001 • Version 3</div>
+            <div class="mt-2 flex gap-2">
+              <span class="px-3 py-1 rounded-full bg-slate-100 border text-[11px] font-mono text-slate-600">Provenance: Verified</span>
+              <span class="px-3 py-1 rounded-full bg-emerald-50 border-2 border-emerald-200 text-emerald-700 text-[11px] font-bold">✓ Immutable SQLite</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-2 gap-4">
+          <button onclick="chooseSave(true)" class="rounded-[22px] border-[3px] p-6 text-left transition cursor-pointer ${saveChoice === true ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white hover:border-slate-300'}">
+            <div class="font-bold text-slate-900 text-[15px]">✓ Yes, save forever now</div>
+            <div class="text-[12px] text-slate-600 mt-1">Locks immediately • AI assistant searches without restriction</div>
+          </button>
+          <button onclick="chooseSave(false)" class="rounded-[22px] border-[3px] p-6 text-left transition cursor-pointer ${saveChoice === false ? 'border-amber-500 bg-amber-50' : 'border-slate-200 bg-white hover:border-slate-300'}">
+            <div class="font-bold text-slate-900 text-[15px]">👁️ Preview first, save at end</div>
+            <div class="text-[12px] text-slate-600 mt-1">Review extracted findings before committing forever</div>
+          </button>
+        </div>
+
+        <div class="mt-8 text-center">
+          <button onclick="navigateWithTransition(2)" class="px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition cursor-pointer shadow-md ${saveChoice === null ? 'opacity-40 pointer-events-none' : ''}">
+            Continue to Understanding →
+          </button>
+        </div>
+      </div>
+    `;
+
+  // STAGE 2: UNDERSTAND (WITH DYNAMIC AI BIOMARKER PARSING)
+  } else if (stages[current].id === 'understand') {
+    c.innerHTML = `
+      <div class="max-w-[840px] mx-auto">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-3 py-1 rounded-full bg-blue-600 text-white text-[11px] font-bold">MULTI-PAGE INGESTION</span>
+              <span class="text-xs text-slate-400">5 Pages Processed</span>
+            </div>
+            <h2 class="jakarta text-[28px] font-bold mt-1">Reading and organizing your report</h2>
+          </div>
+          <button onclick="runDynamicBiomarkerParse()" class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-2 cursor-pointer">
+            <span>✨</span>
+            <span id="dynParseBtnText">Re-analyze with AI</span>
+          </button>
+        </div>
+
+        <div class="space-y-6">
+          <!-- Page Breakdown -->
+          <div class="rounded-[24px] border-2 border-blue-200 bg-white p-6 shadow-xs">
+            <div class="flex items-center justify-between mb-3">
+              <div class="font-bold text-[16px] text-slate-900">Extracted Document Pages</div>
+              <span class="text-xs text-slate-500">PyMuPDF Native & OCR</span>
+            </div>
+            <div class="grid grid-cols-5 gap-3">
+              ${[1,2,3,4,5].map(n => `
+                <div class="rounded-xl border-2 ${n === 5 ? 'border-amber-300 bg-amber-50' : 'border-emerald-200 bg-emerald-50'} p-3 text-center">
+                  <div class="w-8 h-8 rounded-full ${n === 5 ? 'bg-amber-500' : 'bg-emerald-500'} text-white flex items-center justify-center mx-auto text-[12px] font-bold">${n === 5 ? 'OCR' : '✓'}</div>
+                  <div class="font-bold text-[12px] mt-1 text-slate-800">Page ${n}</div>
+                  <div class="text-[10px] text-slate-500">${n === 5 ? 'Scanned' : 'Native text'}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Dynamic Biomarkers Grid -->
+          <div class="rounded-[24px] border-2 border-emerald-200 bg-white p-6 shadow-xs">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <div class="font-bold text-[16px] text-slate-900">Dynamic AI Biomarker Extraction</div>
+                <div class="text-xs text-slate-500">Extracted from report text via structured clinical prompt</div>
+              </div>
+              <span class="px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-xs">
+                ${dynamicBiomarkers.length} Biomarkers Grounded
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4" id="biomarkerGrid">
+              ${dynamicBiomarkers.map(b => `
+                <div class="rounded-xl border-2 border-slate-100 bg-slate-50/60 p-4 flex items-center justify-between hover:border-slate-300 transition">
+                  <div>
+                    <div class="font-bold text-sm text-slate-900">${b.name}</div>
+                    <div class="text-xs text-slate-500 mt-0.5">Ref: ${b.ref}</div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-sm font-extrabold text-blue-700">${b.value}</div>
+                    <div class="flex items-center gap-1.5 mt-1 justify-end">
+                      <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">${b.status}</span>
+                      <span class="text-[10px] text-slate-400 font-mono">${b.page}</span>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+  // STAGE 3: INTERACTIVE AI HEALTH ASSISTANT CHAT
+  } else if (stages[current].id === 'rag') {
+    c.innerHTML = `
+      <div class="max-w-[880px] mx-auto flex flex-col h-[640px]">
+        <!-- Assistant Top Banner -->
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200 shrink-0">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-violet-600 text-white flex items-center justify-center text-xl shadow-sm">
+              🤖
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-base text-slate-900">VitaGraph AI Health Assistant</span>
+                <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">Live RAG</span>
+              </div>
+              <div class="text-xs text-slate-500">
+                Grounding against 3 private reports for Arjun R (${currentModel})
+              </div>
+            </div>
+          </div>
+          <button onclick="openAiModal()" class="text-xs px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-medium cursor-pointer">
+            ⚙️ AI Config
+          </button>
+        </div>
+
+        <!-- Chat History Stream -->
+        <div id="chatMessageContainer" class="flex-1 overflow-y-auto py-4 space-y-4 pr-1">
+          ${chatMessages.map(msg => renderChatMessage(msg)).join('')}
+          <div id="chatThinkingIndicator" class="hidden flex items-start gap-3">
+            <div class="w-8 h-8 rounded-xl bg-violet-600 text-white flex items-center justify-center text-sm font-bold shrink-0 shadow-sm">AI</div>
+            <div class="bg-slate-100 border border-slate-200 rounded-2xl px-4 py-3 text-xs text-slate-600 flex items-center gap-2">
+              <div class="flex gap-1">
+                <span class="w-2 h-2 rounded-full bg-violet-600 animate-bounce"></span>
+                <span class="w-2 h-2 rounded-full bg-violet-600 animate-bounce" style="animation-delay: 0.15s"></span>
+                <span class="w-2 h-2 rounded-full bg-violet-600 animate-bounce" style="animation-delay: 0.3s"></span>
+              </div>
+              <span>Searching private vector space & synthesizing clinical response...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prompt Suggestions -->
+        <div class="py-2 flex items-center gap-2 overflow-x-auto shrink-0 border-t border-slate-100">
+          <span class="text-[11px] font-bold text-slate-400 shrink-0 uppercase tracking-wider">Ask:</span>
+          ${SUGGESTED_QUESTIONS.map(q => `
+            <button onclick="sendChatMessage('${q.replace(/'/g, "\'")}')" class="px-3 py-1.5 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-600 border border-slate-200 text-xs font-medium text-slate-700 whitespace-nowrap transition cursor-pointer">
+              ${q}
+            </button>
+          `).join('')}
+        </div>
+
+        <!-- Input Box -->
+        <div class="pt-2 shrink-0">
+          <form onsubmit="handleChatSubmit(event)" class="flex gap-2">
+            <input
+              id="chatInput"
+              type="text"
+              placeholder="Ask anything about Arjun's lab results, trends, or reference ranges..."
+              class="flex-1 px-4 py-3 rounded-xl border-2 border-slate-200 text-sm font-medium bg-white focus:border-blue-500 focus:outline-none"
+            />
+            <button type="submit" class="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition cursor-pointer flex items-center gap-2">
+              <span>Send</span>
+              <span>→</span>
+            </button>
+          </form>
+          <div class="mt-1.5 text-[10px] text-slate-400 text-center">
+            🔒 Private to VG-2026-001 • Strict RAG fail-closed privacy • No hallucinated diagnoses
+          </div>
+        </div>
+      </div>
+    `;
+
+    setTimeout(() => {
+      const el = document.getElementById('chatMessageContainer');
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 50);
+
+  // STAGE 4: AI THINKING & GRAPH
+  } else if (stages[current].id === 'thinking') {
+    c.innerHTML = `
+      <div class="max-w-[840px] mx-auto">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <span class="px-3 py-1 rounded-full bg-amber-500 text-white text-[11px] font-bold">KNOWLEDGE GRAPH</span>
+            <h2 class="jakarta text-[28px] font-bold mt-1">Interactive Clinical Concept Network</h2>
+          </div>
+          <button onclick="rebuildGraph()" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition cursor-pointer">
+            ▶ Replay Simulation
+          </button>
+        </div>
+
+        <div class="space-y-6 mt-6">
+          <div class="rounded-[24px] border-2 bg-white p-6 shadow-xs">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center text-lg">🧠</div>
+              <h3 class="font-bold text-[17px]">Multi-Hop Graph Reasoning Pipeline</h3>
+            </div>
+            <div id="brainSteps" class="flex gap-3 mb-4"></div>
+          </div>
+
+          <div class="rounded-[24px] border-2 bg-white p-6 shadow-xs">
+            <div class="relative rounded-2xl bg-[#FBFCFE] border-2 h-[420px] overflow-hidden">
+              <canvas id="graphCanvas" width="740" height="420" class="w-full h-full"></canvas>
+              <div class="absolute bottom-3 left-3 flex gap-2">
+                <span class="px-3 py-1 rounded-full bg-blue-600 text-white text-[12px] font-bold">Hemoglobin (Hub)</span>
+                <span class="px-3 py-1 rounded-full bg-emerald-600 text-white text-[12px] font-bold">Feb 2026 (Anchor)</span>
+                <span class="px-3 py-1 rounded-full bg-slate-700 text-white text-[12px] font-bold">68 Related Biomarkers</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    setTimeout(() => { animateBrain(); initGraph(['Hemoglobin', 'Trend']); }, 80);
+
+  // STAGE 5: RECORD (CRM)
+  } else if (stages[current].id === 'record') {
+    c.innerHTML = `
+      <div class="max-w-[820px] mx-auto text-center">
+        <div class="w-20 h-20 rounded-[28px] bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center mx-auto text-4xl">✅</div>
+        <h2 class="jakarta text-[32px] font-bold mt-5">Patient File Complete — CRM Tracked</h2>
+        <p class="text-[15px] text-slate-500 mt-3">
+          3 reports forever • 24 findings • Vector RAG • Knowledge Graph • Private to Arjun R
+        </p>
+
+        <div class="mt-8 grid grid-cols-3 gap-5">
+          <div class="rounded-[22px] border-2 bg-white p-7 text-center">
+            <div class="text-[12px] font-bold tracking-widest text-slate-400">REPORTS</div>
+            <div class="text-[36px] font-bold mt-2 text-slate-800">3</div>
+            <div class="text-[13px] text-emerald-600 font-bold">Forever in SQLite</div>
+          </div>
+          <div class="rounded-[22px] border-2 bg-white p-7 text-center">
+            <div class="text-[12px] font-bold tracking-widest text-slate-400">FINDINGS</div>
+            <div class="text-[36px] font-bold mt-2 text-slate-800">24</div>
+            <div class="text-[13px] text-slate-500">Grounded Chunks</div>
+          </div>
+          <div class="rounded-[22px] border-2 bg-white p-7 text-center">
+            <div class="text-[12px] font-bold tracking-widest text-slate-400">GRAPH NODES</div>
+            <div class="text-[36px] font-bold mt-2 text-blue-600">68</div>
+            <div class="text-[13px] text-slate-500">Cross-Linked</div>
+          </div>
+        </div>
+
+        <div class="mt-6 rounded-[24px] border-2 border-blue-200 bg-blue-50/50 p-7 text-left shadow-xs">
+          <div class="font-bold text-[16px] text-blue-900">Final save confirmation — audit trail</div>
+          <div class="mt-2 text-[14px] text-blue-800">
+            All reports for Arjun R (VG-2026-001) are indexed, immutable, and searchable via our evidence RAG pipeline.
+          </div>
+          <div class="mt-4 flex gap-3">
+            <button onclick="confirmFinalSave()" class="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[14px] shadow-sm cursor-pointer transition">
+              ✓ Confirm Save Forever
+            </button>
+          </div>
+        </div>
+
+        <button onclick="navigateWithTransition(0)" class="mt-8 w-full py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-[16px] transition cursor-pointer shadow-md">
+          Restart Full Demo
+        </button>
+      </div>
+    `;
+  }
+}
+
+// CHAT RENDERING HELPER
+function renderChatMessage(msg) {
+  const isUser = msg.role === 'user';
+  if (isUser) {
+    return `
+      <div class="flex items-start justify-end gap-3">
+        <div class="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-5 py-3 text-sm max-w-[80%] shadow-xs">
+          <div>${msg.text}</div>
+          <div class="text-[10px] text-blue-200 mt-1 text-right">${msg.timestamp || 'Just now'}</div>
+        </div>
+        <div class="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-xs font-bold text-slate-700 shrink-0">
+          AR
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="flex items-start gap-3">
+      <div class="w-8 h-8 rounded-xl bg-violet-600 text-white flex items-center justify-center text-sm font-bold shrink-0 shadow-xs">
+        AI
+      </div>
+      <div class="bg-white border-2 border-slate-200 rounded-2xl rounded-tl-sm p-4 text-sm text-slate-800 max-w-[85%] shadow-xs">
+        <div class="leading-relaxed">${msg.text}</div>
+        ${msg.citations && msg.citations.length > 0 ? `
+          <div class="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 flex-wrap">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Evidence Spans:</span>
+            ${msg.citations.map(c => `<span class="px-2 py-0.5 rounded-md bg-violet-50 border border-violet-200 text-violet-700 text-[11px] font-mono font-medium">📄 ${c}</span>`).join('')}
+          </div>
+        ` : ''}
+        <div class="mt-2 text-[10px] text-slate-400 flex items-center justify-between">
+          <span>Grounded via ChromaDB & ${currentModel}</span>
+          <span>${msg.timestamp || 'Just now'}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function handleChatSubmit(e) {
+  e.preventDefault();
+  const input = document.getElementById('chatInput');
+  if (!input || !input.value.trim()) return;
+  const text = input.value.trim();
+  input.value = '';
+  sendChatMessage(text);
+}
+
+function sendChatMessage(text) {
+  chatMessages.push({
+    role: 'user',
+    text: text,
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  });
+
+  renderMain();
+
+  const indicator = document.getElementById('chatThinkingIndicator');
+  if (indicator) indicator.classList.remove('hidden');
+
+  logDetailed(`[FastAPI] POST /api/ask question="${text.slice(0, 40)}..." user_id=VG-2026-001`, 'py');
+  logDetailed(`[ChromaDB] Vector similarity query where={user_id: "VG-2026-001"} top_k=5`, 'db');
+  logDetailed(`[AI Client] Invoking ${currentProvider} model (${currentModel}) with retrieved spans`, 'llm');
+  logSimple(`Chat query: "${text}"`);
+
+  setTimeout(() => {
+    let responseText = "";
+    let citations = [];
+
+    const lower = text.toLowerCase();
+    if (lower.includes('hemoglobin') || lower.includes('trend')) {
+      responseText = "Your hemoglobin shows a steady upward trend across the 3 indexed visits: 13.1 g/dL in Jan 2024, 13.2 g/dL in Aug 2024, and 14.0 g/dL in Feb 2026. The latest measurement falls comfortably within the normal reference range (13.0 - 17.0 g/dL).";
+      citations = ["Page 1 • Feb 2026", "Page 2 • Aug 2024", "Page 2 • Jan 2024"];
+    } else if (lower.includes('vitamin') || lower.includes('low') || lower.includes('deficiency')) {
+      responseText = "In January 2024, your 25-OH Vitamin D was measured low at 18 ng/mL (reference: 30 - 100 ng/mL). Following supplementation, the Feb 2026 report documents an optimal recovery to 32.0 ng/mL. Vitamin B12 is at 480 pg/mL, which is completely normal.";
+      citations = ["Page 4 • Feb 2026", "Page 4 • Jan 2024"];
+    } else if (lower.includes('platelet') || lower.includes('wbc') || lower.includes('cbc')) {
+      responseText = "Your Complete Blood Count (CBC) from February 2026 is completely normal: Platelet count is 245,000 /µL (reference: 150,000 - 450,000 /µL) and White Blood Cell (WBC) count is 6,200 /µL (reference: 4,500 - 11,000 /µL).";
+      citations = ["Page 1 • Feb 2026"];
+    } else {
+      responseText = `Based on Arjun R's 3 archived reports, all primary hematological and metabolic parameters from the February 2026 checkup are within healthy bounds. Hemoglobin is 14.0 g/dL, Fasting Blood Glucose is 94 mg/dL, and Vitamin D has normalized to 32 ng/mL. No abnormal flags were recorded in the latest panel.`;
+      citations = ["Page 1 • Feb 2026", "Page 2 • Feb 2026"];
+    }
+
+    chatMessages.push({
+      role: 'assistant',
+      text: responseText,
+      citations: citations,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    });
+
+    logDetailed(`[AI Client] Response generated (${citations.length} verified citation spans attached)`, 'ok');
+    renderMain();
+  }, 900);
+}
+
+function runDynamicBiomarkerParse() {
+  const btn = document.getElementById('dynParseBtnText');
+  if (btn) btn.textContent = 'AI Parsing...';
+  logDetailed('[AI Service] Requesting dynamic biomarker re-extraction via prompt pipeline...', 'llm');
+
+  setTimeout(() => {
+    dynamicBiomarkers.push({
+      name: "Serum Creatinine",
+      value: "0.9 mg/dL",
+      status: "Optimal",
+      ref: "0.7 - 1.3 mg/dL",
+      page: "Page 3"
+    });
+    dynamicBiomarkers.push({
+      name: "Total Cholesterol",
+      value: "178 mg/dL",
+      status: "Desirable",
+      ref: "< 200 mg/dL",
+      page: "Page 3"
+    });
+    logDetailed('[AI Service] Extracted 2 additional parameters: Creatinine, Total Cholesterol', 'ok');
+    logSimple('✨ AI parsed 2 additional biomarkers from report text');
+    renderMain();
+  }, 800);
+}
+
+function openAiModal() {
+  document.getElementById('aiSettingsModal').classList.remove('hidden');
+}
+
+function closeAiModal() {
+  document.getElementById('aiSettingsModal').classList.add('hidden');
+}
+
+function toggleKeyVisibility() {
+  const input = document.getElementById('aiApiKeyInput');
+  if (input.type === 'password') {
+    input.type = 'text';
+  } else {
+    input.type = 'password';
+  }
+}
+
+function handleProviderChange() {
+  const sel = document.getElementById('aiProviderSelect').value;
+  const input = document.getElementById('aiApiKeyInput');
+  if (sel === 'gemini') {
+    input.placeholder = 'AIzaSy... (Google AI Studio Key)';
+    currentModel = 'gemini-1.5-flash';
+  } else if (sel === 'openai') {
+    input.placeholder = 'sk-... (OpenAI Key)';
+    currentModel = 'gpt-4o-mini';
+  } else if (sel === 'groq') {
+    input.placeholder = 'gsk_... (Groq Key)';
+    currentModel = 'llama-3.3-70b-versatile';
+  } else if (sel === 'openrouter') {
+    input.placeholder = 'sk-or-... (OpenRouter Key)';
+    currentModel = 'meta-llama/llama-3-8b-instruct';
+  } else {
+    input.placeholder = 'API Key';
+    currentModel = 'custom-llm';
+  }
+}
+
+function saveAiSettings() {
+  const btn = document.getElementById('saveAiBtnText');
+  btn.textContent = 'Testing connection...';
+  currentProvider = document.getElementById('aiProviderSelect').value;
+
+  logDetailed(`[AI Client] Validating connection with ${currentProvider} endpoint...`, 'llm');
+
+  setTimeout(() => {
+    btn.textContent = 'Test Connection & Save';
+    closeAiModal();
+    document.getElementById('aiStatusPillText').textContent = `AI API: ${currentModel} (Active)`;
+    document.getElementById('techLlmModelName').textContent = `${currentProvider.toUpperCase()} (${currentModel})`;
+    logDetailed(`[AI Client] Connection test SUCCESS • Model ${currentModel} ready`, 'ok');
+    logSimple(`AI Config updated: ${currentModel}`);
+    alert(`AI API connection verified successfully! Now using ${currentModel} for all clinical queries.`);
+  }, 700);
+}
+
+function chooseSave(val) {
+  saveChoice = val;
+  renderMain();
+  renderTimeline();
+  renderPipelineStatus();
+  logDetailed(val ? '[SQLite] UPDATE report_version SET immutable=1 WHERE id=rep_003 • COMMIT' : '[SQLite] Preview mode activated • save deferred', 'db');
+  logSimple(val ? '✓ Save forever now' : '👁️ Preview only — save at end');
+}
+
+function confirmFinalSave() {
+  saveChoice = true;
+  logDetailed('[SQLite] Final COMMIT • Saved forever for Arjun R • Immutable', 'db');
+  renderTimeline();
+  alert('Confirmed: Saved forever for Arjun R (VG-2026-001) • Version 3 • Immutable in SQLite');
+}
+
+function animateBrain() {
+  const steps = ['Tokenize Query', 'Retrieve Semantic Chunks', 'Verify Provenance Spans', 'Synthesize Response', 'Ready'];
+  const con = document.getElementById('brainSteps');
+  if (!con) return;
+  con.innerHTML = steps.map((s, i) => `
+    <div class="flex items-center gap-3 flex-1">
+      <div id="b-${i}" class="w-10 h-10 rounded-full bg-slate-100 border-2 border-slate-300 flex items-center justify-center text-[12px] font-bold text-slate-700">${i + 1}</div>
+      <div class="hidden md:block text-[12px] font-bold text-slate-600">${s}</div>
+      ${i < 4 ? '<div class="flex-1 h-[3px] bg-slate-200 rounded-full"></div>' : ''}
+    </div>
+  `).join('');
+
+  steps.forEach((_, i) => setTimeout(() => {
+    const el = document.getElementById(`b-${i}`);
+    if (el) {
+      el.className = 'w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-[12px] font-bold shadow-xs';
+      el.textContent = '✓';
+    }
+  }, i * 300));
+}
+
+let animId;
+function initGraph(active = []) {
+  const canvas = document.getElementById('graphCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  let nodes = [];
+
+  const types = [
+    { l: 'Hemoglobin', c: '#2563EB', x: 0.5, y: 0.5 },
+    { l: 'Feb 2026', c: '#10B981', x: 0.82, y: 0.62 },
+    { l: 'Vitamin D', c: '#8B5CF6', x: 0.28, y: 0.35 },
+    { l: 'Platelets', c: '#F59E0B', x: 0.72, y: 0.25 }
+  ];
+
+  types.forEach(t => nodes.push({
+    x: t.x * W,
+    y: t.y * H,
+    label: t.l,
+    color: t.c,
+    r: 14,
+    active: active.includes(t.l) || true,
+    vis: false,
+    vx: 0.3,
+    vy: 0.2
+  }));
+
+  for (let i = 0; i < 55; i++) {
+    nodes.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      label: '',
+      color: '#CBD5E1',
+      r: 3.5,
+      vis: false,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5
+    });
+  }
+
+  let idx = 0;
+  (function pop() {
+    if (idx < nodes.length) {
+      nodes[idx].vis = true;
+      idx++;
+      setTimeout(pop, 30);
+    }
+  })();
+
+  function tick() {
+    ctx.clearRect(0, 0, W, H);
+    nodes.forEach(n => {
+      if (!n.vis) return;
+      n.x += (Math.random() - 0.5) * 0.4;
+      n.y += (Math.random() - 0.5) * 0.4;
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.fillStyle = n.color;
+      ctx.globalAlpha = n.active ? 1 : 0.7;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      if (n.label) {
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '700 13px Inter';
+        ctx.fillText(n.label, n.x + 16, n.y - 8);
+      }
+    });
+    animId = requestAnimationFrame(tick);
+  }
+
+  cancelAnimationFrame(animId);
+  tick();
+  logDetailed('[NetworkX] betweenness_centrality() computed • 68 nodes • modularity=0.42', 'tool');
+}
+
+function rebuildGraph() {
+  initGraph(['Hemoglobin', 'Feb 2026']);
+  logDetailed('[Graph] Knowledge graph reloaded with live force simulation', 'tool');
+}
+
+document.getElementById('resetBtn').onclick = () => {
+  saveChoice = null;
+  chatMessages = [
+    {
+      role: 'assistant',
+      text: 'Hello Arjun. I am your VitaGraph AI Clinical Assistant. I have indexed your 3 longitudinal reports (Jan 2024, Aug 2024, and Feb 2026). How can I assist with your lab results today?',
+      citations: ['Page 1 • Feb 2026', 'Page 2 • Aug 2024'],
+      timestamp: 'Just now'
+    }
+  ];
+  navigateWithTransition(0);
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderStepper();
+  renderMain();
+  renderTimeline();
+  renderPipelineStatus();
+  logDetailed('[VitaGraph Engine] Initialized • Multi-provider AI key support enabled', 'ok');
+  logDetailed('[ChromaDB] Persistent client ready with isolated collection', 'db');
+  logDetailed('[FastAPI] Clinical RAG endpoints ready on localhost:8000', 'py');
+  logSimple('System ready • Complete workflow with loading bars, transitions, and AI assistant active');
+});
+
+renderStepper();
+renderMain();
+renderTimeline();
+renderPipelineStatus();
+logDetailed('[System] Ready • Full workflow operational', 'ok');
+</script>
+</body>
+</html>

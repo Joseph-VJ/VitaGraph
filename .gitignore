@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+*.log
+
+# Backend runtime data & env
+vitagraph/backend/data/
+vitagraph/backend/.venv/
+vitagraph/backend/.env
+.env
+*.env
+!.env.example
+
+# Node / frontend
+node_modules/
+dist/
+dist-ssr/
+site design/dist/
+vitagraph/frontend/dist/
+
+# Nested git backup
+vitagraph/.git_old/
+
+# Editors & caches
+.vscode/
+.idea/
+.zcode/
+Thumbs.db
+.DS_Store
