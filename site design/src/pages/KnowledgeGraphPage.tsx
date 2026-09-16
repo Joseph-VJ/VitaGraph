@@ -15,6 +15,8 @@ export const KnowledgeGraphPage: React.FC = () => {
   const [graphData, setGraphData] = useState<GraphResponse | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [activeConcepts, setActiveConcepts] = useState<string[]>([]);
+  const [activeNodeIds, setActiveNodeIds] = useState<string[]>([]);
+  const [subgraphMetrics, setSubgraphMetrics] = useState<{ total_nodes: number; total_edges: number } | null>(null);
   const [showThinking, setShowThinking] = useState(false);
 
   // Fetch real NetworkX graph for current active user
@@ -26,20 +28,26 @@ export const KnowledgeGraphPage: React.FC = () => {
     try {
       const data = await graphApi.getGraph(user.id);
       setGraphData(data);
-      if (data.nodes && data.nodes.length > 0 && !selectedNode) {
-        // Auto-select first notable biomarker/node for provenance card preview
-        const firstNotable =
-          data.nodes.find((n) => n.type === "test" || n.type === "measurement") || data.nodes[0];
-        setSelectedNode(firstNotable);
+      if (data.nodes && data.nodes.length > 0) {
+        setSelectedNode((prev) => {
+          if (prev) return prev;
+          return (
+            data.nodes.find((n) => n.type === "test" || n.type === "measurement") ||
+            data.nodes[0]
+          );
+        });
       }
     } catch {
       setGraphData(null);
     }
-  }, [user?.id, selectedNode]);
+  }, [user?.id]);
 
   useEffect(() => {
     setSelectedNode(null);
     setActiveConcepts([]);
+    setActiveNodeIds([]);
+    setSubgraphMetrics(null);
+    setShowThinking(false);
     fetchGraph();
   }, [fetchGraph]);
 
@@ -53,9 +61,24 @@ export const KnowledgeGraphPage: React.FC = () => {
 
       if (chunkIds.length > 0) {
         const sub = await graphApi.getSubgraph(user.id, chunkIds);
-        setGraphData(sub);
         if (sub.active_concepts) {
           setActiveConcepts(sub.active_concepts);
+        }
+        if (sub.nodes) {
+          setActiveNodeIds(sub.nodes.map((n) => n.id));
+          const testNode =
+            sub.nodes.find((n) => n.type === "test") ||
+            sub.nodes.find((n) => n.type === "measurement") ||
+            sub.nodes[0];
+          if (testNode) {
+            setSelectedNode(testNode);
+          }
+        }
+        if (sub.metrics) {
+          setSubgraphMetrics({
+            total_nodes: sub.metrics.total_nodes,
+            total_edges: sub.metrics.total_edges,
+          });
         }
       }
     } catch {
@@ -71,12 +94,14 @@ export const KnowledgeGraphPage: React.FC = () => {
         <GraphStage
           graphData={graphData}
           activeConcepts={activeConcepts}
+          activeNodeIds={activeNodeIds}
+          subgraphMetrics={subgraphMetrics}
           selectedNode={selectedNode}
           onSelectNode={setSelectedNode}
         />
 
         {/* Ask Bar (§7.17) */}
-        <AskBar onSend={handleAsk} />
+        <AskBar onSend={handleAsk} defaultValue="" />
 
         {/* Thinking Details Panel (§7.18) */}
         {showThinking && (

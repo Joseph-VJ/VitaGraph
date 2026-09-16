@@ -6,6 +6,11 @@ import type { GraphResponse, GraphNode } from "../../api/graph";
 export interface GraphStageProps {
   graphData?: GraphResponse | null;
   activeConcepts?: string[];
+  activeNodeIds?: string[];
+  subgraphMetrics?: {
+    total_nodes: number;
+    total_edges: number;
+  } | null;
   selectedNode?: GraphNode | null;
   onSelectNode?: (node: GraphNode | null) => void;
   className?: string;
@@ -47,6 +52,8 @@ function getNodeColor(node: GraphNode): string {
 export const GraphStage: React.FC<GraphStageProps> = ({
   graphData,
   activeConcepts = [],
+  activeNodeIds = [],
+  subgraphMetrics = null,
   selectedNode: externalSelectedNode,
   onSelectNode,
   className = "",
@@ -57,6 +64,20 @@ export const GraphStage: React.FC<GraphStageProps> = ({
   const [layoutMode, setLayoutMode] = useState<string>("force");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Single-pulse animation tracker for question-conditioned activation
+  const pulseStartTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (
+      (activeConcepts && activeConcepts.length > 0) ||
+      (activeNodeIds && activeNodeIds.length > 0)
+    ) {
+      pulseStartTimeRef.current = performance.now();
+    } else {
+      pulseStartTimeRef.current = null;
+    }
+  }, [activeConcepts, activeNodeIds]);
 
   // Simulation and camera state
   const cameraRef = useRef({ x: 0, y: 0, k: 1 });
@@ -236,6 +257,27 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       }
 
       const activeId = selectedNode?.id;
+      const now = performance.now();
+      const pulseElapsed = pulseStartTimeRef.current ? now - pulseStartTimeRef.current : 99999;
+      const isPulsing = pulseElapsed < 1200;
+
+      const hasActiveQuestion =
+        (activeConcepts && activeConcepts.length > 0) ||
+        (activeNodeIds && activeNodeIds.length > 0);
+
+      const isNodeActive = (n: SimNode) => {
+        if (activeNodeIds && activeNodeIds.length > 0 && activeNodeIds.includes(n.id)) {
+          return true;
+        }
+        if (activeConcepts && activeConcepts.length > 0) {
+          return activeConcepts.some(
+            (c) =>
+              (n.label && n.label.toLowerCase().includes(c.toLowerCase())) ||
+              (n.id && n.id.toLowerCase().includes(c.toLowerCase()))
+          );
+        }
+        return false;
+      };
 
       // Draw Curved Edges
       edges.forEach((e) => {
@@ -243,7 +285,11 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         const t = nodes[e.target];
         if (!s || !t) return;
 
-        const isHighlighted = activeId && (s.id === activeId || t.id === activeId);
+        const sActive = isNodeActive(s);
+        const tActive = isNodeActive(t);
+        const isQuestionActiveEdge = hasActiveQuestion && (sActive || tActive);
+        const isSelectedEdge = activeId && (s.id === activeId || t.id === activeId);
+
         const midX = (s.x + t.x) / 2;
         const midY = (s.y + t.y) / 2;
         const dx = t.x - s.x;
@@ -259,9 +305,12 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         ctx.moveTo(s.x, s.y);
         ctx.quadraticCurveTo(cpx, cpy, t.x, t.y);
 
-        if (isHighlighted) {
-          ctx.strokeStyle = "rgba(121, 184, 166, 0.75)";
+        if (isQuestionActiveEdge || isSelectedEdge) {
+          ctx.strokeStyle = "rgba(121, 184, 166, 0.85)";
           ctx.lineWidth = 1.8;
+        } else if (hasActiveQuestion) {
+          ctx.strokeStyle = "rgba(43, 52, 64, 0.40)";
+          ctx.lineWidth = 0.8;
         } else if (activeId) {
           ctx.strokeStyle = "rgba(43, 52, 64, 0.35)";
           ctx.lineWidth = 0.8;
@@ -275,46 +324,55 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       // Draw Nodes
       nodes.forEach((n) => {
         const isSelected = selectedNode?.id === n.id;
-        const isConceptActive =
-          activeConcepts.length > 0 &&
-          activeConcepts.some(
-            (c) =>
-              (n.label && n.label.toLowerCase().includes(c.toLowerCase())) ||
-              (n.id && n.id.toLowerCase().includes(c.toLowerCase()))
-          );
+        const isConceptActive = isNodeActive(n);
 
+        // US-05 Acceptance: "active nodes pulse once, others dim to 40%"
         const isDimmed =
-          (selectedNode && !isSelected && !edges.some((e) => {
+          (hasActiveQuestion && !isConceptActive && !isSelected) ||
+          (!hasActiveQuestion && selectedNode && !isSelected && !edges.some((e) => {
             const s = nodes[e.source];
             const t = nodes[e.target];
             return (s?.id === selectedNode.id && t?.id === n.id) || (t?.id === selectedNode.id && s?.id === n.id);
-          })) ||
-          (activeConcepts.length > 0 && !isConceptActive && !isSelected);
+          }));
 
-        // Glow ring for active/selected
+        // Single pulse animation on activation (duration 1200ms)
+        if (isPulsing && isConceptActive) {
+          const pulseProgress = pulseElapsed / 1200;
+          const pulseRadius = n.r + pulseProgress * 26;
+          const pulseAlpha = Math.max(0, (1 - pulseProgress) * 0.85);
+
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, pulseRadius, 0, 2 * Math.PI);
+          ctx.strokeStyle = `rgba(121, 184, 166, ${pulseAlpha})`;
+          ctx.lineWidth = Math.max(1, 2.5 * (1 - pulseProgress));
+          ctx.stroke();
+        }
+
+        // Glow ring for active / selected
         if (isSelected || isConceptActive) {
           ctx.beginPath();
           ctx.arc(n.x, n.y, n.r + 5, 0, 2 * Math.PI);
-          ctx.fillStyle = isSelected ? "rgba(121, 184, 166, 0.25)" : "rgba(134, 169, 217, 0.25)";
+          ctx.fillStyle = isSelected ? "rgba(121, 184, 166, 0.35)" : "rgba(134, 169, 217, 0.30)";
           ctx.fill();
         }
 
-        ctx.globalAlpha = isDimmed ? 0.35 : 1.0;
+        // Inactive nodes dim to exactly 40% (US-05 specification)
+        ctx.globalAlpha = isDimmed ? 0.40 : 1.0;
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r, 0, 2 * Math.PI);
         ctx.fillStyle = n.color;
         ctx.fill();
 
-        ctx.lineWidth = isSelected ? 2.5 : 1.2;
-        ctx.strokeStyle = isSelected ? "#FFFFFF" : "rgba(232, 226, 217, 0.45)";
+        ctx.lineWidth = isSelected || isConceptActive ? 2.5 : 1.2;
+        ctx.strokeStyle = isSelected ? "#FFFFFF" : isConceptActive ? "rgba(121, 184, 166, 0.9)" : "rgba(232, 226, 217, 0.45)";
         ctx.stroke();
         ctx.globalAlpha = 1.0;
 
         // Proportional labels
         if (!isDimmed || isSelected) {
           const fontSize = Math.max(9, Math.min(14, 8 + n.r * 0.45));
-          ctx.font = `${isSelected ? "600" : "500"} ${fontSize}px 'Plus Jakarta Sans', sans-serif`;
-          ctx.fillStyle = isSelected ? "#FFFFFF" : isDimmed ? "rgba(155, 161, 176, 0.4)" : "#E6E4DE";
+          ctx.font = `${isSelected || isConceptActive ? "600" : "500"} ${fontSize}px 'Plus Jakarta Sans', sans-serif`;
+          ctx.fillStyle = isSelected || isConceptActive ? "#FFFFFF" : isDimmed ? "rgba(155, 161, 176, 0.40)" : "#E6E4DE";
           ctx.textAlign = "center";
           ctx.textBaseline = "top";
 
@@ -334,7 +392,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       isRunning = false;
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
-  }, [layoutMode, selectedNode, activeConcepts]);
+  }, [layoutMode, selectedNode, activeConcepts, activeNodeIds]);
 
   // Pointer event handlers on canvas (Hit testing & dragging)
   const getCanvasPoint = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -486,6 +544,19 @@ export const GraphStage: React.FC<GraphStageProps> = ({
               <span className="type-meta text-[var(--dim)] ml-1.5">modularity</span>
             </div>
           </div>
+
+          {/* Activated Subgraph Chip (§20.1) */}
+          {activeConcepts.length > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-[var(--r-6)] bg-[var(--verdigris)]/10 border border-[var(--verdigris)]/30 text-[var(--verdigris)] text-[12px] type-mono">
+              <span className="w-2 h-2 rounded-full bg-[var(--verdigris)] animate-pulse" />
+              <span>Activated concepts: {activeConcepts.join(", ")}</span>
+              {subgraphMetrics && (
+                <span className="text-[var(--bone)] text-[11px] font-medium ml-1">
+                  ({subgraphMetrics.total_nodes} nodes • {subgraphMetrics.total_edges} edges)
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Controls */}
