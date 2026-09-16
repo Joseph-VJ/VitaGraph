@@ -216,33 +216,92 @@ a:focus-visible,
   animation: shimmer 1.2s infinite;
 }
 
-/* 120ms Route fade (§US-18, §8.1) */
-@keyframes routeFade {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+/* ─── §M5.1 Enter / Exit / Enter-card ─── */
+@keyframes mEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.m-enter {
+  animation: mEnter var(--m-quick, 120ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) both;
 }
 
-.animate-route-fade {
-  animation: routeFade 120ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+@keyframes mEnterCard {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+.m-enter-card {
+  animation: mEnterCard var(--m-base, 240ms) var(--ease-paper, cubic-bezier(0.16, 1, 0.30, 1)) both;
 }
 
-/* Button press micro-feedback (§US-18, §7.5) */
+@keyframes mExit {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-4px); }
+}
+.m-exit {
+  animation: mExit calc(var(--m-quick, 120ms) * 0.6) var(--ease-ink, cubic-bezier(0, 0, 0.2, 1)) both;
+  pointer-events: none;
+}
+
+/* §M5.1 stagger helper: set --stagger-i on each child */
+.m-stagger { animation-delay: calc(var(--stagger-i, 0) * 24ms); }
+.m-stagger-40 { animation-delay: calc(var(--stagger-i, 0) * 40ms); }
+
+/* ─── §M6.2 Route transitions (ViewTransition path) ─── */
+@keyframes vtFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes vtFadeOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-4px); }
+}
+
+::view-transition-old(root) {
+  animation: vtFadeOut 108ms var(--ease-ink, cubic-bezier(0, 0, 0.2, 1)) both;
+}
+::view-transition-new(root) {
+  animation: vtFadeIn 180ms var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) both;
+}
+
+/* Fallback route enter for browsers without ViewTransition API */
+.m-route-enter {
+  animation: mEnter var(--m-quick, 120ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) both;
+}
+
+/* ─── §M5.4 Press micro-feedback (detent) ─── */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  transition: transform var(--m-micro, 60ms) var(--ease-detent, cubic-bezier(0.30, 0.80, 0.20, 1));
+}
 button:not(:disabled):active,
 [role="button"]:not([aria-disabled="true"]):active {
-  transform: scale(0.98);
+  transform: scale(0.985) translateY(1px);
 }
 
-/* Reduced motion support (§8.1) */
+/* ─── §M6.1 Boot utilities ─── */
+.boot-hidden { opacity: 0; }
+.boot-ready { opacity: 1; }
+
+/* ─── Reduced motion support (§8.1, §M11) ─── */
 @media (prefers-reduced-motion: reduce) {
   .animate-breathe,
   .animate-pulse-once,
   .skeleton-shimmer,
-  .animate-route-fade {
+  .m-enter, .m-enter-card, .m-exit,
+  .m-route-enter {
+    animation: none !important;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
     animation: none !important;
   }
   button:not(:disabled):active,
   [role="button"]:not([aria-disabled="true"]):active {
     transform: none !important;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    transition: none !important;
   }
 }
 

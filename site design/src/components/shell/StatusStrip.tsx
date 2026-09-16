@@ -300,7 +300,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
       className="h-7 px-4 bg-[var(--ink-800)] border-t border-[var(--line-faint)] flex items-center justify-between type-mono-sm select-none flex-shrink-0 z-30"
     >
       {/* Left: System LED + Status + allow_api status */}
-      <div className="flex items-center gap-2.5">
+      <div data-boot-target="status-led" className="flex items-center gap-2.5">
         <LED color={health.online ? "verdigris" : "madder"} live={health.online} />
         <span className={health.online ? "text-[var(--bone)]" : "text-[var(--madder)] font-medium"}>
           {health.online ? "System online" : "System offline"}
@@ -314,7 +314,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
       </div>
 
       {/* Middle: Screen-specific telemetry segments */}
-      <div className="hidden md:flex items-center">
+      <div data-boot-target="status-segment" className="hidden md:flex items-center">
         {renderMiddleSegments()}
       </div>
 

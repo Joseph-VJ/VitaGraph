@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { StatusStrip } from "./StatusStrip";
 import { LED } from "../gallery/LED";
+import { runBoot, supportsViewTransitions, useMotionGovernor } from "../../motion";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -12,6 +13,37 @@ interface AppShellProps {
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const [backendOnline, setBackendOnline] = useState(true);
   const location = useLocation();
+  const motion = useMotionGovernor();
+
+  const grainRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const hasBooted = useRef(false);
+
+  // Boot ignition sequence (§M6.1)
+  useEffect(() => {
+    if (hasBooted.current) return;
+    hasBooted.current = true;
+
+    const grain = grainRef.current;
+    const statusLed = document.querySelector<HTMLElement>('[data-boot-target="status-led"]');
+    const statusSegments = document.querySelectorAll('[data-boot-target="status-segment"]');
+    const sidebarLeaf = document.querySelector<HTMLElement>('[data-boot-target="sidebar-leaf"]');
+    const navItems = document.querySelectorAll('[data-boot-target="nav-item"]');
+    const headerSearch = document.querySelector<HTMLElement>('[data-boot-target="header-search"]');
+    const headerUser = document.querySelector<HTMLElement>('[data-boot-target="header-user"]');
+    const mainContent = mainRef.current;
+
+    runBoot({
+      grain,
+      statusLed,
+      statusSegments,
+      sidebarLeaf,
+      navItems,
+      headerSearch,
+      headerUser,
+      mainContent,
+    });
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -38,10 +70,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     };
   }, []);
 
+  // Dual-path route transitions (§M6.2)
+  const vtActive = supportsViewTransitions() && motion.tier !== "T0";
+  const isFallback = !vtActive && motion.tier !== "T0";
+  const routeAnimClass = isFallback ? "m-route-enter" : "";
+
   return (
     <div className="flex h-screen w-screen bg-[var(--ink-900)] text-[var(--bone)] overflow-hidden relative">
       {/* 3% opacity grain overlay (§4.7) */}
-      <div className="absolute inset-0 grain-overlay z-50 pointer-events-none" />
+      <div ref={grainRef} className="absolute inset-0 grain-overlay z-50 pointer-events-none" />
 
       {/* Sidebar (§5.1) */}
       <Sidebar />
@@ -66,8 +103,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
         <Header backendOnline={backendOnline} />
         <main
+          ref={mainRef}
           key={location.pathname}
-          className="flex-1 overflow-y-auto p-6 relative animate-route-fade"
+          className={`flex-1 overflow-y-auto p-6 relative ${routeAnimClass}`}
         >
           <div className="max-w-[1440px] mx-auto min-h-full flex flex-col">
             {children}

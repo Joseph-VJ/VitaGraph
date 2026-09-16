@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { LED } from "../gallery/LED";
 import { Marginalia, type MarginaliaSketch } from "../gallery/Marginalia";
+import { flip, supportsViewTransitions, governor } from "../../motion";
 
 export interface NavItem {
   id: string;
@@ -20,6 +21,46 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   const location = useLocation();
   const currentPath = location.pathname;
+
+  const navRef = useRef<HTMLElement>(null);
+  const indicatorRef = useRef<HTMLDivElement>(null);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    const navEl = navRef.current;
+    const indicatorEl = indicatorRef.current;
+    if (!navEl || !indicatorEl) return;
+
+    const activeLink = navEl.querySelector<HTMLElement>('a[data-active="true"]');
+    if (!activeLink) {
+      indicatorEl.style.display = "none";
+      return;
+    }
+
+    const navRect = navEl.getBoundingClientRect();
+    const linkRect = activeLink.getBoundingClientRect();
+    const top = linkRect.top - navRect.top;
+    const height = linkRect.height;
+
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      indicatorEl.style.top = `${top}px`;
+      indicatorEl.style.height = `${height}px`;
+      indicatorEl.style.display = "block";
+      return;
+    }
+
+    // Subsequent route changes: FLIP animation via weighted spring (§M6.2)
+    indicatorEl.style.display = "block";
+    flip(
+      indicatorEl,
+      () => {
+        indicatorEl.style.top = `${top}px`;
+        indicatorEl.style.height = `${height}px`;
+      },
+      { spring: "weighted", capMs: 240 }
+    );
+  }, [currentPath]);
 
   const navItems: NavItem[] = [
     {
@@ -301,6 +342,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
           <Link to="/" className="flex items-center gap-2.5 focus:outline-none">
             {/* Leaf glyph (verdigris hand-drawn SVG) */}
             <svg
+              data-boot-target="sidebar-leaf"
               className="w-5 h-5 text-[var(--verdigris)] flex-shrink-0"
               viewBox="0 0 24 24"
               fill="none"
@@ -323,17 +365,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
         </div>
 
         {/* Navigation list */}
-        <nav className="p-2 space-y-0.5" aria-label="Main Navigation">
+        <nav ref={navRef} className="p-2 space-y-0.5 relative" aria-label="Main Navigation">
+          {/* FLIP animated active-rule indicator (§M6.2) */}
+          <div
+            ref={indicatorRef}
+            data-testid="sidebar-active-indicator"
+            className="absolute left-2 w-[2px] bg-[var(--verdigris)] rounded-r pointer-events-none z-10"
+            style={{ top: 0, height: 0, display: "none" }}
+          />
+
           {navItems.map((item) => {
             const isActive = currentPath === item.path;
+            const useVT = supportsViewTransitions() && governor.getState().tier !== "T0";
             return (
               <Link
                 key={item.id}
                 to={item.path}
-                className={`flex items-center gap-3 px-3 py-2 rounded-[var(--r-6)] transition-all duration-[120ms] ease-out group relative ${
+                viewTransition={useVT}
+                data-active={isActive ? "true" : "false"}
+                data-boot-target="nav-item"
+                className={`flex items-center gap-3 px-3 py-2 rounded-[var(--r-6)] transition-all duration-[120ms] ease-out group relative border-l-2 ${
                   isActive
-                    ? "bg-[var(--ink-700)] text-[var(--bone)] border-l-2 border-l-[var(--verdigris)]"
-                    : "text-[var(--dim)] hover:text-[var(--bone)] hover:bg-[var(--ink-700)]/70 border-l-2 border-l-transparent"
+                    ? "bg-[var(--ink-700)] text-[var(--bone)] border-l-[var(--verdigris)]"
+                    : "text-[var(--dim)] hover:text-[var(--bone)] hover:bg-[var(--ink-700)]/70 border-l-transparent"
                 }`}
               >
                 <span

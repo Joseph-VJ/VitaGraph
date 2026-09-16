@@ -46,6 +46,13 @@ const detectFeatures = (): MotionFeatures => {
 
 export const features: MotionFeatures = detectFeatures();
 
+export const supportsViewTransitions = (): boolean => {
+  if (typeof window !== "undefined" && (window as any).__VT_DISABLE_VIEW_TRANSITIONS__) {
+    return false;
+  }
+  return features.viewTransitions;
+};
+
 export const isReducedMotion = (): boolean => {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
     return false;

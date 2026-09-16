@@ -204,7 +204,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
         )}
 
         {/* Search input (300px) */}
-        <div className="relative w-[300px] flex items-center">
+        <div data-boot-target="header-search" className="relative w-[300px] flex items-center">
           <span className="absolute left-3 text-[var(--dim)] pointer-events-none">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" />
@@ -223,7 +223,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
         </div>
 
         {/* User Chip (§5.2) */}
-        <div className="relative">
+        <div data-boot-target="header-user" className="relative">
           <button
             type="button"
             onClick={() => setShowUserMenu(!showUserMenu)}
