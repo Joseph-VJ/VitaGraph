@@ -9,6 +9,7 @@ import {
   Marginalia,
   Button,
   useToast,
+  UncertainState,
 } from "../components/gallery";
 import type { PipelineStep } from "../components/gallery/PipelineStepper";
 import { reportsApi, type ReportStatus } from "../api/reports";
@@ -33,6 +34,7 @@ export const UploadPage: React.FC = () => {
   const eventSourceRef = useRef<EventSource | null>(null);
   const eventQueueRef = useRef<any[]>([]);
   const isProcessingQueueRef = useRef<boolean>(false);
+  const isDoneRef = useRef<boolean>(false);
 
   // Stepper state
   const initialSteps: PipelineStep[] = [
@@ -192,10 +194,15 @@ export const UploadPage: React.FC = () => {
       }, dwellMs);
     };
 
+    isDoneRef.current = false;
+
     es.onmessage = (e) => {
       try {
         const evt = JSON.parse(e.data);
         if (evt && evt.stage) {
+          if (evt.stage === "done") {
+            isDoneRef.current = true;
+          }
           eventQueueRef.current.push(evt);
           if (!isProcessingQueueRef.current) {
             processQueue();
@@ -207,6 +214,10 @@ export const UploadPage: React.FC = () => {
     };
 
     es.onerror = () => {
+      if (isDoneRef.current) {
+        es.close();
+        return;
+      }
       es.close();
       setUploadError("Backend connection lost. Pipeline interrupted mid-upload.");
       addToast("failed", "Connection Interrupted", "Backend stream disconnected mid-upload.");
@@ -280,8 +291,24 @@ export const UploadPage: React.FC = () => {
     await handleFileSelect(invalidFile);
   };
 
+  // Helper to test uploading scanned OCR PDF (US-16)
+  const handleTestUploadScannedOcrPdf = async () => {
+    try {
+      const resp = await fetch("/VitaGraph-Report4-Scanned-OCR-Test-2024-12-01.pdf");
+      if (!resp.ok) {
+        throw new Error(`Failed to fetch scanned PDF: ${resp.status}`);
+      }
+      const blob = await resp.blob();
+      const testFile = new File([blob], "VitaGraph-Report4-Scanned-OCR-Test-2024-12-01.pdf", { type: "application/pdf" });
+      await handleFileSelect(testFile);
+    } catch (err) {
+      console.error("Scanned PDF fetch failed:", err);
+    }
+  };
+
   const nativePagesCount = pages.filter((p) => p.extraction_method === "native").length;
-  const ocrPagesCount = pages.filter((p) => p.extraction_method === "ocr").length;
+  const ocrPagesCount = pages.filter((p) => p.extraction_method.startsWith("ocr")).length;
+  const uncertainPages = pages.filter((p) => p.quality === "uncertain");
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -309,6 +336,14 @@ export const UploadPage: React.FC = () => {
             onClick={handleTestUploadSamplePdf}
           >
             Upload synthetic_panel_2025-01-15.pdf
+          </Button>
+          <Button
+            variant="ghost"
+            className="h-7 text-[11px] px-2.5 text-[var(--verdigris)] hover:text-[var(--verdigris)]"
+            disabled={isUploading}
+            onClick={handleTestUploadScannedOcrPdf}
+          >
+            Upload Report4 Scanned OCR Test
           </Button>
           <Button
             variant="ghost"
@@ -429,9 +464,16 @@ export const UploadPage: React.FC = () => {
                     </tr>
                   ) : (
                     pages.map((row) => {
-                      const qualityNum =
-                        row.quality === "good" ? 95 : row.quality === "sparse" ? 70 : 85;
                       const isNative = row.extraction_method === "native";
+                      const isUncertain = row.quality === "uncertain";
+                      const qualityNum =
+                        row.quality === "good"
+                          ? 95
+                          : row.quality === "sparse"
+                          ? 70
+                          : isUncertain
+                          ? 35
+                          : 85;
 
                       return (
                         <tr
@@ -445,13 +487,13 @@ export const UploadPage: React.FC = () => {
                             {row.text_length.toLocaleString()} chars
                           </td>
                           <td className="py-3 px-3">
-                            <Badge variant={isNative ? "verdigris" : "ochre"}>
+                            <Badge variant={isUncertain ? "madder" : isNative ? "verdigris" : "ochre"}>
                               {row.extraction_method}
                             </Badge>
                           </td>
                           <td className="py-3 px-3">
                             <div className="flex items-center gap-2">
-                              <QualityBar percentage={qualityNum} method={isNative ? "native" : "ocr"} />
+                              <QualityBar percentage={qualityNum} method={isNative ? "native" : row.extraction_method} />
                               <span className="type-mono-sm text-[var(--bone)]">
                                 {qualityNum}%
                               </span>
@@ -462,7 +504,9 @@ export const UploadPage: React.FC = () => {
                               ? "High structural text density"
                               : row.quality === "sparse"
                               ? "Sparse numerical data"
-                              : "OCR scanned image layer"}
+                              : isUncertain
+                              ? "Marked uncertain: low text density and OCR unavailable"
+                              : `OCR scanned image layer (${row.extraction_method})`}
                           </td>
                         </tr>
                       );
@@ -472,14 +516,24 @@ export const UploadPage: React.FC = () => {
               </table>
             </div>
 
+            {/* UncertainState notification banner per DESIGN §7.24 / US-16 */}
+            {uncertainPages.length > 0 && (
+              <div className="mt-4">
+                <UncertainState
+                  note={`${uncertainPages.length} scanned page(s) lack valid text layer and OCR engine was unavailable. Flagged per clinical fail-closed policy.`}
+                />
+              </div>
+            )}
+
             {/* Table Footnote */}
             {pages.length > 0 && (
               <div className="mt-4 pt-3 border-t border-[var(--line-faint)] flex items-center justify-between">
                 <span className="type-quote-sm text-[var(--dim)] italic">
                   {nativePagesCount} native page{nativePagesCount === 1 ? "" : "s"} · {ocrPagesCount} OCR scanned page{ocrPagesCount === 1 ? "" : "s"}
+                  {uncertainPages.length > 0 && ` · ${uncertainPages.length} uncertain`}
                 </span>
                 <span className="type-mono-sm text-[var(--faint)]">
-                  Engine: Surya-OCR / PyPDF pipeline
+                  Engine: RapidOCR / Tesseract dual-engine pipeline
                 </span>
               </div>
             )}

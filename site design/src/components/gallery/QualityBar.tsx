@@ -2,7 +2,7 @@ import React from "react";
 
 interface QualityBarProps {
   percentage: number; // 0 to 100
-  method?: "native" | "ocr";
+  method?: "native" | "ocr" | "ocr-rapid" | "ocr-tesseract" | "uncertain" | string;
   className?: string;
 }
 

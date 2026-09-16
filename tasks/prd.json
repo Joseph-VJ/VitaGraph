@@ -109,7 +109,7 @@
     {
       "id": "US-16",
       "title": "Extraction robustness: scan detection + table-aware entities",
-      "passes": false,
+      "passes": true,
       "acceptance": "page is scan-suspect if text_chars<400 OR full-page image present; OCR via Tesseract if available else rapidocr-onnxruntime (pip, no system binary); method recorded as ocr-tesseract/ocr-rapid; if neither engine, quality=uncertain + UncertainState UI, never silent; page.find_tables() rows normalized to single-line 'Name value unit range flag' before chunking; generic measurement fallback for table rows; dependency register updated",
       "verify": "pytest -q incl new tests/test_extraction_tables.py; upload VitaGraph-Report4-Scanned-OCR-Test-2024-12-01.pdf -> entities>=3 OR honest uncertain state; recording us16_scanned_ocr.png"
     },

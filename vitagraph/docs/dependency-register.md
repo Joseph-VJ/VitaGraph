@@ -19,6 +19,7 @@ versions are snapshotted in `docs/requirements-freeze.txt` (re-run
 | httpx | 0.28.1 | BSD-3 | Neutral AI-service client | requests |
 | python-dotenv | (see freeze) | BSD-3 | .env loading | pydantic-settings built-in |
 | pytest | (see freeze) | MIT | Test suite | — |
+| rapidocr-onnxruntime | 1.2.3 | Apache-2.0 | Pure Python ONNX OCR fallback (US-16) | pytesseract + Tesseract binary |
 
 **Planned deviations from the frozen stack (recorded per plan Section 3.6):**
 

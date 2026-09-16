@@ -22,8 +22,8 @@ import pymupdf as fitz  # PyMuPDF
 
 from app.ingestion import ocr_fallback
 
-# A page with fewer than this many extracted characters is a candidate for OCR.
-SPARSE_PAGE_CHARS = 40
+# A page with fewer than this many extracted characters is scan-suspect per US-16.
+SCAN_SUSPECT_PAGE_CHARS = 400
 
 # Header lines that carry the report date (plan Section 6 requirement 4).
 _DATE_LINE = re.compile(
@@ -38,6 +38,59 @@ def _normalize_whitespace(text: str) -> str:
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
+
+
+def _has_full_page_image(page) -> bool:
+    """Check if page contains a full-page or substantial image (>40% of page area)."""
+    try:
+        page_area = page.rect.width * page.rect.height
+        if page_area <= 0:
+            return False
+        images = page.get_images()
+        if not images:
+            return False
+        for img_info in images:
+            xref = img_info[0]
+            for r in page.get_image_rects(xref):
+                if (r.width * r.height) >= 0.40 * page_area:
+                    return True
+    except Exception:
+        pass
+    return False
+
+
+def _is_scan_suspect(page, raw_text: str) -> bool:
+    """Page is scan-suspect if text_chars < 400 OR full-page image present (US-16)."""
+    if len(raw_text.strip()) < SCAN_SUSPECT_PAGE_CHARS:
+        return True
+    return _has_full_page_image(page)
+
+
+def _extract_and_normalize_tables(page) -> list[str]:
+    """Find tables on page and normalize rows to single-line 'Name value unit range flag' (US-16)."""
+    normalized: list[str] = []
+    try:
+        tabs = page.find_tables()
+        if tabs and tabs.tables:
+            for tab in tabs.tables:
+                extracted = tab.extract()
+                if not extracted or len(extracted) < 2:
+                    continue
+                # Skip header row, process data rows
+                for row in extracted[1:]:
+                    cells = [
+                        str(c).strip().replace("\n", " ")
+                        for c in row
+                        if c is not None and str(c).strip()
+                    ]
+                    if not cells:
+                        continue
+                    line = " ".join(cells)
+                    if any(ch.isdigit() for ch in line) and len(line) >= 4:
+                        normalized.append(line)
+    except Exception:
+        pass
+    return normalized
 
 
 def parse_report_date(pages: list[dict]) -> str | None:
@@ -56,7 +109,7 @@ def parse_report_date(pages: list[dict]) -> str | None:
 
 
 def extract_report(report: dict) -> list[dict]:
-    """Extract every page of a stored report. Pure — performs no DB writes."""
+    """Extract every page of a stored report with scan detection and table normalization (US-16)."""
     report_id = report["id"]
     doc = fitz.open(report["stored_path"])
     pages: list[dict] = []
@@ -67,20 +120,37 @@ def extract_report(report: dict) -> list[dict]:
             raw_text = _normalize_whitespace(page.get_text("text"))
             note = None
 
-            if len(raw_text) >= SPARSE_PAGE_CHARS:
+            # Table extraction and normalization per US-16
+            table_rows = _extract_and_normalize_tables(page)
+            if table_rows:
+                table_block = "\n" + "\n".join(table_rows)
+                if not any(row in raw_text for row in table_rows):
+                    raw_text = (raw_text + "\n\nTable Measurements:\n" + table_block).strip()
+
+            # Scan detection per US-16 (text_chars < 400 OR full-page image present)
+            if not _is_scan_suspect(page, raw_text):
                 method, quality = "native", "good"
             else:
-                # Sparse page: try the OCR fallback (may be unavailable).
+                # Scan-suspect page: trigger OCR engine hierarchy (Tesseract -> RapidOCR -> uncertain)
                 ocr_result = ocr_fallback.ocr_page(doc, page_number - 1)
                 if ocr_result.ok:
-                    raw_text = _normalize_whitespace(ocr_result.text)
-                    method = "ocr"
+                    ocr_text = _normalize_whitespace(ocr_result.text)
+                    if len(ocr_text) > len(raw_text) or len(raw_text) < SCAN_SUSPECT_PAGE_CHARS:
+                        raw_text = ocr_text
+                    method = ocr_result.method
                     quality = "uncertain" if ocr_result.low_confidence else "good"
                     note = ocr_result.note
                 else:
-                    method = "failed" if not raw_text else "native"
-                    quality = "failed" if not raw_text else "sparse"
-                    note = ocr_result.note
+                    # Neither engine available or OCR failed completely
+                    method = (
+                        ocr_result.method
+                        if ocr_result.method in ("ocr-tesseract", "ocr-rapid")
+                        else "native"
+                        if raw_text
+                        else "uncertain"
+                    )
+                    quality = "uncertain"
+                    note = ocr_result.note or "Scan-suspect page could not be OCR-processed; marked uncertain."
 
             pages.append({
                 "page_id": page_id,
