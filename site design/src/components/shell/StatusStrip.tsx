@@ -23,6 +23,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
     configVersion: "gen-service v2 · cfg 2026-08",
     allowApi: true,
   });
+  const [probeTick, setProbeTick] = useState(0);
 
   // Probe live backend /api/health and measure real client latency
   useEffect(() => {
@@ -50,6 +51,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
             configVersion: "gen-service v2 · cfg 2026-08",
             allowApi: data.allow_api ?? true,
           });
+          setProbeTick((t) => t + 1);
         }
       } catch {
         if (mounted) {
@@ -63,7 +65,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
     };
 
     checkHealth();
-    const interval = setInterval(checkHealth, 10000);
+    const interval = setInterval(checkHealth, 5000);
     return () => {
       mounted = false;
       clearInterval(interval);
@@ -92,10 +94,11 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
               <span className="text-[var(--bone)]">2 min ago</span>
             </div>
             <span className="text-[var(--line-strong)]">|</span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5" title={`Probe #${probeTick}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--verdigris)] animate-pulse" />
               <span className="text-[var(--dim)]">Latency</span>
-              <span className="text-[var(--bone)]">
-                {health.latencyMs ? `${health.latencyMs} ms` : "4.8 s"}
+              <span key={probeTick} className="text-[var(--bone)] type-mono animate-fade-in font-medium">
+                {health.latencyMs ? `${health.latencyMs} ms` : "—"}
               </span>
             </div>
             <span className="text-[var(--line-strong)]">|</span>
@@ -123,10 +126,11 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
               <span className="text-[var(--bone)]">214</span>
             </div>
             <span className="text-[var(--line-strong)]">|</span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5" title={`Probe #${probeTick}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--verdigris)] animate-pulse" />
               <span className="text-[var(--dim)]">Latency</span>
-              <span className="text-[var(--bone)]">
-                {health.latencyMs ? `${health.latencyMs} ms` : "38 ms"}
+              <span key={probeTick} className="text-[var(--bone)] type-mono animate-fade-in font-medium">
+                {health.latencyMs ? `${health.latencyMs} ms` : "—"}
               </span>
             </div>
           </div>
@@ -154,20 +158,29 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
               <span className="text-[var(--bone)]">486</span>
             </div>
             <span className="text-[var(--line-strong)]">|</span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5" title={`Probe #${probeTick}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--verdigris)] animate-pulse" />
               <span className="text-[var(--dim)]">Latency</span>
-              <span className="text-[var(--bone)]">
-                {health.latencyMs ? `${health.latencyMs} ms` : "38 ms"}
+              <span key={probeTick} className="text-[var(--bone)] type-mono animate-fade-in font-medium">
+                {health.latencyMs ? `${health.latencyMs} ms` : "—"}
               </span>
             </div>
           </div>
         );
-      default: // Home
+      default: // Home & other screens
         return (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <span className="font-['Spectral'] italic text-[var(--bone)] text-[12px]">
               “Evidence connects. People benefit.”
             </span>
+            <span className="text-[var(--line-strong)]">|</span>
+            <div className="flex items-center gap-1.5" title={`Probe #${probeTick}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--verdigris)] animate-pulse" />
+              <span className="text-[var(--dim)]">Latency</span>
+              <span key={probeTick} className="text-[var(--bone)] type-mono animate-fade-in font-medium">
+                {health.latencyMs ? `${health.latencyMs} ms` : "—"}
+              </span>
+            </div>
           </div>
         );
     }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { StatusStrip } from "./StatusStrip";
@@ -10,6 +11,7 @@ interface AppShellProps {
 
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const [backendOnline, setBackendOnline] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
     let isMounted = true;
@@ -63,7 +65,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         )}
 
         <Header backendOnline={backendOnline} />
-        <main className="flex-1 overflow-y-auto p-6 relative">
+        <main
+          key={location.pathname}
+          className="flex-1 overflow-y-auto p-6 relative animate-route-fade"
+        >
           <div className="max-w-[1440px] mx-auto min-h-full flex flex-col">
             {children}
           </div>

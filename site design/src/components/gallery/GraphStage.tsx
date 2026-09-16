@@ -732,6 +732,15 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           </div>
         </div>
 
+        {/* Skeleton shimmer before first graph data arrives (§US-18) */}
+        {!graphData && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-[var(--ink-900)]/80 backdrop-blur-sm pointer-events-none">
+            <div className="w-16 h-16 rounded-full skeleton-shimmer" />
+            <div className="h-4 w-48 rounded-[var(--r-4)] skeleton-shimmer" />
+            <div className="h-3 w-32 rounded-[var(--r-4)] skeleton-shimmer opacity-75" />
+          </div>
+        )}
+
         {/* Interactive Canvas */}
         <canvas
           ref={canvasRef}

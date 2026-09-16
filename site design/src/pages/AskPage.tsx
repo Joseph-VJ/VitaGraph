@@ -154,6 +154,10 @@ export const AskPage: React.FC = () => {
           )
         );
         addToast("done", "Response Complete", `Generated grounded response with ${answer.evidence?.length || 0} citations`);
+        window.dispatchEvent(new CustomEvent("vitagraph:job-done", { detail: { stage: "done", answer } }));
+        try {
+          localStorage.setItem("vitagraph:last_job_done", JSON.stringify({ time: Date.now(), stage: "done", type: "question" }));
+        } catch {}
       }
       setIsAsking(false);
     };

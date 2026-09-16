@@ -128,8 +128,23 @@ export const InsightsPage: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="p-12 text-center text-[var(--dim)] type-body bg-[var(--ink-800)] rounded-[var(--r-14)] border border-[var(--line-strong)]">
-          Analyzing network topology and computing community modularity...
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col gap-4"
+            >
+              <div className="flex justify-between items-center pb-3 border-b border-[var(--line-faint)]">
+                <div className="h-4 w-40 rounded-[var(--r-4)] skeleton-shimmer" />
+                <div className="h-5 w-16 rounded-[var(--r-4)] skeleton-shimmer" />
+              </div>
+              <div className="h-10 w-28 rounded-[var(--r-4)] skeleton-shimmer" />
+              <div className="space-y-2">
+                <div className="h-3.5 w-full rounded-[var(--r-4)] skeleton-shimmer" />
+                <div className="h-3.5 w-4/5 rounded-[var(--r-4)] skeleton-shimmer" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         /* Grid of 4 Insight Cards (§9.7) */

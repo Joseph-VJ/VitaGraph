@@ -105,9 +105,18 @@ export const HomePage: React.FC = () => {
     mountedRef.current = true;
     fetchLiveData();
     const interval = setInterval(fetchLiveData, 15000);
+
+    const handleJobDone = () => {
+      fetchLiveData();
+    };
+    window.addEventListener("vitagraph:job-done", handleJobDone);
+    window.addEventListener("storage", handleJobDone);
+
     return () => {
       mountedRef.current = false;
       clearInterval(interval);
+      window.removeEventListener("vitagraph:job-done", handleJobDone);
+      window.removeEventListener("storage", handleJobDone);
     };
   }, [fetchLiveData]);
 
@@ -210,36 +219,50 @@ export const HomePage: React.FC = () => {
         <div className="flex-1 flex flex-col gap-6 min-w-0 w-full">
           {/* Stat Row (6 Tiles) — All Live */}
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-            <StatTile
-              type="doc"
-              label="Reports"
-              value={backendOnline ? String(reportsCount) : "0"}
-            />
-            <StatTile
-              type="cube"
-              label="Chunks"
-              value={backendOnline ? chunksCount.toLocaleString() : "0"}
-            />
-            <StatTile
-              type="graph"
-              label="Graph nodes"
-              value={backendOnline ? String(nodesCount) : "0"}
-            />
-            <StatTile
-              type="link"
-              label="Edges"
-              value={backendOnline ? String(edgesCount) : "0"}
-            />
-            <StatTile
-              type="speech"
-              label="Questions"
-              value={backendOnline ? String(questionsCount) : "0"}
-            />
-            <StatTile
-              type="shield"
-              label="Refusals"
-              value={backendOnline ? String(refusalsCount) : "0"}
-            />
+            {loading ? (
+              [1, 2, 3, 4, 5, 6].map((i) => (
+                <div
+                  key={i}
+                  className="p-3.5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col gap-2 animate-pulse"
+                >
+                  <div className="h-3 w-16 rounded-[var(--r-4)] skeleton-shimmer" />
+                  <div className="h-6 w-12 rounded-[var(--r-4)] skeleton-shimmer" />
+                </div>
+              ))
+            ) : (
+              <>
+                <StatTile
+                  type="doc"
+                  label="Reports"
+                  value={backendOnline ? String(reportsCount) : "0"}
+                />
+                <StatTile
+                  type="cube"
+                  label="Chunks"
+                  value={backendOnline ? chunksCount.toLocaleString() : "0"}
+                />
+                <StatTile
+                  type="graph"
+                  label="Graph nodes"
+                  value={backendOnline ? String(nodesCount) : "0"}
+                />
+                <StatTile
+                  type="link"
+                  label="Edges"
+                  value={backendOnline ? String(edgesCount) : "0"}
+                />
+                <StatTile
+                  type="speech"
+                  label="Questions"
+                  value={backendOnline ? String(questionsCount) : "0"}
+                />
+                <StatTile
+                  type="shield"
+                  label="Refusals"
+                  value={backendOnline ? String(refusalsCount) : "0"}
+                />
+              </>
+            )}
           </div>
 
           {/* Recent Activity Card */}
@@ -267,9 +290,20 @@ export const HomePage: React.FC = () => {
                 <div className="py-8 text-center text-[var(--dim)] text-[13px]">
                   Backend server is offline. Realtime timeline activity unavailable.
                 </div>
+              ) : loading ? (
+                <div className="p-4 flex flex-col gap-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex items-center justify-between py-2 border-b border-[var(--line-faint)] last:border-0">
+                      <div className="h-4 w-28 rounded-[var(--r-4)] skeleton-shimmer" />
+                      <div className="h-4 w-32 rounded-[var(--r-4)] skeleton-shimmer" />
+                      <div className="h-4 flex-1 mx-4 rounded-[var(--r-4)] skeleton-shimmer" />
+                      <div className="h-4 w-24 rounded-[var(--r-4)] skeleton-shimmer" />
+                    </div>
+                  ))}
+                </div>
               ) : activityItems.length === 0 ? (
                 <div className="py-8 text-center text-[var(--dim)] text-[13px]">
-                  {loading ? "Loading persona history..." : "No timeline events recorded yet for this persona."}
+                  No timeline events recorded yet for this persona.
                 </div>
               ) : (
                 activityItems.map((item, idx) => (
@@ -387,7 +421,9 @@ export const HomePage: React.FC = () => {
             {/* Last open document */}
             <div>
               <div className="type-meta text-[var(--dim)] mb-1.5">Last open document</div>
-              {lastDocument ? (
+              {loading ? (
+                <div className="h-14 rounded-[var(--r-6)] skeleton-shimmer" />
+              ) : lastDocument ? (
                 <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/50 border border-[var(--line-faint)]">
                   <div className="flex items-start gap-2.5 min-w-0 flex-1 mr-2">
                     <svg
@@ -431,7 +467,9 @@ export const HomePage: React.FC = () => {
             {/* Last question */}
             <div>
               <div className="type-meta text-[var(--dim)] mb-1.5">Last question</div>
-              {lastQuestionText ? (
+              {loading ? (
+                <div className="h-14 rounded-[var(--r-6)] skeleton-shimmer" />
+              ) : lastQuestionText ? (
                 <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/50 border border-[var(--line-faint)]">
                   <div className="flex items-start gap-2.5 min-w-0 flex-1 mr-2">
                     <svg

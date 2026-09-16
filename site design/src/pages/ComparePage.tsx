@@ -164,8 +164,19 @@ export const ComparePage: React.FC = () => {
       {/* Comparison Diff Table */}
       <div className="rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-[var(--dim)] type-body">
-            Computing longitudinal differences between panels...
+          <div className="p-5 flex flex-col gap-3 animate-pulse">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center justify-between py-3 border-b border-[var(--line-faint)] last:border-0">
+                <div className="flex flex-col gap-1.5 w-44">
+                  <div className="h-4 w-32 rounded-[var(--r-4)] skeleton-shimmer" />
+                  <div className="h-3 w-20 rounded-[var(--r-4)] skeleton-shimmer" />
+                </div>
+                <div className="h-4 w-24 rounded-[var(--r-4)] skeleton-shimmer" />
+                <div className="h-4 w-24 rounded-[var(--r-4)] skeleton-shimmer" />
+                <div className="h-6 w-28 rounded-[var(--r-4)] skeleton-shimmer" />
+                <div className="h-4 w-16 rounded-[var(--r-4)] skeleton-shimmer" />
+              </div>
+            ))}
           </div>
         ) : rows.length === 0 ? (
           <div className="p-8 text-center text-[var(--dim)] type-body">

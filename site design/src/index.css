@@ -216,12 +216,33 @@ a:focus-visible,
   animation: shimmer 1.2s infinite;
 }
 
+/* 120ms Route fade (§US-18, §8.1) */
+@keyframes routeFade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.animate-route-fade {
+  animation: routeFade 120ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+/* Button press micro-feedback (§US-18, §7.5) */
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active {
+  transform: scale(0.98);
+}
+
 /* Reduced motion support (§8.1) */
 @media (prefers-reduced-motion: reduce) {
   .animate-breathe,
   .animate-pulse-once,
-  .skeleton-shimmer {
+  .skeleton-shimmer,
+  .animate-route-fade {
     animation: none !important;
+  }
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active {
+    transform: none !important;
   }
 }
 

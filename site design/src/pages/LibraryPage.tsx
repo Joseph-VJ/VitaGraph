@@ -176,8 +176,22 @@ export const LibraryPage: React.FC = () => {
       {/* Reports List */}
       <div className="space-y-3">
         {loading ? (
-          <div className="p-8 text-center text-[var(--dim)] type-body">
-            Loading reports from knowledge store...
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-pulse"
+              >
+                <div className="flex items-start gap-4 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-[var(--r-6)] skeleton-shimmer flex-shrink-0" />
+                  <div className="min-w-0 flex-1 flex flex-col gap-2">
+                    <div className="h-4 w-56 rounded-[var(--r-4)] skeleton-shimmer" />
+                    <div className="h-3 w-40 rounded-[var(--r-4)] skeleton-shimmer" />
+                  </div>
+                </div>
+                <div className="h-8 w-24 rounded-[var(--r-6)] skeleton-shimmer" />
+              </div>
+            ))}
           </div>
         ) : filteredReports.length === 0 ? (
           <div className="p-8 text-center bg-[var(--ink-800)] rounded-[var(--r-10)] border border-[var(--line-strong)] text-[var(--dim)]">

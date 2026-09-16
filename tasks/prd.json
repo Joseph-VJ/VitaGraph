@@ -123,7 +123,7 @@
     {
       "id": "US-18",
       "title": "Global liveliness pass",
-      "passes": false,
+      "passes": true,
       "acceptance": "skeleton shimmer on every async region until first data; 120ms route fade; button press micro-feedback; status-strip latency ticker per health probe; activity feed refreshes on job-done event; toasts for upload done/failed and persona delete; prefers-reduced-motion honored; grep proof: zero setTimeout-driven progress values (presentation dwell constants allowed)",
       "verify": "full-tour recording us18_tour.mp4; grep evidence; DESIGN.md 16 gates green"
     },

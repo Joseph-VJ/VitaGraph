@@ -151,6 +151,10 @@ export const UploadPage: React.FC = () => {
             const chunkCount = evt.metadata?.chunks || evt.metadata?.report?.chunk_count || 1;
             const reportId = evt.metadata?.report_id || evt.metadata?.report?.id;
             addToast("done", "Report Ingestion Complete", `${pageCount} pages, ${chunkCount} chunks indexed`);
+            window.dispatchEvent(new CustomEvent("vitagraph:job-done", { detail: evt }));
+            try {
+              localStorage.setItem("vitagraph:last_job_done", JSON.stringify({ time: Date.now(), stage: "done", reportId }));
+            } catch {}
             setIsUploading(false);
             if (reportId) {
               reportsApi.pages(reportId).then((pgs) => setPages(pgs)).catch(() => {});

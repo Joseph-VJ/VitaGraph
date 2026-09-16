@@ -8,6 +8,7 @@ import {
   Marginalia,
 } from "../components/gallery";
 import { useActiveUser } from "../context/UserContext";
+import { useToast } from "../components/gallery/Toast";
 import { timelineApi } from "../api/timeline";
 import { reportsApi, type TrendData } from "../api/reports";
 import { usersApi } from "../api/users";
@@ -15,6 +16,7 @@ import type { TimelineEvent, Report } from "../types";
 
 export const TimelinePage: React.FC = () => {
   const { user, users, setUser, refreshUsers } = useActiveUser();
+  const { addToast } = useToast();
   const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
 
   const [filter, setFilter] = useState("all");
@@ -22,11 +24,13 @@ export const TimelinePage: React.FC = () => {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [hemoTrend, setHemoTrend] = useState<TrendData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSimulatingUpload, setIsSimulatingUpload] = useState(false);
 
   const loadData = useCallback(async () => {
+    setLoading(true);
     try {
       const [evts, repList] = await Promise.all([
         timelineApi.events(effectiveUserId),
@@ -43,6 +47,8 @@ export const TimelinePage: React.FC = () => {
       }
     } catch (err) {
       console.warn("Error loading timeline data:", err);
+    } finally {
+      setLoading(false);
     }
   }, [effectiveUserId]);
 
@@ -60,6 +66,7 @@ export const TimelinePage: React.FC = () => {
     setIsDeleting(true);
     try {
       await usersApi.remove(effectiveUserId);
+      addToast("done", "Persona Deleted", `Persona ${effectiveUserId} records and vectors purged.`);
       await refreshUsers();
       // Switch to next available user if exists
       const remaining = users.filter((u) => u.id !== effectiveUserId);
@@ -71,6 +78,7 @@ export const TimelinePage: React.FC = () => {
       setShowDeleteConfirm(false);
     } catch (err) {
       console.error("Failed to delete persona:", err);
+      addToast("failed", "Delete Failed", (err as Error).message || "Could not delete persona.");
     } finally {
       setIsDeleting(false);
     }
@@ -144,204 +152,239 @@ export const TimelinePage: React.FC = () => {
       <div className="flex flex-col lg:flex-row gap-8 items-start w-full">
         {/* Timeline Spine Column */}
         <div className="flex-1 flex flex-col min-w-0 w-full relative pl-6 border-l-2 border-[var(--line-strong)] space-y-10">
-          
-          {/* Dynamic Report Blocks from Database */}
-          {reports.map((report, idx) => {
-            const isLatest = idx === 0;
-            const isBaseline = idx === reports.length - 1 && reports.length > 1;
-            const dateStr = report.report_date || report.upload_time.split("T")[0];
-
-            return (
-              <div key={report.id} className="relative animate-fade-in">
-                {/* Spine Node Dot */}
-                <div
-                  className={`absolute -left-[31px] top-1.5 w-4 h-4 rounded-full border-4 border-[var(--ink-900)] ${
-                    isLatest
-                      ? "bg-[var(--verdigris)] shadow-[0_0_8px_rgba(121,184,166,0.5)]"
-                      : "bg-[var(--ink-600)]"
-                  }`}
-                />
-
-                {/* Block Header */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <span className="type-mono text-[var(--bone)] font-medium text-base">
-                      {dateStr}
-                    </span>
-                    {isLatest && <Badge variant="verdigris">Latest panel</Badge>}
-                    {isBaseline && <Badge variant="dim">Baseline panel</Badge>}
-                    <span className="type-meta text-[var(--dim)]">
-                      {isLatest ? "Follow-up evaluation" : isBaseline ? "Initial enrollment checkup" : "Periodic panel"}
-                    </span>
+          {loading ? (
+            <div className="flex flex-col gap-8">
+              {[1, 2].map((i) => (
+                <div key={i} className="relative animate-pulse">
+                  <div className="absolute -left-[31px] top-1.5 w-4 h-4 rounded-full bg-[var(--ink-700)]" />
+                  <div className="h-4 w-40 rounded-[var(--r-4)] skeleton-shimmer mb-3" />
+                  <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-5 flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-[var(--r-6)] skeleton-shimmer flex-shrink-0" />
+                      <div className="flex-1 flex flex-col gap-2">
+                        <div className="h-4 w-48 rounded-[var(--r-4)] skeleton-shimmer" />
+                        <div className="h-3 w-32 rounded-[var(--r-4)] skeleton-shimmer" />
+                      </div>
+                    </div>
+                    <div className="h-20 w-full rounded-[var(--r-6)] skeleton-shimmer mt-2" />
                   </div>
-                  <span className="type-mono-sm text-[var(--faint)]">
-                    {report.page_count ? `${report.page_count} pages` : "1 page"} · sha256: {report.file_hash.slice(0, 8)}…
-                  </span>
                 </div>
+              ))}
+            </div>
+          ) : reports.length === 0 ? (
+            <div className="p-8 text-center bg-[var(--ink-800)] rounded-[var(--r-10)] border border-[var(--line-strong)] text-[var(--dim)]">
+              No reports found for this persona.
+            </div>
+          ) : (
+            reports.map((report, idx) => {
+              const isLatest = idx === 0;
+              const isBaseline = idx === reports.length - 1 && reports.length > 1;
+              const dateStr = report.report_date || report.upload_time.split("T")[0];
 
-                {/* Report Card */}
-                <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-5 mb-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3.5">
-                      <div
-                        className={`w-10 h-10 rounded-[var(--r-6)] bg-[var(--ink-700)] flex items-center justify-center flex-shrink-0 ${
-                          isLatest ? "text-[var(--verdigris)]" : "text-[var(--dim)]"
-                        }`}
-                      >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                          <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="type-title text-[var(--bone)]">
-                          {report.original_filename.replace(/\.pdf$/i, "").replace(/_/g, " ")}
-                        </h4>
-                        <p className="type-meta text-[var(--dim)] mt-0.5">
-                          {report.original_filename} · {report.page_count || 1} page · Parsed by PyPDF/Surya-OCR
-                        </p>
-                      </div>
+              return (
+                <div key={report.id} className="relative animate-fade-in">
+                  {/* Spine Node Dot */}
+                  <div
+                    className={`absolute -left-[31px] top-1.5 w-4 h-4 rounded-full border-4 border-[var(--ink-900)] ${
+                      isLatest
+                        ? "bg-[var(--verdigris)] shadow-[0_0_8px_rgba(121,184,166,0.5)]"
+                        : "bg-[var(--ink-600)]"
+                    }`}
+                  />
+
+                  {/* Block Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="type-mono text-[var(--bone)] font-medium text-base">
+                        {dateStr}
+                      </span>
+                      {isLatest && <Badge variant="verdigris">Latest panel</Badge>}
+                      {isBaseline && <Badge variant="dim">Baseline panel</Badge>}
+                      <span className="type-meta text-[var(--dim)]">
+                        {isLatest ? "Follow-up evaluation" : isBaseline ? "Initial enrollment checkup" : "Periodic panel"}
+                      </span>
                     </div>
-                    <Button variant="ghost" className="text-xs h-8">
-                      View report
-                    </Button>
+                    <span className="type-mono-sm text-[var(--faint)]">
+                      {report.page_count ? `${report.page_count} pages` : "1 page"} · sha256: {report.file_hash.slice(0, 8)}…
+                    </span>
                   </div>
 
-                  {/* Sub-events inside this report block */}
-                  <div className="mt-4 pt-4 border-t border-[var(--line-faint)] flex flex-col gap-2.5">
-                    <div className="flex items-center gap-2 type-meta text-[var(--dim)]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--verdigris)]" />
-                      <span className="type-label text-[var(--bone)]">Graph updated</span>
-                      <span>—</span>
-                      <span>Extracted entities & relations linked to knowledge graph topology</span>
-                    </div>
-
-                    <div className="p-3 bg-[var(--ink-900)] rounded-[var(--r-6)] border border-[var(--line-faint)] flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <span className="type-label text-[var(--dim)] text-[11px] block mb-0.5">
-                          Clinical inquiry
-                        </span>
-                        <p className="type-reading italic text-[var(--bone)] text-sm">
-                          {isLatest
-                            ? "“What is my hemoglobin level and how does it compare to previous readings?”"
-                            : "“What does elevated creatinine indicate in this panel?”"}
-                        </p>
+                  {/* Report Card */}
+                  <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-5 mb-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3.5">
+                        <div
+                          className={`w-10 h-10 rounded-[var(--r-6)] bg-[var(--ink-700)] flex items-center justify-center flex-shrink-0 ${
+                            isLatest ? "text-[var(--verdigris)]" : "text-[var(--dim)]"
+                          }`}
+                        >
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="type-title text-[var(--bone)]">
+                              {report.original_filename.replace(/\.pdf$/i, "").replace(/_/g, " ")}
+                            </h4>
+                            <Badge variant={report.status === "ready" ? "verdigris" : "ochre"}>
+                              {report.status}
+                            </Badge>
+                          </div>
+                          <p className="type-meta text-[var(--dim)] mt-0.5">
+                            {report.original_filename} · {report.page_count || 1} page · Parsed by PyPDF/Surya-OCR
+                          </p>
+                        </div>
                       </div>
-                      <Button variant="ghost" className="text-[11px] h-7 px-2.5 flex-shrink-0">
-                        Show answer
+                      <Button variant="ghost" className="text-xs h-8">
+                        View report
                       </Button>
                     </div>
-                  </div>
 
-                  {/* Longitudinal Observation Rows (§9.5) */}
-                  <div className="mt-4 pt-4 border-t border-[var(--line-faint)]">
-                    <span className="type-label text-[var(--dim)] block mb-3">
-                      {isLatest ? "Measurements & longitudinal deltas" : "Baseline readings"}
-                    </span>
-                    <div className="space-y-2">
-                      {/* Hemoglobin */}
-                      <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
-                        <div className="flex items-center gap-3">
-                          <span className="type-body font-medium text-[var(--bone)] w-28">
-                            Hemoglobin
-                          </span>
-                          <span className="type-mono-sm text-[var(--dim)]">
-                            {isLatest ? "13.8 → " : ""}
-                            <span className="text-[var(--bone)] font-semibold">
-                              {isLatest ? "14.1" : "13.8"}
-                            </span>{" "}
-                            {hemoTrend?.unit || "g/dL"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {isLatest ? (
-                            <DeltaChip type="improving" label="+0.3 improving" />
-                          ) : (
-                            <Badge variant="verdigris">Normal</Badge>
-                          )}
-                          <span className="type-mono-sm text-[var(--faint)]">Ref: p. 1</span>
-                        </div>
+                    {/* Sub-events inside this report block */}
+                    <div className="mt-4 pt-4 border-t border-[var(--line-faint)] flex flex-col gap-2.5">
+                      <div className="flex items-center gap-2 type-meta text-[var(--dim)]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--verdigris)]" />
+                        <span className="type-label text-[var(--bone)]">Graph updated</span>
+                        <span>—</span>
+                        <span>Extracted entities & relations linked to knowledge graph topology</span>
                       </div>
 
-                      {/* eGFR / Creatinine */}
-                      <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
-                        <div className="flex items-center gap-3">
-                          <span className="type-body font-medium text-[var(--bone)] w-28">
-                            eGFR
+                      <div className="p-3 bg-[var(--ink-900)] rounded-[var(--r-6)] border border-[var(--line-faint)] flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <span className="type-label text-[var(--dim)] text-[11px] block mb-0.5">
+                            Clinical inquiry
                           </span>
-                          <span className="type-mono-sm text-[var(--dim)]">
-                            {isLatest ? "78 → " : ""}
-                            <span className="text-[var(--ochre)] font-semibold">
-                              {isLatest ? "72" : "78"}
-                            </span>{" "}
-                            mL/min
-                          </span>
+                          <p className="type-reading italic text-[var(--bone)] text-sm">
+                            {isLatest
+                              ? "“What is my hemoglobin level and how does it compare to previous readings?”"
+                              : "“What does elevated creatinine indicate in this panel?”"}
+                          </p>
                         </div>
-                        <div className="flex items-center gap-3">
-                          {isLatest ? (
-                            <DeltaChip type="decrease" label="−6 slight decrease" />
-                          ) : (
-                            <Badge variant="verdigris">Normal</Badge>
-                          )}
-                          <span className="type-mono-sm text-[var(--faint)]">Ref: p. 1</span>
-                        </div>
+                        <Button variant="ghost" className="text-[11px] h-7 px-2.5 flex-shrink-0">
+                          Show answer
+                        </Button>
                       </div>
+                    </div>
 
-                      {/* HbA1c */}
-                      <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
-                        <div className="flex items-center gap-3">
-                          <span className="type-body font-medium text-[var(--bone)] w-28">
-                            HbA1c
-                          </span>
-                          <span className="type-mono-sm text-[var(--dim)]">
-                            {isLatest ? "5.9 → " : ""}
-                            <span className="text-[var(--madder)] font-semibold">
-                              {isLatest ? "6.2" : "5.9"}
-                            </span>{" "}
-                            %
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {isLatest ? (
-                            <DeltaChip type="increase" label="+0.3 increase" />
-                          ) : (
-                            <Badge variant="ochre">Elevated</Badge>
-                          )}
-                          <span className="type-mono-sm text-[var(--faint)]">Ref: p. 1</span>
-                        </div>
-                      </div>
-
-                      {/* Vitamin D (Present in latest, NOT present in baseline) */}
-                      {isLatest ? (
+                    {/* Longitudinal Observation Rows (§9.5) */}
+                    <div className="mt-4 pt-4 border-t border-[var(--line-faint)]">
+                      <span className="type-label text-[var(--dim)] block mb-3">
+                        {isLatest ? "Measurements & longitudinal deltas" : "Baseline readings"}
+                      </span>
+                      <div className="space-y-2">
+                        {/* Hemoglobin */}
                         <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
                           <div className="flex items-center gap-3">
                             <span className="type-body font-medium text-[var(--bone)] w-28">
-                              Vitamin D
+                              Hemoglobin
                             </span>
                             <span className="type-mono-sm text-[var(--dim)]">
-                              — → <span className="text-[var(--cornflower)] font-semibold">28</span> ng/mL
+                              {isLatest ? "13.8 → " : ""}
+                              <span className="text-[var(--bone)] font-semibold">
+                                {isLatest ? "14.1" : "13.8"}
+                              </span>{" "}
+                              {hemoTrend?.unit || "g/dL"}
                             </span>
                           </div>
                           <div className="flex items-center gap-3">
-                            <DeltaChip type="new" label="new result" />
-                            <span className="type-mono-sm text-[var(--faint)]">Ref: p. 1</span>
+                            {isLatest ? (
+                              <DeltaChip type="improving" label="+0.3 improving" />
+                            ) : (
+                              <Badge variant="verdigris">Normal</Badge>
+                            )}
+                            <span className="type-meta text-[var(--faint)] text-xs">
+                              Ref: 13.5–17.5
+                            </span>
                           </div>
                         </div>
-                      ) : (
-                        /* Missing in baseline: (§9.5 dashed row) */
-                        <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] border border-dashed border-[var(--line-strong)] bg-transparent">
-                          <span className="type-quote-sm italic text-[var(--dim)]">
-                            Vitamin D — Not present in baseline report
-                          </span>
-                          <span className="type-mono-sm text-[var(--faint)]">N/A</span>
+
+                        {/* eGFR */}
+                        <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
+                          <div className="flex items-center gap-3">
+                            <span className="type-body font-medium text-[var(--bone)] w-28">
+                              eGFR
+                            </span>
+                            <span className="type-mono-sm text-[var(--dim)]">
+                              {isLatest ? "88 → " : ""}
+                              <span className="text-[var(--bone)] font-semibold">
+                                {isLatest ? "82" : "88"}
+                              </span>{" "}
+                              mL/min
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {isLatest ? (
+                              <DeltaChip type="decrease" label="-6 slight decrease" />
+                            ) : (
+                              <Badge variant="verdigris">Normal</Badge>
+                            )}
+                            <span className="type-meta text-[var(--faint)] text-xs">
+                              Ref: &gt; 60
+                            </span>
+                          </div>
                         </div>
-                      )}
+
+                        {/* HbA1c */}
+                        <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
+                          <div className="flex items-center gap-3">
+                            <span className="type-body font-medium text-[var(--bone)] w-28">
+                              HbA1c
+                            </span>
+                            <span className="type-mono-sm text-[var(--dim)]">
+                              {isLatest ? "5.9 → " : ""}
+                              <span className="text-[var(--bone)] font-semibold">
+                                {isLatest ? "6.2" : "5.9"}
+                              </span>{" "}
+                              %
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {isLatest ? (
+                              <DeltaChip type="increase" label="+0.3 increase" />
+                            ) : (
+                              <Badge variant="verdigris">Normal</Badge>
+                            )}
+                            <span className="type-meta text-[var(--faint)] text-xs">
+                              Ref: &lt; 5.7
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Vitamin D */}
+                        {isLatest ? (
+                          <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
+                            <div className="flex items-center gap-3">
+                              <span className="type-body font-medium text-[var(--bone)] w-28">
+                                Vitamin D
+                              </span>
+                              <span className="type-mono-sm text-[var(--dim)]">
+                                <span className="text-[var(--bone)] font-semibold">32</span> ng/mL
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <DeltaChip type="new" label="New result" />
+                              <span className="type-meta text-[var(--faint)] text-xs">
+                                Ref: 30–100
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] border border-dashed border-[var(--line-strong)] bg-transparent">
+                            <span className="type-quote-sm italic text-[var(--dim)]">
+                              Vitamin D — Not present in baseline report
+                            </span>
+                            <span className="type-mono-sm text-[var(--faint)]">N/A</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
 
         {/* Right Rail (360px): Patient / Persona & Summary */}

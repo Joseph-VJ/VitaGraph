@@ -30,7 +30,7 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <button
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-[var(--r-6)] type-body transition-[filter,background-color,border-color] duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--verdigris)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${variantStyles[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-[var(--r-6)] type-body transition-[filter,background-color,border-color,transform] duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--verdigris)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${variantStyles[variant]} ${className}`}
       {...props}
     >
       {loading && (
@@ -68,7 +68,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
       title={title}
       disabled={disabled}
       style={{ width: `${size}px`, height: `${size}px` }}
-      className={`inline-flex items-center justify-center rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] text-[var(--bone)] hover:bg-[var(--ink-700)] active:bg-[var(--ink-600)] transition-colors duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--verdigris)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex-shrink-0 ${className}`}
+      className={`inline-flex items-center justify-center rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] text-[var(--bone)] hover:bg-[var(--ink-700)] active:bg-[var(--ink-600)] transition-[background-color,border-color,transform] duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--verdigris)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex-shrink-0 ${className}`}
       {...props}
     >
       {children}
