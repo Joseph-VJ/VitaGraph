@@ -143,7 +143,25 @@ def ask(user_id: str, question_text: str, job_id: str | None = None) -> dict:
 
     # --- Retrieval (always user-scoped; retriever fails closed) --------------
     t0_ret = time.perf_counter()
-    evidence = retriever.retrieve(user_id=user_id, question=retrieval_question)
+    try:
+        evidence = retriever.retrieve(user_id=user_id, question=retrieval_question)
+    except Exception as exc:
+        job_broker.publish_error(jid, f"Vector retrieval error: {str(exc)}")
+        t_total = int((time.perf_counter() - t_start) * 1000)
+        job_broker.complete_job(jid, description=f"Retrieval store unavailable ({t_total} ms)", latency_ms=t_total)
+        return _persist(
+            user_id=user_id,
+            question_id=question_id,
+            question_text=question_text,
+            classification=classification,
+            status="error",
+            summary_text="Retrieval error: The vector retrieval store is currently unavailable. Evidence could not be fetched.",
+            evidence=[],
+            limitations_text="Vector database offline or connection refused. Knowledge graph and timeline remain accessible.",
+            ai_service_status="error",
+            was_rewritten=was_rewritten,
+            job_id=jid,
+        )
     t_ret = int((time.perf_counter() - t0_ret) * 1000)
 
     job_broker.publish_event(

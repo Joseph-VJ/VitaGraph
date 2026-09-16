@@ -1,18 +1,48 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Breadcrumb } from "../gallery/Breadcrumb";
+import { Badge } from "../gallery/Badge";
 import { useActiveUser } from "../../context/UserContext";
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
   className?: string;
+  backendOnline?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onSearch, className = "" }) => {
+export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backendOnline = true }) => {
   const location = useLocation();
   const path = location.pathname;
   const { user, users, setUser } = useActiveUser();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [allowApi, setAllowApi] = useState<boolean | null>(null);
+
+  // Check if in replay mode (§US-12: replay badge if replay mode)
+  const isReplay =
+    location.search.includes("replay=true") ||
+    localStorage.getItem("vitagraph_replay") === "true";
+
+  // Check allow_api status from backend (§US-12)
+  useEffect(() => {
+    let isMounted = true;
+    if (!backendOnline) {
+      setAllowApi(false);
+      return;
+    }
+    fetch("http://127.0.0.1:8000/api/health")
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && typeof data.allow_api === "boolean") {
+          setAllowApi(data.allow_api);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setAllowApi(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [backendOnline]);
 
   // Title, subline, search placeholder per screen (§5.2, §9)
   const getHeaderConfig = () => {
@@ -157,10 +187,24 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "" }) => {
         )}
       </div>
 
-      {/* Right: Search Input + User Chip (§5.2) */}
-      <div className="flex items-center gap-4 flex-shrink-0">
-        {/* Search input (320px) */}
-        <div className="relative w-[320px] flex items-center">
+      {/* Right: Mode badges + Search Input + User Chip (§5.2, §US-12) */}
+      <div className="flex items-center gap-3 flex-shrink-0">
+        {/* Replay mode badge (§US-12) */}
+        {isReplay && (
+          <Badge variant="ochre" className="animate-pulse">
+            REPLAY MODE
+          </Badge>
+        )}
+
+        {/* allow_api=false label (§US-12) */}
+        {allowApi === false && (
+          <Badge variant="dim">
+            allow_api=false · Local Composer
+          </Badge>
+        )}
+
+        {/* Search input (300px) */}
+        <div className="relative w-[300px] flex items-center">
           <span className="absolute left-3 text-[var(--dim)] pointer-events-none">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" />

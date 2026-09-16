@@ -60,9 +60,13 @@ def health() -> dict:
     """Local-core health: retrieval store reachable and service mode label."""
     from app.rag import vector_store
 
+    store_status = vector_store.store_health()
+    is_ok = store_status.get("status") == "ok"
+
     return {
-        "status": "ok",
-        "retrieval_store": vector_store.store_health(),
+        "status": "ok" if is_ok else "degraded",
+        "retrieval_store": store_status,
+        "allow_api": settings.allow_api,
         "ai_service": "enabled" if settings.allow_api else "disabled (offline mode)",
         "ai_service_model": settings.ai_service_model if settings.allow_api else "offline-fallback-composer",
         "embedding_model": settings.embedding_model_name,

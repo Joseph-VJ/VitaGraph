@@ -6,55 +6,69 @@ interface HealthState {
   online: boolean;
   latencyMs: number | null;
   configVersion: string;
+  allowApi: boolean;
 }
 
-export const StatusStrip: React.FC = () => {
+interface StatusStripProps {
+  backendOnline?: boolean;
+}
+
+export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }) => {
   const location = useLocation();
   const path = location.pathname;
 
   const [health, setHealth] = useState<HealthState>({
-    online: true,
-    latencyMs: 24,
+    online: backendOnline,
+    latencyMs: backendOnline ? 24 : null,
     configVersion: "gen-service v2 · cfg 2026-08",
+    allowApi: true,
   });
 
   // Probe live backend /api/health and measure real client latency
   useEffect(() => {
     let mounted = true;
+    if (!backendOnline) {
+      setHealth((prev) => ({
+        ...prev,
+        online: false,
+        latencyMs: null,
+      }));
+      return;
+    }
     const checkHealth = async () => {
       const startTime = performance.now();
       try {
-        const res = await fetch("http://localhost:8000/api/health", {
+        const res = await fetch("http://127.0.0.1:8000/api/health", {
           signal: AbortSignal.timeout(2000),
         });
         const duration = Math.round(performance.now() - startTime);
         if (res.ok && mounted) {
+          const data = await res.json();
           setHealth({
             online: true,
             latencyMs: duration,
             configVersion: "gen-service v2 · cfg 2026-08",
+            allowApi: data.allow_api ?? true,
           });
         }
       } catch {
-        // Backend not on :8000 or offline; stay safe and honest
         if (mounted) {
           setHealth((prev) => ({
             ...prev,
-            online: true, // Keep local mode operational
-            latencyMs: 38,
-            configVersion: "gen-service v2 · cfg 2026-08",
+            online: false,
+            latencyMs: null,
           }));
         }
       }
     };
 
     checkHealth();
-    const interval = setInterval(checkHealth, 15000);
+    const interval = setInterval(checkHealth, 10000);
     return () => {
       mounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [backendOnline]);
 
   // Per-screen middle segments (§5.3, §9)
   const renderMiddleSegments = () => {
@@ -243,10 +257,18 @@ export const StatusStrip: React.FC = () => {
     <footer
       className="h-7 px-4 bg-[var(--ink-800)] border-t border-[var(--line-faint)] flex items-center justify-between type-mono-sm select-none flex-shrink-0 z-30"
     >
-      {/* Left: System LED + Status */}
-      <div className="flex items-center gap-2">
-        <LED color="verdigris" live={true} />
-        <span className="text-[var(--bone)]">System online</span>
+      {/* Left: System LED + Status + allow_api status */}
+      <div className="flex items-center gap-2.5">
+        <LED color={health.online ? "verdigris" : "madder"} live={health.online} />
+        <span className={health.online ? "text-[var(--bone)]" : "text-[var(--madder)] font-medium"}>
+          {health.online ? "System online" : "System offline"}
+        </span>
+        {!health.allowApi && (
+          <>
+            <span className="text-[var(--line-strong)]">|</span>
+            <span className="text-[var(--dim)] text-[11px]">allow_api=false (Offline Core)</span>
+          </>
+        )}
       </div>
 
       {/* Middle: Screen-specific telemetry segments */}
