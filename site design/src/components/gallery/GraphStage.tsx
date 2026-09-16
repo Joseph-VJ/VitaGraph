@@ -32,14 +32,18 @@ interface SimEdge {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
+  person: "#86A9D9",      // cornflower
   condition: "#86A9D9",   // cornflower
   report: "#86A9D9",      // cornflower
   test: "#79B8A6",        // verdigris (biomarker)
   biomarker: "#79B8A6",   // verdigris
+  date: "#79B8A6",        // verdigris
   measurement: "#D9A441", // ochre
+  section: "#A992D0",     // lilac
   category: "#A992D0",    // lilac
   treatment: "#A992D0",   // lilac
   chunk: "#6B7683",       // faint
+  uncertainty: "#D9808D", // madder
   outcome: "#D9808D",     // madder
 };
 
@@ -48,6 +52,34 @@ function getNodeColor(node: GraphNode): string {
   const t = (node.type || "").toLowerCase();
   return CATEGORY_COLORS[t] || "#79B8A6";
 }
+
+// Plan §11.7 node stagger delays
+const getNodeDelay = (n: SimNode, index: number): number => {
+  const t = (n.type || "").toLowerCase();
+  switch (t) {
+    case "person":
+      return 0;
+    case "report":
+      return 40;
+    case "section":
+      return 90;
+    case "category":
+      return 130;
+    case "test":
+    case "biomarker":
+      return 170 + (index % 8) * 16;
+    case "measurement":
+      return 250 + (index % 8) * 16;
+    case "date":
+      return 330;
+    case "chunk":
+      return 370 + (index % 8) * 16;
+    case "uncertainty":
+      return 410;
+    default:
+      return 200 + (index % 8) * 16;
+  }
+};
 
 export const GraphStage: React.FC<GraphStageProps> = ({
   graphData,
@@ -64,6 +96,9 @@ export const GraphStage: React.FC<GraphStageProps> = ({
   const [layoutMode, setLayoutMode] = useState<string>("force");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Staggered node reveal and edge draw-in timing ref
+  const mountTimeRef = useRef<number>(performance.now());
 
   // Single-pulse animation tracker for question-conditioned activation
   const pulseStartTimeRef = useRef<number | null>(null);
@@ -148,6 +183,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
     simNodesRef.current = initialSimNodes;
     simEdgesRef.current = simEdges;
+    mountTimeRef.current = performance.now();
   }, [cappedNodes, simEdges, layoutMode]);
 
   // Handle node selection
@@ -279,11 +315,38 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         return false;
       };
 
-      // Draw Curved Edges
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      // Calculate staggered reveal progress per node (Plan §11.7)
+      const getNodeRevealProgress = (n: SimNode, idx: number): number => {
+        if (prefersReducedMotion) return 1.0;
+        const delay = getNodeDelay(n, idx);
+        const elapsed = now - mountTimeRef.current - delay;
+        if (elapsed <= 0) return 0;
+        const t = Math.min(1, elapsed / 240); // 240ms duration token
+        return 1 - Math.pow(1 - t, 3); // ease-out cubic
+      };
+
+      // Draw Curved Edges with Edge Draw-In
       edges.forEach((e) => {
         const s = nodes[e.source];
         const t = nodes[e.target];
         if (!s || !t) return;
+
+        const sProgress = getNodeRevealProgress(s, e.source);
+        const tProgress = getNodeRevealProgress(t, e.target);
+        if (sProgress <= 0.05 && tProgress <= 0.05) return;
+
+        let edgeProgress = 1.0;
+        if (!prefersReducedMotion) {
+          const sDelay = getNodeDelay(s, e.source);
+          const tDelay = getNodeDelay(t, e.target);
+          const edgeStart = Math.max(sDelay, tDelay) + 30;
+          const edgeElapsed = now - mountTimeRef.current - edgeStart;
+          if (edgeElapsed <= 0) return;
+          const ep = Math.min(1, edgeElapsed / 240);
+          edgeProgress = 1 - Math.pow(1 - ep, 3);
+        }
 
         const sActive = isNodeActive(s);
         const tActive = isNodeActive(t);
@@ -303,26 +366,41 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
         ctx.beginPath();
         ctx.moveTo(s.x, s.y);
-        ctx.quadraticCurveTo(cpx, cpy, t.x, t.y);
+
+        if (edgeProgress >= 0.99) {
+          ctx.quadraticCurveTo(cpx, cpy, t.x, t.y);
+        } else {
+          // Truncated quadratic bezier sub-segment from 0 to edgeProgress
+          const u = edgeProgress;
+          const ctrlX = (1 - u) * s.x + u * cpx;
+          const ctrlY = (1 - u) * s.y + u * cpy;
+          const endX = (1 - u) * (1 - u) * s.x + 2 * (1 - u) * u * cpx + u * u * t.x;
+          const endY = (1 - u) * (1 - u) * s.y + 2 * (1 - u) * u * cpy + u * u * t.y;
+          ctx.quadraticCurveTo(ctrlX, ctrlY, endX, endY);
+        }
 
         if (isQuestionActiveEdge || isSelectedEdge) {
-          ctx.strokeStyle = "rgba(121, 184, 166, 0.85)";
+          ctx.strokeStyle = `rgba(121, 184, 166, ${0.85 * edgeProgress})`;
           ctx.lineWidth = 1.8;
         } else if (hasActiveQuestion) {
-          ctx.strokeStyle = "rgba(43, 52, 64, 0.40)";
+          ctx.strokeStyle = `rgba(43, 52, 64, ${0.40 * edgeProgress})`;
           ctx.lineWidth = 0.8;
         } else if (activeId) {
-          ctx.strokeStyle = "rgba(43, 52, 64, 0.35)";
+          ctx.strokeStyle = `rgba(43, 52, 64, ${0.35 * edgeProgress})`;
           ctx.lineWidth = 0.8;
         } else {
-          ctx.strokeStyle = "rgba(155, 161, 176, 0.28)";
+          ctx.strokeStyle = `rgba(155, 161, 176, ${0.28 * edgeProgress})`;
           ctx.lineWidth = 1.0;
         }
         ctx.stroke();
       });
 
-      // Draw Nodes
-      nodes.forEach((n) => {
+      // Draw Nodes with Staggered Scale-In
+      nodes.forEach((n, idx) => {
+        const revealScale = getNodeRevealProgress(n, idx);
+        if (revealScale <= 0) return;
+
+        const currentRadius = n.r * revealScale;
         const isSelected = selectedNode?.id === n.id;
         const isConceptActive = isNodeActive(n);
 
@@ -338,7 +416,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         // Single pulse animation on activation (duration 1200ms)
         if (isPulsing && isConceptActive) {
           const pulseProgress = pulseElapsed / 1200;
-          const pulseRadius = n.r + pulseProgress * 26;
+          const pulseRadius = currentRadius + pulseProgress * 26;
           const pulseAlpha = Math.max(0, (1 - pulseProgress) * 0.85);
 
           ctx.beginPath();
@@ -351,15 +429,15 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         // Glow ring for active / selected
         if (isSelected || isConceptActive) {
           ctx.beginPath();
-          ctx.arc(n.x, n.y, n.r + 5, 0, 2 * Math.PI);
+          ctx.arc(n.x, n.y, currentRadius + 5, 0, 2 * Math.PI);
           ctx.fillStyle = isSelected ? "rgba(121, 184, 166, 0.35)" : "rgba(134, 169, 217, 0.30)";
           ctx.fill();
         }
 
         // Inactive nodes dim to exactly 40% (US-05 specification)
-        ctx.globalAlpha = isDimmed ? 0.40 : 1.0;
+        ctx.globalAlpha = (isDimmed ? 0.40 : 1.0) * revealScale;
         ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r, 0, 2 * Math.PI);
+        ctx.arc(n.x, n.y, currentRadius, 0, 2 * Math.PI);
         ctx.fillStyle = n.color;
         ctx.fill();
 
@@ -369,8 +447,8 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         ctx.globalAlpha = 1.0;
 
         // Proportional labels
-        if (!isDimmed || isSelected) {
-          const fontSize = Math.max(9, Math.min(14, 8 + n.r * 0.45));
+        if (revealScale > 0.45 && (!isDimmed || isSelected)) {
+          const fontSize = Math.max(9, Math.min(14, 8 + currentRadius * 0.45));
           ctx.font = `${isSelected || isConceptActive ? "600" : "500"} ${fontSize}px 'Plus Jakarta Sans', sans-serif`;
           ctx.fillStyle = isSelected || isConceptActive ? "#FFFFFF" : isDimmed ? "rgba(155, 161, 176, 0.40)" : "#E6E4DE";
           ctx.textAlign = "center";
@@ -378,7 +456,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
           const labelText = n.label || n.id;
           const displayLabel = labelText.length > 20 ? labelText.slice(0, 18) + "…" : labelText;
-          ctx.fillText(displayLabel, n.x, n.y + n.r + 4);
+          ctx.fillText(displayLabel, n.x, n.y + currentRadius + 4);
         }
       });
 
@@ -493,6 +571,51 @@ export const GraphStage: React.FC<GraphStageProps> = ({
   const liveCommunitiesCount = graphData?.metrics?.communities_count ?? 0;
   const liveModularity = graphData?.metrics?.modularity ?? 0;
 
+  // Animated metrics count-up from REAL values (Plan §11 / US-17)
+  const [animatedMetrics, setAnimatedMetrics] = useState({
+    nodes: 0,
+    edges: 0,
+    communities: 0,
+    modularity: 0,
+  });
+
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      setAnimatedMetrics({
+        nodes: liveNodesCount,
+        edges: liveEdgesCount,
+        communities: liveCommunitiesCount,
+        modularity: liveModularity,
+      });
+      return;
+    }
+
+    const duration = 650;
+    const startTime = performance.now();
+    let animId: number;
+
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      const ease = 1 - Math.pow(1 - progress, 3);
+
+      setAnimatedMetrics({
+        nodes: Math.round(ease * liveNodesCount),
+        edges: Math.round(ease * liveEdgesCount),
+        communities: Math.round(ease * liveCommunitiesCount),
+        modularity: Number((ease * liveModularity).toFixed(2)),
+      });
+
+      if (progress < 1) {
+        animId = requestAnimationFrame(tick);
+      }
+    };
+
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
+  }, [liveNodesCount, liveEdgesCount, liveCommunitiesCount, liveModularity]);
+
   return (
     <div ref={containerRef} className={`w-full flex flex-col ${className}`}>
       {/* Stats row & Controls above frame (§7.16) */}
@@ -508,7 +631,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
             </svg>
             <div>
-              <span className="type-mono font-medium text-[var(--bone)]">{liveNodesCount}</span>
+              <span className="type-mono font-medium text-[var(--bone)]">{animatedMetrics.nodes}</span>
               <span className="type-meta text-[var(--dim)] ml-1.5">nodes</span>
             </div>
           </div>
@@ -519,7 +642,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
               <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
             </svg>
             <div>
-              <span className="type-mono font-medium text-[var(--bone)]">{liveEdgesCount}</span>
+              <span className="type-mono font-medium text-[var(--bone)]">{animatedMetrics.edges}</span>
               <span className="type-meta text-[var(--dim)] ml-1.5">edges</span>
             </div>
           </div>
@@ -530,7 +653,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
               <path d="M8 12a4 4 0 018 0" />
             </svg>
             <div>
-              <span className="type-mono font-medium text-[var(--bone)]">{liveCommunitiesCount}</span>
+              <span className="type-mono font-medium text-[var(--bone)]">{animatedMetrics.communities}</span>
               <span className="type-meta text-[var(--dim)] ml-1.5">communities</span>
             </div>
           </div>
@@ -540,7 +663,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
               <path d="M12 2L2 22h20L12 2z" />
             </svg>
             <div>
-              <span className="type-mono font-medium text-[var(--bone)]">{liveModularity.toFixed(2)}</span>
+              <span className="type-mono font-medium text-[var(--bone)]">{animatedMetrics.modularity.toFixed(2)}</span>
               <span className="type-meta text-[var(--dim)] ml-1.5">modularity</span>
             </div>
           </div>

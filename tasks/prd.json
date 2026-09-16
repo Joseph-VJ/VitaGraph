@@ -116,7 +116,7 @@
     {
       "id": "US-17",
       "title": "Graph richness guarantee (plan \u00a711 ontology)",
-      "passes": false,
+      "passes": true,
       "acceptance": "builder always emits report + per-page chunk + section + date nodes plus entities; edges CONTAINS/MENTIONS/HAS_MEASUREMENT/BELONGS_TO/OBSERVED_ON/IN_SECTION; entities==0 still yields section/chunk/date/Uncertainty structure; graph page adds staggered node reveal, edge draw-in, metrics count-up from REAL values; <=120 cap kept",
       "verify": "scanned PDF graph >=6 nodes; synthetic panel graph >=25 nodes and >=3 communities; two questions give different active sets; recordings us17_*.png"
     },
