@@ -7,6 +7,7 @@ import {
   IconButton,
   Select,
   Badge,
+  EvidenceSpanViewer,
 } from "../components/gallery";
 import { useUser } from "../context/UserContext";
 import { questionsApi } from "../api/questions";
@@ -46,6 +47,8 @@ export const AskPage: React.FC = () => {
   const [streamJobId, setStreamJobId] = useState<string | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [activeEvidence, setActiveEvidence] = useState<EvidenceCard[]>([]);
+  const [selectedEvidence, setSelectedEvidence] = useState<EvidenceCard | null>(null);
+  const [isEvidenceViewerOpen, setIsEvidenceViewerOpen] = useState(false);
   const [graphConcepts, setGraphConcepts] = useState<string[]>([
     "Hemoglobin",
     "Fasting Glucose",
@@ -280,8 +283,9 @@ export const AskPage: React.FC = () => {
                   evidenceCards={item.answer.evidence}
                   status={item.answer.status}
                   elapsedTime={item.elapsedTime || "0.8 s"}
-                  onEvidenceClick={(chunkId) => {
-                    console.log("Evidence chunk clicked:", chunkId);
+                  onEvidenceClick={(ev) => {
+                    setSelectedEvidence(ev);
+                    setIsEvidenceViewerOpen(true);
                   }}
                 />
               )}
@@ -466,7 +470,11 @@ export const AskPage: React.FC = () => {
                     {activeEvidence.map((chunk, idx) => (
                       <div
                         key={chunk.chunk_id}
-                        className="p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/40 border border-[var(--line-faint)] flex flex-col gap-1.5"
+                        onClick={() => {
+                          setSelectedEvidence(chunk);
+                          setIsEvidenceViewerOpen(true);
+                        }}
+                        className="p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/40 hover:bg-[var(--ink-700)]/70 border border-[var(--line-faint)] hover:border-[var(--verdigris)]/50 transition-all flex flex-col gap-1.5 cursor-pointer group"
                       >
                         <div className="flex items-center justify-between type-mono-sm">
                           <span className="text-[var(--bone)] font-medium truncate max-w-[220px]">
@@ -484,6 +492,16 @@ export const AskPage: React.FC = () => {
                         <p className="type-reading text-[11.5px] text-[var(--dim)] italic line-clamp-2">
                           “{chunk.snippet}”
                         </p>
+                        <div className="flex items-center justify-between pt-1 border-t border-[var(--line-faint)] type-mono-sm text-[10.5px]">
+                          <span className="text-[var(--dim)]">
+                            {chunk.char_start != null && chunk.char_end != null
+                              ? `span ${chunk.char_start}–${chunk.char_end}`
+                              : "provenance verified"}
+                          </span>
+                          <span className="text-[var(--verdigris)] group-hover:underline">
+                            Inspect span
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -525,6 +543,13 @@ export const AskPage: React.FC = () => {
           </div>
         </aside>
       )}
+
+      {/* Evidence Span Viewer Modal (§9.8) */}
+      <EvidenceSpanViewer
+        evidence={selectedEvidence}
+        isOpen={isEvidenceViewerOpen}
+        onClose={() => setIsEvidenceViewerOpen(false)}
+      />
     </div>
   );
 };

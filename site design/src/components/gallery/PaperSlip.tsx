@@ -8,6 +8,7 @@ interface PaperSlipProps {
   journal?: string;
   similarity?: number; // 0 to 1 e.g. 0.89
   onCite?: () => void;
+  onClick?: () => void;
   className?: string;
 }
 
@@ -19,11 +20,15 @@ export const PaperSlip: React.FC<PaperSlipProps> = ({
   journal = "NEJM",
   similarity,
   onCite,
+  onClick,
   className = "",
 }) => {
   return (
     <figure
-      className={`relative rounded-[var(--r-6)] bg-[var(--paper)] text-[var(--paper-ink)] p-4 paper-slip-grain shadow-sm overflow-hidden flex flex-col justify-between ${className}`}
+      onClick={onClick}
+      className={`relative rounded-[var(--r-6)] bg-[var(--paper)] text-[var(--paper-ink)] p-4 paper-slip-grain shadow-sm overflow-hidden flex flex-col justify-between ${
+        onClick ? "cursor-pointer hover:shadow-md hover:ring-1 hover:ring-[var(--verdigris)]/50 transition-all duration-[120ms]" : ""
+      } ${className}`}
     >
       {/* Folded corner top-right 22px triangle */}
       <div

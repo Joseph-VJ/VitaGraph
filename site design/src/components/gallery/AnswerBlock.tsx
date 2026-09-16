@@ -10,7 +10,7 @@ export interface AnswerBlockProps {
   evidenceCards?: EvidenceCard[];
   status?: string; // answered | refused | insufficient_evidence | error
   elapsedTime?: string;
-  onEvidenceClick?: (chunkIdOrTerm: string) => void;
+  onEvidenceClick?: (evidence: EvidenceCard) => void;
   className?: string;
 }
 
@@ -158,7 +158,8 @@ export const AnswerBlock: React.FC<AnswerBlockProps> = ({
                 authors="Clinical Laboratory Report"
                 journal={ev.report_date ? `Date: ${ev.report_date}` : undefined}
                 similarity={ev.score}
-                onCite={() => onEvidenceClick?.(ev.chunk_id)}
+                onCite={() => onEvidenceClick?.(ev)}
+                onClick={() => onEvidenceClick?.(ev)}
               />
             ))}
           </div>

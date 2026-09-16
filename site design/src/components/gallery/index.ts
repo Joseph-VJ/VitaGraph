@@ -24,3 +24,4 @@ export * from "./RefusalCard";
 export * from "./StateSet";
 export * from "./Marginalia";
 export * from "./Breadcrumb";
+export * from "./EvidenceSpanViewer";

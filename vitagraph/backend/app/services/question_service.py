@@ -321,20 +321,54 @@ def _persist(user_id: str, question_id: str, question_text: str, classification:
              was_rewritten: bool = False, safety_note: str | None = None,
              job_id: str | None = None) -> dict:
     answer_id = f"ans_{uuid.uuid4().hex[:12]}"
-    evidence_cards = [
-        {
-            "chunk_id": hit["chunk_id"],
-            "report_id": hit["metadata"].get("report_id", ""),
-            "report_filename": hit.get("report_filename", ""),
-            "report_date": hit.get("report_date"),
-            "page_number": hit["metadata"].get("page_number", 0),
-            "snippet": hit["document"][:400],
-            "score": hit["score"],
-        }
-        for hit in evidence
-    ]
-
+    evidence_cards = []
     with get_db() as db:
+        for hit in evidence:
+            cid = hit.get("chunk_id", "")
+            meta = hit.get("metadata", {})
+            rid = meta.get("report_id", "")
+            pnum = meta.get("page_number", 0)
+
+            cs = meta.get("char_start")
+            ce = meta.get("char_end")
+            if cs in (None, "") or ce in (None, ""):
+                crow = db.execute(
+                    "SELECT char_start, char_end, page_number FROM report_chunks WHERE id = ?",
+                    (cid,),
+                ).fetchone()
+                if crow:
+                    cs = crow["char_start"]
+                    ce = crow["char_end"]
+                    if not pnum:
+                        pnum = crow["page_number"]
+
+            try:
+                cs_val = int(cs) if cs not in (None, "") else None
+            except (ValueError, TypeError):
+                cs_val = None
+
+            try:
+                ce_val = int(ce) if ce not in (None, "") else None
+            except (ValueError, TypeError):
+                ce_val = None
+
+            try:
+                p_val = int(pnum) if pnum not in (None, "") else 1
+            except (ValueError, TypeError):
+                p_val = 1
+
+            evidence_cards.append({
+                "chunk_id": cid,
+                "report_id": rid,
+                "report_filename": hit.get("report_filename", ""),
+                "report_date": hit.get("report_date"),
+                "page_number": p_val,
+                "snippet": hit.get("document", "")[:400],
+                "score": float(hit.get("score", 0.0)),
+                "char_start": cs_val,
+                "char_end": ce_val,
+            })
+
         db.execute(
             "INSERT INTO questions (id, user_id, text, classification, asked_at, status)"
             " VALUES (?, ?, ?, ?, ?, ?)",

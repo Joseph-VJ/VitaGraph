@@ -38,6 +38,8 @@ export interface EvidenceCard {
   page_number: number;
   snippet: string;
   score: number;
+  char_start?: number | null;
+  char_end?: number | null;
 }
 
 export interface Answer {

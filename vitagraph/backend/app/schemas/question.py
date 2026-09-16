@@ -24,6 +24,8 @@ class EvidenceCard(BaseModel):
     page_number: int
     snippet: str
     score: float
+    char_start: int | None = None
+    char_end: int | None = None
 
 
 class AnswerOut(BaseModel):

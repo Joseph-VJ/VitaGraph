@@ -11,6 +11,6 @@
  { "id":"US-10","title":"Library + Compare live","passes":true,"acceptance":"Library list = /api/reports (+pages/chunks counts, hash copy); Compare diff rows computed from two reports' extracted values; summary strip counts real","verify":"browser + npm run build" },
  { "id":"US-11","title":"Insights live analytics","passes":true,"acceptance":"communities/betweenness/edge-freq computed from live /api/graph metrics; causality footnote present; no invented numbers","verify":"browser: values match /api/graph response" },
  { "id":"US-12","title":"Failure-injection & honest states","passes":true,"acceptance":"backend-down banner; Chroma-stopped → retrieval error while graph/timeline inspectable; allow_api=false label from /api/health + /api/ai/config; replay badge if replay mode","verify":"plan §15.3 tests 7-8 manually in browser" },
- { "id":"US-13","title":"Evidence span viewer","passes":false,"acceptance":"clicking evidence/chunk opens page text with char_start–char_end highlighted from /api/reports/{id}/pages","verify":"browser: highlight matches snippet" },
+ { "id":"US-13","title":"Evidence span viewer","passes":true,"acceptance":"clicking evidence/chunk opens page text with char_start–char_end highlighted from /api/reports/{id}/pages","verify":"browser: highlight matches snippet" },
  { "id":"US-14","title":"QA, docs, viva script, tag","passes":false,"acceptance":"16 DESIGN gates checklist passed; pytest 38/38; build green; docs/demo-script.md written per plan §19.1; README updated; git tag v1.0.0","verify":"pytest + npm run build + git tag" }
 ]}
