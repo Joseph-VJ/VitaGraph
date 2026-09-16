@@ -222,7 +222,7 @@ a:focus-visible,
   to   { opacity: 1; transform: none; }
 }
 .m-enter {
-  animation: mEnter var(--m-quick, 120ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) both;
+  animation: mEnter var(--m-quick, 180ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) both;
 }
 
 @keyframes mEnterCard {
@@ -238,7 +238,7 @@ a:focus-visible,
   to   { opacity: 0; transform: translateY(-4px); }
 }
 .m-exit {
-  animation: mExit calc(var(--m-quick, 120ms) * 0.6) var(--ease-ink, cubic-bezier(0, 0, 0.2, 1)) both;
+  animation: mExit calc(var(--m-quick, 180ms) * 0.6) var(--ease-ink, cubic-bezier(0, 0, 0.2, 1)) both;
   pointer-events: none;
 }
 
@@ -265,13 +265,13 @@ a:focus-visible,
 
 /* Fallback route enter for browsers without ViewTransition API */
 .m-route-enter {
-  animation: mEnter var(--m-quick, 120ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) both;
+  animation: mEnter var(--m-quick, 180ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) both;
 }
 
 /* ─── §M5.4 Press micro-feedback (detent) ─── */
 button:not(:disabled),
 [role="button"]:not([aria-disabled="true"]) {
-  transition: transform var(--m-micro, 60ms) var(--ease-detent, cubic-bezier(0.30, 0.80, 0.20, 1));
+  transition: transform var(--m-micro, 120ms) var(--ease-detent, cubic-bezier(0.30, 0.80, 0.20, 1));
 }
 button:not(:disabled):active,
 [role="button"]:not([aria-disabled="true"]):active {

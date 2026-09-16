@@ -148,6 +148,7 @@
       "title": "Global grammar: enter/exit/FLIP, route transitions, boot ignition, detent press",
       "spec": "\u00a7M5.1\u20135.4, \u00a7M6",
       "passes": true,
+      "audit": "cleared",
       "acceptance": "Route change: ViewTransition path + fallback path both verified (feature-flag off test); sidebar active-rule FLIPs; boot <=1.6 s once/session, skippable by first input, skipped at T0/T1; every button/input has press micro-feedback same-frame",
       "gates": "18,24,30,32",
       "verify": "boot.webm, skip-proof, route pair png"

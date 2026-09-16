@@ -1,0 +1,55 @@
+{
+  "totalDurationMs": 872,
+  "specExpectedTotalMs": "~920ms (budget <= 1600ms)",
+  "stages": [
+    {
+      "t": 0,
+      "element": "grain + vignette",
+      "token": "--m-base",
+      "durationMs": 240,
+      "easing": "ink"
+    },
+    {
+      "t": 120,
+      "element": "status-strip LED + segments",
+      "token": "--m-quick",
+      "durationMs": 180,
+      "staggerMs": 40,
+      "easing": "detent"
+    },
+    {
+      "t": 200,
+      "element": "sidebar brand leaf DrawPath",
+      "token": "--m-cinematic",
+      "durationMs": 720,
+      "easing": "servo"
+    },
+    {
+      "t": 260,
+      "element": "nav items x10",
+      "token": "--m-quick",
+      "durationMs": 180,
+      "staggerMs": 40,
+      "easing": "servo"
+    },
+    {
+      "t": 320,
+      "element": "header search + user chip",
+      "token": "--m-quick",
+      "durationMs": 180,
+      "easing": "servo"
+    },
+    {
+      "t": 400,
+      "element": "screen content enter",
+      "token": "--m-quick",
+      "durationMs": 180,
+      "easing": "servo"
+    },
+    {
+      "t": 920,
+      "element": "all animations settled",
+      "totalElapsedMs": 872
+    }
+  ]
+}

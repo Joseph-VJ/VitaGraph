@@ -224,8 +224,9 @@ export function runBoot(targets: BootTargets): Promise<void> {
   seq.wait(120);
   seq.addAction(() => {
     if (skipped) return;
+    // t=120ms: status-strip LED ignite + segments (--m-quick=180ms, detent)
     if (targets.statusLed) {
-      const a = animateLedIgnite(targets.statusLed, 120, DETENT);
+      const a = animateLedIgnite(targets.statusLed, 180, DETENT);
       runningAnimations.push(a);
       a.onfinish = () => {
         if (targets.statusLed) {
@@ -240,7 +241,7 @@ export function runBoot(targets: BootTargets): Promise<void> {
         const el = seg as HTMLElement;
         const a = el.animate(
           [{ opacity: 0 }, { opacity: 1 }],
-          { duration: 120, easing: DETENT, fill: "forwards", delay: i * 40 }
+          { duration: 180, easing: DETENT, fill: "forwards", delay: i * 40 }
         );
         runningAnimations.push(a);
         a.onfinish = () => {
@@ -256,7 +257,6 @@ export function runBoot(targets: BootTargets): Promise<void> {
   seq.addAction(() => {
     if (skipped) return;
     if (targets.sidebarLeaf) {
-      // For SVG DrawPath: use stroke-dashoffset animation
       const svgEl = targets.sidebarLeaf.querySelector("svg path, svg") as SVGElement | null;
       if (svgEl && svgEl instanceof SVGGeometryElement) {
         const len = svgEl.getTotalLength();
@@ -272,7 +272,6 @@ export function runBoot(targets: BootTargets): Promise<void> {
           svgEl.style.strokeDashoffset = "";
         };
       }
-      // Also fade in the container
       const a = targets.sidebarLeaf.animate(
         [{ opacity: 0 }, { opacity: 1 }],
         { duration: 240, easing: SERVO, fill: "forwards" }
@@ -287,7 +286,7 @@ export function runBoot(targets: BootTargets): Promise<void> {
     }
   });
 
-  // t=260ms: nav items enter §M5.1, 40ms stagger cap 480 (--m-quick=120ms, servo)
+  // t=260ms: nav items enter §M5.1, 40ms stagger cap 480 (--m-quick=180ms, servo)
   seq.wait(60);
   seq.addAction(() => {
     if (skipped) return;
@@ -295,8 +294,7 @@ export function runBoot(targets: BootTargets): Promise<void> {
       const items = Array.from(targets.navItems);
       items.forEach((item, i) => {
         const el = item as HTMLElement;
-        const a = animateEnter(el, 120, SERVO);
-        // Apply stagger delay
+        const a = animateEnter(el, 180, SERVO);
         if (i > 0) {
           a.cancel();
           const delayed = el.animate(
@@ -304,7 +302,7 @@ export function runBoot(targets: BootTargets): Promise<void> {
               { opacity: 0, transform: "translateY(8px)" },
               { opacity: 1, transform: "none" },
             ],
-            { duration: 120, easing: SERVO, fill: "forwards", delay: Math.min(i * 40, 480) }
+            { duration: 180, easing: SERVO, fill: "forwards", delay: Math.min(i * 40, 480) }
           );
           runningAnimations.push(delayed);
           delayed.onfinish = () => {
@@ -320,12 +318,12 @@ export function runBoot(targets: BootTargets): Promise<void> {
     }
   });
 
-  // t=320ms: header search + user chip enter (--m-quick=120ms, servo)
+  // t=320ms: header search + user chip enter (--m-quick=180ms, servo)
   seq.wait(60);
   seq.addAction(() => {
     if (skipped) return;
     if (targets.headerSearch) {
-      const a = animateEnter(targets.headerSearch, 120, SERVO);
+      const a = animateEnter(targets.headerSearch, 180, SERVO);
       runningAnimations.push(a);
       a.onfinish = () => {
         if (targets.headerSearch) {
@@ -335,7 +333,7 @@ export function runBoot(targets: BootTargets): Promise<void> {
       };
     }
     if (targets.headerUser) {
-      const a = animateEnter(targets.headerUser, 120, SERVO);
+      const a = animateEnter(targets.headerUser, 180, SERVO);
       runningAnimations.push(a);
       a.onfinish = () => {
         if (targets.headerUser) {
@@ -346,12 +344,12 @@ export function runBoot(targets: BootTargets): Promise<void> {
     }
   });
 
-  // t=400ms: screen content — its own data-gated sequence (§M7.x)
+  // t=400ms: screen content — its own data-gated sequence (§M7.x, --m-quick=180ms, servo)
   seq.wait(80);
   seq.addAction(() => {
     if (skipped) return;
     if (targets.mainContent) {
-      const a = animateEnter(targets.mainContent, 120, SERVO);
+      const a = animateEnter(targets.mainContent, 180, SERVO);
       runningAnimations.push(a);
       a.onfinish = () => {
         if (targets.mainContent) {
@@ -361,6 +359,9 @@ export function runBoot(targets: BootTargets): Promise<void> {
       };
     }
   });
+
+  // Wait for leaf cinematic stroke to complete (t=200ms + 720ms = 920ms; from t=400ms: 520ms)
+  seq.wait(520);
 
   // Final: mark booted
   seq.addAction(() => {
@@ -373,10 +374,12 @@ export function runBoot(targets: BootTargets): Promise<void> {
   return new Promise<void>((resolve) => {
     resolveBootPromise = resolve;
     seq.play().then(() => {
-      if (!skipped) {
-        showAllFinal(targets);
-        resolve();
-      }
+      Promise.all(runningAnimations.map((a) => a.finished.catch(() => {}))).then(() => {
+        if (!skipped) {
+          showAllFinal(targets);
+          resolve();
+        }
+      });
     });
   });
 }

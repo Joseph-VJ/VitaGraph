@@ -20,8 +20,8 @@ export const QualityBar: React.FC<QualityBarProps> = ({
       title={`Quality: ${clamped}% (${method})`}
     >
       <div
-        style={{ width: `${clamped}%` }}
-        className={`h-full ${fillColor} transition-all duration-[240ms] ease-out rounded-[2px]`}
+        style={{ transform: `scaleX(${clamped / 100})`, transformOrigin: "left" }}
+        className={`w-full h-full ${fillColor} transition-transform duration-[240ms] ease-out rounded-[2px]`}
       />
     </div>
   );

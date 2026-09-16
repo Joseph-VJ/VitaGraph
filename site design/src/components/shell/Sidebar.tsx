@@ -384,7 +384,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
                 viewTransition={useVT}
                 data-active={isActive ? "true" : "false"}
                 data-boot-target="nav-item"
-                className={`flex items-center gap-3 px-3 py-2 rounded-[var(--r-6)] transition-all duration-[120ms] ease-out group relative border-l-2 ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-[var(--r-6)] transition-colors duration-[120ms] ease-out group relative border-l-2 ${
                   isActive
                     ? "bg-[var(--ink-700)] text-[var(--bone)] border-l-[var(--verdigris)]"
                     : "text-[var(--dim)] hover:text-[var(--bone)] hover:bg-[var(--ink-700)]/70 border-l-transparent"

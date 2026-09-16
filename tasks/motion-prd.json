@@ -4,8 +4,8 @@
     {
       "id": "MS-01",
       "title": "Motion foundation: tokens, engine, governor",
-      "spec": "\u00a7M2, \u00a7M4",
-      "passes": false,
+      "spec": "§M2, §M4",
+      "passes": true,
       "acceptance": "src/motion/{ticker,spring,sequence,quality,features,flip}.ts live; --m-* + easings in tokens.css; springToLinear() emits cached linear() strings; tier chip motion T3 in StatusStrip (A3); Settings override persisted; reduced-motion hard-locks T0 live; idle => zero rAF (proof)",
       "gates": "17,19,20,29",
       "verify": "npm run build; pytest -q; tier-chip png, idle-rAF trace"
@@ -13,8 +13,9 @@
     {
       "id": "MS-02",
       "title": "Global grammar: enter/exit/FLIP, route transitions, boot ignition, detent press",
-      "spec": "\u00a7M5.1\u20135.4, \u00a7M6",
-      "passes": false,
+      "spec": "§M5.1–5.4, §M6",
+      "passes": true,
+      "audit": "cleared",
       "acceptance": "Route change: ViewTransition path + fallback path both verified (feature-flag off test); sidebar active-rule FLIPs; boot <=1.6 s once/session, skippable by first input, skipped at T0/T1; every button/input has press micro-feedback same-frame",
       "gates": "18,24,30,32",
       "verify": "boot.webm, skip-proof, route pair png"

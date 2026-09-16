@@ -227,7 +227,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
           <button
             type="button"
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2.5 pl-3 border-l border-[var(--line-faint)] hover:opacity-90 transition-opacity text-left cursor-pointer"
+            className="flex items-center text-left gap-2.5 pl-3 border-l border-[var(--line-faint)] hover:opacity-90 transition-opacity cursor-pointer"
           >
             <div className="w-8 h-8 rounded-full bg-[var(--verdigris)] text-[var(--ink-900)] flex items-center justify-center font-semibold text-[13px] shadow-sm">
               {user?.display_label ? user.display_label.charAt(0).toUpperCase() : "V"}
