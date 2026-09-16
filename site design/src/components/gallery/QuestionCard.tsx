@@ -16,7 +16,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   question,
   date,
   category = "educational",
-  rewrittenQuery = "slt2 inhibitors heart failure hospitalization risk efficacy outcomes",
+  rewrittenQuery,
   className = "",
 }) => {
   const [copied, setCopied] = useState(false);

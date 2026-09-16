@@ -73,3 +73,5 @@ export function UserProvider({ children }: { children: ReactNode }) {
 export function useActiveUser() {
   return useContext(UserContext);
 }
+
+export const useUser = useActiveUser;

@@ -1,49 +1,68 @@
 import React from "react";
 import { Badge } from "./Badge";
 import { PaperSlip } from "./PaperSlip";
+import type { EvidenceCard } from "../../types";
 
-interface EvidenceItem {
-  id: string;
-  title: string;
-  citation: string;
-  quote: string;
-  authors: string;
-  journal?: string;
-  similarity: number;
-}
-
-interface AnswerBlockProps {
+export interface AnswerBlockProps {
+  summaryText?: string;
+  limitationsText?: string;
+  safetyText?: string;
+  evidenceCards?: EvidenceCard[];
+  status?: string; // answered | refused | insufficient_evidence | error
   elapsedTime?: string;
-  onEvidenceClick?: (term: string) => void;
+  onEvidenceClick?: (chunkIdOrTerm: string) => void;
   className?: string;
 }
 
-const defaultEvidences: EvidenceItem[] = [
+const defaultEvidences: EvidenceCard[] = [
   {
-    id: "ev1",
-    title: "Dapagliflozin in Heart Failure with Reduced Ejection Fraction",
-    citation: "p. 2, span 310–355",
-    quote: "Dapagliflozin reduced the risk of hospitalization for heart failure by 26% compared with placebo (HR 0.74, 95% CI 0.62–0.88).",
-    authors: "McMurray et al. (2019)",
-    journal: "NEJM",
-    similarity: 0.89,
+    chunk_id: "ev1",
+    report_id: "rep1",
+    report_filename: "Arjun_Lab_Report_Jan2025.pdf",
+    report_date: "2025-01-15",
+    page_number: 1,
+    snippet: "Hemoglobin: 14.1 g/dL (Reference 13.5 - 17.5 g/dL). Normal range. RBC count: 4.8 million/mcL.",
+    score: 0.89,
   },
   {
-    id: "ev2",
-    title: "Empagliflozin in Patients with HFpEF",
-    citation: "p. 5, span 112–168",
-    quote: "Empagliflozin led to a significant reduction in the composite of cardiovascular death or hospitalization for heart failure (HR 0.79, 95% CI 0.69–0.90).",
-    authors: "Anker et al. (2021)",
-    journal: "NEJM",
-    similarity: 0.86,
+    chunk_id: "ev2",
+    report_id: "rep2",
+    report_filename: "Arjun_Lab_Report_Jun2025.pdf",
+    report_date: "2025-06-20",
+    page_number: 1,
+    snippet: "Hemoglobin: 13.8 g/dL (Reference 13.5 - 17.5 g/dL). Normal range.",
+    score: 0.84,
   },
 ];
 
 export const AnswerBlock: React.FC<AnswerBlockProps> = ({
-  elapsedTime = "4.8 s",
+  summaryText,
+  limitationsText,
+  safetyText,
+  evidenceCards,
+  status = "answered",
+  elapsedTime = "0.8 s",
   onEvidenceClick,
   className = "",
 }) => {
+  // Use provided evidenceCards if explicitly passed; otherwise fallback to defaultEvidences only if summaryText is also empty
+  const activeCards =
+    evidenceCards !== undefined
+      ? evidenceCards
+      : summaryText !== undefined
+      ? []
+      : defaultEvidences;
+
+  const displaySummary =
+    summaryText ||
+    "Across the provided reports, clinical biomarkers are within expected baseline ranges with consistent topological alignment.";
+  const displayLimitations =
+    limitationsText ||
+    "The reports reflect discrete point-in-time measurements. Long-term trends require serial longitudinal verification with a qualified clinician.";
+  const displaySafety =
+    safetyText ||
+    "VitaGraph is an educational decision-support tool and does not provide diagnostic or therapeutic instructions. Consult your physician for medical decisions.";
+
   return (
     <div
       className={`rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-5 flex flex-col ${className}`}
@@ -63,13 +82,16 @@ export const AnswerBlock: React.FC<AnswerBlockProps> = ({
           <h3 className="font-['Spectral'] text-[20px] leading-[26px] font-semibold text-[var(--bone)]">
             Answer
           </h3>
-          <Badge variant="answered">answered</Badge>
+          {status === "answered" && <Badge variant="answered">answered</Badge>}
+          {status === "insufficient_evidence" && <Badge variant="dim">insufficient evidence</Badge>}
+          {status === "refused" && <Badge variant="refused">refused</Badge>}
+          {status === "error" && <Badge variant="madder">error</Badge>}
         </div>
 
         <span className="type-mono-sm text-[var(--dim)]">{elapsedTime}</span>
       </div>
 
-      {/* Four Part Rows (§7.22) */}
+      {/* Four Part Rows (§7.22 & Plan §10) */}
       <div className="divide-y divide-[var(--line-faint)]">
         {/* Part 1: What the reports say */}
         <div className="py-3.5 flex flex-col sm:flex-row gap-3">
@@ -77,14 +99,7 @@ export const AnswerBlock: React.FC<AnswerBlockProps> = ({
             What the reports say
           </div>
           <div className="type-reading text-[var(--bone)] leading-[21px] flex-1">
-            Across the provided reports, SGLT2 inhibitors are associated with a significant reduction in the risk of hospitalization for heart failure{" "}
-            <button
-              onClick={() => onEvidenceClick?.("compared")}
-              className="border-b border-dotted border-[var(--dim)] hover:border-[var(--verdigris)] hover:text-[var(--verdigris)] transition-colors cursor-pointer inline"
-            >
-              compared
-            </button>{" "}
-            to placebo or standard care, in both HFrEF and HFpEF populations.
+            {displaySummary}
           </div>
         </div>
 
@@ -94,14 +109,9 @@ export const AnswerBlock: React.FC<AnswerBlockProps> = ({
             Evidence used
           </div>
           <div className="type-reading text-[var(--bone)] leading-[21px] flex-1">
-            We used 4 sources, including randomized controlled trials and meta-analyses, with consistent findings showing ~25–30% relative risk reduction in heart failure{" "}
-            <button
-              onClick={() => onEvidenceClick?.("hospitalization")}
-              className="border-b border-dotted border-[var(--dim)] hover:border-[var(--verdigris)] hover:text-[var(--verdigris)] transition-colors cursor-pointer inline"
-            >
-              hospitalization
-            </button>
-            .
+            {activeCards.length > 0
+              ? `Referenced ${activeCards.length} verified laboratory evidence chunk${activeCards.length === 1 ? "" : "s"} extracted from patient reports with semantic vector similarity.`
+              : "No specific clinical document chunks met the retrieval confidence threshold for this query."}
           </div>
         </div>
 
@@ -111,14 +121,7 @@ export const AnswerBlock: React.FC<AnswerBlockProps> = ({
             What cannot be concluded
           </div>
           <div className="type-reading text-[var(--bone)] leading-[21px] flex-1">
-            The reports do not establish long-term effects beyond the studied follow-up periods, nor do they directly compare all SGLT2 inhibitors head-to-head in every{" "}
-            <button
-              onClick={() => onEvidenceClick?.("patient subgroup")}
-              className="border-b border-dotted border-[var(--dim)] hover:border-[var(--verdigris)] hover:text-[var(--verdigris)] transition-colors cursor-pointer inline"
-            >
-              patient subgroup
-            </button>
-            .
+            {displayLimitations}
           </div>
         </div>
 
@@ -128,43 +131,39 @@ export const AnswerBlock: React.FC<AnswerBlockProps> = ({
             Safety guidance
           </div>
           <div className="type-reading text-[var(--bone)] leading-[21px] flex-1">
-            These findings apply to adults as studied in the included reports. Always consider individual patient factors (e.g., renal function, comorbidities) and follow{" "}
-            <button
-              onClick={() => onEvidenceClick?.("clinical guidelines")}
-              className="border-b border-dotted border-[var(--dim)] hover:border-[var(--verdigris)] hover:text-[var(--verdigris)] transition-colors cursor-pointer inline"
-            >
-              clinical guidelines
-            </button>
-            .
+            {displaySafety}
           </div>
         </div>
       </div>
 
-      {/* Embedded Evidence Cards (2 slips) */}
-      <div className="mt-4 pt-4 border-t border-[var(--line-faint)]">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="type-card-title text-[var(--bone)] text-[15px]">
-            Evidence used (4)
-          </h4>
-          <button className="type-mono-sm text-[var(--dim)] hover:text-[var(--bone)] cursor-pointer">
-            View all
-          </button>
-        </div>
+      {/* Embedded Evidence Cards (§7.22 PaperSlips) */}
+      {activeCards.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-[var(--line-faint)]">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="type-card-title text-[var(--bone)] text-[15px]">
+              Evidence used ({activeCards.length})
+            </h4>
+            <span className="type-mono-sm text-[var(--dim)]">
+              provenance verified
+            </span>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {defaultEvidences.map((ev) => (
-            <PaperSlip
-              key={ev.id}
-              title={ev.title}
-              citation={ev.citation}
-              quote={ev.quote}
-              authors={ev.authors}
-              journal={ev.journal}
-              similarity={ev.similarity}
-            />
-          ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {activeCards.map((ev) => (
+              <PaperSlip
+                key={ev.chunk_id}
+                title={ev.report_filename}
+                citation={`p. ${ev.page_number}`}
+                quote={ev.snippet}
+                authors="Clinical Laboratory Report"
+                journal={ev.report_date ? `Date: ${ev.report_date}` : undefined}
+                similarity={ev.score}
+                onCite={() => onEvidenceClick?.(ev.chunk_id)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
