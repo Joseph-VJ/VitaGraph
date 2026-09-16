@@ -32,6 +32,8 @@ class ReportStatusOut(BaseModel):
     page_count: int | None
     chunk_count: int
     error_message: str | None
+    file_hash: str | None = None
+    job_id: str | None = None
 
 
 class TrendPoint(BaseModel):

@@ -9,6 +9,8 @@ export interface ReportStatus {
   page_count: number | null;
   chunk_count: number;
   error_message: string | null;
+  file_hash?: string | null;
+  job_id?: string | null;
 }
 
 export interface TrendPoint {
@@ -29,10 +31,13 @@ export interface TrendData {
 }
 
 export const reportsApi = {
-  upload: (userId: string, file: File) => {
+  upload: (userId: string, file: File, jobId?: string) => {
     const form = new FormData();
     form.append("user_id", userId);
     form.append("file", file);
+    if (jobId) {
+      form.append("job_id", jobId);
+    }
     return api.upload<ReportStatus>("/api/reports/upload", form);
   },
   list: (userId: string) => api.get<Report[]>(`/api/reports?user_id=${userId}`),

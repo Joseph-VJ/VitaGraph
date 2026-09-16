@@ -23,13 +23,28 @@ from app.rag import vector_store
 from app.services import timeline_service
 
 
-def process_upload(user_id: str, filename: str, data: bytes) -> dict:
+def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None = None) -> dict:
     """Run the full ingestion pipeline for one uploaded file."""
+    import time
     from app.services import user_service
+    from app.services.job_service import job_broker
+
+    t_start = time.perf_counter()
+    jid = job_broker.get_or_create_job(job_id) if job_id else None
+
+    if jid:
+        job_broker.publish_event(
+            jid,
+            stage="retrieval",
+            description=f"Received upload request for '{filename}' ({len(data):,} bytes)",
+            sub_description=f"User privacy namespace: {user_id}",
+        )
 
     # Consent gate (plan Section 15.2): uploads are refused until the
     # persona has accepted the data-use statement.
     if not user_service.has_consent(user_id):
+        if jid:
+            job_broker.publish_error(jid, "This persona has not accepted the data-use statement yet.")
         raise HTTPException(
             status_code=403,
             detail="This persona has not accepted the data-use statement yet.",
@@ -37,6 +52,14 @@ def process_upload(user_id: str, filename: str, data: bytes) -> dict:
 
     record = uploader.store_upload(user_id, filename, data)
     report_id = record["id"]
+
+    if jid:
+        job_broker.publish_event(
+            jid,
+            stage="reranking",
+            description="Stored raw immutable upload and calculated SHA-256 digest",
+            sub_description=f"Hash: {record['file_hash'][:16]}... (version {record['version']})",
+        )
 
     timeline_service.add_event(user_id, "report_uploaded", {
         "report_id": report_id,
@@ -48,6 +71,14 @@ def process_upload(user_id: str, filename: str, data: bytes) -> dict:
     try:
         # --- Stage: extracting (pure, no DB writes yet) ----------------------
         uploader.set_status(report_id, "extracting")
+        if jid:
+            job_broker.publish_event(
+                jid,
+                stage="graph",
+                description="Extracting text layers, tables, and document layout",
+                sub_description="Native PDF parser & OCR fallback active",
+            )
+
         report = uploader.get_report(report_id)
         pages = extractor.extract_report(report)
 
@@ -59,6 +90,14 @@ def process_upload(user_id: str, filename: str, data: bytes) -> dict:
 
         # --- Stage: chunking + single-transaction persistence ----------------
         uploader.set_status(report_id, "indexing")
+        if jid:
+            job_broker.publish_event(
+                jid,
+                stage="citation",
+                description=f"Extracted {len(pages)} page{'s' if len(pages) != 1 else ''}. Chunking into semantic sections.",
+                sub_description=f"Report date: {report_date or 'Undated'}",
+            )
+
         total_chunks = 0
         with get_db() as db:
             extractor.persist_pages(db, report_id, pages)
@@ -85,12 +124,23 @@ def process_upload(user_id: str, filename: str, data: bytes) -> dict:
             "report_date": report_date,
         })
 
+        t_total = int((time.perf_counter() - t_start) * 1000)
+        if jid:
+            job_broker.complete_job(
+                jid,
+                description=f"Ingestion complete: {len(pages)} pages, {indexed} chunks indexed ({t_total} ms)",
+                latency_ms=t_total,
+                metadata={"report_id": report_id, "pages": len(pages), "chunks": indexed},
+            )
+
         return {
             "id": report_id,
             "status": "ready",
             "page_count": len(pages),
             "chunk_count": indexed,
             "error_message": None,
+            "file_hash": record["file_hash"],
+            "job_id": jid,
         }
 
     except Exception as exc:
@@ -103,12 +153,16 @@ def process_upload(user_id: str, filename: str, data: bytes) -> dict:
             "stage": "ingestion",
             "error": str(exc)[:300],
         })
+        if jid:
+            job_broker.publish_error(jid, f"Ingestion failed: {str(exc)}")
         return {
             "id": report_id,
             "status": "failed",
             "page_count": None,
             "chunk_count": 0,
             "error_message": str(exc),
+            "file_hash": record.get("file_hash") if "record" in locals() else None,
+            "job_id": jid,
         }
 
 

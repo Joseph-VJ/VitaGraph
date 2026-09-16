@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "./Buttons";
 
 interface DropzoneProps {
@@ -13,6 +13,11 @@ export const Dropzone: React.FC<DropzoneProps> = ({
   className = "",
 }) => {
   const [isDragOver, setIsDragOver] = useState(isDragOverDemo);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleChoose = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
     <div
@@ -34,6 +39,18 @@ export const Dropzone: React.FC<DropzoneProps> = ({
           : "border-[var(--line-strong)] bg-[var(--ink-800)]/30 hover:border-[var(--dim)]"
       } ${className}`}
     >
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept=".pdf,.txt"
+        onChange={(e) => {
+          if (e.target.files?.[0]) {
+            onFileSelect?.(e.target.files[0]);
+          }
+        }}
+      />
+
       {/* Hand-drawn style page icon (96px) */}
       <div className="mb-4 text-[var(--dim)]">
         <svg
@@ -65,7 +82,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
       </p>
 
       {/* Primary button */}
-      <Button variant="primary" className="mb-2">
+      <Button variant="primary" className="mb-2" onClick={handleChoose}>
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
           <path d="M14 2v6h6" />

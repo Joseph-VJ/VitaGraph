@@ -11,7 +11,11 @@ router = APIRouter(prefix="/api/reports", tags=["reports"])
 
 
 @router.post("/upload", response_model=ReportStatusOut, status_code=201)
-async def upload_report(user_id: str = Form(...), file: UploadFile = File(...)) -> dict:
+async def upload_report(
+    user_id: str = Form(...),
+    file: UploadFile = File(...),
+    job_id: str | None = Form(None),
+) -> dict:
     user_service.user_exists(user_id)
     # Reject an oversized declared size before reading the body into memory.
     from app.core.config import settings
@@ -25,7 +29,7 @@ async def upload_report(user_id: str = Form(...), file: UploadFile = File(...)) 
             detail=f"File exceeds the {settings.max_upload_mb} MB upload limit.",
         )
     data = await file.read()
-    return report_service.process_upload(user_id, file.filename or "upload.pdf", data)
+    return report_service.process_upload(user_id, file.filename or "upload.pdf", data, job_id=job_id)
 
 
 @router.get("", response_model=list[ReportOut])
