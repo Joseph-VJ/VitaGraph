@@ -138,7 +138,7 @@
       "id": "MS-01",
       "title": "Motion foundation: tokens, engine, governor",
       "spec": "\u00a7M2, \u00a7M4",
-      "passes": false,
+      "passes": true,
       "acceptance": "src/motion/{ticker,spring,sequence,quality,features,flip}.ts live; --m-* + easings in tokens.css; springToLinear() emits cached linear() strings; tier chip motion T3 in StatusStrip (A3); Settings override persisted; reduced-motion hard-locks T0 live; idle => zero rAF (proof)",
       "gates": "17,19,20,29",
       "verify": "npm run build; pytest -q; tier-chip png, idle-rAF trace"

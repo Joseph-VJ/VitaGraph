@@ -246,6 +246,11 @@ button:not(:disabled):active,
   }
 }
 
+/* Reduced-motion opacity cross-fade only (§M2.1, §M11) */
+.m-fade-only {
+  transition: opacity var(--m-instant, 80ms) ease-out !important;
+}
+
 /* Subtle scrollbar */
 ::-webkit-scrollbar {
   width: 5px;

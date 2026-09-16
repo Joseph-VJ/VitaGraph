@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { Badge, Marginalia } from "../components/gallery";
+import { governor, useMotionGovernor } from "../motion";
 
 export const SettingsPage: React.FC = () => {
+  const motion = useMotionGovernor();
   const [allowApi, setAllowApi] = useState(false);
   const [diagnosticGuard, setDiagnosticGuard] = useState(true);
   const [localOnly, setLocalOnly] = useState(true);
@@ -180,6 +182,98 @@ export const SettingsPage: React.FC = () => {
             <div className="w-3 h-3 rounded-full bg-[#F5EFEB] border border-[#D8CFBC]" />
             <span className="type-label">Paper (Light)</span>
           </button>
+        </div>
+      </div>
+
+      {/* 4. Motion & Adaptive Governor (§M4.4, §M7.9) */}
+      <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)]">
+        <div className="flex items-center justify-between pb-3 mb-4 border-b border-[var(--line-faint)]">
+          <div>
+            <h3 className="type-title text-[var(--bone)] text-base">
+              Motion & Adaptive Governor
+            </h3>
+            <p className="type-meta text-[var(--dim)] text-xs mt-0.5">
+              Four-tier physics engine (§M4.4) with prefers-reduced-motion safety floor
+            </p>
+          </div>
+          <span className="type-mono-sm px-2 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--line-strong)] text-[var(--bone)]">
+            motion {motion.tier}{motion.mode === "manual" ? " · manual" : ""}
+          </span>
+        </div>
+
+        <div className="space-y-4 text-xs">
+          {/* Tier override selector */}
+          <div>
+            <span className="type-label text-[var(--dim)] block mb-2">Quality Tier Override</span>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              {[
+                { id: "auto", label: "Auto (Governor)", desc: "Dynamic 60fps scaling" },
+                { id: "T3", label: "T3 Showcase", desc: "Full FX & photons" },
+                { id: "T2", label: "T2 Balanced", desc: "Static ambient" },
+                { id: "T1", label: "T1 Safe", desc: "No glow, ≤240ms" },
+                { id: "T0", label: "T0 Static", desc: "Instant states only" },
+              ].map((opt) => {
+                const isSelected = motion.mode === "manual" ? motion.tier === opt.id : opt.id === "auto";
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => governor.setOverride(opt.id as any)}
+                    className={`p-2.5 rounded-[var(--r-6)] border text-left flex flex-col gap-1 transition-all duration-[120ms] cursor-pointer ${
+                      isSelected
+                        ? "bg-[var(--ink-700)] border-[var(--verdigris)] text-[var(--bone)]"
+                        : "border-[var(--line-strong)] text-[var(--dim)] hover:text-[var(--bone)] hover:border-[var(--line-faint)]"
+                    }`}
+                  >
+                    <span className="type-mono-sm font-semibold">{opt.label}</span>
+                    <span className="text-[10px] text-[var(--dim)] leading-tight">{opt.desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Telemetry info */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-[var(--line-faint)]">
+            <div className="p-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
+              <span className="type-label text-[var(--dim)] block text-[11px]">Hardware / Governor Mode</span>
+              <span className="type-mono-sm text-[var(--bone)] font-mono">
+                {motion.mode.toUpperCase()} ({motion.reducedMotion ? "prefers-reduced-motion active" : "standard display"})
+              </span>
+            </div>
+            <div className="p-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
+              <span className="type-label text-[var(--dim)] block text-[11px]">Active FPS Sample</span>
+              <span className="type-mono-sm text-[var(--bone)] font-mono">
+                {motion.fps} FPS (rolling 2s mean)
+              </span>
+            </div>
+            <div className="p-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
+              <span className="type-label text-[var(--dim)] block text-[11px]">Canvas DPR Cap</span>
+              <span className="type-mono-sm text-[var(--bone)] font-mono">
+                {motion.dprCap}x resolution
+              </span>
+            </div>
+          </div>
+
+          {/* Replay boot sequence ghost button (§M7.9) */}
+          <div className="flex items-center justify-between pt-3 border-t border-[var(--line-faint)]">
+            <div>
+              <span className="type-body font-medium text-[var(--bone)] text-sm block">
+                Session Boot Sequence
+              </span>
+              <span className="type-meta text-[var(--dim)] text-xs">
+                Replay the instrument ignition animation (§M6.1) on next page visit
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                sessionStorage.removeItem("vg_booted");
+                alert("Boot state cleared. Reload or visit Home to replay ignition.");
+              }}
+              className="px-3 py-1.5 rounded-[var(--r-6)] border border-[var(--line-strong)] hover:border-[var(--verdigris)] text-[var(--bone)] type-mono-sm text-xs transition-colors cursor-pointer"
+            >
+              Replay Boot
+            </button>
+          </div>
         </div>
       </div>
     </div>

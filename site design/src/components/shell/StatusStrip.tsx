@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { LED } from "../gallery/LED";
+import { useMotionGovernor } from "../../motion";
 
 interface HealthState {
   online: boolean;
@@ -72,13 +73,33 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
     };
   }, [backendOnline]);
 
-  // Per-screen middle segments (§5.3, §9)
+  // Motion Governor tier chip (§M0 Amendment A3, §M4.4)
+  const MotionTierChip = () => {
+    const motion = useMotionGovernor();
+    const navigate = useNavigate();
+
+    return (
+      <div
+        onClick={() => navigate("/settings")}
+        className="flex items-center gap-1 cursor-pointer hover:text-[var(--bone)] transition-colors group"
+        title={`Motion Tier: ${motion.tier} (${motion.mode} mode${motion.reducedMotion ? ", reduced-motion locked" : ""}) — Click to configure in Settings`}
+      >
+        <span className="text-[var(--dim)] group-hover:text-[var(--bone)] type-mono-sm">
+          motion {motion.tier}{motion.mode === "manual" ? " · manual" : ""}
+        </span>
+      </div>
+    );
+  };
+
+  // Per-screen middle segments (§5.3, §9, §M0 A3)
   const renderMiddleSegments = () => {
     switch (path) {
       case "/upload":
         return (
           <div className="flex items-center gap-3">
             <span className="text-[var(--bone)]">Ingestion service ready</span>
+            <span className="text-[var(--line-strong)]">|</span>
+            <MotionTierChip />
           </div>
         );
       case "/graph":
@@ -101,6 +122,8 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
                 {health.latencyMs ? `${health.latencyMs} ms` : "—"}
               </span>
             </div>
+            <span className="text-[var(--line-strong)]">|</span>
+            <MotionTierChip />
             <span className="text-[var(--line-strong)]">|</span>
             <div className="flex items-center gap-1.5">
               <span className="text-[var(--dim)]">Service:</span>
@@ -133,6 +156,8 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
                 {health.latencyMs ? `${health.latencyMs} ms` : "—"}
               </span>
             </div>
+            <span className="text-[var(--line-strong)]">|</span>
+            <MotionTierChip />
           </div>
         );
       case "/timeline":
@@ -165,6 +190,8 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
                 {health.latencyMs ? `${health.latencyMs} ms` : "—"}
               </span>
             </div>
+            <span className="text-[var(--line-strong)]">|</span>
+            <MotionTierChip />
           </div>
         );
       default: // Home & other screens
@@ -181,6 +208,8 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
                 {health.latencyMs ? `${health.latencyMs} ms` : "—"}
               </span>
             </div>
+            <span className="text-[var(--line-strong)]">|</span>
+            <MotionTierChip />
           </div>
         );
     }

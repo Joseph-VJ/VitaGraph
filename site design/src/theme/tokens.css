@@ -33,6 +33,25 @@
   --t-med: 240ms;
   --ease: cubic-bezier(.2, .7, .3, 1);
 
+  /* Motion tokens (§M2.1) */
+  --m-instant: 80ms;
+  --m-micro: 120ms;
+  --m-quick: 180ms;
+  --m-base: 240ms;
+  --m-deliberate: 360ms;
+  --m-settle: 480ms;
+  --m-cinematic: 720ms;
+  --m-ambient: 8000ms;
+  --m-ring: 1200ms;
+
+  /* Named easings (§M2.2) */
+  --ease-servo: cubic-bezier(0.32, 0, 0.24, 1);
+  --ease-detent: cubic-bezier(0.30, 0.80, 0.20, 1);
+  --ease-glide: cubic-bezier(0.40, 0, 0.20, 1);
+  --ease-needle: cubic-bezier(0.70, 0, 0.30, 1);
+  --ease-paper: cubic-bezier(0.16, 1, 0.30, 1);
+  --ease-ink: cubic-bezier(0, 0, 0.2, 1);
+
   --shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.40);
 }
 
@@ -59,4 +78,19 @@
   --paper: #FFFFFF;
   --paper-ink: #16181D;
   --paper-fold: #D8DBD6;
+}
+
+/* Reduced motion token collapse (§M2.1) */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --m-instant: 80ms;
+    --m-micro: 0ms;
+    --m-quick: 0ms;
+    --m-base: 0ms;
+    --m-deliberate: 0ms;
+    --m-settle: 0ms;
+    --m-cinematic: 0ms;
+    --m-ambient: 0ms;
+    --m-ring: 0ms;
+  }
 }
