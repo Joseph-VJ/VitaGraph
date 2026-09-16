@@ -8,6 +8,9 @@ import {
   Select,
   Badge,
   EvidenceSpanViewer,
+  ThinkingDetailsPanel,
+  useToast,
+  type TraceRowData,
 } from "../components/gallery";
 import { useUser } from "../context/UserContext";
 import { questionsApi } from "../api/questions";
@@ -25,16 +28,9 @@ interface ThreadItem {
   refusalText?: string;
 }
 
-interface TraceEvent {
-  index: string;
-  stage: string;
-  description: string;
-  subDescription?: string;
-  latency?: string;
-}
-
 export const AskPage: React.FC = () => {
   const { user } = useUser();
+  const { addToast } = useToast();
   const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
 
   const [activeDrawerTab, setActiveDrawerTab] = useState("Thinking details");
@@ -43,9 +39,10 @@ export const AskPage: React.FC = () => {
   const [mode, setMode] = useState("Paper");
   const [threads, setThreads] = useState<ThreadItem[]>([]);
   const [isAsking, setIsAsking] = useState(false);
-  const [streamTraces, setStreamTraces] = useState<TraceEvent[]>([]);
+  const [streamTraces, setStreamTraces] = useState<TraceRowData[]>([]);
   const [streamJobId, setStreamJobId] = useState<string | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
+  const [isReplayJob, setIsReplayJob] = useState(false);
   const [activeEvidence, setActiveEvidence] = useState<EvidenceCard[]>([]);
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceCard | null>(null);
   const [isEvidenceViewerOpen, setIsEvidenceViewerOpen] = useState(false);
@@ -58,6 +55,8 @@ export const AskPage: React.FC = () => {
   ]);
 
   const eventSourceRef = useRef<EventSource | null>(null);
+  const eventQueueRef = useRef<any[]>([]);
+  const isProcessingQueueRef = useRef<boolean>(false);
 
   // Suggested prompt chips for quick clinical & boundary verification
   const suggestedQuestions = [
@@ -89,6 +88,7 @@ export const AskPage: React.FC = () => {
     setStreamJobId(jobId);
     setStreamTraces([]);
     setStreamError(null);
+    setIsReplayJob(false);
 
     // Append loading thread item
     setThreads((prev) => [
@@ -102,52 +102,20 @@ export const AskPage: React.FC = () => {
       },
     ]);
 
-    // Connect to SSE stream (/api/jobs/{id}/events)
+    // Connect to SSE stream BEFORE POST per US-15 reality contract
     const backendUrl = "http://127.0.0.1:8000";
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
+    eventQueueRef.current = [];
+    isProcessingQueueRef.current = false;
+
     const es = new EventSource(`${backendUrl}/api/jobs/${jobId}/events`);
     eventSourceRef.current = es;
 
     const tStart = performance.now();
 
-    es.onmessage = (e) => {
-      try {
-        const evt = JSON.parse(e.data);
-        if (evt && evt.stage) {
-          setStreamTraces((prev) => {
-            if (prev.some((item) => item.index === evt.index && item.stage === evt.stage)) {
-              return prev;
-            }
-            return [...prev, evt];
-          });
-
-          if (evt.stage === "graph" && evt.subDescription) {
-            // Extract concepts from subDescription if available
-            const match = evt.subDescription.match(/Active concepts:\s*(.+)$/i);
-            if (match && match[1]) {
-              const concepts = match[1].split(",").map((s: string) => s.trim());
-              setGraphConcepts(concepts);
-            }
-          }
-
-          if (evt.stage === "done") {
-            es.close();
-          }
-        }
-      } catch {
-        // Heartbeat or comment line
-      }
-    };
-
-    es.onerror = () => {
-      setStreamError("Backend stream interrupted. EventSource disconnected.");
-      es.close();
-    };
-
-    try {
-      const answer: Answer = await questionsApi.ask(effectiveUserId, trimmed, jobId);
+    const finishAnswer = (answer: Answer) => {
       const elapsedMs = Math.round(performance.now() - tStart);
       const elapsedStr = `${(elapsedMs / 1000).toFixed(1)} s`;
 
@@ -169,6 +137,7 @@ export const AskPage: React.FC = () => {
               : item
           )
         );
+        addToast("done", "Clinical Boundary Guard", "Query handled with diagnostic boundary refusal");
       } else {
         setThreads((prev) =>
           prev.map((item) =>
@@ -184,8 +153,98 @@ export const AskPage: React.FC = () => {
               : item
           )
         );
+        addToast("done", "Response Complete", `Generated grounded response with ${answer.evidence?.length || 0} citations`);
+      }
+      setIsAsking(false);
+    };
+
+    const processQueue = () => {
+      if (eventQueueRef.current.length === 0) {
+        isProcessingQueueRef.current = false;
+        return;
+      }
+      isProcessingQueueRef.current = true;
+      const evt = eventQueueRef.current.shift();
+
+      if (evt && evt.stage) {
+        setStreamTraces((prev) => {
+          if (prev.some((item) => item.index === evt.index && item.stage === evt.stage)) {
+            return prev;
+          }
+          return [...prev, evt];
+        });
+
+        if (evt.stage === "graph" && evt.subDescription) {
+          const match = evt.subDescription.match(/Active concepts:\s*(.+)$/i);
+          if (match && match[1]) {
+            const concepts = match[1].split(",").map((s: string) => s.trim());
+            setGraphConcepts(concepts);
+          }
+        }
+
+        if (evt.stage === "done") {
+          const answer: Answer | undefined = evt.metadata?.answer;
+          if (answer) {
+            finishAnswer(answer);
+          } else {
+            questionsApi
+              .result(jobId)
+              .then((res) => {
+                if (res.result) {
+                  finishAnswer(res.result);
+                } else {
+                  setIsAsking(false);
+                }
+              })
+              .catch(() => setIsAsking(false));
+          }
+          if (eventSourceRef.current) {
+            eventSourceRef.current.close();
+            eventSourceRef.current = null;
+          }
+        }
+      }
+
+      // Pacing interval: >=250ms presentation dwell per event (US-15)
+      // presentation dwell (US-15)
+      setTimeout(processQueue, 280);
+    };
+
+    es.onmessage = (e) => {
+      try {
+        const evt = JSON.parse(e.data);
+        if (evt && evt.stage) {
+          if (evt.is_replay) {
+            setIsReplayJob(true);
+          }
+          eventQueueRef.current.push(evt);
+          if (!isProcessingQueueRef.current) {
+            processQueue();
+          }
+        }
+      } catch {
+        // Heartbeat or comment line
+      }
+    };
+
+    es.onerror = () => {
+      setStreamError("Backend stream interrupted. EventSource disconnected.");
+      addToast("failed", "Stream Disconnected", "Backend connection lost during generation");
+      setIsAsking(false);
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+    };
+
+    try {
+      const response = await questionsApi.ask(effectiveUserId, trimmed, jobId, true);
+      if (response && (response as any).summary_text) {
+        finishAnswer(response);
       }
     } catch (err) {
+      setStreamError(`Backend inquiry failed: ${(err as Error).message}`);
+      addToast("failed", "Inquiry Failed", (err as Error).message);
       setThreads((prev) =>
         prev.map((item) =>
           item.id === threadId
@@ -199,8 +258,11 @@ export const AskPage: React.FC = () => {
             : item
         )
       );
-    } finally {
       setIsAsking(false);
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
     }
   };
 
@@ -260,16 +322,51 @@ export const AskPage: React.FC = () => {
 
               {/* Loading active stream state */}
               {item.type === "loading" && (
-                <div className="rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-5 flex flex-col gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[var(--verdigris)] animate-ping" />
-                    <span className="type-body text-[var(--bone)] font-medium">
-                      Consulting clinical reports & knowledge graph...
-                    </span>
-                    <Badge variant="ingesting">streaming pipeline</Badge>
+                <div className="rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-5 flex flex-col gap-3 animate-fade-in">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[var(--verdigris)] animate-ping" />
+                      <span className="type-body text-[var(--bone)] font-medium">
+                        Consulting clinical reports & knowledge graph...
+                      </span>
+                      <Badge variant="ingesting">streaming pipeline</Badge>
+                    </div>
+                    {streamJobId && (
+                      <span className="type-mono-sm text-[var(--dim)] text-[11px] truncate max-w-[150px]">
+                        {streamJobId}
+                      </span>
+                    )}
                   </div>
-                  <div className="type-meta text-[var(--dim)] text-[12px]">
-                    User privacy filtered to {effectiveUserId}. Generating grounded response via live SSE stream.
+
+                  {/* Skeleton shimmer until first event per US-15 */}
+                  {streamTraces.length === 0 && !streamError ? (
+                    <div className="space-y-2.5 py-2">
+                      <div className="h-3.5 bg-[var(--ink-700)] rounded animate-pulse w-3/4" />
+                      <div className="h-3 bg-[var(--ink-700)] rounded animate-pulse w-1/2" />
+                      <div className="h-3 bg-[var(--ink-700)] rounded animate-pulse w-2/3" />
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 pt-1">
+                      {streamTraces.slice(-2).map((tr) => (
+                        <div key={tr.index} className="flex items-center justify-between type-mono-sm text-[12px]">
+                          <span className={`${stageColors[tr.stage] || "text-[var(--verdigris)]"} font-medium`}>
+                            [{tr.stage}] {tr.description}
+                          </span>
+                          <span className="text-[var(--dim)]">{tr.latency || ""}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {streamError && (
+                    <div className="p-2.5 rounded-[var(--r-6)] bg-[var(--madder)]/15 border border-[var(--madder)]/30 text-[var(--madder)] text-[12px]">
+                      {streamError}
+                    </div>
+                  )}
+
+                  <div className="type-meta text-[var(--dim)] text-[12px] border-t border-[var(--line-faint)] pt-2 flex items-center justify-between">
+                    <span>User privacy filtered to {effectiveUserId}.</span>
+                    <span>Paced SSE stream (&ge;250ms dwell)</span>
                   </div>
                 </div>
               )}
@@ -394,61 +491,13 @@ export const AskPage: React.FC = () => {
 
             {/* Tab 1: Live Execution Trace (Plan §12 SSE) */}
             {activeDrawerTab === "Thinking details" && (
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between type-meta text-[var(--dim)] mb-2">
-                    <span>Live execution trace (SSE events)</span>
-                    {streamJobId && (
-                      <span className="type-mono-sm text-[var(--dim)] truncate max-w-[120px]">
-                        {streamJobId}
-                      </span>
-                    )}
-                  </div>
-
-                  {streamError && (
-                    <div className="p-2.5 mb-3 rounded-[var(--r-6)] bg-[var(--madder)]/10 border border-[var(--madder)]/30 text-[var(--madder)] text-[11.5px]">
-                      {streamError}
-                    </div>
-                  )}
-
-                  {streamTraces.length === 0 && !streamError && (
-                    <div className="py-6 text-center text-[var(--dim)] type-meta text-[12px]">
-                      Waiting for pipeline trace events from backend…
-                    </div>
-                  )}
-
-                  {streamTraces.length > 0 && (
-                    <div className="divide-y divide-[var(--line-faint)] space-y-1">
-                      {streamTraces.map((trace) => (
-                        <div key={trace.index} className="pt-1.5 pb-1 animate-fade-in">
-                          <div className="flex items-center justify-between type-mono-sm">
-                            <span className={`${stageColors[trace.stage] || "text-[var(--bone)]"} font-medium`}>
-                              [{trace.stage}]
-                            </span>
-                            <span className="text-[var(--dim)]">{trace.latency || ""}</span>
-                          </div>
-                          <div className="type-body text-[12px] text-[var(--bone)] mt-0.5">
-                            {trace.description}
-                          </div>
-                          {trace.subDescription && (
-                            <div className="type-meta text-[var(--dim)] text-[11px] mt-0.5">
-                              {trace.subDescription}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Fingerprint */}
-                  <div className="pt-2.5 mt-3 border-t border-[var(--line-faint)] flex items-center justify-between">
-                    <span className="type-meta text-[var(--dim)]">trace fingerprint</span>
-                    <span className="type-mono-sm text-[var(--dim)] truncate max-w-[210px]">
-                      {streamJobId ? `sha256:${streamJobId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16)}e8b4` : "sha256:none"}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <ThinkingDetailsPanel
+                traces={streamTraces}
+                jobId={streamJobId}
+                isStreaming={isAsking}
+                streamError={streamError}
+                isReplay={isReplayJob}
+              />
             )}
 
             {/* Tab 2: Retrieved Chunks */}

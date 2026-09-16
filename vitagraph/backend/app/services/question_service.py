@@ -400,7 +400,7 @@ def _persist(user_id: str, question_id: str, question_text: str, classification:
             "ai_service_status": ai_service_status,
         })
 
-    return {
+    ans = {
         "question_id": question_id,
         "job_id": job_id,
         "classification": classification,
@@ -412,3 +412,6 @@ def _persist(user_id: str, question_id: str, question_text: str, classification:
         "ai_service_status": ai_service_status,
         "safety_status": status if status != "answered" else "passed",
     }
+    if job_id:
+        job_broker.set_job_result(job_id, ans)
+    return ans

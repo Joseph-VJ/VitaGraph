@@ -14,6 +14,7 @@ class QuestionCreate(BaseModel):
     user_id: str
     text: str = Field(min_length=3, max_length=500)
     job_id: str | None = None
+    background: bool = False
 
 
 class EvidenceCard(BaseModel):
@@ -31,11 +32,11 @@ class EvidenceCard(BaseModel):
 class AnswerOut(BaseModel):
     question_id: str
     job_id: str | None = None
-    classification: str
-    status: str                      # answered|refused|insufficient_evidence|error
-    summary_text: str                # part 1: what the reports say
-    evidence: list[EvidenceCard]     # part 2: evidence used
-    limitations_text: str            # part 3: what cannot be concluded
-    safety_text: str                 # part 4: safety guidance
-    ai_service_status: str           # ok|disabled|error
-    safety_status: str               # passed|refused|insufficient_evidence
+    classification: str = "general"
+    status: str = "answered"          # answered|refused|insufficient_evidence|error|processing
+    summary_text: str = ""            # part 1: what the reports say
+    evidence: list[EvidenceCard] = [] # part 2: evidence used
+    limitations_text: str = ""        # part 3: what cannot be concluded
+    safety_text: str = ""             # part 4: safety guidance
+    ai_service_status: str = "ok"     # ok|disabled|error
+    safety_status: str = "passed"     # passed|refused|insufficient_evidence

@@ -15,12 +15,14 @@ import { ComparePage } from "./pages/ComparePage";
 import { InsightsPage } from "./pages/InsightsPage";
 import { GalleryPage } from "./pages/GalleryPage";
 import { UserProvider } from "./context/UserContext";
+import { ToastProvider } from "./components/gallery/Toast";
 
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <UserProvider>
-        <Routes>
+      <ToastProvider>
+        <UserProvider>
+          <Routes>
         {/* Full Gallery route (§7 Items 1–26) */}
         <Route path="/gallery" element={<GalleryPage />} />
 
@@ -128,6 +130,7 @@ export const App: React.FC = () => {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </UserProvider>
+    </ToastProvider>
   </BrowserRouter>
   );
 };

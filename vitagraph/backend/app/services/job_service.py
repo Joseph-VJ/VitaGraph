@@ -15,12 +15,25 @@ from typing import Any, AsyncGenerator
 
 
 class JobEventBroker:
+    RETENTION_SECONDS: float = 600.0  # 10 minutes retention per US-15
+
     def __init__(self) -> None:
         # job_id -> dict with status, events list, and active subscriber queues
         self._jobs: dict[str, dict[str, Any]] = {}
         self._lock = asyncio.Lock() if hasattr(asyncio, "Lock") else None
 
+    def _prune_expired_jobs(self) -> None:
+        """Prune jobs that have exceeded the 10-minute retention period."""
+        now = time.time()
+        expired = [
+            jid for jid, j in self._jobs.items()
+            if (now - j.get("created_at", now)) > self.RETENTION_SECONDS
+        ]
+        for jid in expired:
+            self._jobs.pop(jid, None)
+
     def get_or_create_job(self, job_id: str | None = None) -> str:
+        self._prune_expired_jobs()
         jid = job_id or f"job_{uuid.uuid4().hex[:12]}"
         if jid not in self._jobs:
             self._jobs[jid] = {
@@ -29,11 +42,19 @@ class JobEventBroker:
                 "created_at": time.time(),
                 "events": [],
                 "subscribers": [],
+                "result": None,
+                "error": None,
             }
         return jid
 
     def get_job(self, job_id: str) -> dict[str, Any] | None:
+        self._prune_expired_jobs()
         return self._jobs.get(job_id)
+
+    def set_job_result(self, job_id: str, result: Any) -> None:
+        """Store final computation output in the job record."""
+        if job_id in self._jobs:
+            self._jobs[job_id]["result"] = result
 
     def publish_event(
         self,
@@ -92,6 +113,8 @@ class JobEventBroker:
             metadata=metadata,
         )
         self._jobs[job_id]["status"] = "completed"
+        if metadata:
+            self._jobs[job_id]["result"] = metadata
 
     def fail_job(
         self,
@@ -110,6 +133,11 @@ class JobEventBroker:
             metadata={"error": error_message},
         )
         self._jobs[job_id]["status"] = "error"
+        self._jobs[job_id]["error"] = error_message
+
+    def publish_error(self, job_id: str, error_message: str) -> None:
+        """Alias for fail_job."""
+        self.fail_job(job_id, error_message)
 
     async def event_generator(self, job_id: str) -> AsyncGenerator[str, None]:
         """Async generator yielding Server-Sent Events for a job."""
@@ -123,15 +151,21 @@ class JobEventBroker:
             # Yield initial connection comment
             yield ": connected to pipeline stream\n\n"
 
+            # Check if this connection is a replay of an already completed/past job
+            is_replay = job.get("status") in ("completed", "error")
+
             # 1. Replay past events that were already recorded
             for past_event in list(job["events"]):
-                data_str = json.dumps(past_event)
+                event_payload = dict(past_event)
+                if is_replay:
+                    event_payload["is_replay"] = True
+                data_str = json.dumps(event_payload)
                 yield f"data: {data_str}\n\n"
                 if past_event.get("stage") == "done":
                     return
 
             # If job is already completed and no more events, terminate
-            if job.get("status") in ("completed", "error"):
+            if is_replay:
                 return
 
             # 2. Stream new live events as they occur

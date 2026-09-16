@@ -9,6 +9,7 @@ export interface TraceRowData {
   description: string;
   subDescription?: string;
   latency?: string;
+  is_replay?: boolean;
 }
 
 export interface ThinkingDetailsPanelProps {
@@ -17,6 +18,7 @@ export interface ThinkingDetailsPanelProps {
   jobId?: string | null;
   isStreaming?: boolean;
   streamError?: string | null;
+  isReplay?: boolean;
   className?: string;
 }
 
@@ -26,10 +28,14 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
   jobId,
   isStreaming = false,
   streamError = null,
+  isReplay = false,
   className = "",
 }) => {
   const [detailMode, setDetailMode] = useState("Show details");
   const [copied, setCopied] = useState(false);
+
+  // Check if events are from a replay per US-15
+  const hasReplay = isReplay || traces.some((t) => (t as any).is_replay);
 
   // Stage color map per DESIGN.md §8.2
   const stageColors: Record<TraceRowData["stage"], string> = {
@@ -65,12 +71,17 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
     >
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-[var(--line-faint)]">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <svg className="w-4 h-4 text-[var(--dim)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
             <circle cx="12" cy="12" r="3" />
             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
           </svg>
           <span className="type-card-title text-[var(--bone)]">Thinking details</span>
+          {hasReplay && (
+            <span className="px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded bg-[var(--ochre)]/15 text-[var(--ochre)] border border-[var(--ochre)]/30 font-semibold">
+              replay
+            </span>
+          )}
           {streamError ? (
             <Badge variant="madder">Backend Stream Interrupted</Badge>
           ) : isStreaming ? (
@@ -112,13 +123,30 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
         </div>
       )}
 
-      {/* Empty State when waiting for real events */}
+      {/* Skeleton Shimmer State while waiting for first event per US-15 */}
       {traces.length === 0 && !streamError && (
-        <div className="py-6 flex flex-col items-center justify-center gap-2 text-[var(--dim)]">
-          <span className="w-2.5 h-2.5 rounded-full bg-[var(--verdigris)] animate-ping" />
-          <span className="type-meta text-[12px]">
-            Waiting for live question flow events from EventSource (/api/jobs/{jobId || "{id}"}/events)…
-          </span>
+        <div className="py-4 space-y-3">
+          <div className="flex items-center gap-3 animate-pulse">
+            <div className="w-6 h-3 bg-[var(--ink-700)] rounded" />
+            <div className="w-24 h-3 bg-[var(--ink-700)] rounded" />
+            <div className="flex-1 h-3 bg-[var(--ink-700)] rounded" />
+            <div className="w-12 h-3 bg-[var(--ink-700)] rounded" />
+          </div>
+          <div className="flex items-center gap-3 animate-pulse">
+            <div className="w-6 h-3 bg-[var(--ink-700)] rounded" />
+            <div className="w-24 h-3 bg-[var(--ink-700)] rounded" />
+            <div className="flex-1 h-3 bg-[var(--ink-700)] rounded" />
+            <div className="w-12 h-3 bg-[var(--ink-700)] rounded" />
+          </div>
+          <div className="flex items-center gap-3 animate-pulse">
+            <div className="w-6 h-3 bg-[var(--ink-700)] rounded" />
+            <div className="w-24 h-3 bg-[var(--ink-700)] rounded" />
+            <div className="flex-1 h-3 bg-[var(--ink-700)] rounded" />
+            <div className="w-12 h-3 bg-[var(--ink-700)] rounded" />
+          </div>
+          <div className="type-meta text-[11px] text-[var(--dim)] text-center pt-1">
+            Waiting for real pipeline events from EventSource (/api/jobs/{jobId || "{id}"}/events)…
+          </div>
         </div>
       )}
 

@@ -116,3 +116,102 @@ def test_boundary_question_refusal_emits_safety_sse():
     stages = [evt["stage"] for evt in job_data["events"]]
     assert "safety" in stages
     assert "done" in stages
+
+
+def test_async_question_background_job():
+    """Test US-15: POST /api/questions with background=True returns job_id immediately with status=processing."""
+    import time
+    user = make_user("Async Question Persona")
+    uid = user["id"]
+    job_id = "test_async_q_job"
+
+    res = client.post(
+        "/api/questions",
+        json={
+            "user_id": uid,
+            "text": "What was my hemoglobin level?",
+            "job_id": job_id,
+            "background": True,
+        },
+    )
+    assert res.status_code == 200
+    ans = res.json()
+    assert ans["job_id"] == job_id
+    assert ans["status"] == "processing"
+
+    # Wait for the background task to complete
+    max_wait = 10.0
+    start = time.time()
+    while time.time() - start < max_wait:
+        status_res = client.get(f"/api/jobs/{job_id}")
+        if status_res.status_code == 200 and status_res.json()["status"] == "completed":
+            break
+        time.sleep(0.1)
+
+    final_status = client.get(f"/api/jobs/{job_id}").json()
+    assert final_status["status"] == "completed"
+    assert len(final_status["events"]) >= 2
+    assert final_status["result"] is not None
+
+
+def test_async_upload_background_job():
+    """Test US-15: POST /api/reports/upload with background=True returns job_id immediately with status=received."""
+    import time
+    import fitz
+    user = make_user("Async Upload Persona")
+    uid = user["id"]
+    job_id = "test_async_up_job"
+
+    # Create a small valid PDF
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((50, 50), "Comprehensive Health Report\nDate: 2024-03-15\nHemoglobin: 14.2 g/dL")
+    pdf_bytes = doc.tobytes()
+    doc.close()
+
+    res = client.post(
+        "/api/reports/upload",
+        data={"user_id": uid, "job_id": job_id, "background": "true"},
+        files={"file": ("test_report.pdf", pdf_bytes, "application/pdf")},
+    )
+    assert res.status_code == 201
+    up = res.json()
+    assert up["job_id"] == job_id
+    assert up["status"] == "received"
+
+    # Wait for background task to complete
+    max_wait = 10.0
+    start = time.time()
+    while time.time() - start < max_wait:
+        status_res = client.get(f"/api/jobs/{job_id}")
+        if status_res.status_code == 200 and status_res.json()["status"] == "completed":
+            break
+        time.sleep(0.1)
+
+    final_status = client.get(f"/api/jobs/{job_id}").json()
+    assert final_status["status"] == "completed"
+    stages = [e["stage"] for e in final_status["events"]]
+    assert "received" in stages
+    assert "done" in stages
+
+
+def test_job_replay_and_retention():
+    """Test US-15: Replaying completed jobs marks events with is_replay=True, and retention prunes expired jobs."""
+    import time
+    job_id = "test_replay_retention_job"
+    job_broker.get_or_create_job(job_id)
+    job_broker.publish_event(job_id, stage="received", description="Test event")
+    job_broker.complete_job(job_id, description="Complete test")
+
+    # Connect to completed job stream -> should yield is_replay=True
+    res = client.get(f"/api/jobs/{job_id}/events")
+    assert res.status_code == 200
+    lines = [line for line in res.text.split("\n") if line.startswith("data: ")]
+    assert len(lines) >= 2
+    evt1 = json.loads(lines[0][6:])
+    assert evt1.get("is_replay") is True
+
+    # Test retention pruning
+    job_broker._jobs[job_id]["created_at"] = time.time() - 700.0  # > 10 min ago
+    job_broker._prune_expired_jobs()
+    assert job_broker.get_job(job_id) is None

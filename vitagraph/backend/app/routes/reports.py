@@ -26,9 +26,15 @@ async def upload_report(
     user_id: str = Form(...),
     file: UploadFile = File(...),
     job_id: str | None = Form(None),
+    background: bool = Form(True),
 ) -> dict:
     user_service.user_exists(user_id)
-    # Reject an oversized declared size before reading the body into memory.
+    if not user_service.has_consent(user_id):
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=403,
+            detail="This persona has not accepted the data-use statement yet.",
+        )
     from app.core.config import settings
 
     declared_size = getattr(file, "size", None)
@@ -40,7 +46,24 @@ async def upload_report(
             detail=f"File exceeds the {settings.max_upload_mb} MB upload limit.",
         )
     data = await file.read()
-    return report_service.process_upload(user_id, file.filename or "upload.pdf", data, job_id=job_id)
+    filename = file.filename or "upload.pdf"
+
+    from app.services.job_service import job_broker
+    jid = job_broker.get_or_create_job(job_id)
+
+    if background:
+        import asyncio
+        asyncio.create_task(asyncio.to_thread(report_service.process_upload, user_id, filename, data, jid))
+        return {
+            "id": jid,
+            "status": "received",
+            "page_count": None,
+            "chunk_count": 0,
+            "error_message": None,
+            "file_hash": None,
+            "job_id": jid,
+        }
+    return report_service.process_upload(user_id, filename, data, job_id=jid)
 
 
 @router.get("", response_model=list[ReportOut])

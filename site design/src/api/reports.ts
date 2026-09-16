@@ -62,12 +62,15 @@ export interface ComparisonData {
 }
 
 export const reportsApi = {
-  upload: (userId: string, file: File, jobId?: string) => {
+  upload: (userId: string, file: File, jobId?: string, background: boolean = true) => {
     const form = new FormData();
     form.append("user_id", userId);
     form.append("file", file);
     if (jobId) {
       form.append("job_id", jobId);
+    }
+    if (background) {
+      form.append("background", "true");
     }
     return api.upload<ReportStatus>("/api/reports/upload", form);
   },

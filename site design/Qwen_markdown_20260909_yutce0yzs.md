@@ -197,6 +197,8 @@ Each entry: anatomy → states → tokens. States notation: `default / hover / a
 
 ## 8. Motion & the orchestrated sequences
 
+> §8 is extended and minimally amended by MOTION.md v1.0 (DESIGN §14). Ratified amendments are listed in MOTION.md §M0.
+
 ### 8.1 Global
 Hover 120 ms ease-out (border/color only) · drawer/accordion 240 ms ease-out · tooltip 120 ms in / 0 out · no scale, no bounce, no parallax. `prefers-reduced-motion`: all durations 0, pulses static, trace renders as full table instantly.
 

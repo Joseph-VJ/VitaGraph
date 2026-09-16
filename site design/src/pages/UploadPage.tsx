@@ -8,6 +8,7 @@ import {
   Badge,
   Marginalia,
   Button,
+  useToast,
 } from "../components/gallery";
 import type { PipelineStep } from "../components/gallery/PipelineStepper";
 import { reportsApi, type ReportStatus } from "../api/reports";
@@ -17,6 +18,7 @@ import type { ReportPage, Report } from "../types";
 export const UploadPage: React.FC = () => {
   const { user } = useActiveUser();
   const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
+  const { addToast } = useToast();
 
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -25,8 +27,12 @@ export const UploadPage: React.FC = () => {
   const [pages, setPages] = useState<ReportPage[]>([]);
   const [activeReport, setActiveReport] = useState<Report | null>(null);
   const [quarantinedFiles, setQuarantinedFiles] = useState<Array<{ filename: string; reason: string }>>([]);
+  const [eventCount, setEventCount] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const eventSourceRef = useRef<EventSource | null>(null);
+  const eventQueueRef = useRef<any[]>([]);
+  const isProcessingQueueRef = useRef<boolean>(false);
 
   // Stepper state
   const initialSteps: PipelineStep[] = [
@@ -78,6 +84,8 @@ export const UploadPage: React.FC = () => {
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
     setIsUploading(true);
+    setUploadError(null);
+    setEventCount(0);
     const jobId = `job_upload_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     setActiveJobId(jobId);
 
@@ -91,47 +99,106 @@ export const UploadPage: React.FC = () => {
       { name: "Graphed", value: "pending", status: "pending" },
     ]);
 
-    // Connect to SSE stream
+    // Connect to SSE stream BEFORE POST per US-15 reality contract
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
+    eventQueueRef.current = [];
+    isProcessingQueueRef.current = false;
+
     const backendUrl = "http://127.0.0.1:8000";
     const es = new EventSource(`${backendUrl}/api/jobs/${jobId}/events`);
     eventSourceRef.current = es;
+
+    const processQueue = () => {
+      if (eventQueueRef.current.length === 0) {
+        isProcessingQueueRef.current = false;
+        return;
+      }
+      isProcessingQueueRef.current = true;
+      const evt = eventQueueRef.current.shift();
+      setEventCount((prev) => prev + 1);
+
+      if (evt && evt.stage) {
+        setSteps((prev) => {
+          const next = [...prev];
+          if (evt.stage === "received") {
+            next[0] = { name: "Received", value: evt.latency || "verified", status: "done" };
+            next[1] = { name: "Extracted", value: "parsing layout…", status: "active" };
+          } else if (evt.stage === "extracted") {
+            next[0] = { name: "Received", value: "verified", status: "done" };
+            next[1] = { name: "Extracted", value: evt.description.match(/\d+ pages?/)?.[0] || "extracted", status: "done" };
+            next[2] = { name: "Chunked", value: "chunking…", status: "active" };
+          } else if (evt.stage === "chunked") {
+            next[1] = { name: "Extracted", value: "text ready", status: "done" };
+            next[2] = { name: "Chunked", value: evt.description.match(/\d+ semantic sections|\d+ chunks/)?.[0] || "chunked", status: "done" };
+            next[3] = { name: "Embedded", value: "embedding…", status: "active" };
+          } else if (evt.stage === "embedded") {
+            next[2] = { name: "Chunked", value: "sections ready", status: "done" };
+            next[3] = { name: "Embedded", value: "384-dim", status: "done" };
+            next[4] = { name: "Indexed", value: "indexing…", status: "active" };
+          } else if (evt.stage === "indexed") {
+            next[3] = { name: "Embedded", value: "384-dim", status: "done" };
+            next[4] = { name: "Indexed", value: "ChromaDB ok", status: "done" };
+            next[5] = { name: "Graphed", value: "aligning graph…", status: "active" };
+          } else if (evt.stage === "graphed") {
+            next[4] = { name: "Indexed", value: "ChromaDB ok", status: "done" };
+            next[5] = { name: "Graphed", value: "NetworkX mapped", status: "done" };
+          } else if (evt.stage === "done") {
+            const pageCount = evt.metadata?.pages || evt.metadata?.report?.page_count || 1;
+            const chunkCount = evt.metadata?.chunks || evt.metadata?.report?.chunk_count || 1;
+            const reportId = evt.metadata?.report_id || evt.metadata?.report?.id;
+            addToast("done", "Report Ingestion Complete", `${pageCount} pages, ${chunkCount} chunks indexed`);
+            setIsUploading(false);
+            if (reportId) {
+              reportsApi.pages(reportId).then((pgs) => setPages(pgs)).catch(() => {});
+              setActiveReport({
+                id: reportId,
+                user_id: effectiveUserId,
+                original_filename: selectedFile.name,
+                file_hash: evt.metadata?.report?.file_hash || "verified_digest",
+                report_date: new Date().toISOString().split("T")[0],
+                upload_time: new Date().toISOString(),
+                version: 1,
+                status: "ready",
+                page_count: pageCount,
+                error_message: null,
+              });
+            }
+            return [
+              { name: "Received", value: "verified", status: "done" },
+              { name: "Extracted", value: `${pageCount} pages`, status: "done" },
+              { name: "Chunked", value: `${chunkCount} chunks`, status: "done" },
+              { name: "Embedded", value: "384-dim", status: "done" },
+              { name: "Indexed", value: "ChromaDB ok", status: "done" },
+              { name: "Graphed", value: "NetworkX mapped", status: "done" },
+            ];
+          }
+          return next;
+        });
+
+        if (evt.stage === "done") {
+          es.close();
+          return;
+        }
+      }
+
+      // Check prefers-reduced-motion per DESIGN.md §8.1
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const dwellMs = prefersReducedMotion ? 0 : 280; // presentation dwell (US-15)
+
+      setTimeout(() => {
+        processQueue();
+      }, dwellMs);
+    };
 
     es.onmessage = (e) => {
       try {
         const evt = JSON.parse(e.data);
         if (evt && evt.stage) {
-          setSteps((prev) => {
-            const next = [...prev];
-            if (evt.stage === "retrieval") {
-              next[0] = { name: "Received", value: "stored", status: "done" };
-              next[1] = { name: "Extracted", value: "parsing layout…", status: "active" };
-            } else if (evt.stage === "reranking") {
-              next[0] = { name: "Received", value: "hashed", status: "done" };
-              next[1] = { name: "Extracted", value: "extracting text…", status: "active" };
-            } else if (evt.stage === "graph") {
-              next[1] = { name: "Extracted", value: "text ready", status: "done" };
-              next[2] = { name: "Chunked", value: "chunking…", status: "active" };
-            } else if (evt.stage === "citation") {
-              next[2] = { name: "Chunked", value: "semantic blocks", status: "done" };
-              next[3] = { name: "Embedded", value: "embedding…", status: "active" };
-              next[4] = { name: "Indexed", value: "indexing…", status: "pending" };
-            } else if (evt.stage === "done") {
-              return [
-                { name: "Received", value: "verified", status: "done" },
-                { name: "Extracted", value: `${evt.metadata?.pages || 4} pages`, status: "done" },
-                { name: "Chunked", value: `${evt.metadata?.chunks || 24} chunks`, status: "done" },
-                { name: "Embedded", value: "384-dim", status: "done" },
-                { name: "Indexed", value: "ChromaDB ok", status: "done" },
-                { name: "Graphed", value: "NetworkX mapped", status: "done" },
-              ];
-            }
-            return next;
-          });
-          if (evt.stage === "done") {
-            es.close();
+          eventQueueRef.current.push(evt);
+          if (!isProcessingQueueRef.current) {
+            processQueue();
           }
         }
       } catch {
@@ -141,36 +208,19 @@ export const UploadPage: React.FC = () => {
 
     es.onerror = () => {
       es.close();
+      setUploadError("Backend connection lost. Pipeline interrupted mid-upload.");
+      addToast("failed", "Connection Interrupted", "Backend stream disconnected mid-upload.");
+      setIsUploading(false);
+      setSteps((prev) =>
+        prev.map((s) => (s.status === "active" ? { ...s, value: "interrupted", status: "pending" } : s))
+      );
     };
 
+    // Subscribed EventSource first, now dispatch POST to start background pipeline
     try {
-      const res = await reportsApi.upload(effectiveUserId, selectedFile, jobId);
+      const res = await reportsApi.upload(effectiveUserId, selectedFile, jobId, true);
       setUploadStatus(res);
-
-      if (res.status === "ready") {
-        const pageList = await reportsApi.pages(res.id);
-        setPages(pageList);
-        setActiveReport({
-          id: res.id,
-          user_id: effectiveUserId,
-          original_filename: selectedFile.name,
-          file_hash: res.file_hash || "8f4a9c0d2b7e6f1c9d4a1e0b6c21",
-          report_date: new Date().toISOString().split("T")[0],
-          upload_time: new Date().toISOString(),
-          version: 1,
-          status: "ready",
-          page_count: res.page_count,
-          error_message: null,
-        });
-        setSteps([
-          { name: "Received", value: "verified", status: "done" },
-          { name: "Extracted", value: `${res.page_count} pages`, status: "done" },
-          { name: "Chunked", value: `${res.chunk_count} chunks`, status: "done" },
-          { name: "Embedded", value: "384-dim", status: "done" },
-          { name: "Indexed", value: "ChromaDB ok", status: "done" },
-          { name: "Graphed", value: "NetworkX mapped", status: "done" },
-        ]);
-      } else if (res.status === "failed") {
+      if (res.status === "failed") {
         setQuarantinedFiles((prev) => [
           ...prev,
           {
@@ -178,12 +228,12 @@ export const UploadPage: React.FC = () => {
             reason: res.error_message || "Corrupted document structure or unreadable text layers.",
           },
         ]);
-        setSteps((prev) =>
-          prev.map((s, idx) => (idx === 1 ? { ...s, value: "failed", status: "pending" } : s))
-        );
+        addToast("failed", "Document Quarantined", res.error_message || "Rejected by security policy.");
+        setIsUploading(false);
       }
     } catch (err: any) {
       const errMsg = err?.message || String(err);
+      setUploadError(`Upload failed: ${errMsg}`);
       setQuarantinedFiles((prev) => [
         ...prev,
         {
@@ -193,15 +243,7 @@ export const UploadPage: React.FC = () => {
             : errMsg,
         },
       ]);
-      setSteps([
-        { name: "Received", value: "rejected", status: "pending" },
-        { name: "Extracted", value: "quarantined", status: "pending" },
-        { name: "Chunked", value: "skipped", status: "pending" },
-        { name: "Embedded", value: "skipped", status: "pending" },
-        { name: "Indexed", value: "skipped", status: "pending" },
-        { name: "Graphed", value: "skipped", status: "pending" },
-      ]);
-    } finally {
+      addToast("failed", "Upload Rejected", errMsg);
       setIsUploading(false);
     }
   };
@@ -309,6 +351,24 @@ export const UploadPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Visible honest error banner on failure/interruption per US-15 */}
+            {uploadError && (
+              <div className="mb-5 p-3.5 rounded-[var(--r-6)] bg-[var(--madder)]/10 border-2 border-[var(--madder)] text-[var(--bone)] flex items-center justify-between animate-fade-in">
+                <div className="flex items-center gap-3">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[var(--madder)] flex-shrink-0 animate-pulse" />
+                  <div>
+                    <div className="font-semibold text-[var(--madder)] text-[13px]">{uploadError}</div>
+                    <div className="type-meta text-[var(--dim)] text-[11px] mt-0.5">
+                      Pipeline interrupted. Partial state cleaned up per fail-closed policy.
+                    </div>
+                  </div>
+                </div>
+                <Button variant="ghost" className="h-7 text-[11px] px-2.5 text-[var(--madder)]" onClick={() => setUploadError(null)}>
+                  Dismiss
+                </Button>
+              </div>
+            )}
+
             {/* Stepper (§7.12) */}
             <PipelineStepper steps={steps} />
           </div>
@@ -342,7 +402,26 @@ export const UploadPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--line-faint)]">
-                  {pages.length === 0 ? (
+                  {isUploading && eventCount === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-6 px-3">
+                        <div className="space-y-3 animate-pulse">
+                          <div className="flex items-center gap-4">
+                            <div className="w-16 h-3 bg-[var(--ink-700)] rounded" />
+                            <div className="w-24 h-3 bg-[var(--ink-700)] rounded" />
+                            <div className="w-20 h-3 bg-[var(--ink-700)] rounded" />
+                            <div className="flex-1 h-3 bg-[var(--ink-700)] rounded" />
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="w-16 h-3 bg-[var(--ink-700)] rounded" />
+                            <div className="w-24 h-3 bg-[var(--ink-700)] rounded" />
+                            <div className="w-20 h-3 bg-[var(--ink-700)] rounded" />
+                            <div className="flex-1 h-3 bg-[var(--ink-700)] rounded" />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : pages.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-6 text-center text-[var(--dim)] type-meta">
                         Upload a report PDF to view page-level extraction confidence.

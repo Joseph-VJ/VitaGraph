@@ -1,16 +1,246 @@
-{ "branchName": "vitagraph-completion", "userStories": [
- { "id":"US-01","title":"Repo + loop hygiene","passes":true,"acceptance":"git repo exists with initial commit; AGENTS.md, tasks/prd.json, progress.txt present","verify":"git log --oneline | head -3" },
- { "id":"US-02","title":"Adopt Instrument&Paper prototype as shipping frontend","passes":true,"acceptance":"`site design/src` runs against backend CORS :5174; old 3-column App.tsx retired (kept in legacy/); npm run build exit 0","verify":"npm run build" },
- { "id":"US-03","title":"HomePage live bindings","passes":true,"acceptance":"stat tiles, activity feed, health rows, latency sparkline all from /api/reports, /api/timeline, /api/graph, /api/health with client-measured ms; zero hardcoded numbers","verify":"npm run build + browser screenshot with backend on AND off" },
- { "id":"US-04","title":"KnowledgeGraphPage renders REAL NetworkX graph","passes":true,"acceptance":"GET /api/graph/{uid} nodes/edges drawn on canvas (curved edges, category colors, proportional labels, ≤120 nodes); metrics row = live metrics; node click opens provenance card (report, page, span)","verify":"browser: two personas show different graphs" },
- { "id":"US-05","title":"Question-conditioned subgraph activation","passes":true,"acceptance":"after POST /api/questions, POST /api/graph/subgraph with evidence chunk_ids; active nodes pulse once, others dim to 40%; two questions give different highlights (plan §20.1)","verify":"browser: ask 2 questions, screenshot both" },
- { "id":"US-06","title":"Backend SSE job stream + Thinking Details via EventSource","passes":true,"acceptance":"new /api/jobs/{id}/events StreamingResponse emitting plan §12 events during question flow; ThinkingDetailsPanel rows appear only on real events; stopped backend → visible error state, no fake trace","verify":"pytest + curl -N stream shows events; kill backend mid-question → error state" },
- { "id":"US-07","title":"AskPage real 4-part answers","passes":true,"acceptance":"AnswerOut summary/evidence/limitations/safety rendered; paper slips from evidence[] (snippet, page, score); refused → RefusalCard verbatim; insufficient → honest state","verify":"browser: ask vitamin-D question + diagnosis question" },
- { "id":"US-08","title":"UploadPage real pipeline","passes":true,"acceptance":"upload → stepper advances only on real job/SSE/status events; page-quality table from /api/reports/{id}/pages; manifest from report row (hash/size/date); failed upload → quarantine row with real error","verify":"browser: upload sample PDF + corrupted file" },
- { "id":"US-09","title":"TimelinePage live","passes":true,"acceptance":"spine from /api/timeline; deltas from /api/reports/{uid}/trends; 'not present' dashed rows real; delete persona wired with confirm + cascade","verify":"browser: upload 2nd report → new block without reload" },
- { "id":"US-10","title":"Library + Compare live","passes":true,"acceptance":"Library list = /api/reports (+pages/chunks counts, hash copy); Compare diff rows computed from two reports' extracted values; summary strip counts real","verify":"browser + npm run build" },
- { "id":"US-11","title":"Insights live analytics","passes":true,"acceptance":"communities/betweenness/edge-freq computed from live /api/graph metrics; causality footnote present; no invented numbers","verify":"browser: values match /api/graph response" },
- { "id":"US-12","title":"Failure-injection & honest states","passes":true,"acceptance":"backend-down banner; Chroma-stopped → retrieval error while graph/timeline inspectable; allow_api=false label from /api/health + /api/ai/config; replay badge if replay mode","verify":"plan §15.3 tests 7-8 manually in browser" },
- { "id":"US-13","title":"Evidence span viewer","passes":true,"acceptance":"clicking evidence/chunk opens page text with char_start–char_end highlighted from /api/reports/{id}/pages","verify":"browser: highlight matches snippet" },
- { "id":"US-14","title":"QA, docs, viva script, tag","passes":true,"acceptance":"16 DESIGN gates checklist passed; pytest 38/38; build green; docs/demo-script.md written per plan §19.1; README updated; git tag v1.0.0","verify":"pytest + npm run build + git tag" }
-]}
+{
+  "branchName": "vitagraph-completion",
+  "userStories": [
+    {
+      "id": "US-01",
+      "title": "Repo + loop hygiene",
+      "passes": true,
+      "acceptance": "git repo exists with initial commit; AGENTS.md, tasks/prd.json, progress.txt present",
+      "verify": "git log --oneline | head -3"
+    },
+    {
+      "id": "US-02",
+      "title": "Adopt Instrument&Paper prototype as shipping frontend",
+      "passes": true,
+      "acceptance": "`site design/src` runs against backend CORS :5174; old 3-column App.tsx retired (kept in legacy/); npm run build exit 0",
+      "verify": "npm run build"
+    },
+    {
+      "id": "US-03",
+      "title": "HomePage live bindings",
+      "passes": true,
+      "acceptance": "stat tiles, activity feed, health rows, latency sparkline all from /api/reports, /api/timeline, /api/graph, /api/health with client-measured ms; zero hardcoded numbers",
+      "verify": "npm run build + browser screenshot with backend on AND off"
+    },
+    {
+      "id": "US-04",
+      "title": "KnowledgeGraphPage renders REAL NetworkX graph",
+      "passes": true,
+      "acceptance": "GET /api/graph/{uid} nodes/edges drawn on canvas (curved edges, category colors, proportional labels, \u2264120 nodes); metrics row = live metrics; node click opens provenance card (report, page, span)",
+      "verify": "browser: two personas show different graphs"
+    },
+    {
+      "id": "US-05",
+      "title": "Question-conditioned subgraph activation",
+      "passes": true,
+      "acceptance": "after POST /api/questions, POST /api/graph/subgraph with evidence chunk_ids; active nodes pulse once, others dim to 40%; two questions give different highlights (plan \u00a720.1)",
+      "verify": "browser: ask 2 questions, screenshot both"
+    },
+    {
+      "id": "US-06",
+      "title": "Backend SSE job stream + Thinking Details via EventSource",
+      "passes": true,
+      "acceptance": "new /api/jobs/{id}/events StreamingResponse emitting plan \u00a712 events during question flow; ThinkingDetailsPanel rows appear only on real events; stopped backend \u2192 visible error state, no fake trace",
+      "verify": "pytest + curl -N stream shows events; kill backend mid-question \u2192 error state"
+    },
+    {
+      "id": "US-07",
+      "title": "AskPage real 4-part answers",
+      "passes": true,
+      "acceptance": "AnswerOut summary/evidence/limitations/safety rendered; paper slips from evidence[] (snippet, page, score); refused \u2192 RefusalCard verbatim; insufficient \u2192 honest state",
+      "verify": "browser: ask vitamin-D question + diagnosis question"
+    },
+    {
+      "id": "US-08",
+      "title": "UploadPage real pipeline",
+      "passes": true,
+      "acceptance": "upload \u2192 stepper advances only on real job/SSE/status events; page-quality table from /api/reports/{id}/pages; manifest from report row (hash/size/date); failed upload \u2192 quarantine row with real error",
+      "verify": "browser: upload sample PDF + corrupted file"
+    },
+    {
+      "id": "US-09",
+      "title": "TimelinePage live",
+      "passes": true,
+      "acceptance": "spine from /api/timeline; deltas from /api/reports/{uid}/trends; 'not present' dashed rows real; delete persona wired with confirm + cascade",
+      "verify": "browser: upload 2nd report \u2192 new block without reload"
+    },
+    {
+      "id": "US-10",
+      "title": "Library + Compare live",
+      "passes": true,
+      "acceptance": "Library list = /api/reports (+pages/chunks counts, hash copy); Compare diff rows computed from two reports' extracted values; summary strip counts real",
+      "verify": "browser + npm run build"
+    },
+    {
+      "id": "US-11",
+      "title": "Insights live analytics",
+      "passes": true,
+      "acceptance": "communities/betweenness/edge-freq computed from live /api/graph metrics; causality footnote present; no invented numbers",
+      "verify": "browser: values match /api/graph response"
+    },
+    {
+      "id": "US-12",
+      "title": "Failure-injection & honest states",
+      "passes": true,
+      "acceptance": "backend-down banner; Chroma-stopped \u2192 retrieval error while graph/timeline inspectable; allow_api=false label from /api/health + /api/ai/config; replay badge if replay mode",
+      "verify": "plan \u00a715.3 tests 7-8 manually in browser"
+    },
+    {
+      "id": "US-13",
+      "title": "Evidence span viewer",
+      "passes": true,
+      "acceptance": "clicking evidence/chunk opens page text with char_start\u2013char_end highlighted from /api/reports/{id}/pages",
+      "verify": "browser: highlight matches snippet"
+    },
+    {
+      "id": "US-14",
+      "title": "QA, docs, viva script, tag",
+      "passes": true,
+      "acceptance": "16 DESIGN gates checklist passed; pytest 38/38; build green; docs/demo-script.md written per plan \u00a719.1; README updated; git tag v1.0.0",
+      "verify": "pytest + npm run build + git tag"
+    },
+    {
+      "id": "US-15",
+      "title": "Async job pipeline + paced live UI",
+      "passes": true,
+      "acceptance": "process_upload and ask() run stages in asyncio background jobs; POST returns job_id immediately; EventSource subscribed BEFORE POST; stepper/thinking panel animate per real event with >=250ms presentation dwell; skeleton shimmer until first event; toasts on done/failed; kill backend mid-upload shows error state; recorded",
+      "verify": "pytest -q; npm run build; browser recording us15_paced_pipeline.mp4"
+    },
+    {
+      "id": "US-16",
+      "title": "Extraction robustness: scan detection + table-aware entities",
+      "passes": false,
+      "acceptance": "page is scan-suspect if text_chars<400 OR full-page image present; OCR via Tesseract if available else rapidocr-onnxruntime (pip, no system binary); method recorded as ocr-tesseract/ocr-rapid; if neither engine, quality=uncertain + UncertainState UI, never silent; page.find_tables() rows normalized to single-line 'Name value unit range flag' before chunking; generic measurement fallback for table rows; dependency register updated",
+      "verify": "pytest -q incl new tests/test_extraction_tables.py; upload VitaGraph-Report4-Scanned-OCR-Test-2024-12-01.pdf -> entities>=3 OR honest uncertain state; recording us16_scanned_ocr.png"
+    },
+    {
+      "id": "US-17",
+      "title": "Graph richness guarantee (plan \u00a711 ontology)",
+      "passes": false,
+      "acceptance": "builder always emits report + per-page chunk + section + date nodes plus entities; edges CONTAINS/MENTIONS/HAS_MEASUREMENT/BELONGS_TO/OBSERVED_ON/IN_SECTION; entities==0 still yields section/chunk/date/Uncertainty structure; graph page adds staggered node reveal, edge draw-in, metrics count-up from REAL values; <=120 cap kept",
+      "verify": "scanned PDF graph >=6 nodes; synthetic panel graph >=25 nodes and >=3 communities; two questions give different active sets; recordings us17_*.png"
+    },
+    {
+      "id": "US-18",
+      "title": "Global liveliness pass",
+      "passes": false,
+      "acceptance": "skeleton shimmer on every async region until first data; 120ms route fade; button press micro-feedback; status-strip latency ticker per health probe; activity feed refreshes on job-done event; toasts for upload done/failed and persona delete; prefers-reduced-motion honored; grep proof: zero setTimeout-driven progress values (presentation dwell constants allowed)",
+      "verify": "full-tour recording us18_tour.mp4; grep evidence; DESIGN.md 16 gates green"
+    },
+    {
+      "id": "US-19",
+      "title": "One-click demo cohort + viva script update",
+      "passes": false,
+      "acceptance": "'Load demo cohort' button (Home + Upload) ingests both synthetic panels into a fresh demo persona labeled 'demo data' and routes to /graph; docs/demo-script.md gains the 2-dot explanation and scanned-PDF path",
+      "verify": "one click yields >=25-node graph; recording us19_demo_cohort.mp4"
+    },
+    {
+      "id": "MS-01",
+      "title": "Motion foundation: tokens, engine, governor",
+      "spec": "\u00a7M2, \u00a7M4",
+      "passes": false,
+      "acceptance": "src/motion/{ticker,spring,sequence,quality,features,flip}.ts live; --m-* + easings in tokens.css; springToLinear() emits cached linear() strings; tier chip motion T3 in StatusStrip (A3); Settings override persisted; reduced-motion hard-locks T0 live; idle => zero rAF (proof)",
+      "gates": "17,19,20,29",
+      "verify": "npm run build; pytest -q; tier-chip png, idle-rAF trace"
+    },
+    {
+      "id": "MS-02",
+      "title": "Global grammar: enter/exit/FLIP, route transitions, boot ignition, detent press",
+      "spec": "\u00a7M5.1\u20135.4, \u00a7M6",
+      "passes": false,
+      "acceptance": "Route change: ViewTransition path + fallback path both verified (feature-flag off test); sidebar active-rule FLIPs; boot <=1.6 s once/session, skippable by first input, skipped at T0/T1; every button/input has press micro-feedback same-frame",
+      "gates": "18,24,30,32",
+      "verify": "boot.webm, skip-proof, route pair png"
+    },
+    {
+      "id": "MS-03",
+      "title": "Home motion pass",
+      "spec": "\u00a7M7.1",
+      "passes": false,
+      "acceptance": "Tiles odometer only after real fetch; sparkline draws once; activity insert FLIPs; health LEDs ignite in order; refusals tile has no celebration motion",
+      "gates": "21,25,27",
+      "verify": "home T3/T0 png pair, odometer assert"
+    },
+    {
+      "id": "MS-04",
+      "title": "Upload motion pass (SSE-gated stepper)",
+      "spec": "\u00a7M7.2",
+      "passes": false,
+      "acceptance": "Drag lifecycle states real-only; stepper advances only on SSE events; work-dot when stage > cap; checkmark draws; OCR scanline once (T3); quarantine impulse <=2/session; copy = check draw, no toast",
+      "gates": "18,21,24",
+      "verify": "stepper.webm (live SSE), quarantine png"
+    },
+    {
+      "id": "MS-05",
+      "title": "GraphStage engine pass",
+      "spec": "\u00a7M8.1, M8.4, M8.5",
+      "passes": false,
+      "acceptance": "Glow sprite cache (5 sprites, no per-frame gradients); DPR caps per tier; hover <=1-frame response w/ incident-edge emphasis; camera springs w/ user-interrupt + momentum hand-off; zero alloc in draw loop; single ticker (GraphStage rAF removed)",
+      "gates": "19,28,29",
+      "verify": "120-node benchmark json, hover.webm"
+    },
+    {
+      "id": "MS-06",
+      "title": "Graph reveal & activation FX",
+      "spec": "\u00a7M8.2, M8.3, M8.6, M8.7",
+      "passes": false,
+      "acceptance": "Ontology-ordered reveal from real node records (Report->Category->Test->Measurement->Chunk), 24 ms stagger cap 480; edges draw after endpoints; dim-to-40 % spring lands exactly on 0.40; frozen 1200 ms pulse kept; photons <=24 speed proportional to 1/latency; dust <=40 pooled T3-only; hull breathe <=2 % screen change, paused off-screen; no re-reveal on unchanged refetch",
+      "gates": "18,21,22,28",
+      "verify": "activation.webm, dim-0.40 assert, T1 throttle.webm"
+    },
+    {
+      "id": "MS-07",
+      "title": "Ask choreography (the orchestrated moment)",
+      "spec": "\u00a7M7.4",
+      "passes": false,
+      "acceptance": "Every trace row lands on its real SSE event; FLIP input->question card; rank chips FLIP-reorder; underlines draw at citation; answer mask-reveal per part; slips deal <=4 animated; refusal impulse + wash once; stream error freezes at failed row with error state",
+      "gates": "18,21,23,27",
+      "verify": "ask-trace.json, refusal.webm, error-freeze png"
+    },
+    {
+      "id": "MS-08",
+      "title": "Timeline + Evidence viewer",
+      "spec": "\u00a7M7.5, \u00a7M7.6",
+      "passes": false,
+      "acceptance": "Spine scroll-bound (animation-timeline + IO/rAF fallback verified in Firefox); single-fire block enters; new-report insertion FLIP + spine draw on real done event; delete-cascade collapse order + 400 ms armed confirm; evidence viewer shared-element (VT + FLIP paths), brackets draw clockwise, wash holds, offsets odometer exact",
+      "gates": "21,25,26,27",
+      "verify": "spine-firefox.webm, viewer morph pair png"
+    },
+    {
+      "id": "MS-09",
+      "title": "Compare + Insights + Library + empty states",
+      "spec": "\u00a7M7.7\u2013M7.9",
+      "passes": false,
+      "acceptance": "Converging diff rows; summary segments scaleX to real proportions; modularity ring sweep synced to Q odometer; centrality race-sort via FLIP on reorder; predicate sweep clockwise; footnote last; empty-state sketch draws once, no loops; Settings > Motion section live",
+      "gates": "21,25,27,32",
+      "verify": "race-sort.webm, insights T0 png"
+    },
+    {
+      "id": "MS-10",
+      "title": "Failure & honest states",
+      "spec": "\u00a7M7.10",
+      "passes": false,
+      "acceptance": "Banner drop + static hatch; LED blink <=2 Hz measured; error card single impulse+wash; REPLAY badge static-on; allow_api chip never pulses; all states legible at T0 (matrix screenshots)",
+      "gates": "21,24",
+      "verify": "blink-hz calc, failure matrix pngs"
+    },
+    {
+      "id": "MS-11",
+      "title": "Performance, QA audit & viva material",
+      "spec": "\u00a7M10\u2013M12",
+      "passes": false,
+      "acceptance": "All budgets met with artifacts (traces, Lighthouse diff, memory diff, governor throttle recording); gates 17\u201332 all green; MOTION.md + demo-script motion appendix committed (talking points: tier chip, governor demo, event-gated reveals, exact-40 % dim, 1200 ms frozen ring); README motion row; tag v1.1.0-motion",
+      "gates": "all",
+      "verify": "full artifact set, lighthouse pair"
+    },
+    {
+      "id": "MS-12",
+      "title": "Audio detents + gallery motion specimens",
+      "spec": "\u00a7M9, DESIGN \u00a713",
+      "passes": false,
+      "acceptance": "WebAudio synth (no assets), default off, persisted toggle, muted when hidden, disabled at T0, never sole channel; GalleryPage gains a 'Motion specimens' section showing every \u00a7M5 primitive with its token",
+      "gates": "31",
+      "verify": "gallery png, audio-off proof"
+    }
+  ]
+}
