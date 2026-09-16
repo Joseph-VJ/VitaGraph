@@ -13,4 +13,4 @@ router = APIRouter(prefix="/api/questions", tags=["questions"])
 @router.post("", response_model=AnswerOut)
 def ask_question(payload: QuestionCreate) -> dict:
     user_service.user_exists(payload.user_id)
-    return question_service.ask(payload.user_id, payload.text)
+    return question_service.ask(payload.user_id, payload.text, job_id=payload.job_id)

@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 class QuestionCreate(BaseModel):
     user_id: str
     text: str = Field(min_length=3, max_length=500)
+    job_id: str | None = None
 
 
 class EvidenceCard(BaseModel):
@@ -27,6 +28,7 @@ class EvidenceCard(BaseModel):
 
 class AnswerOut(BaseModel):
     question_id: str
+    job_id: str | None = None
     classification: str
     status: str                      # answered|refused|insufficient_evidence|error
     summary_text: str                # part 1: what the reports say

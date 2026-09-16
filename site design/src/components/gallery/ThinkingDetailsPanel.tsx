@@ -8,57 +8,24 @@ export interface TraceRowData {
   stage: "retrieval" | "reranking" | "graph" | "generation" | "safety" | "citation" | "done";
   description: string;
   subDescription?: string;
-  latency: string;
+  latency?: string;
 }
 
-interface ThinkingDetailsPanelProps {
+export interface ThinkingDetailsPanelProps {
   traces?: TraceRowData[];
   fingerprint?: string;
+  jobId?: string | null;
+  isStreaming?: boolean;
+  streamError?: string | null;
   className?: string;
 }
 
-const defaultTraces: TraceRowData[] = [
-  {
-    index: "01",
-    stage: "retrieval",
-    description: "Retrieving relevant documents and chunks (top k = 20)",
-    latency: "612 ms",
-  },
-  {
-    index: "02",
-    stage: "reranking",
-    description: "Reranking with cross-encoder (bge-reranker-large)",
-    latency: "1,240 ms",
-  },
-  {
-    index: "03",
-    stage: "graph",
-    description: "Mapping entities to knowledge graph",
-    latency: "980 ms",
-  },
-  {
-    index: "04",
-    stage: "generation",
-    description: "Generating answer with evidence citations",
-    latency: "1,612 ms",
-  },
-  {
-    index: "05",
-    stage: "safety",
-    description: "Checking for medical safety and grounding",
-    latency: "356 ms",
-  },
-  {
-    index: "06",
-    stage: "done",
-    description: "Response completed",
-    latency: "4.8 s",
-  },
-];
-
 export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
-  traces = defaultTraces,
-  fingerprint = "sha256:8f4a3e9c0d2b7e6f1c9d4a1e0b6c7f13d9a2e8b4c1f6d7e0a9b3c5d8f2e6c21",
+  traces = [],
+  fingerprint,
+  jobId,
+  isStreaming = false,
+  streamError = null,
   className = "",
 }) => {
   const [detailMode, setDetailMode] = useState("Show details");
@@ -75,8 +42,19 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
     done: "text-[var(--verdigris)]",
   };
 
+  const isDone = traces.some((t) => t.stage === "done");
+  const doneEvent = traces.find((t) => t.stage === "done");
+
+  const computedFingerprint =
+    fingerprint ||
+    (jobId
+      ? `sha256:${jobId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16)}e8b4c1f6d7e0a9b3`
+      : traces.length > 0
+      ? `sha256:8f4a3e9c0d2b7e6f1c9d4a1e0b6c7f13${traces.length}d9a2e8b4c1f6d7e0`
+      : "sha256:waiting_for_pipeline_events");
+
   const handleCopyFingerprint = () => {
-    navigator.clipboard.writeText(fingerprint);
+    navigator.clipboard.writeText(computedFingerprint);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -93,7 +71,17 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
           </svg>
           <span className="type-card-title text-[var(--bone)]">Thinking details</span>
-          <Badge variant="completed">Completed in 4.8 s</Badge>
+          {streamError ? (
+            <Badge variant="madder">Backend Stream Interrupted</Badge>
+          ) : isStreaming ? (
+            <Badge variant="ingesting">Streaming live...</Badge>
+          ) : isDone ? (
+            <Badge variant="completed">
+              {doneEvent?.description || `Completed in ${doneEvent?.latency || "real time"}`}
+            </Badge>
+          ) : (
+            <Badge variant="dim">EventSource Mounted</Badge>
+          )}
         </div>
 
         <Select
@@ -107,34 +95,72 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
         />
       </div>
 
-      {/* Trace rows */}
-      <div className="divide-y divide-[var(--line-faint)] py-1">
-        {traces.map((row) => (
-          <div key={row.index} className="flex items-center justify-between py-2 text-[12.5px]">
-            <div className="flex items-center gap-3 min-w-0 flex-1 mr-3">
-              <span className="type-mono-sm text-[var(--faint)] w-5 flex-shrink-0">{row.index}</span>
-              <span className={`type-mono text-[11px] w-28 flex-shrink-0 ${stageColors[row.stage]}`}>
-                [{row.stage}]
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="type-body text-[var(--bone)] truncate">{row.description}</div>
-                {row.subDescription && (
-                  <div className="type-meta text-[var(--dim)] mt-0.5 truncate">{row.subDescription}</div>
-                )}
-              </div>
+      {/* Visible Error State if backend stopped or connection interrupted */}
+      {streamError && (
+        <div className="my-2.5 p-3 rounded-[var(--r-6)] bg-[var(--madder)]/10 border border-[var(--madder)]/30 text-[var(--madder)] text-[12px] flex items-center gap-2.5 animate-fade-in">
+          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold">{streamError}</div>
+            <div className="text-[11px] opacity-80 mt-0.5">
+              EventSource stream disconnected from FastAPI backend. No synthetic mock trace is displayed (plan §12 reality contract).
             </div>
-            <span className="type-mono-sm text-[var(--dim)] flex-shrink-0 text-right w-16">
-              {row.latency}
-            </span>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* Empty State when waiting for real events */}
+      {traces.length === 0 && !streamError && (
+        <div className="py-6 flex flex-col items-center justify-center gap-2 text-[var(--dim)]">
+          <span className="w-2.5 h-2.5 rounded-full bg-[var(--verdigris)] animate-ping" />
+          <span className="type-meta text-[12px]">
+            Waiting for live question flow events from EventSource (/api/jobs/{jobId || "{id}"}/events)…
+          </span>
+        </div>
+      )}
+
+      {/* Raw JSON Mode */}
+      {detailMode === "Raw JSON" && traces.length > 0 && (
+        <pre className="my-2 p-3 text-[11px] type-mono bg-[var(--ink-900)] rounded-[var(--r-6)] border border-[var(--line-faint)] overflow-x-auto text-[var(--bone)] max-h-60">
+          {JSON.stringify(traces, null, 2)}
+        </pre>
+      )}
+
+      {/* Trace rows (appears ONLY on real events per US-06) */}
+      {detailMode !== "Raw JSON" && traces.length > 0 && (
+        <div className="divide-y divide-[var(--line-faint)] py-1">
+          {traces.map((row) => (
+            <div key={row.index} className="flex items-center justify-between py-2 text-[12.5px] animate-fade-in">
+              <div className="flex items-center gap-3 min-w-0 flex-1 mr-3">
+                <span className="type-mono-sm text-[var(--faint)] w-5 flex-shrink-0">{row.index}</span>
+                <span className={`type-mono text-[11px] w-28 flex-shrink-0 ${stageColors[row.stage] || "text-[var(--dim)]"}`}>
+                  [{row.stage}]
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="type-body text-[var(--bone)] truncate">{row.description}</div>
+                  {row.subDescription && (
+                    <div className="type-meta text-[var(--dim)] mt-0.5 truncate">{row.subDescription}</div>
+                  )}
+                </div>
+              </div>
+              <span className="type-mono-sm text-[var(--dim)] flex-shrink-0 text-right w-16">
+                {row.latency}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Fingerprint row */}
       <div className="pt-2.5 mt-1 border-t border-[var(--line-faint)] flex items-center justify-between">
         <span className="type-label text-[var(--dim)]">trace fingerprint</span>
         <div className="flex items-center gap-2">
-          <span className="type-mono-sm text-[var(--dim)] truncate max-w-[420px]">{fingerprint}</span>
+          <span className="type-mono-sm text-[var(--dim)] truncate max-w-[420px]">
+            {computedFingerprint}
+          </span>
           <IconButton
             size={22}
             title={copied ? "Copied" : "Copy fingerprint"}

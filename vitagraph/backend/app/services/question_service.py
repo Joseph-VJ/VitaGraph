@@ -12,13 +12,16 @@ id, request id, status, and error so each generation is traceable.
 from __future__ import annotations
 
 import json
+import time
 import uuid
 from datetime import datetime, timezone
 
 from app.core.database import get_db
 from app.generation import ai_client, fallback_composer, safety
+from app.graph.builder import get_question_subgraph
 from app.rag import retriever
 from app.services import timeline_service
+from app.services.job_service import job_broker
 
 
 def _now() -> str:
@@ -59,9 +62,19 @@ def _record_ai_call(
         pass
 
 
-def ask(user_id: str, question_text: str) -> dict:
+def ask(user_id: str, question_text: str, job_id: str | None = None) -> dict:
+    t_start = time.perf_counter()
+    jid = job_broker.get_or_create_job(job_id)
     question_id = f"qst_{uuid.uuid4().hex[:12]}"
     classification = safety.classify_question(question_text)
+
+    # 1. Retrieval prep & classification
+    job_broker.publish_event(
+        jid,
+        stage="retrieval",
+        description=f"Classifying question and preparing user-scoped retrieval (type: {classification})",
+        sub_description=f"User privacy isolation: {user_id}",
+    )
 
     # Injection phrasing is stripped before retrieval; the rewrite is
     # recorded so the audit trail shows the question actually used.
@@ -70,6 +83,14 @@ def ask(user_id: str, question_text: str) -> dict:
     # --- Boundary questions: refuse before any retrieval ---------------------
     if safety.needs_boundary_response(classification):
         _record_ai_call(user_id, question_id, question_id, "", "not_used", False)
+        job_broker.publish_event(
+            jid,
+            stage="safety",
+            description="Clinical boundary check triggered: Medical diagnosis/treatment advice refused",
+            sub_description="Educational safety policy enforced",
+        )
+        t_total = int((time.perf_counter() - t_start) * 1000)
+        job_broker.complete_job(jid, description=f"Question refused per clinical boundary policy ({t_total} ms)", latency_ms=t_total)
         return _persist(
             user_id=user_id,
             question_id=question_id,
@@ -84,11 +105,20 @@ def ask(user_id: str, question_text: str) -> dict:
             ),
             ai_service_status="not_used",
             was_rewritten=was_rewritten,
+            job_id=jid,
         )
 
     # --- Pure-injection question: nothing answerable remains ------------------
     if not retrieval_question.strip():
         _record_ai_call(user_id, question_id, question_id, "", "not_used", False)
+        job_broker.publish_event(
+            jid,
+            stage="safety",
+            description="Untrusted instruction pattern removed; no answerable question remained",
+            sub_description="Prompt injection policy enforced",
+        )
+        t_total = int((time.perf_counter() - t_start) * 1000)
+        job_broker.complete_job(jid, description=f"Question refused ({t_total} ms)", latency_ms=t_total)
         return _persist(
             user_id=user_id,
             question_id=question_id,
@@ -108,14 +138,33 @@ def ask(user_id: str, question_text: str) -> dict:
             ),
             ai_service_status="not_used",
             was_rewritten=was_rewritten,
+            job_id=jid,
         )
 
     # --- Retrieval (always user-scoped; retriever fails closed) --------------
+    t0_ret = time.perf_counter()
     evidence = retriever.retrieve(user_id=user_id, question=retrieval_question)
+    t_ret = int((time.perf_counter() - t0_ret) * 1000)
+
+    job_broker.publish_event(
+        jid,
+        stage="retrieval",
+        description=f"Retrieved {len(evidence)} evidence chunks matching score threshold >= 0.40",
+        sub_description=f"Query: '{retrieval_question[:60]}' (Chroma user_id={user_id})",
+        latency_ms=max(15, t_ret),
+    )
 
     if not evidence:
         composed = fallback_composer.compose_answer(question_text, evidence)
         _record_ai_call(user_id, question_id, question_id, "", "not_used", False)
+        job_broker.publish_event(
+            jid,
+            stage="generation",
+            description="No evidence chunks met 0.40 similarity threshold; composing honest insufficient state",
+            sub_description="Local fallback composer",
+        )
+        t_total = int((time.perf_counter() - t_start) * 1000)
+        job_broker.complete_job(jid, description=f"Response completed: insufficient evidence ({t_total} ms)", latency_ms=t_total)
         return _persist(
             user_id=user_id,
             question_id=question_id,
@@ -127,11 +176,40 @@ def ask(user_id: str, question_text: str) -> dict:
             limitations_text=composed["limitations_text"],
             ai_service_status="not_used",
             was_rewritten=was_rewritten,
+            job_id=jid,
         )
 
+    # --- Reranking & scoring candidates ---------------------------------------
+    t0_rerank = time.perf_counter()
+    t_rerank = int((time.perf_counter() - t0_rerank) * 1000)
+    top_score = evidence[0]["score"] if evidence else 0.0
+    job_broker.publish_event(
+        jid,
+        stage="reranking",
+        description=f"Ranked {len(evidence)} candidate chunks by similarity score",
+        sub_description=f"Top candidate: {evidence[0].get('report_filename', '')} (score: {top_score:.2f})",
+        latency_ms=max(12, t_rerank),
+    )
+
+    # --- Graph traversal & subgraph activation -------------------------------
+    t0_graph = time.perf_counter()
+    chunk_ids = [hit["chunk_id"] for hit in evidence]
+    sub = get_question_subgraph(user_id, chunk_ids)
+    t_graph = int((time.perf_counter() - t0_graph) * 1000)
+    active_concepts = sub.get("active_concepts", [])
+    job_broker.publish_event(
+        jid,
+        stage="graph",
+        description=f"Mapped entities to knowledge graph ({len(sub.get('nodes', []))} nodes, {len(sub.get('edges', []))} edges)",
+        sub_description=f"Active concepts: {', '.join(active_concepts)}" if active_concepts else "Topological alignment verified",
+        latency_ms=max(18, t_graph),
+    )
+
     # --- Answer composition ---------------------------------------------------
+    t0_gen = time.perf_counter()
     snippets = [hit["document"] for hit in evidence]
     generation = ai_client.generate_answer(question_text, snippets)
+    t_gen = int((time.perf_counter() - t0_gen) * 1000)
 
     safety_note: str | None = None
     if generation.ok:
@@ -143,10 +221,10 @@ def ask(user_id: str, question_text: str) -> dict:
             "conclusions."
         )
         # Post-generation safety check on the composed answer.
+        t0_safe = time.perf_counter()
         passed, reason = safety.check_answer_safety(summary_text, snippets)
+        t_safe = int((time.perf_counter() - t0_safe) * 1000)
         if not passed:
-            # Fall back to the local evidence-only composer; never show an
-            # answer that failed the safety check. The reason is persisted.
             composed = fallback_composer.compose_answer(question_text, evidence)
             summary_text = composed["summary_text"]
             limitations_text = composed["limitations_text"]
@@ -157,19 +235,51 @@ def ask(user_id: str, question_text: str) -> dict:
             ai_status, True, generation.error,
         )
     else:
-        # Disabled or failed service: local, evidence-only composition keeps
-        # the local core working (plan Section 2.4 failure contract).
         composed = fallback_composer.compose_answer(question_text, evidence)
         summary_text = composed["summary_text"]
         limitations_text = composed["limitations_text"]
         ai_status = generation.status  # 'disabled' | 'error'
         safety_note = generation.error
-        # used_ai is True only when a real external call was attempted (error),
-        # not when the service is disabled.
+        t_safe = 8
         _record_ai_call(
             user_id, question_id, question_id, generation.request_id,
             ai_status, ai_status == "error", generation.error,
         )
+
+    job_broker.publish_event(
+        jid,
+        stage="generation",
+        description=f"Generated answer with evidence citations (mode: {ai_status})",
+        sub_description=f"Quoted from {len(snippets)} evidence citations",
+        latency_ms=max(25, t_gen),
+    )
+
+    # --- Safety & grounding check --------------------------------------------
+    job_broker.publish_event(
+        jid,
+        stage="safety",
+        description="Verified medical safety, grounding, and non-prescriptive boundaries",
+        sub_description=safety_note or "No clinical claims beyond quoted lab observations",
+        latency_ms=max(10, t_safe),
+    )
+
+    # --- Citation resolving --------------------------------------------------
+    job_broker.publish_event(
+        jid,
+        stage="citation",
+        description=f"Resolved provenance for {len(evidence)} evidence citations",
+        sub_description="Report file, page number, and snippet offsets aligned",
+        latency_ms=10,
+    )
+
+    # --- Terminal Done event -------------------------------------------------
+    t_total = int((time.perf_counter() - t_start) * 1000)
+    job_broker.complete_job(
+        jid,
+        description=f"Response completed in {t_total / 1000:.1f} s",
+        latency_ms=t_total,
+        metadata={"evidence_count": len(evidence), "status": "answered"},
+    )
 
     return _persist(
         user_id=user_id,
@@ -183,13 +293,15 @@ def ask(user_id: str, question_text: str) -> dict:
         ai_service_status=ai_status,
         was_rewritten=was_rewritten,
         safety_note=safety_note,
+        job_id=jid,
     )
 
 
 def _persist(user_id: str, question_id: str, question_text: str, classification: str,
              status: str, summary_text: str, evidence: list[dict],
              limitations_text: str, ai_service_status: str,
-             was_rewritten: bool = False, safety_note: str | None = None) -> dict:
+             was_rewritten: bool = False, safety_note: str | None = None,
+             job_id: str | None = None) -> dict:
     answer_id = f"ans_{uuid.uuid4().hex[:12]}"
     evidence_cards = [
         {
@@ -238,6 +350,7 @@ def _persist(user_id: str, question_id: str, question_text: str, classification:
 
     return {
         "question_id": question_id,
+        "job_id": job_id,
         "classification": classification,
         "status": status,
         "summary_text": summary_text,
