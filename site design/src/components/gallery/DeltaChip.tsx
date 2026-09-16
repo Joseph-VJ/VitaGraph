@@ -1,6 +1,6 @@
 import React from "react";
 
-export type DeltaType = "improving" | "decrease" | "increase" | "new";
+export type DeltaType = "improving" | "decrease" | "increase" | "new" | "stable";
 
 interface DeltaChipProps {
   type?: DeltaType;
@@ -37,6 +37,12 @@ export const DeltaChip: React.FC<DeltaChipProps> = ({
       text: "text-[var(--cornflower)]",
       border: "border-[rgba(134,169,217,0.25)]",
       defaultLabel: "new result",
+    },
+    stable: {
+      bg: "bg-[var(--ink-700)]",
+      text: "text-[var(--dim)]",
+      border: "border-[var(--line-strong)]",
+      defaultLabel: "0.0 stable",
     },
   };
 

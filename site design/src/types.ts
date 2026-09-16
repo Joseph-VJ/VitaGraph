@@ -18,6 +18,7 @@ export interface Report {
   version: number;
   status: string; // received | extracting | indexing | ready | failed
   page_count: number | null;
+  chunk_count?: number | null;
   error_message: string | null;
 }
 

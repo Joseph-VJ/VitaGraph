@@ -16,6 +16,7 @@ class ReportOut(BaseModel):
     status: str          # received|extracting|indexing|ready|failed
     page_count: int | None
     error_message: str | None
+    chunk_count: int | None = 0
 
 
 class PageOut(BaseModel):
@@ -51,3 +52,34 @@ class TrendOut(BaseModel):
     trend_direction: str  # improving | stable | declining | single_reading
     start_value: float | None = None
     latest_value: float | None = None
+
+
+class ComparisonRow(BaseModel):
+    test: str
+    category: str = "General"
+    unit: str
+    baseline: str | float | None = None
+    followup: str | float | None = None
+    delta_type: str = "stable"  # improving | decrease | increase | new | stable
+    delta_label: str = "0.0 stable"
+    status: str = "stable"      # improved | declined | stable | unavailable
+    citation: str = "p. 1"
+
+
+class ComparisonSummary(BaseModel):
+    improved: int = 0
+    declined: int = 0
+    stable: int = 0
+    unavailable: int = 0
+    total: int = 0
+
+
+class ComparisonOut(BaseModel):
+    baseline_report_id: str | None = None
+    followup_report_id: str | None = None
+    baseline_filename: str | None = None
+    followup_filename: str | None = None
+    baseline_date: str | None = None
+    followup_date: str | None = None
+    rows: list[ComparisonRow]
+    summary: ComparisonSummary

@@ -4,10 +4,21 @@ from __future__ import annotations
 
 from fastapi import APIRouter, File, Form, UploadFile
 
-from app.schemas.report import PageOut, ReportOut, ReportStatusOut, TrendOut
+from app.schemas.report import ComparisonOut, PageOut, ReportOut, ReportStatusOut, TrendOut
 from app.services import report_service, user_service
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
+
+
+@router.get("/compare", response_model=ComparisonOut)
+def compare_reports(
+    user_id: str,
+    baseline_id: str | None = None,
+    followup_id: str | None = None,
+) -> dict:
+    """Compare extracted lab values between two reports for a user."""
+    user_service.user_exists(user_id)
+    return report_service.compare_reports(user_id, baseline_id=baseline_id, followup_id=followup_id)
 
 
 @router.post("/upload", response_model=ReportStatusOut, status_code=201)

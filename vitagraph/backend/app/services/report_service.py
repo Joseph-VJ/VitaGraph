@@ -180,9 +180,10 @@ def _cleanup_failed_report(report_id: str) -> None:
 def list_reports(user_id: str) -> list[dict]:
     with get_db() as db:
         rows = db.execute(
-            "SELECT id, user_id, original_filename, file_hash, report_date, "
-            "upload_time, version, status, page_count, error_message "
-            "FROM reports WHERE user_id = ? ORDER BY upload_time DESC",
+            "SELECT r.id, r.user_id, r.original_filename, r.file_hash, r.report_date, "
+            "r.upload_time, r.version, r.status, r.page_count, r.error_message, "
+            "(SELECT COUNT(*) FROM report_chunks rc WHERE rc.report_id = r.id) AS chunk_count "
+            "FROM reports r WHERE r.user_id = ? ORDER BY r.upload_time DESC",
             (user_id,),
         ).fetchall()
         return [dict(row) for row in rows]
@@ -285,4 +286,198 @@ def get_user_trends(user_id: str, test_name: str = "Hemoglobin") -> dict:
         "trend_direction": trend_dir,
         "start_value": start_val,
         "latest_value": latest_val,
+    }
+
+
+def compare_reports(
+    user_id: str,
+    baseline_id: str | None = None,
+    followup_id: str | None = None,
+) -> dict:
+    """Compare extracted laboratory values between two reports for a user."""
+    from app.services import user_service
+    user_service.user_exists(user_id)
+
+    from app.graph.extractor import extract_entities_from_chunk, CANONICAL_TESTS
+
+    with get_db() as db:
+        reports = db.execute(
+            "SELECT id, original_filename, report_date, upload_time "
+            "FROM reports WHERE user_id = ? ORDER BY upload_time ASC",
+            (user_id,),
+        ).fetchall()
+
+    if not reports:
+        return {
+            "baseline_report_id": None,
+            "followup_report_id": None,
+            "baseline_filename": None,
+            "followup_filename": None,
+            "baseline_date": None,
+            "followup_date": None,
+            "rows": [],
+            "summary": {
+                "improved": 0,
+                "declined": 0,
+                "stable": 0,
+                "unavailable": 0,
+                "total": 0,
+            },
+        }
+
+    rep_map = {r["id"]: dict(r) for r in reports}
+
+    # If IDs not specified, pick earliest as baseline and latest as followup
+    if not baseline_id or baseline_id not in rep_map:
+        baseline_id = reports[0]["id"]
+    if not followup_id or followup_id not in rep_map:
+        followup_id = reports[-1]["id"] if len(reports) > 1 else reports[0]["id"]
+
+    base_rep = rep_map[baseline_id]
+    fol_rep = rep_map[followup_id]
+
+    def _extract_report_ents(rep_id: str, default_date: str) -> dict[str, dict]:
+        with get_db() as db:
+            c_rows = db.execute(
+                "SELECT id, report_id, page_number, text FROM report_chunks WHERE report_id = ?",
+                (rep_id,),
+            ).fetchall()
+        ents_by_test = {}
+        for c in c_rows:
+            extracted = extract_entities_from_chunk(
+                chunk_text=c["text"],
+                chunk_id=c["id"],
+                report_id=c["report_id"],
+                page_number=c["page_number"],
+                date=default_date,
+            )
+            for ent in extracted:
+                if ent["test_name"] not in ents_by_test:
+                    ents_by_test[ent["test_name"]] = ent
+        return ents_by_test
+
+    base_date = base_rep.get("report_date") or base_rep["upload_time"].split("T")[0]
+    fol_date = fol_rep.get("report_date") or fol_rep["upload_time"].split("T")[0]
+
+    base_ents = _extract_report_ents(baseline_id, base_date)
+    fol_ents = _extract_report_ents(followup_id, fol_date)
+
+    all_test_names = []
+    for ct in CANONICAL_TESTS:
+        if ct["name"] in base_ents or ct["name"] in fol_ents:
+            all_test_names.append(ct["name"])
+    for name in list(base_ents.keys()) + list(fol_ents.keys()):
+        if name not in all_test_names:
+            all_test_names.append(name)
+
+    rows = []
+    improved_count = 0
+    declined_count = 0
+    stable_count = 0
+    unavail_count = 0
+
+    lower_is_better = {
+        "hba1c", "fasting glucose", "glucose, fasting", "total cholesterol",
+        "ldl cholesterol", "triglycerides", "creatinine"
+    }
+
+    for t_name in all_test_names:
+        b_ent = base_ents.get(t_name)
+        f_ent = fol_ents.get(t_name)
+
+        unit = (f_ent or b_ent or {}).get("unit", "")
+        category = (f_ent or b_ent or {}).get("category", "General")
+        page_num = (f_ent or b_ent or {}).get("page_number", 1)
+        citation = f"p. {page_num}"
+
+        if b_ent is not None and f_ent is not None:
+            b_val = b_ent["value"]
+            f_val = f_ent["value"]
+            delta = round(f_val - b_val, 2)
+
+            is_lower_better = any(lib in t_name.lower() for lib in lower_is_better)
+
+            if delta == 0:
+                delta_type = "improving"
+                delta_label = "0.0 stable"
+                status = "stable"
+                stable_count += 1
+            elif is_lower_better:
+                if delta < 0:
+                    delta_type = "improving"
+                    delta_label = f"{delta:+.1f} improving"
+                    status = "improved"
+                    improved_count += 1
+                else:
+                    delta_type = "increase"
+                    delta_label = f"{delta:+.1f} increase"
+                    status = "declined"
+                    declined_count += 1
+            else:
+                if delta > 0:
+                    delta_type = "improving"
+                    delta_label = f"{delta:+.1f} improving"
+                    status = "improved"
+                    improved_count += 1
+                else:
+                    delta_type = "decrease"
+                    delta_label = f"{delta:+.1f} slight decrease"
+                    status = "declined"
+                    declined_count += 1
+
+            rows.append({
+                "test": t_name,
+                "category": category,
+                "unit": unit,
+                "baseline": str(b_val),
+                "followup": str(f_val),
+                "delta_type": delta_type,
+                "delta_label": delta_label,
+                "status": status,
+                "citation": citation,
+            })
+        elif f_ent is not None:
+            f_val = f_ent["value"]
+            rows.append({
+                "test": t_name,
+                "category": category,
+                "unit": unit,
+                "baseline": "—",
+                "followup": str(f_val),
+                "delta_type": "new",
+                "delta_label": "new result",
+                "status": "improved",
+                "citation": citation,
+            })
+            improved_count += 1
+        else:
+            b_val = b_ent["value"]
+            rows.append({
+                "test": t_name,
+                "category": category,
+                "unit": unit,
+                "baseline": str(b_val),
+                "followup": "—",
+                "delta_type": "stable",
+                "delta_label": "unavailable",
+                "status": "unavailable",
+                "citation": citation,
+            })
+            unavail_count += 1
+
+    return {
+        "baseline_report_id": base_rep["id"],
+        "followup_report_id": fol_rep["id"],
+        "baseline_filename": base_rep["original_filename"],
+        "followup_filename": fol_rep["original_filename"],
+        "baseline_date": base_date,
+        "followup_date": fol_date,
+        "rows": rows,
+        "summary": {
+            "improved": improved_count,
+            "declined": declined_count,
+            "stable": stable_count,
+            "unavailable": unavail_count,
+            "total": len(rows),
+        },
     }

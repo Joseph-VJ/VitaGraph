@@ -30,6 +30,37 @@ export interface TrendData {
   latest_value: number | null;
 }
 
+export interface ComparisonRow {
+  test: string;
+  category: string;
+  unit: string;
+  baseline: string | number | null;
+  followup: string | number | null;
+  delta_type: "improving" | "decrease" | "increase" | "new" | "stable";
+  delta_label: string;
+  status: "improved" | "declined" | "stable" | "unavailable";
+  citation: string;
+}
+
+export interface ComparisonSummary {
+  improved: number;
+  declined: number;
+  stable: number;
+  unavailable: number;
+  total: number;
+}
+
+export interface ComparisonData {
+  baseline_report_id: string | null;
+  followup_report_id: string | null;
+  baseline_filename: string | null;
+  followup_filename: string | null;
+  baseline_date: string | null;
+  followup_date: string | null;
+  rows: ComparisonRow[];
+  summary: ComparisonSummary;
+}
+
 export const reportsApi = {
   upload: (userId: string, file: File, jobId?: string) => {
     const form = new FormData();
@@ -44,4 +75,10 @@ export const reportsApi = {
   pages: (reportId: string) => api.get<ReportPage[]>(`/api/reports/${reportId}/pages`),
   trends: (userId: string, test: string = "Hemoglobin") =>
     api.get<TrendData>(`/api/reports/${userId}/trends?test=${encodeURIComponent(test)}`),
+  compare: (userId: string, baselineId?: string, followupId?: string) => {
+    let url = `/api/reports/compare?user_id=${encodeURIComponent(userId)}`;
+    if (baselineId) url += `&baseline_id=${encodeURIComponent(baselineId)}`;
+    if (followupId) url += `&followup_id=${encodeURIComponent(followupId)}`;
+    return api.get<ComparisonData>(url);
+  },
 };
