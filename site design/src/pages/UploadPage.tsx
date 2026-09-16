@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dropzone,
   PipelineStepper,
@@ -17,12 +18,40 @@ import { useActiveUser } from "../context/UserContext";
 import type { ReportPage, Report } from "../types";
 
 export const UploadPage: React.FC = () => {
-  const { user } = useActiveUser();
+  const navigate = useNavigate();
+  const { user, setUser, refreshUsers } = useActiveUser();
   const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
   const { addToast } = useToast();
 
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLoadingCohort, setIsLoadingCohort] = useState(false);
+
+  const handleLoadDemoCohort = async () => {
+    if (isLoadingCohort) return;
+    setIsLoadingCohort(true);
+    try {
+      const res = await reportsApi.loadDemoCohort();
+      await refreshUsers();
+      setUser({
+        id: res.user_id,
+        display_label: res.display_label,
+        consent_accepted: true,
+        created_at: new Date().toISOString(),
+        status: "active",
+      });
+      addToast(
+        "done",
+        "Demo Cohort Loaded",
+        `Ingested 2 synthetic panels (${res.nodes} nodes, ${res.edges} edges) labeled 'demo data'`
+      );
+      navigate("/graph");
+    } catch (err: any) {
+      addToast("failed", "Failed to Load Demo Cohort", err?.message || String(err));
+    } finally {
+      setIsLoadingCohort(false);
+    }
+  };
   const [uploadStatus, setUploadStatus] = useState<ReportStatus | null>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [pages, setPages] = useState<ReportPage[]>([]);
@@ -335,8 +364,17 @@ export const UploadPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
+            className="h-7 text-[11px] px-2.5 bg-[var(--verdigris)]/15 border-[var(--verdigris)]/40 text-[var(--verdigris)] hover:bg-[var(--verdigris)]/25 flex items-center gap-1.5 font-medium"
+            disabled={isUploading || isLoadingCohort}
+            onClick={handleLoadDemoCohort}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--verdigris)] animate-pulse" />
+            {isLoadingCohort ? "Loading demo cohort…" : "Load demo cohort"}
+          </Button>
+          <Button
+            variant="ghost"
             className="h-7 text-[11px] px-2.5"
-            disabled={isUploading}
+            disabled={isUploading || isLoadingCohort}
             onClick={handleTestUploadSamplePdf}
           >
             Upload synthetic_panel_2025-01-15.pdf
@@ -344,7 +382,7 @@ export const UploadPage: React.FC = () => {
           <Button
             variant="ghost"
             className="h-7 text-[11px] px-2.5 text-[var(--verdigris)] hover:text-[var(--verdigris)]"
-            disabled={isUploading}
+            disabled={isUploading || isLoadingCohort}
             onClick={handleTestUploadScannedOcrPdf}
           >
             Upload Report4 Scanned OCR Test
@@ -352,7 +390,7 @@ export const UploadPage: React.FC = () => {
           <Button
             variant="ghost"
             className="h-7 text-[11px] px-2.5 text-[var(--madder)] hover:text-[var(--madder)]"
-            disabled={isUploading}
+            disabled={isUploading || isLoadingCohort}
             onClick={handleTestUploadCorruptedFile}
           >
             Upload corrupted .txt (Test Quarantine)

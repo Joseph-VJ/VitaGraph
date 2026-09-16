@@ -130,7 +130,7 @@
     {
       "id": "US-19",
       "title": "One-click demo cohort + viva script update",
-      "passes": false,
+      "passes": true,
       "acceptance": "'Load demo cohort' button (Home + Upload) ingests both synthetic panels into a fresh demo persona labeled 'demo data' and routes to /graph; docs/demo-script.md gains the 2-dot explanation and scanned-PDF path",
       "verify": "one click yields >=25-node graph; recording us19_demo_cohort.mp4"
     },

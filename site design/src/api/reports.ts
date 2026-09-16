@@ -61,6 +61,17 @@ export interface ComparisonData {
   summary: ComparisonSummary;
 }
 
+export interface DemoCohortResult {
+  user_id: string;
+  display_label: string;
+  reports_ingested: number;
+  report_ids: string[];
+  nodes: number;
+  edges: number;
+  communities: number;
+  modularity: number;
+}
+
 export const reportsApi = {
   upload: (userId: string, file: File, jobId?: string, background: boolean = true) => {
     const form = new FormData();
@@ -84,4 +95,5 @@ export const reportsApi = {
     if (followupId) url += `&followup_id=${encodeURIComponent(followupId)}`;
     return api.get<ComparisonData>(url);
   },
+  loadDemoCohort: () => api.post<DemoCohortResult>("/api/demo/cohort", {}),
 };

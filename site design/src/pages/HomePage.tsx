@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   StatTile,
   ActivityRow,
@@ -10,6 +10,7 @@ import {
   IconButton,
   type ActivityClass,
 } from "../components/gallery";
+import { useToast } from "../components/gallery/Toast";
 import { useActiveUser } from "../context/UserContext";
 import { api } from "../api/client";
 import { reportsApi } from "../api/reports";
@@ -32,13 +33,42 @@ interface ActivityItem {
 }
 
 export const HomePage: React.FC = () => {
-  const { user } = useActiveUser();
+  const navigate = useNavigate();
+  const { user, setUser, refreshUsers } = useActiveUser();
+  const { addToast } = useToast();
 
   const [loading, setLoading] = useState(true);
+  const [loadingCohort, setLoadingCohort] = useState(false);
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
   const [healthData, setHealthData] = useState<HealthData | null>(null);
   const [clientLatency, setClientLatency] = useState<number | null>(null);
   const [latencyHistory, setLatencyHistory] = useState<number[]>([]);
+
+  const handleLoadDemoCohort = async () => {
+    if (loadingCohort) return;
+    setLoadingCohort(true);
+    try {
+      const res = await reportsApi.loadDemoCohort();
+      await refreshUsers();
+      setUser({
+        id: res.user_id,
+        display_label: res.display_label,
+        consent_accepted: true,
+        created_at: new Date().toISOString(),
+        status: "active",
+      });
+      addToast(
+        "done",
+        "Demo Cohort Loaded",
+        `Ingested 2 synthetic panels (${res.nodes} nodes, ${res.edges} edges) labeled 'demo data'`
+      );
+      navigate("/graph");
+    } catch (err: any) {
+      addToast("failed", "Failed to Load Demo Cohort", err?.message || String(err));
+    } finally {
+      setLoadingCohort(false);
+    }
+  };
 
   // Live metric state
   const [reports, setReports] = useState<Report[]>([]);
@@ -200,7 +230,16 @@ export const HomePage: React.FC = () => {
     <div className="flex flex-col gap-6 w-full">
       {/* Top Header Marginalia (§9.1) */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            onClick={handleLoadDemoCohort}
+            disabled={loadingCohort || backendOnline === false}
+            className="h-8 px-3 text-[12px] flex items-center gap-2 border-[var(--line-strong)] hover:border-[var(--verdigris)] text-[var(--bone)]"
+          >
+            <span className="w-2 h-2 rounded-full bg-[var(--verdigris)] animate-pulse" />
+            {loadingCohort ? "Loading demo cohort…" : "Load demo cohort"}
+          </Button>
           {backendOnline === false && (
             <span className="px-2.5 py-1 rounded-[var(--r-4)] bg-[var(--madder)]/15 border border-[var(--madder)]/30 text-[var(--madder)] text-[12px] font-medium flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[var(--madder)] animate-pulse" />

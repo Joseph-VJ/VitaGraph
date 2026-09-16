@@ -30,6 +30,14 @@ VitaGraph operates under the **Instrument & Paper** design philosophy: a dark, p
 - **Action:** Open Header persona switcher or Timeline page.
 - **Inspect:** Verified persona card showing `VG-2026-001`, consent status accepted, and zero cross-user vector bleed.
 
+### Step 2b: One-Click Demo Cohort ('Load demo cohort' Button)
+- **Narrative:** *"For immediate, reproducible examination without manual multi-file uploads, VitaGraph provides a single-click cohort initializer. Clicking 'Load demo cohort' on Home or Upload provisions a fresh evaluation persona labeled 'demo data', automatically ingests both longitudinal synthetic panels (January and June 2025), builds the complete NetworkX multi-tier topology (yielding $\ge 25$ nodes), and routes directly to the Knowledge Graph."*
+- **Action:** Click `Load demo cohort` on `#/` (Home) or `#/upload` (Upload).
+- **Inspect:** 
+  - Immediate toast notification: `Demo Cohort Loaded — Ingested 2 synthetic panels (≥25 nodes) labeled 'demo data'`.
+  - Persona automatically switches to `Demo Cohort (demo data)`.
+  - Clean 120ms route transition directly into `#/graph` showing the newly populated clinical knowledge network.
+
 ### Step 3: Upload the First Report (Baseline Panel)
 - **Narrative:** *"We ingest the baseline laboratory report from 15 January 2025 (`synthetic_panel_2025-01-15.pdf`). The ingestion pipeline executes real-time server-sent events (SSE) over `/api/jobs/{id}/events`."*
 - **Action:** Navigate to `#/upload` (Upload & Ingest). Drag or select `synthetic_panel_2025-01-15.pdf`.
@@ -39,6 +47,16 @@ VitaGraph operates under the **Instrument & Paper** design philosophy: a dark, p
 - **Narrative:** *"VitaGraph parses reports page-by-page, distinguishing native PDF text streams from OCR scans."*
 - **Action:** Inspect the **Page Quality Assessment** table on UploadPage.
 - **Inspect:** Page 1 resolution (1016 characters, `native` extraction, `good` quality). Point to the **File Manifest** card displaying the immutable SHA-256 hash (`8f4a9c...`) and parsed report date (`15 January 2025`).
+
+### Step 4b: Scanned-PDF Path & Dual-Engine OCR Pipeline (US-16)
+- **Narrative:** *"Real-world clinical reports are frequently scanned documents without selectable text streams. VitaGraph implements PyMuPDF scan detection coupled with an autonomous dual-engine OCR pipeline."*
+- **Action:** On `#/upload`, click `Upload Report4 Scanned OCR Test` or select `VitaGraph-Report4-Scanned-OCR-Test-2024-12-01.pdf`.
+- **Inspect:**
+  - Ingestion detects sparse text (`text_chars < 400`) or raster image coverage (`≥ 60%`), marking the document `is_scan_suspect`.
+  - Automatically invokes the dual-engine OCR fallback: `pytesseract` if system binaries are installed, or `rapidocr-onnxruntime 1.2.3` (pure ONNX Runtime CPU inference without external OS packages).
+  - Page Quality Assessment table displays the `ocr-rapid` extraction method badge, extracting 805 characters with 95% quality.
+  - Tabular panels are normalized via `page.find_tables()` to prevent column splitting.
+  - If no OCR engine were available, the system renders the DESIGN.md §7.24 `UncertainState` card rather than silently dropping data.
 
 ### Step 5: Show Indexed Chunks & Patient Timeline
 - **Narrative:** *"Every extracted chunk is indexed into Chroma with user scoping and exact `char_start` and `char_end` byte offsets into the raw page text."*
@@ -120,6 +138,8 @@ VitaGraph operates under the **Instrument & Paper** design philosophy: a dark, p
 | **Did you train your own LLM?** | Scope & resource honesty | *"No. Training a foundation model is out of scope for a B.Tech project. We utilize neutral external generation via standard API completions only for answer synthesis, with local regex-based evidence fallback."* |
 | **Why not use a standard SQL database only?** | Polyglot persistence | *"Relational databases manage structured metadata and foreign keys (reports, users, events), while ChromaDB enables high-dimensional semantic search over unstructured clinical narratives."* |
 | **Is the Knowledge Graph clinically causal?** | Medical safety boundary | *"No. Edges represent co-occurrence, measurement association, and ontology predicates (`has_measurement`, `contains`, `mentions`). We explicitly append the §9.7 causality disclaimer to prevent clinical misinterpretation."* |
+| **What was the '2-dot' graph defect, and how is graph topology guaranteed?** | Graph completeness & Plan §11 ontology | *"Earlier pipelines collapsed low-entity or scanned pages into only 2 isolated dots (`Report` and `Chunk`), yielding 0.00 modularity. We resolved this with two guarantees: (1) PyMuPDF scan-detection triggers dual-engine OCR (`ocr-rapid`/`ocr-tesseract`) and table parsing (`page.find_tables()`); (2) The Graph Builder implements Plan §11 multi-tier ontology (`person`, `report`, `section`, `date`, `chunk`, `uncertainty` with strict verbs `CONTAINS`, `MENTIONS`, `IN_SECTION`, `OBSERVED_ON`), mathematically guaranteeing $\ge 6$ structured nodes even when zero clinical entities are resolved."* |
+| **How does the 'Load demo cohort' button work?** | Reproducibility & tenant scoping | *"It invokes `POST /api/demo/cohort`, provisioning a clean evaluation persona labeled 'demo data', recording tenant consent, ingesting both January and June longitudinal panels into SQLite and ChromaDB, constructing the full NetworkX topology ($\ge 25$ nodes), and immediately routing to `/graph` in a single click."* |
 | **How is prompt injection mitigated?** | Security & isolation | *"Untrusted instruction patterns inside questions are sanitized via safety heuristics. The system treats injected text strictly as data strings, never executing system overrides."* |
 | **What happens if ChromaDB or the AI API goes down?** | High availability & graceful degradation | *"VitaGraph fails closed. Vector retrieval errors yield explicit limitations notices while SQLite timeline queries and NetworkX in-memory graphs remain fully accessible."* |
 
