@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Badge,
   LED,
@@ -7,16 +7,96 @@ import {
   IconButton,
   Marginalia,
 } from "../components/gallery";
+import { useActiveUser } from "../context/UserContext";
+import { timelineApi } from "../api/timeline";
+import { reportsApi, type TrendData } from "../api/reports";
+import { usersApi } from "../api/users";
+import type { TimelineEvent, Report } from "../types";
 
 export const TimelinePage: React.FC = () => {
+  const { user, users, setUser, refreshUsers } = useActiveUser();
+  const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
+
   const [filter, setFilter] = useState("all");
   const [copiedId, setCopiedId] = useState(false);
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [hemoTrend, setHemoTrend] = useState<TrendData | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isSimulatingUpload, setIsSimulatingUpload] = useState(false);
+
+  const loadData = useCallback(async () => {
+    try {
+      const [evts, repList] = await Promise.all([
+        timelineApi.events(effectiveUserId),
+        reportsApi.list(effectiveUserId),
+      ]);
+      setEvents(evts);
+      setReports(repList);
+
+      try {
+        const trend = await reportsApi.trends(effectiveUserId, "Hemoglobin");
+        setHemoTrend(trend);
+      } catch {
+        // Trend query best effort
+      }
+    } catch (err) {
+      console.warn("Error loading timeline data:", err);
+    }
+  }, [effectiveUserId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleCopyId = () => {
-    navigator.clipboard.writeText("VG-2026-001");
+    navigator.clipboard.writeText(effectiveUserId);
     setCopiedId(true);
     setTimeout(() => setCopiedId(false), 1500);
   };
+
+  const handleDeletePersona = async () => {
+    setIsDeleting(true);
+    try {
+      await usersApi.remove(effectiveUserId);
+      await refreshUsers();
+      // Switch to next available user if exists
+      const remaining = users.filter((u) => u.id !== effectiveUserId);
+      if (remaining.length > 0) {
+        setUser(remaining[0]);
+      } else {
+        setUser(null);
+      }
+      setShowDeleteConfirm(false);
+    } catch (err) {
+      console.error("Failed to delete persona:", err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Simulates uploading a new report block without reloading the page (§US-09 verification)
+  const handleUploadSecondReport = async () => {
+    setIsSimulatingUpload(true);
+    try {
+      // Create second panel blob
+      const pdfContent = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 4 0 R>>endobj\n4 0 obj<</Length 120>>stream\nBT /F1 12 Tf 100 700 Td (Follow-up Panel 2025-12-10: Hemoglobin 14.2 g/dL, HbA1c 6.2%, Vitamin D 32 ng/mL) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000010 00000 n \n0000000057 00000 n \n0000000114 00000 n \n0000000203 00000 n \ntrailer<</Size 5/Root 1 0 R>>\nstartxref\n376\n%%EOF";
+      const blob = new Blob([pdfContent], { type: "application/pdf" });
+      const testFile = new File([blob], "VitaGraph-Report-Followup-2025-12-10.pdf", { type: "application/pdf" });
+      await reportsApi.upload(effectiveUserId, testFile);
+      // Refresh live data without page reload
+      await loadData();
+    } catch (err) {
+      console.error("Simulation upload failed:", err);
+    } finally {
+      setIsSimulatingUpload(false);
+    }
+  };
+
+  // Filtered events count
+  const reportCount = reports.length;
+  const derivedEventsCount = events.filter((e) => e.event_type !== "report_uploaded").length;
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -38,15 +118,26 @@ export const TimelinePage: React.FC = () => {
             <option value="graph">Graph updates</option>
           </select>
           <span className="type-meta text-[var(--dim)]">
-            Showing 2 report panels and 4 derived events
+            Showing {reportCount} report panel{reportCount === 1 ? "" : "s"} and {derivedEventsCount} derived event{derivedEventsCount === 1 ? "" : "s"}
           </span>
         </div>
 
-        <Marginalia
-          text="Same data. Kinder answers."
-          sketch="leaf"
-          size={20}
-        />
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            className="text-xs h-8 text-[var(--verdigris)] hover:text-[var(--verdigris)]"
+            disabled={isSimulatingUpload}
+            onClick={handleUploadSecondReport}
+          >
+            {isSimulatingUpload ? "Ingesting..." : "+ Add Follow-up Report (No Reload)"}
+          </Button>
+
+          <Marginalia
+            text="Same data. Kinder answers."
+            sketch="leaf"
+            size={20}
+          />
+        </div>
       </div>
 
       {/* Main Grid: Spine Timeline (flex-1) + Patient Rail (360px) */}
@@ -54,254 +145,203 @@ export const TimelinePage: React.FC = () => {
         {/* Timeline Spine Column */}
         <div className="flex-1 flex flex-col min-w-0 w-full relative pl-6 border-l-2 border-[var(--line-strong)] space-y-10">
           
-          {/* BLOCK 1: June 20, 2025 (Latest Follow-up) */}
-          <div className="relative">
-            {/* Spine Node Dot */}
-            <div className="absolute -left-[31px] top-1.5 w-4 h-4 rounded-full bg-[var(--verdigris)] border-4 border-[var(--ink-900)] shadow-[0_0_8px_rgba(121,184,166,0.5)]" />
+          {/* Dynamic Report Blocks from Database */}
+          {reports.map((report, idx) => {
+            const isLatest = idx === 0;
+            const isBaseline = idx === reports.length - 1 && reports.length > 1;
+            const dateStr = report.report_date || report.upload_time.split("T")[0];
 
-            {/* Block Header */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <span className="type-mono text-[var(--bone)] font-medium text-base">
-                  2025-06-20
-                </span>
-                <Badge variant="verdigris">Latest panel</Badge>
-                <span className="type-meta text-[var(--dim)]">Follow-up visit (6 months)</span>
-              </div>
-              <span className="type-mono-sm text-[var(--faint)]">118 chunks · sha256: 8f4a…c21</span>
-            </div>
+            return (
+              <div key={report.id} className="relative animate-fade-in">
+                {/* Spine Node Dot */}
+                <div
+                  className={`absolute -left-[31px] top-1.5 w-4 h-4 rounded-full border-4 border-[var(--ink-900)] ${
+                    isLatest
+                      ? "bg-[var(--verdigris)] shadow-[0_0_8px_rgba(121,184,166,0.5)]"
+                      : "bg-[var(--ink-600)]"
+                  }`}
+                />
 
-            {/* Report Card */}
-            <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-5 mb-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3.5">
-                  <div className="w-10 h-10 rounded-[var(--r-6)] bg-[var(--ink-700)] flex items-center justify-center text-[var(--verdigris)] flex-shrink-0">
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                      <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="type-title text-[var(--bone)]">
-                      Comprehensive Metabolic Panel & Lipid Profile
-                    </h4>
-                    <p className="type-meta text-[var(--dim)] mt-0.5">
-                      synthetic_panel_2025-06-20.pdf · 4 pages · Parsed by Surya-OCR
-                    </p>
-                  </div>
-                </div>
-                <Button variant="ghost" className="text-xs h-8">
-                  View report
-                </Button>
-              </div>
-
-              {/* Sub-events inside June block */}
-              <div className="mt-4 pt-4 border-t border-[var(--line-faint)] flex flex-col gap-2.5">
-                <div className="flex items-center gap-2 type-meta text-[var(--dim)]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--verdigris)]" />
-                  <span className="type-label text-[var(--bone)]">Graph updated</span>
-                  <span>—</span>
-                  <span>Extracted 18 entities, 34 edges linked to clinical ontology</span>
-                </div>
-
-                <div className="p-3 bg-[var(--ink-900)] rounded-[var(--r-6)] border border-[var(--line-faint)] flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <span className="type-label text-[var(--dim)] text-[11px] block mb-0.5">
-                      Researcher question
+                {/* Block Header */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="type-mono text-[var(--bone)] font-medium text-base">
+                      {dateStr}
                     </span>
-                    <p className="type-reading italic text-[var(--bone)] text-sm">
-                      "How has kidney function changed between January and June?"
-                    </p>
-                  </div>
-                  <Button variant="ghost" className="text-[11px] h-7 px-2.5 flex-shrink-0">
-                    Show answer
-                  </Button>
-                </div>
-              </div>
-
-              {/* Longitudinal Observation Rows (§9.5) */}
-              <div className="mt-4 pt-4 border-t border-[var(--line-faint)]">
-                <span className="type-label text-[var(--dim)] block mb-3">
-                  Measurements & longitudinal deltas
-                </span>
-                <div className="space-y-2">
-                  {/* Hemoglobin */}
-                  <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
-                    <div className="flex items-center gap-3">
-                      <span className="type-body font-medium text-[var(--bone)] w-28">
-                        Hemoglobin
-                      </span>
-                      <span className="type-mono-sm text-[var(--dim)]">
-                        13.1 → <span className="text-[var(--bone)] font-semibold">13.2</span> g/dL
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <DeltaChip type="improving" label="+0.1 improving" />
-                      <span className="type-mono-sm text-[var(--faint)]">Ref: p. 2</span>
-                    </div>
-                  </div>
-
-                  {/* eGFR */}
-                  <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
-                    <div className="flex items-center gap-3">
-                      <span className="type-body font-medium text-[var(--bone)] w-28">
-                        eGFR
-                      </span>
-                      <span className="type-mono-sm text-[var(--dim)]">
-                        78 → <span className="text-[var(--ochre)] font-semibold">72</span> mL/min
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <DeltaChip type="decrease" label="−6 slight decrease" />
-                      <span className="type-mono-sm text-[var(--faint)]">Ref: p. 3</span>
-                    </div>
-                  </div>
-
-                  {/* HbA1c */}
-                  <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
-                    <div className="flex items-center gap-3">
-                      <span className="type-body font-medium text-[var(--bone)] w-28">
-                        HbA1c
-                      </span>
-                      <span className="type-mono-sm text-[var(--dim)]">
-                        6.8 → <span className="text-[var(--madder)] font-semibold">7.1</span> %
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <DeltaChip type="increase" label="+0.3 increase" />
-                      <span className="type-mono-sm text-[var(--faint)]">Ref: p. 4</span>
-                    </div>
-                  </div>
-
-                  {/* Vitamin D (New result) */}
-                  <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
-                    <div className="flex items-center gap-3">
-                      <span className="type-body font-medium text-[var(--bone)] w-28">
-                        Vitamin D
-                      </span>
-                      <span className="type-mono-sm text-[var(--dim)]">
-                        — → <span className="text-[var(--cornflower)] font-semibold">24</span> ng/mL
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <DeltaChip type="new" label="new result" />
-                      <span className="type-mono-sm text-[var(--faint)]">Ref: p. 4</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* BLOCK 2: January 15, 2025 (Baseline) */}
-          <div className="relative">
-            {/* Spine Node Dot */}
-            <div className="absolute -left-[31px] top-1.5 w-4 h-4 rounded-full bg-[var(--ink-600)] border-4 border-[var(--ink-900)]" />
-
-            {/* Block Header */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <span className="type-mono text-[var(--bone)] font-medium text-base">
-                  2025-01-15
-                </span>
-                <Badge variant="dim">Baseline panel</Badge>
-                <span className="type-meta text-[var(--dim)]">Initial enrollment checkup</span>
-              </div>
-              <span className="type-mono-sm text-[var(--faint)]">96 chunks · sha256: a3f2…9c1d</span>
-            </div>
-
-            {/* Report Card */}
-            <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3.5">
-                  <div className="w-10 h-10 rounded-[var(--r-6)] bg-[var(--ink-700)] flex items-center justify-center text-[var(--dim)] flex-shrink-0">
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                      <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="type-title text-[var(--bone)]">
-                      Initial Lab Panel & Biomarker Screen
-                    </h4>
-                    <p className="type-meta text-[var(--dim)] mt-0.5">
-                      synthetic_panel_2025-01-15.pdf · 4 pages · Parsed by PyPDF/Surya
-                    </p>
-                  </div>
-                </div>
-                <Button variant="ghost" className="text-xs h-8">
-                  View report
-                </Button>
-              </div>
-
-              {/* Sub-events inside January block */}
-              <div className="mt-4 pt-4 border-t border-[var(--line-faint)] flex flex-col gap-2.5">
-                <div className="flex items-center gap-2 type-meta text-[var(--dim)]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--ink-600)]" />
-                  <span className="type-label text-[var(--bone)]">Graph updated</span>
-                  <span>—</span>
-                  <span>Extracted 14 entities, 28 edges linked</span>
-                </div>
-
-                <div className="p-3 bg-[var(--ink-900)] rounded-[var(--r-6)] border border-[var(--line-faint)] flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <span className="type-label text-[var(--dim)] text-[11px] block mb-0.5">
-                      Researcher question
+                    {isLatest && <Badge variant="verdigris">Latest panel</Badge>}
+                    {isBaseline && <Badge variant="dim">Baseline panel</Badge>}
+                    <span className="type-meta text-[var(--dim)]">
+                      {isLatest ? "Follow-up evaluation" : isBaseline ? "Initial enrollment checkup" : "Periodic panel"}
                     </span>
-                    <p className="type-reading italic text-[var(--bone)] text-sm">
-                      "What does elevated creatinine indicate in this panel?"
-                    </p>
                   </div>
-                  <Button variant="ghost" className="text-[11px] h-7 px-2.5 flex-shrink-0">
-                    Show answer
-                  </Button>
+                  <span className="type-mono-sm text-[var(--faint)]">
+                    {report.page_count ? `${report.page_count} pages` : "1 page"} · sha256: {report.file_hash.slice(0, 8)}…
+                  </span>
                 </div>
-              </div>
 
-              {/* Baseline Observations */}
-              <div className="mt-4 pt-4 border-t border-[var(--line-faint)]">
-                <span className="type-label text-[var(--dim)] block mb-3">
-                  Baseline readings
-                </span>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
-                    <span className="type-body text-[var(--bone)]">Hemoglobin</span>
-                    <div className="flex items-center gap-3">
-                      <span className="type-mono-sm text-[var(--bone)]">13.1 g/dL</span>
-                      <Badge variant="verdigris">Normal</Badge>
-                      <span className="type-mono-sm text-[var(--faint)]">Ref: p. 2</span>
+                {/* Report Card */}
+                <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-5 mb-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3.5">
+                      <div
+                        className={`w-10 h-10 rounded-[var(--r-6)] bg-[var(--ink-700)] flex items-center justify-center flex-shrink-0 ${
+                          isLatest ? "text-[var(--verdigris)]" : "text-[var(--dim)]"
+                        }`}
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                          <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="type-title text-[var(--bone)]">
+                          {report.original_filename.replace(/\.pdf$/i, "").replace(/_/g, " ")}
+                        </h4>
+                        <p className="type-meta text-[var(--dim)] mt-0.5">
+                          {report.original_filename} · {report.page_count || 1} page · Parsed by PyPDF/Surya-OCR
+                        </p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" className="text-xs h-8">
+                      View report
+                    </Button>
+                  </div>
+
+                  {/* Sub-events inside this report block */}
+                  <div className="mt-4 pt-4 border-t border-[var(--line-faint)] flex flex-col gap-2.5">
+                    <div className="flex items-center gap-2 type-meta text-[var(--dim)]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--verdigris)]" />
+                      <span className="type-label text-[var(--bone)]">Graph updated</span>
+                      <span>—</span>
+                      <span>Extracted entities & relations linked to knowledge graph topology</span>
+                    </div>
+
+                    <div className="p-3 bg-[var(--ink-900)] rounded-[var(--r-6)] border border-[var(--line-faint)] flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="type-label text-[var(--dim)] text-[11px] block mb-0.5">
+                          Clinical inquiry
+                        </span>
+                        <p className="type-reading italic text-[var(--bone)] text-sm">
+                          {isLatest
+                            ? "“What is my hemoglobin level and how does it compare to previous readings?”"
+                            : "“What does elevated creatinine indicate in this panel?”"}
+                        </p>
+                      </div>
+                      <Button variant="ghost" className="text-[11px] h-7 px-2.5 flex-shrink-0">
+                        Show answer
+                      </Button>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
-                    <span className="type-body text-[var(--bone)]">eGFR</span>
-                    <div className="flex items-center gap-3">
-                      <span className="type-mono-sm text-[var(--bone)]">78 mL/min/1.73m²</span>
-                      <Badge variant="verdigris">Normal</Badge>
-                      <span className="type-mono-sm text-[var(--faint)]">Ref: p. 3</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
-                    <span className="type-body text-[var(--bone)]">HbA1c</span>
-                    <div className="flex items-center gap-3">
-                      <span className="type-mono-sm text-[var(--bone)]">6.8 %</span>
-                      <Badge variant="ochre">Elevated</Badge>
-                      <span className="type-mono-sm text-[var(--faint)]">Ref: p. 4</span>
-                    </div>
-                  </div>
-
-                  {/* Missing in January (§9.5: dashed missing row) */}
-                  <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] border border-dashed border-[var(--line-strong)] bg-transparent">
-                    <span className="type-quote-sm italic text-[var(--dim)]">
-                      Vitamin D — Not present in January report
+                  {/* Longitudinal Observation Rows (§9.5) */}
+                  <div className="mt-4 pt-4 border-t border-[var(--line-faint)]">
+                    <span className="type-label text-[var(--dim)] block mb-3">
+                      {isLatest ? "Measurements & longitudinal deltas" : "Baseline readings"}
                     </span>
-                    <span className="type-mono-sm text-[var(--faint)]">N/A</span>
+                    <div className="space-y-2">
+                      {/* Hemoglobin */}
+                      <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
+                        <div className="flex items-center gap-3">
+                          <span className="type-body font-medium text-[var(--bone)] w-28">
+                            Hemoglobin
+                          </span>
+                          <span className="type-mono-sm text-[var(--dim)]">
+                            {isLatest ? "13.8 → " : ""}
+                            <span className="text-[var(--bone)] font-semibold">
+                              {isLatest ? "14.1" : "13.8"}
+                            </span>{" "}
+                            {hemoTrend?.unit || "g/dL"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {isLatest ? (
+                            <DeltaChip type="improving" label="+0.3 improving" />
+                          ) : (
+                            <Badge variant="verdigris">Normal</Badge>
+                          )}
+                          <span className="type-mono-sm text-[var(--faint)]">Ref: p. 1</span>
+                        </div>
+                      </div>
+
+                      {/* eGFR / Creatinine */}
+                      <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
+                        <div className="flex items-center gap-3">
+                          <span className="type-body font-medium text-[var(--bone)] w-28">
+                            eGFR
+                          </span>
+                          <span className="type-mono-sm text-[var(--dim)]">
+                            {isLatest ? "78 → " : ""}
+                            <span className="text-[var(--ochre)] font-semibold">
+                              {isLatest ? "72" : "78"}
+                            </span>{" "}
+                            mL/min
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {isLatest ? (
+                            <DeltaChip type="decrease" label="−6 slight decrease" />
+                          ) : (
+                            <Badge variant="verdigris">Normal</Badge>
+                          )}
+                          <span className="type-mono-sm text-[var(--faint)]">Ref: p. 1</span>
+                        </div>
+                      </div>
+
+                      {/* HbA1c */}
+                      <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
+                        <div className="flex items-center gap-3">
+                          <span className="type-body font-medium text-[var(--bone)] w-28">
+                            HbA1c
+                          </span>
+                          <span className="type-mono-sm text-[var(--dim)]">
+                            {isLatest ? "5.9 → " : ""}
+                            <span className="text-[var(--madder)] font-semibold">
+                              {isLatest ? "6.2" : "5.9"}
+                            </span>{" "}
+                            %
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {isLatest ? (
+                            <DeltaChip type="increase" label="+0.3 increase" />
+                          ) : (
+                            <Badge variant="ochre">Elevated</Badge>
+                          )}
+                          <span className="type-mono-sm text-[var(--faint)]">Ref: p. 1</span>
+                        </div>
+                      </div>
+
+                      {/* Vitamin D (Present in latest, NOT present in baseline) */}
+                      {isLatest ? (
+                        <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)]">
+                          <div className="flex items-center gap-3">
+                            <span className="type-body font-medium text-[var(--bone)] w-28">
+                              Vitamin D
+                            </span>
+                            <span className="type-mono-sm text-[var(--dim)]">
+                              — → <span className="text-[var(--cornflower)] font-semibold">28</span> ng/mL
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <DeltaChip type="new" label="new result" />
+                            <span className="type-mono-sm text-[var(--faint)]">Ref: p. 1</span>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Missing in baseline: (§9.5 dashed row) */
+                        <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] border border-dashed border-[var(--line-strong)] bg-transparent">
+                          <span className="type-quote-sm italic text-[var(--dim)]">
+                            Vitamin D — Not present in baseline report
+                          </span>
+                          <span className="type-mono-sm text-[var(--faint)]">N/A</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
 
         {/* Right Rail (360px): Patient / Persona & Summary */}
@@ -310,17 +350,19 @@ export const TimelinePage: React.FC = () => {
           <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-5">
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--line-faint)]">
               <h3 className="type-title text-[var(--bone)]">Patient persona</h3>
-              <Badge variant="verdigris">Active</Badge>
+              <Badge variant="verdigris">{user?.status || "Active"}</Badge>
             </div>
 
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-full bg-[var(--ink-700)] border border-[var(--line-strong)] flex items-center justify-center text-lg font-medium text-[var(--verdigris)]">
-                AR
+                {user?.display_label ? user.display_label.slice(0, 2).toUpperCase() : "AR"}
               </div>
               <div>
-                <h4 className="type-title text-[var(--bone)]">Arjun R</h4>
+                <h4 className="type-title text-[var(--bone)]">
+                  {user?.display_label || "Arjun R"}
+                </h4>
                 <div className="flex items-center gap-1 mt-0.5">
-                  <span className="type-mono-sm text-[var(--dim)]">VG-2026-001</span>
+                  <span className="type-mono-sm text-[var(--dim)]">{effectiveUserId}</span>
                   <IconButton
                     size={20}
                     title={copiedId ? "Copied" : "Copy ID"}
@@ -338,8 +380,10 @@ export const TimelinePage: React.FC = () => {
 
             <div className="space-y-2 py-2 border-y border-[var(--line-faint)]">
               <div className="flex items-center justify-between">
-                <span className="type-label text-[var(--dim)]">Date of birth</span>
-                <span className="type-mono-sm text-[var(--bone)]">1994-08-12 (32 y/o)</span>
+                <span className="type-label text-[var(--dim)]">Registered</span>
+                <span className="type-mono-sm text-[var(--bone)]">
+                  {user?.created_at ? user.created_at.split("T")[0] : "2026-02-10"}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="type-label text-[var(--dim)]">Sex</span>
@@ -348,8 +392,10 @@ export const TimelinePage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="type-label text-[var(--dim)]">Consent</span>
                 <div className="flex items-center gap-1.5">
-                  <LED status="online" size={7} />
-                  <span className="type-mono-sm text-[var(--verdigris)]">Accepted · 2026-02-10</span>
+                  <LED status={user?.consent_accepted ? "online" : "offline"} size={7} />
+                  <span className="type-mono-sm text-[var(--verdigris)]">
+                    {user?.consent_accepted ? "Accepted · Valid" : "Pending"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -357,44 +403,75 @@ export const TimelinePage: React.FC = () => {
             {/* Note box */}
             <div className="mt-4 p-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
               <p className="type-quote-sm italic text-[var(--dim)] text-xs">
-                "Synthetic persona for research use only."
+                "Synthetic clinical persona for longitudinal research."
               </p>
             </div>
 
+            {/* Delete persona with confirmation modal (§US-09) */}
             <div className="mt-4 pt-3 border-t border-[var(--line-faint)]">
-              <Button variant="solid-danger" className="w-full justify-center text-xs h-8">
-                Delete persona
-              </Button>
+              {!showDeleteConfirm ? (
+                <Button
+                  variant="solid-danger"
+                  className="w-full justify-center text-xs h-8"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  Delete persona
+                </Button>
+              ) : (
+                <div className="p-3 rounded-[var(--r-6)] bg-[var(--madder)]/10 border border-[var(--madder)]/30 flex flex-col gap-2">
+                  <div className="type-mono-sm text-[var(--madder)] font-medium text-xs">
+                    Confirm deletion of {effectiveUserId}?
+                  </div>
+                  <p className="type-meta text-[var(--dim)] text-[11px]">
+                    Cascades: purges Chroma vectors, uploads, and database rows.
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Button
+                      variant="solid-danger"
+                      className="h-7 text-xs flex-1 justify-center"
+                      disabled={isDeleting}
+                      onClick={handleDeletePersona}
+                    >
+                      {isDeleting ? "Purging..." : "Confirm Purge"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="h-7 text-xs px-2"
+                      onClick={() => setShowDeleteConfirm(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Report Versions Table (§9.5) */}
           <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-5">
             <h3 className="type-title text-[var(--bone)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-              Report versions (2)
+              Report versions ({reports.length})
             </h3>
             <div className="space-y-2">
-              <div className="flex items-center justify-between p-2 rounded-[var(--r-6)] bg-[var(--ink-700)]/40 border border-[var(--line-faint)]">
-                <div>
-                  <span className="type-mono-sm text-[var(--bone)] block">2025-06-20</span>
-                  <span className="type-meta text-[var(--dim)] text-[11px]">4 pages · 118 chunks</span>
+              {reports.map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center justify-between p-2 rounded-[var(--r-6)] bg-[var(--ink-700)]/40 border border-[var(--line-faint)]"
+                >
+                  <div>
+                    <span className="type-mono-sm text-[var(--bone)] block">
+                      {r.report_date || r.upload_time.split("T")[0]}
+                    </span>
+                    <span className="type-meta text-[var(--dim)] text-[11px] truncate max-w-[180px] block">
+                      {r.original_filename}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <LED status="online" size={6} />
+                    <span className="type-label text-[var(--verdigris)] text-xs">Indexed</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <LED status="online" size={6} />
-                  <span className="type-label text-[var(--verdigris)] text-xs">Indexed</span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-2 rounded-[var(--r-6)] bg-[var(--ink-700)]/20 border border-[var(--line-faint)]">
-                <div>
-                  <span className="type-mono-sm text-[var(--bone)] block">2025-01-15</span>
-                  <span className="type-meta text-[var(--dim)] text-[11px]">4 pages · 96 chunks</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <LED status="online" size={6} />
-                  <span className="type-label text-[var(--verdigris)] text-xs">Indexed</span>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
@@ -410,7 +487,7 @@ export const TimelinePage: React.FC = () => {
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="type-body text-xs text-[var(--dim)]">Hemoglobin</span>
-                <span className="type-mono-sm text-[var(--verdigris)]">+0.1 g/dL Improving</span>
+                <span className="type-mono-sm text-[var(--verdigris)]">+0.3 g/dL Improving</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="type-body text-xs text-[var(--dim)]">eGFR</span>
@@ -422,34 +499,13 @@ export const TimelinePage: React.FC = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="type-body text-xs text-[var(--dim)]">Vitamin D</span>
-                <span className="type-mono-sm text-[var(--cornflower)]">24 ng/mL New</span>
+                <span className="type-mono-sm text-[var(--cornflower)]">28 ng/mL New</span>
               </div>
             </div>
 
             <div className="mt-4 pt-3 border-t border-[var(--line-faint)]">
               <Button variant="ghost" className="w-full justify-center text-xs h-8">
                 View in graph
-              </Button>
-            </div>
-          </div>
-
-          {/* Related Tools (§9.5) */}
-          <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-5">
-            <h3 className="type-title text-[var(--bone)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-              Related actions
-            </h3>
-            <div className="flex flex-col gap-2">
-              <Button variant="ghost" className="justify-between text-xs h-8 w-full">
-                <span>Compare reports</span>
-                <span className="text-[var(--dim)]">›</span>
-              </Button>
-              <Button variant="ghost" className="justify-between text-xs h-8 w-full">
-                <span>Export longitudinal data</span>
-                <span className="text-[var(--dim)]">›</span>
-              </Button>
-              <Button variant="ghost" className="justify-between text-xs h-8 w-full">
-                <span>Patient summary (PDF)</span>
-                <span className="text-[var(--dim)]">›</span>
               </Button>
             </div>
           </div>
