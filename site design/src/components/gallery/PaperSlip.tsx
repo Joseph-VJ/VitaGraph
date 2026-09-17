@@ -10,6 +10,7 @@ interface PaperSlipProps {
   onCite?: () => void;
   onClick?: () => void;
   className?: string;
+  chunkId?: string;
 }
 
 export const PaperSlip: React.FC<PaperSlipProps> = ({
@@ -22,10 +23,12 @@ export const PaperSlip: React.FC<PaperSlipProps> = ({
   onCite,
   onClick,
   className = "",
+  chunkId,
 }) => {
   return (
     <figure
       onClick={onClick}
+      style={chunkId ? { viewTransitionName: `ev-${chunkId}` } : undefined}
       className={`relative rounded-[var(--r-6)] bg-[var(--paper)] text-[var(--paper-ink)] p-4 paper-slip-grain shadow-sm overflow-hidden flex flex-col justify-between ${
         onClick ? "cursor-pointer hover:shadow-md hover:ring-1 hover:ring-[var(--verdigris)]/50 transition-all duration-[120ms]" : ""
       } ${className}`}

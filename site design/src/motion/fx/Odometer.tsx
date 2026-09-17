@@ -5,6 +5,8 @@ import { ticker } from "../ticker";
 
 interface OdometerProps {
   value: number | string;
+  initialValue?: number;
+  decimals?: number;
   duration?: number; // defaults to 480ms (--m-settle)
   className?: string;
   format?: (val: number) => string;
@@ -19,6 +21,8 @@ interface OdometerProps {
  */
 export const Odometer: React.FC<OdometerProps> = ({
   value,
+  initialValue,
+  decimals,
   duration = 480, // --m-settle (§M2.1)
   className = "",
   format,
@@ -28,14 +32,27 @@ export const Odometer: React.FC<OdometerProps> = ({
   const numTarget = typeof value === "number" ? value : parseFloat(String(value).replace(/,/g, "")) || 0;
   const isNumeric = !isNaN(numTarget);
 
-  const [displayValue, setDisplayValue] = useState<number>(numTarget);
-  const currentValRef = useRef<number>(numTarget);
+  const isReduced =
+    typeof window !== "undefined" &&
+    (isReducedMotion() || governor.getState().tier === "T0");
+
+  const [displayValue, setDisplayValue] = useState<number>(
+    isReduced ? numTarget : initialValue !== undefined ? initialValue : numTarget
+  );
+  const currentValRef = useRef<number>(
+    isReduced ? numTarget : initialValue !== undefined ? initialValue : numTarget
+  );
   const prevTargetRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!isNumeric) return;
 
-    const startVal = prevTargetRef.current !== null ? currentValRef.current : 0;
+    const startVal =
+      prevTargetRef.current !== null
+        ? currentValRef.current
+        : initialValue !== undefined
+        ? initialValue
+        : 0;
     prevTargetRef.current = numTarget;
 
     // T0 or reduced-motion: instant set (§M5.5, §M11)
@@ -85,17 +102,25 @@ export const Odometer: React.FC<OdometerProps> = ({
       } else {
         const current = startVal + diff * curvedProgress;
         currentValRef.current = current;
-        setDisplayValue(Math.round(current));
+        if (decimals !== undefined) {
+          setDisplayValue(Number(current.toFixed(decimals)));
+        } else if (Number.isInteger(numTarget)) {
+          setDisplayValue(Math.round(current));
+        } else {
+          setDisplayValue(Number(current.toFixed(1)));
+        }
       }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [numTarget, duration, isNumeric]);
+  }, [numTarget, initialValue, decimals, duration, isNumeric]);
 
   const formatted = format
     ? format(displayValue)
+    : decimals !== undefined
+    ? displayValue.toFixed(decimals)
     : Number.isInteger(numTarget)
     ? displayValue.toLocaleString()
     : displayValue.toFixed(1);

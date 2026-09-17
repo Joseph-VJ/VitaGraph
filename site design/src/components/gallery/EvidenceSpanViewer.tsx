@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { IconButton, Button, Badge } from "./index";
 import { reportsApi } from "../../api/reports";
 import type { EvidenceCard, ReportPage } from "../../types";
+import { governor } from "../../motion/quality";
+import { isReducedMotion } from "../../motion/features";
+import { Odometer } from "../../motion/fx/Odometer";
 
 export interface EvidenceSpanViewerProps {
   evidence: EvidenceCard | null;
@@ -19,9 +22,12 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
+  const [isClosing, setIsClosing] = useState<boolean>(false);
+  const [isRetracting, setIsRetracting] = useState<boolean>(false);
 
   const highlightRef = useRef<HTMLElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
 
   // Fetch report pages when evidence card changes
   useEffect(() => {
@@ -54,16 +60,41 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
     };
   }, [isOpen, evidence?.report_id, evidence?.page_number]);
 
+  // Handle graceful close with reverse morph and T3 bracket retraction (§M7.6)
+  const handleClose = () => {
+    if (isClosing) return;
+    const tier = governor.getState().tier;
+    if (tier === "T3" && !isReducedMotion()) {
+      setIsRetracting(true);
+      setTimeout(() => {
+        setIsClosing(true);
+        setTimeout(() => {
+          onClose();
+          setIsClosing(false);
+          setIsRetracting(false);
+        }, 288); // 60% of 480ms (--m-settle) = 288ms
+      }, 168); // retract duration 168ms
+    } else if (tier !== "T0" && !isReducedMotion()) {
+      setIsClosing(true);
+      setTimeout(() => {
+        onClose();
+        setIsClosing(false);
+      }, 288);
+    } else {
+      onClose();
+    }
+  };
+
   // Handle ESC key to close
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
-        onClose();
+        handleClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, handleClose]);
 
   // Smooth scroll to highlight once rendered
   useEffect(() => {
@@ -126,13 +157,21 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
     <div
       className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fade-in"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) handleClose();
       }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="evidence-modal-title"
     >
-      <div className="max-w-5xl w-full max-h-[92vh] flex flex-col rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] shadow-2xl overflow-hidden">
+      <div
+        ref={sheetRef}
+        style={{
+          viewTransitionName: evidence.chunk_id ? `ev-${evidence.chunk_id}` : undefined,
+        }}
+        className={`max-w-5xl w-full max-h-[92vh] flex flex-col rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] shadow-2xl overflow-hidden ${
+          isClosing ? "animate-sheet-close" : "animate-sheet-settle"
+        }`}
+      >
         {/* Header Bar (§9.8) */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--line-strong)] bg-[var(--ink-850,var(--ink-800))]">
           <div className="flex items-center gap-3 min-w-0">
@@ -159,7 +198,26 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
                 <span>Page {evidence.page_number} of {pages.length || 1}</span>
                 <span>•</span>
                 <span className="type-mono-sm text-[var(--bone)]">
-                  char_start: {charStart >= 0 ? charStart : "—"} · char_end: {charEnd >= 0 ? charEnd : "—"}
+                  char_start:{" "}
+                  {charStart >= 0 ? (
+                    <Odometer
+                      value={charStart}
+                      duration={180}
+                      testId="odo-char-start-hdr"
+                    />
+                  ) : (
+                    "—"
+                  )}{" "}
+                  · char_end:{" "}
+                  {charEnd >= 0 ? (
+                    <Odometer
+                      value={charEnd}
+                      duration={180}
+                      testId="odo-char-end-hdr"
+                    />
+                  ) : (
+                    "—"
+                  )}
                 </span>
                 <span>•</span>
                 <span>{activePage?.extraction_method || "native"} extraction</span>
@@ -170,7 +228,7 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
           <IconButton
             size={28}
             title="Close evidence viewer (Esc)"
-            onClick={onClose}
+            onClick={handleClose}
             className="border-transparent bg-transparent hover:bg-[var(--ink-700)] text-[var(--dim)]"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -241,19 +299,88 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
                     </span>
                   </div>
 
-                  {/* Verbatim Page Text with Verdigris Bounding Box Highlight (§9.8) */}
+                  {/* Verbatim Page Text with Verdigris Bounding Box Highlight (§9.8, §M7.6) */}
                   <div className="font-mono text-[13px] leading-[22px] whitespace-pre-wrap">
                     {isValidSpan ? (
                       <>
                         <span>{textBefore}</span>
-                        <mark
-                          ref={highlightRef}
-                          id="evidence-highlight"
-                          data-testid="evidence-highlight"
-                          className="bg-[rgba(63,185,80,0.22)] border-2 border-[var(--verdigris)] text-[var(--paper-ink)] font-semibold rounded-[var(--r-4)] px-1 py-0.5 shadow-sm inline"
+                        <span
+                          className="relative inline-block my-0.5 px-1.5 py-0.5"
+                          data-testid="evidence-highlight-container"
                         >
-                          {highlightedSpan}
-                        </mark>
+                          {/* 4 Clockwise Corner Brackets (§M7.6: verdigris, 60ms stagger, 280ms each) */}
+                          <svg
+                            className="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
+                            viewBox="0 0 100 100"
+                            preserveAspectRatio="none"
+                            data-testid="evidence-corner-brackets"
+                          >
+                            {/* 1. Top-Left: clockwise #1 */}
+                            <path
+                              d="M 0,14 L 0,0 L 14,0"
+                              vectorEffect="non-scaling-stroke"
+                              fill="none"
+                              stroke="var(--verdigris)"
+                              strokeWidth="2.5"
+                              strokeDasharray="24"
+                              className={isRetracting ? "animate-bracket-retract" : "animate-bracket-draw"}
+                              style={{ animationDelay: isRetracting ? "0ms" : "120ms" }}
+                            />
+                            {/* 2. Top-Right: clockwise #2 */}
+                            <path
+                              d="M 86,0 L 100,0 L 100,14"
+                              vectorEffect="non-scaling-stroke"
+                              fill="none"
+                              stroke="var(--verdigris)"
+                              strokeWidth="2.5"
+                              strokeDasharray="24"
+                              className={isRetracting ? "animate-bracket-retract" : "animate-bracket-draw"}
+                              style={{ animationDelay: isRetracting ? "0ms" : "180ms" }}
+                            />
+                            {/* 3. Bottom-Right: clockwise #3 */}
+                            <path
+                              d="M 100,86 L 100,100 L 86,100"
+                              vectorEffect="non-scaling-stroke"
+                              fill="none"
+                              stroke="var(--verdigris)"
+                              strokeWidth="2.5"
+                              strokeDasharray="24"
+                              className={isRetracting ? "animate-bracket-retract" : "animate-bracket-draw"}
+                              style={{ animationDelay: isRetracting ? "0ms" : "240ms" }}
+                            />
+                            {/* 4. Bottom-Left: clockwise #4 */}
+                            <path
+                              d="M 14,100 L 0,100 L 0,86"
+                              vectorEffect="non-scaling-stroke"
+                              fill="none"
+                              stroke="var(--verdigris)"
+                              strokeWidth="2.5"
+                              strokeDasharray="24"
+                              className={isRetracting ? "animate-bracket-retract" : "animate-bracket-draw"}
+                              style={{ animationDelay: isRetracting ? "0ms" : "300ms" }}
+                            />
+                          </svg>
+
+                          {/* Interior Wash: fades to 10% verdigris and holds (§M7.6) */}
+                          <span
+                            data-testid="evidence-interior-wash"
+                            className={`absolute inset-0 rounded-[var(--r-4)] pointer-events-none ${
+                              isReducedMotion() || governor.getState().tier === "T0"
+                                ? "bg-[rgba(121,184,166,0.10)]"
+                                : "animate-wash-hold"
+                            }`}
+                            style={{ animationDelay: "360ms" }}
+                          />
+
+                          <mark
+                            ref={highlightRef}
+                            id="evidence-highlight"
+                            data-testid="evidence-highlight"
+                            className="bg-transparent text-[var(--paper-ink)] font-semibold relative z-10"
+                          >
+                            {highlightedSpan}
+                          </mark>
+                        </span>
                         <span>{textAfter}</span>
                       </>
                     ) : (
@@ -295,7 +422,23 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
                 <div className="flex items-center justify-between type-mono-sm text-[12px]">
                   <span className="text-[var(--dim)]">Character span</span>
                   <span className="text-[var(--bone)]">
-                    {charStart >= 0 && charEnd >= 0 ? `${charStart}–${charEnd}` : "Full chunk"}
+                    {charStart >= 0 && charEnd >= 0 ? (
+                      <>
+                        <Odometer
+                          value={charStart}
+                          duration={180}
+                          testId="odo-char-start-card"
+                        />
+                        –
+                        <Odometer
+                          value={charEnd}
+                          duration={180}
+                          testId="odo-char-end-card"
+                        />
+                      </>
+                    ) : (
+                      "Full chunk"
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center justify-between type-mono-sm text-[12px]">
@@ -356,7 +499,7 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
               </Button>
               <Button
                 variant="primary"
-                onClick={onClose}
+                onClick={handleClose}
                 className="h-8 px-4 text-[12px]"
               >
                 Done inspecting

@@ -221,6 +221,7 @@ export const AnswerBlock: React.FC<AnswerBlockProps> = ({
                     authors="Clinical Laboratory Report"
                     journal={ev.report_date ? `Date: ${ev.report_date}` : undefined}
                     similarity={ev.score}
+                    chunkId={ev.chunk_id}
                     onCite={() => onEvidenceClick?.(ev)}
                     onClick={() => onEvidenceClick?.(ev)}
                   />

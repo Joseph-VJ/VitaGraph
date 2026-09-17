@@ -202,7 +202,7 @@
       "id": "MS-08",
       "title": "Timeline + Evidence viewer",
       "spec": "\u00a7M7.5, \u00a7M7.6",
-      "passes": false,
+      "passes": true,
       "acceptance": "Spine scroll-bound (animation-timeline + IO/rAF fallback verified in Firefox); single-fire block enters; new-report insertion FLIP + spine draw on real done event; delete-cascade collapse order + 400 ms armed confirm; evidence viewer shared-element (VT + FLIP paths), brackets draw clockwise, wash holds, offsets odometer exact",
       "gates": "21,25,26,27",
       "verify": "spine-firefox.webm, viewer morph pair png"

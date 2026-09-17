@@ -6,12 +6,14 @@ interface DeltaChipProps {
   type?: DeltaType;
   label?: string;
   className?: string;
+  pop?: boolean;
 }
 
 export const DeltaChip: React.FC<DeltaChipProps> = ({
   type = "improving",
   label,
   className = "",
+  pop = true,
 }) => {
   const styles: Record<DeltaType, { bg: string; text: string; border: string; defaultLabel: string }> = {
     improving: {
@@ -47,10 +49,12 @@ export const DeltaChip: React.FC<DeltaChipProps> = ({
   };
 
   const current = styles[type];
+  const popClass = pop ? "animate-chip-pop" : "";
+  const flashClass = type === "new" ? "animate-cornflower-flash" : "";
 
   return (
     <span
-      className={`inline-flex items-center rounded-[var(--r-4)] px-2 py-0.5 type-mono-sm border ${current.bg} ${current.text} ${current.border} ${className}`}
+      className={`inline-flex items-center rounded-[var(--r-4)] px-2 py-0.5 type-mono-sm border ${current.bg} ${current.text} ${current.border} ${popClass} ${flashClass} ${className}`}
     >
       {label || current.defaultLabel}
     </span>
