@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { DeltaChip, Button, Marginalia } from "../components/gallery";
+import { Odometer } from "../motion/fx/Odometer";
+import { flipFrom } from "../motion/flip";
 import { useActiveUser } from "../context/UserContext";
 import { reportsApi, type ComparisonData } from "../api/reports";
 import type { Report } from "../types";
@@ -61,6 +63,9 @@ export const ComparePage: React.FC = () => {
     total: 0,
   };
 
+  const totalCount =
+    (summary.improved + summary.declined + summary.stable + summary.unavailable) || summary.total || 0;
+
   const rows = compData?.rows || [];
 
   return (
@@ -79,10 +84,10 @@ export const ComparePage: React.FC = () => {
         />
       </div>
 
-      {/* Selectors for Baseline and Follow-up panels */}
+      {/* Selectors for Baseline and Follow-up panels with FLIP-swap (§M7.7) */}
       <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
+          <div id="baseline-chip-container" className="flex items-center gap-2">
             <label htmlFor="baseline-select" className="type-label text-[var(--dim)] text-xs">
               Baseline panel:
             </label>
@@ -100,9 +105,32 @@ export const ComparePage: React.FC = () => {
             </select>
           </div>
 
-          <span className="text-[var(--dim)] font-mono">→</span>
+          <button
+            type="button"
+            onClick={() => {
+              const bEl = document.getElementById("baseline-chip-container");
+              const fEl = document.getElementById("followup-chip-container");
+              if (bEl && fEl) {
+                const bRect = bEl.getBoundingClientRect();
+                const fRect = fEl.getBoundingClientRect();
+                const temp = baselineId;
+                setBaselineId(followupId);
+                setFollowupId(temp);
+                flipFrom(bEl, fRect, { spring: "weighted", capMs: 240 });
+                flipFrom(fEl, bRect, { spring: "weighted", capMs: 240 });
+              } else {
+                const temp = baselineId;
+                setBaselineId(followupId);
+                setFollowupId(temp);
+              }
+            }}
+            title="Swap baseline and follow-up panels"
+            className="px-2.5 py-1 rounded-[var(--r-4)] bg-[var(--ink-900)] hover:bg-[var(--ink-700)] text-[var(--dim)] hover:text-[var(--bone)] border border-[var(--line-strong)] cursor-pointer text-xs font-mono transition-colors"
+          >
+            ⇄ Swap
+          </button>
 
-          <div className="flex items-center gap-2">
+          <div id="followup-chip-container" className="flex items-center gap-2">
             <label htmlFor="followup-select" className="type-label text-[var(--dim)] text-xs">
               Follow-up panel:
             </label>
@@ -130,35 +158,71 @@ export const ComparePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary Strip (§9.6: "X improved · Y declined · Z stable · W unavailable") */}
-      <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="type-label text-[var(--bone)]">Longitudinal shifts:</span>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(121,184,166,0.12)] text-[var(--verdigris)] border border-[rgba(121,184,166,0.25)] type-mono-sm">
-              {summary.improved} improved
+      {/* Summary Strip (§9.6, §M7.7: counts odometer, segment widths scaleX to real proportions) */}
+      <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="type-label text-[var(--bone)]">Longitudinal shifts:</span>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(121,184,166,0.12)] text-[var(--verdigris)] border border-[rgba(121,184,166,0.25)] type-mono-sm flex items-center gap-1">
+                <Odometer value={summary.improved} duration={480} testId="odo-improved" /> improved
+              </span>
+              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(217,128,141,0.12)] text-[var(--madder)] border border-[rgba(217,128,141,0.25)] type-mono-sm flex items-center gap-1">
+                <Odometer value={summary.declined} duration={480} testId="odo-declined" /> declined
+              </span>
+              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] text-[var(--dim)] border border-[var(--line-strong)] type-mono-sm flex items-center gap-1">
+                <Odometer value={summary.stable} duration={480} testId="odo-stable" /> stable
+              </span>
+              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(217,164,65,0.12)] text-[var(--ochre)] border border-[rgba(217,164,65,0.25)] type-mono-sm flex items-center gap-1">
+                <Odometer value={summary.unavailable} duration={480} testId="odo-unavailable" /> unavailable
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 type-mono-sm text-xs text-[var(--dim)]">
+            <span>
+              Baseline: <strong>{compData?.baseline_date || "—"}</strong>
             </span>
-            <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(217,128,141,0.12)] text-[var(--madder)] border border-[rgba(217,128,141,0.25)] type-mono-sm">
-              {summary.declined} declined
-            </span>
-            <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] text-[var(--dim)] border border-[var(--line-strong)] type-mono-sm">
-              {summary.stable} stable
-            </span>
-            <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(217,164,65,0.12)] text-[var(--ochre)] border border-[rgba(217,164,65,0.25)] type-mono-sm">
-              {summary.unavailable} unavailable
+            <span>→</span>
+            <span>
+              Follow-up: <strong>{compData?.followup_date || "—"}</strong>
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 type-mono-sm text-xs text-[var(--dim)]">
-          <span>
-            Baseline: <strong>{compData?.baseline_date || "—"}</strong>
-          </span>
-          <span>→</span>
-          <span>
-            Follow-up: <strong>{compData?.followup_date || "—"}</strong>
-          </span>
-        </div>
+        {/* Proportional summary segments scaleX to real proportions (§M7.7) */}
+        {totalCount > 0 && (
+          <div className="w-full h-1.5 rounded-full bg-[var(--ink-900)] flex overflow-hidden gap-0.5">
+            {summary.improved > 0 && (
+              <div
+                style={{ width: `${(summary.improved / totalCount) * 100}%` }}
+                className="h-full bg-[var(--verdigris)] rounded-full animate-scale-x"
+                data-testid="summary-segment-improved"
+              />
+            )}
+            {summary.declined > 0 && (
+              <div
+                style={{ width: `${(summary.declined / totalCount) * 100}%` }}
+                className="h-full bg-[var(--madder)] rounded-full animate-scale-x"
+                data-testid="summary-segment-declined"
+              />
+            )}
+            {summary.stable > 0 && (
+              <div
+                style={{ width: `${(summary.stable / totalCount) * 100}%` }}
+                className="h-full bg-[var(--dim)] rounded-full animate-scale-x"
+                data-testid="summary-segment-stable"
+              />
+            )}
+            {summary.unavailable > 0 && (
+              <div
+                style={{ width: `${(summary.unavailable / totalCount) * 100}%` }}
+                className="h-full bg-[var(--ochre)] rounded-full animate-scale-x"
+                data-testid="summary-segment-unavailable"
+              />
+            )}
+          </div>
+        )}
       </div>
 
       {/* Comparison Diff Table */}
@@ -198,43 +262,56 @@ export const ComparePage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--line-faint)]">
-              {rows.map((row, i) => (
-                <tr
-                  key={i}
-                  className="hover:bg-[var(--ink-700)]/40 transition-colors duration-[120ms] ease-out"
-                >
-                  <td className="py-3 px-4">
-                    <span className="type-body font-medium text-[var(--bone)] block">
-                      {row.test}
-                    </span>
-                    <span className="type-meta text-[var(--dim)] text-[11px]">
-                      {row.category} · {row.unit}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 type-mono text-sm text-[var(--dim)]">
-                    {row.baseline}{" "}
-                    {row.baseline !== "—" && (
-                      <span className="type-mono-sm text-[11px] text-[var(--faint)]">
-                        {row.unit}
+              {rows.map((row, i) => {
+                const staggerMs = Math.min(i * 24, 240);
+                return (
+                  <tr
+                    key={i}
+                    data-testid={`diff-row-${i}`}
+                    className="hover:bg-[var(--ink-700)]/40 transition-colors duration-[120ms] ease-out m-enter"
+                    style={{ animationDelay: `${staggerMs}ms` }}
+                  >
+                    <td className="py-3 px-4">
+                      <span className="type-body font-medium text-[var(--bone)] block">
+                        {row.test}
                       </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 type-mono text-sm text-[var(--bone)] font-medium">
-                    {row.followup}{" "}
-                    {row.followup !== "—" && (
-                      <span className="type-mono-sm text-[11px] text-[var(--dim)]">
-                        {row.unit}
+                      <span className="type-meta text-[var(--dim)] text-[11px]">
+                        {row.category} · {row.unit}
                       </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4">
-                    <DeltaChip type={row.delta_type} label={row.delta_label} />
-                  </td>
-                  <td className="py-3 px-4 text-right type-mono-sm text-[var(--faint)]">
-                    Ref: {row.citation}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td
+                      className="py-3 px-4 type-mono text-sm text-[var(--dim)] animate-diff-baseline"
+                      style={{ animationDelay: `${staggerMs}ms` }}
+                      data-testid={`diff-baseline-${i}`}
+                    >
+                      {row.baseline}{" "}
+                      {row.baseline !== "—" && (
+                        <span className="type-mono-sm text-[11px] text-[var(--faint)]">
+                          {row.unit}
+                        </span>
+                      )}
+                    </td>
+                    <td
+                      className="py-3 px-4 type-mono text-sm text-[var(--bone)] font-medium animate-diff-followup"
+                      style={{ animationDelay: `${staggerMs}ms` }}
+                      data-testid={`diff-followup-${i}`}
+                    >
+                      {row.followup}{" "}
+                      {row.followup !== "—" && (
+                        <span className="type-mono-sm text-[11px] text-[var(--dim)]">
+                          {row.unit}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      <DeltaChip type={row.delta_type} label={row.delta_label} pop />
+                    </td>
+                    <td className="py-3 px-4 text-right type-mono-sm text-[var(--faint)]">
+                      Ref: {row.citation}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

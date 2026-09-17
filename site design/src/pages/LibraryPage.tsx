@@ -201,10 +201,12 @@ export const LibraryPage: React.FC = () => {
             </Link>
           </div>
         ) : (
-          filteredReports.map((doc) => (
+          filteredReports.map((doc, idx) => (
             <div
               key={doc.id}
-              className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] hover:border-[var(--dim)] transition-all duration-[120ms] ease-out flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+              data-testid={`library-row-${doc.id}`}
+              style={{ animationDelay: `${Math.min(idx * 24, 240)}ms` }}
+              className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] hover:border-[var(--dim)] transition-all duration-[120ms] ease-out flex flex-col md:flex-row items-start md:items-center justify-between gap-4 m-enter"
             >
               {/* Left: Document Info */}
               <div className="flex items-start gap-4 min-w-0 flex-1">
@@ -250,19 +252,26 @@ export const LibraryPage: React.FC = () => {
                     <span className="text-[var(--faint)]">·</span>
                     <span className="type-mono-sm text-[var(--faint)] flex items-center gap-1">
                       SHA256: {doc.file_hash.substring(0, 12)}…
-                      <IconButton
-                        size={18}
-                        title="Copy SHA256"
-                        onClick={() => handleCopyHash(doc.file_hash)}
-                        className="border-transparent bg-transparent hover:bg-[var(--ink-700)] text-[var(--dim)] hover:text-[var(--bone)]"
-                      >
-                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                        </svg>
-                      </IconButton>
-                      {copiedHash === doc.file_hash && (
-                        <span className="text-[var(--verdigris)] text-[10px]">Copied</span>
+                      {copiedHash === doc.file_hash ? (
+                        <span className="text-[var(--verdigris)] text-[11px] flex items-center gap-1 font-mono">
+                          <svg className="w-3 h-3 text-[var(--verdigris)] animate-draw-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          Copied
+                        </span>
+                      ) : (
+                        <IconButton
+                          size={18}
+                          title="Copy SHA256"
+                          onClick={() => handleCopyHash(doc.file_hash)}
+                          className="border-transparent bg-transparent hover:bg-[var(--ink-700)] text-[var(--dim)] hover:text-[var(--bone)]"
+                          data-testid={`copy-sha-${doc.id}`}
+                        >
+                          <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                          </svg>
+                        </IconButton>
                       )}
                     </span>
                   </div>

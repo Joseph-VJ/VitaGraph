@@ -211,7 +211,7 @@
       "id": "MS-09",
       "title": "Compare + Insights + Library + empty states",
       "spec": "\u00a7M7.7\u2013M7.9",
-      "passes": false,
+      "passes": true,
       "acceptance": "Converging diff rows; summary segments scaleX to real proportions; modularity ring sweep synced to Q odometer; centrality race-sort via FLIP on reorder; predicate sweep clockwise; footnote last; empty-state sketch draws once, no loops; Settings > Motion section live",
       "gates": "21,25,27,32",
       "verify": "race-sort.webm, insights T0 png"

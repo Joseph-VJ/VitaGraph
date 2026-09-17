@@ -52,11 +52,53 @@ export const DeltaChip: React.FC<DeltaChipProps> = ({
   const popClass = pop ? "animate-chip-pop" : "";
   const flashClass = type === "new" ? "animate-cornflower-flash" : "";
 
+  const renderContent = () => {
+    const text = label || current.defaultLabel;
+    if (type === "improving" && !text.includes("↑")) {
+      return (
+        <>
+          <span className="animate-arrow-nudge-up mr-1 inline-block">↑</span>
+          {text}
+        </>
+      );
+    }
+    if ((type === "decrease" || type === "increase") && !text.includes("↓")) {
+      return (
+        <>
+          <span className="animate-arrow-nudge-down mr-1 inline-block">↓</span>
+          {text}
+        </>
+      );
+    }
+    // If text already has arrows, wrap them in nudge spans
+    if (text.includes("↑")) {
+      const parts = text.split("↑");
+      return (
+        <>
+          {parts[0]}
+          <span className="animate-arrow-nudge-up inline-block">↑</span>
+          {parts[1]}
+        </>
+      );
+    }
+    if (text.includes("↓")) {
+      const parts = text.split("↓");
+      return (
+        <>
+          {parts[0]}
+          <span className="animate-arrow-nudge-down inline-block">↓</span>
+          {parts[1]}
+        </>
+      );
+    }
+    return text;
+  };
+
   return (
     <span
       className={`inline-flex items-center rounded-[var(--r-4)] px-2 py-0.5 type-mono-sm border ${current.bg} ${current.text} ${current.border} ${popClass} ${flashClass} ${className}`}
     >
-      {label || current.defaultLabel}
+      {renderContent()}
     </span>
   );
 };

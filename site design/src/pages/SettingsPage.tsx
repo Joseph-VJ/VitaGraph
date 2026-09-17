@@ -8,6 +8,9 @@ export const SettingsPage: React.FC = () => {
   const [diagnosticGuard, setDiagnosticGuard] = useState(true);
   const [localOnly, setLocalOnly] = useState(true);
   const [activeTheme, setActiveTheme] = useState<"instrument" | "paper">("instrument");
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return typeof window !== "undefined" && localStorage.getItem("vg_sound_enabled") === "true";
+  });
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-4xl">
@@ -252,6 +255,36 @@ export const SettingsPage: React.FC = () => {
                 {motion.dprCap}x resolution
               </span>
             </div>
+          </div>
+
+          {/* Optional audio feedback toggle (§M7.9, §M9) */}
+          <div className="flex items-center justify-between pt-3 border-t border-[var(--line-faint)]">
+            <div>
+              <span className="type-body font-medium text-[var(--bone)] text-sm block">
+                Synthesized Audio Detents (§M9)
+              </span>
+              <span className="type-meta text-[var(--dim)] text-xs">
+                WebAudio-synthesized tactile feedback for stepper, chip pops, and answer completion (off by default)
+              </span>
+            </div>
+            <button
+              type="button"
+              data-testid="sound-toggle-btn"
+              onClick={() => {
+                const next = !soundEnabled;
+                setSoundEnabled(next);
+                localStorage.setItem("vg_sound_enabled", String(next));
+              }}
+              className={`w-11 h-6 rounded-full transition-colors duration-[120ms] p-1 flex items-center cursor-pointer ${
+                soundEnabled ? "bg-[var(--verdigris)]" : "bg-[var(--ink-700)]"
+              }`}
+            >
+              <div
+                className={`w-4 h-4 rounded-full bg-[var(--ink-900)] transition-transform duration-[120ms] ${
+                  soundEnabled ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
           </div>
 
           {/* Replay boot sequence ghost button (§M7.9) */}

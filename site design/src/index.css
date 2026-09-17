@@ -499,6 +499,87 @@ button:not(:disabled):active,
   animation: washHold var(--m-base, 240ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) forwards;
 }
 
+/* ─── §M7.7 Compare, §M7.8 Insights & §M7.9 Secondary Choreography ─── */
+@keyframes diffBaseline {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-diff-baseline {
+  animation: diffBaseline var(--m-deliberate, 360ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) both;
+}
+
+@keyframes diffFollowup {
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-diff-followup {
+  animation: diffFollowup var(--m-deliberate, 360ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) both;
+}
+
+@keyframes arrowNudgeUp {
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+.animate-arrow-nudge-up {
+  display: inline-block;
+  animation: arrowNudgeUp var(--m-base, 240ms) var(--ease-detent, cubic-bezier(0.30, 0.80, 0.20, 1)) 1;
+}
+
+@keyframes arrowNudgeDown {
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(2px); }
+  100% { transform: translateY(0); }
+}
+.animate-arrow-nudge-down {
+  display: inline-block;
+  animation: arrowNudgeDown var(--m-base, 240ms) var(--ease-detent, cubic-bezier(0.30, 0.80, 0.20, 1)) 1;
+}
+
+@keyframes scaleXProportion {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.animate-scale-x {
+  transform-origin: left;
+  animation: scaleXProportion var(--m-deliberate, 360ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) both;
+}
+
+@keyframes barSettle {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.animate-bar-settle {
+  transform-origin: left;
+  animation: barSettle var(--m-settle, 480ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) both;
+}
+
+@keyframes ringSweep {
+  from { stroke-dashoffset: var(--ring-circumference, 283); }
+  to   { stroke-dashoffset: var(--ring-target-offset, 147); }
+}
+.animate-ring-sweep {
+  animation: ringSweep var(--m-cinematic, 720ms) var(--ease-needle, cubic-bezier(0.70, 0, 0.30, 1)) forwards;
+}
+
+@keyframes predicateSweep {
+  from { stroke-dashoffset: var(--pred-circumference, 283); }
+  to   { stroke-dashoffset: var(--pred-target-offset, 0); }
+}
+.animate-predicate-sweep {
+  animation: predicateSweep var(--m-deliberate, 360ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) forwards;
+}
+
+@keyframes sketchDraw {
+  from { stroke-dashoffset: 140; opacity: 0.2; }
+  to   { stroke-dashoffset: 0; opacity: 0.7; }
+}
+.animate-sketch-draw {
+  stroke-dasharray: 140;
+  stroke-dashoffset: 0;
+  animation: sketchDraw var(--m-cinematic, 720ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) 1;
+}
+
 /* ─── Reduced motion support (§8.1, §M11) ─── */
 @media (prefers-reduced-motion: reduce) {
   .animate-breathe,
@@ -526,11 +607,21 @@ button:not(:disabled):active,
   .animate-sheet-settle,
   .animate-sheet-close,
   .animate-wash-hold,
+  .animate-diff-baseline,
+  .animate-diff-followup,
+  .animate-arrow-nudge-up,
+  .animate-arrow-nudge-down,
+  .animate-scale-x,
+  .animate-bar-settle,
+  .animate-ring-sweep,
+  .animate-predicate-sweep,
+  .animate-sketch-draw,
   .skeleton-shimmer,
   .m-enter, .m-enter-card, .m-exit,
   .m-route-enter {
     animation: none !important;
     clip-path: none !important;
+    transform: none !important;
   }
   ::view-transition-old(root),
   ::view-transition-new(root) {
