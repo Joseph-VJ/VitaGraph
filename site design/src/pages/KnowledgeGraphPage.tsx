@@ -62,6 +62,43 @@ export const KnowledgeGraphPage: React.FC = () => {
     };
   }, []);
 
+  // Expose test hook for question activation testing (§M8.3)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).__VG_TEST_ACTIVATE_QUESTION__ = (
+        concepts: string[] = ["Hemoglobin", "Ferritin"],
+        nodeIds: string[] = []
+      ) => {
+        if (concepts.length === 0) {
+          setActiveConcepts([]);
+          setActiveNodeIds([]);
+          setSubgraphMetrics(null);
+          return;
+        }
+        setActiveConcepts(concepts);
+        if (nodeIds.length > 0) {
+          setActiveNodeIds(nodeIds);
+        } else if (graphData?.nodes && graphData.nodes.length > 0) {
+          const matching = graphData.nodes
+            .filter((n) =>
+              concepts.some(
+                (c) =>
+                  (n.label && n.label.toLowerCase().includes(c.toLowerCase())) ||
+                  (n.id && n.id.toLowerCase().includes(c.toLowerCase()))
+              )
+            )
+            .map((n) => n.id);
+          const finalIds = matching.length > 0 ? matching : [graphData.nodes[0].id];
+          setActiveNodeIds(finalIds);
+          setSubgraphMetrics({
+            total_nodes: finalIds.length,
+            total_edges: Math.min(finalIds.length * 2, 8),
+          });
+        }
+      };
+    }
+  }, [graphData]);
+
   const handleApplyAnswer = async (answer: any, query: string = "") => {
     const chunkIds = (answer.evidence || []).map((e: any) => e.chunk_id);
     if (chunkIds.length > 0) {

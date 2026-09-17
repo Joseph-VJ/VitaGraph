@@ -4,6 +4,7 @@ import { Select } from "./Input";
 import type { GraphResponse, GraphNode } from "../../api/graph";
 import { ticker } from "../../motion/ticker";
 import { governor, isReducedMotion } from "../../motion";
+import { Spring } from "../../motion/spring";
 
 export interface GraphStageProps {
   graphData?: GraphResponse | null;
@@ -25,6 +26,7 @@ interface SimNode extends GraphNode {
   vy: number;
   r: number;
   color: string;
+  revealDelay: number;
 }
 
 interface SimEdge {
@@ -90,33 +92,107 @@ function getNodeColor(node: GraphNode): string {
   return CATEGORY_COLORS[t] || "#79B8A6";
 }
 
-// Plan §11.7 node stagger delays
-const getNodeDelay = (n: SimNode, index: number): number => {
-  const t = (n.type || "").toLowerCase();
-  switch (t) {
-    case "person":
-      return 0;
-    case "report":
-      return 40;
-    case "section":
-      return 90;
-    case "category":
-      return 130;
-    case "test":
-    case "biomarker":
-      return 170 + (index % 8) * 16;
-    case "measurement":
-      return 250 + (index % 8) * 16;
-    case "date":
-      return 330;
-    case "chunk":
-      return 370 + (index % 8) * 16;
-    case "uncertainty":
-      return 410;
-    default:
-      return 200 + (index % 8) * 16;
+// Ontology rank per §M8.2 (Report -> Category -> Test -> Measurement -> Chunk)
+export function getOntologyRank(type: string = ""): number {
+  const t = type.toLowerCase();
+  if (t === "report" || t === "person") return 0;
+  if (t === "category" || t === "section") return 1;
+  if (t === "test" || t === "biomarker" || t === "condition") return 2;
+  if (t === "measurement") return 3;
+  if (t === "chunk") return 4;
+  return 5;
+}
+
+// Snappy spring closed-form progress solver (§M2.3: stiffness 420, damping 42, mass 1)
+function snappyProgress(elapsedMs: number): number {
+  if (elapsedMs <= 0) return 0;
+  const tSec = elapsedMs / 1000;
+  if (tSec >= 0.36) return 1.0;
+  // Analytic solution for zeta = 1.0247 (roots: -16.4174, -25.5826)
+  const p = 1.0 - (2.7913 * Math.exp(-16.4174 * tSec) - 1.7913 * Math.exp(-25.5826 * tSec));
+  return Math.max(0, Math.min(1.0, p));
+}
+
+// Servo cubic bezier solver (0.32, 0, 0.24, 1) per §M2.2 for 240ms edge progression
+function servoEase(t: number): number {
+  if (t <= 0) return 0;
+  if (t >= 1) return 1;
+  let u = t;
+  for (let i = 0; i < 4; i++) {
+    const u2 = u * u;
+    const u3 = u2 * u;
+    const oneMinusU = 1 - u;
+    const oneMinusU2 = oneMinusU * oneMinusU;
+    const x = 3 * oneMinusU2 * u * 0.32 + 3 * oneMinusU * u2 * 0.24 + u3;
+    const dx = 3 * oneMinusU2 * 0.32 + 6 * oneMinusU * u * (0.24 - 0.32) + 3 * u2 * (1 - 0.24);
+    if (Math.abs(dx) < 1e-6) break;
+    u -= (x - t) / dx;
+    u = Math.max(0, Math.min(1, u));
   }
-};
+  const u2 = u * u;
+  const u3 = u2 * u;
+  const oneMinusU = 1 - u;
+  return 3 * oneMinusU * u2 + u3;
+}
+
+// Convex hull computation for community boundaries (§M8.6)
+interface Point {
+  x: number;
+  y: number;
+}
+function crossProduct(o: Point, a: Point, b: Point): number {
+  return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+}
+function computeConvexHull(points: Point[]): Point[] {
+  if (points.length <= 2) return points.slice();
+  const sorted = points.slice().sort((a, b) => (a.x === b.x ? a.y - b.y : a.x - b.x));
+  const lower: Point[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const p = sorted[i];
+    while (lower.length >= 2 && crossProduct(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
+      lower.pop();
+    }
+    lower.push(p);
+  }
+  const upper: Point[] = [];
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const p = sorted[i];
+    while (upper.length >= 2 && crossProduct(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
+      upper.pop();
+    }
+    upper.push(p);
+  }
+  lower.pop();
+  upper.pop();
+  return lower.concat(upper);
+}
+
+// Particle & Photon budgets (§M8.3, Gate 28)
+const MAX_PHOTONS = 24;
+const MAX_DUST = 40;
+
+interface Photon {
+  active: boolean;
+  edgeIndex: number;
+  reverse: boolean;
+  t: number;
+  duration: number;
+  delay: number;
+  color: string;
+  vanishElapsed: number;
+}
+
+interface DustParticle {
+  active: boolean;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  alpha: number;
+  age: number;
+  lifetime: number;
+  color: string;
+}
 
 export const GraphStage: React.FC<GraphStageProps> = ({
   graphData,
@@ -139,6 +215,58 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
   // Single-pulse animation tracker for question-conditioned activation
   const pulseStartTimeRef = useRef<number | null>(null);
+
+  // Dim-to-40% weighted spring (§M8.3)
+  const dimSpringRef = useRef(new Spring(1.0, "weighted"));
+
+  // Track previous node ID set to prevent re-reveal on unchanged refetch (§M8.2)
+  const prevNodeIdsRef = useRef<Set<string>>(new Set());
+
+  // Fixed particle pools (zero allocations in draw loop, §M8.1, Gate 28)
+  const photonPoolRef = useRef<Photon[]>(
+    Array.from({ length: MAX_PHOTONS }, () => ({
+      active: false,
+      edgeIndex: 0,
+      reverse: false,
+      t: 0,
+      duration: 320,
+      delay: 0,
+      color: "#79B8A6",
+      vanishElapsed: 0,
+    }))
+  );
+
+  const dustPoolRef = useRef<DustParticle[]>(
+    Array.from({ length: MAX_DUST }, () => ({
+      active: false,
+      x: 0,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      alpha: 0.25,
+      age: 0,
+      lifetime: 1400,
+      color: "#79B8A6",
+    }))
+  );
+
+  const isOffscreenRef = useRef<boolean>(false);
+
+  // Pause ambient breathing when canvas is off-screen (§M8.6)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          isOffscreenRef.current = !entry.isIntersecting;
+        }
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   // Camera, Momentum, and Hover state (§M8.4, §M8.5)
   interface CameraState {
@@ -278,20 +406,150 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     }
   }, [activeConcepts, activeNodeIds]);
 
+  // Spawn Photons (<= 24) and Dust (<= 40) on question activation (§M8.3, Gate 28)
+  const spawnPhotonsAndDust = useCallback(() => {
+    const nodes = simNodesRef.current;
+    const edges = simEdgesRef.current;
+    if (nodes.length === 0) return;
+
+    const isNodeActiveConcept = (n: SimNode) => {
+      if (activeNodeIds && activeNodeIds.length > 0 && activeNodeIds.includes(n.id)) return true;
+      if (activeConcepts && activeConcepts.length > 0) {
+        return activeConcepts.some(
+          (c) =>
+            (n.label && n.label.toLowerCase().includes(c.toLowerCase())) ||
+            (n.id && n.id.toLowerCase().includes(c.toLowerCase()))
+        );
+      }
+      return false;
+    };
+
+    // 1. Evidence Dust (§M8.3: <= 40 particles, spawned at activated nodes, damped drift <= 12px, lifetime <= 1.6s)
+    const activeIndices: number[] = [];
+    nodes.forEach((n, idx) => {
+      if (isNodeActiveConcept(n)) activeIndices.push(idx);
+    });
+
+    if (activeIndices.length > 0) {
+      const dustPool = dustPoolRef.current;
+      console.assert(dustPool.length <= MAX_DUST, "Dust pool must not exceed 40");
+      for (let i = 0; i < MAX_DUST; i++) {
+        const nodeIdx = activeIndices[i % activeIndices.length];
+        const node = nodes[nodeIdx];
+        const angle = (i * 137.5 * Math.PI) / 180; // golden angle distribution
+        // v0 in [0.25, 0.65] px/frame -> total drift <= 12 px with 0.94 damping
+        const v0 = 0.25 + 0.35 * (((i * 7) % 10) / 10);
+        dustPool[i].active = true;
+        dustPool[i].x = node.x;
+        dustPool[i].y = node.y;
+        dustPool[i].vx = Math.cos(angle) * v0;
+        dustPool[i].vy = Math.sin(angle) * v0;
+        dustPool[i].alpha = 0.25;
+        dustPool[i].age = 0;
+        dustPool[i].lifetime = Math.min(1600, 1100 + (i % 6) * 90);
+        dustPool[i].color = node.color;
+      }
+    }
+
+    // 2. Photons (§M8.3: <= 24 pooled dots travel beziers chunk -> active concept, speed ∝ 1/latency)
+    const candidateEdges: { edgeIdx: number; reverse: boolean; color: string }[] = [];
+    for (let i = 0; i < edges.length; i++) {
+      const e = edges[i];
+      const s = nodes[e.source];
+      const t = nodes[e.target];
+      if (!s || !t) continue;
+      const sIsChunk = (s.type || "").toLowerCase() === "chunk" || s.id.startsWith("chunk");
+      const tIsChunk = (t.type || "").toLowerCase() === "chunk" || t.id.startsWith("chunk");
+      const sActive = isNodeActiveConcept(s);
+      const tActive = isNodeActiveConcept(t);
+
+      if (sIsChunk && tActive) {
+        candidateEdges.push({ edgeIdx: i, reverse: false, color: t.color });
+      } else if (tIsChunk && sActive) {
+        candidateEdges.push({ edgeIdx: i, reverse: true, color: s.color });
+      } else if (sActive || tActive) {
+        candidateEdges.push({ edgeIdx: i, reverse: sActive, color: sActive ? s.color : t.color });
+      }
+    }
+
+    const photonPool = photonPoolRef.current;
+    console.assert(photonPool.length <= MAX_PHOTONS, "Photon pool must not exceed 24");
+    const countToSpawn = Math.min(MAX_PHOTONS, candidateEdges.length);
+    for (let i = 0; i < MAX_PHOTONS; i++) {
+      if (i < countToSpawn) {
+        const ce = candidateEdges[i % candidateEdges.length];
+        photonPool[i].active = true;
+        photonPool[i].edgeIndex = ce.edgeIdx;
+        photonPool[i].reverse = ce.reverse;
+        photonPool[i].t = 0;
+        photonPool[i].duration = 340; // nominal speed ∝ 1/latency
+        photonPool[i].delay = (i % 12) * 20; // staggered departure
+        photonPool[i].color = ce.color;
+        photonPool[i].vanishElapsed = 0;
+      } else {
+        photonPool[i].active = false;
+      }
+    }
+  }, [activeConcepts, activeNodeIds]);
+
+  // Handle question-conditioned activation (§M8.3)
   useEffect(() => {
     const hasActive =
       (activeConcepts && activeConcepts.length > 0) ||
       (activeNodeIds && activeNodeIds.length > 0);
+
+    const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+
     if (hasActive) {
+      if (isT0) {
+        dimSpringRef.current.reset(0.40);
+      } else {
+        dimSpringRef.current.setTarget(0.40);
+      }
       pulseStartTimeRef.current = performance.now();
       const now = performance.now();
       if (now - lastUserPanTimeRef.current > 4000) {
         fitSubgraph();
       }
+
+      const tier = governor.getState().tier;
+      if (tier === "T3" && !isT0) {
+        spawnPhotonsAndDust();
+      }
     } else {
+      if (isT0) {
+        dimSpringRef.current.reset(1.0);
+      } else {
+        dimSpringRef.current.setTarget(1.0);
+      }
       pulseStartTimeRef.current = null;
+      photonPoolRef.current.forEach((p) => {
+        p.active = false;
+      });
+      dustPoolRef.current.forEach((d) => {
+        d.active = false;
+      });
     }
-  }, [activeConcepts, activeNodeIds, fitSubgraph]);
+  }, [activeConcepts, activeNodeIds, fitSubgraph, spawnPhotonsAndDust]);
+
+  // Expose test helper hook on window
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).__VG_ACTIVATE_TEST_SUBGRAPH__ = () => {
+        const tier = governor.getState().tier;
+        const isT0 = tier === "T0" || isReducedMotion();
+        if (isT0) {
+          dimSpringRef.current.reset(0.40);
+        } else {
+          dimSpringRef.current.setTarget(0.40);
+        }
+        pulseStartTimeRef.current = performance.now();
+        if (tier === "T3" && !isT0) {
+          spawnPhotonsAndDust();
+        }
+      };
+    }
+  }, [spawnPhotonsAndDust]);
 
   // 1. Process & cap nodes at ≤ 120 nodes per US-04 specification
   const { cappedNodes, simEdges } = useMemo(() => {
@@ -320,10 +578,22 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     return { cappedNodes: nodesSlice, simEdges: edges };
   }, [graphData]);
 
-  // Initial node layout placement
+  // Initial node layout placement & ontology reveal delays (§M8.2)
   useEffect(() => {
     const width = containerRef.current?.clientWidth || 800;
     const height = 540;
+
+    // Ontology-ordered reveal: Report -> Category -> Test -> Measurement -> Chunk (§M8.2)
+    const sortedIndices = cappedNodes
+      .map((n, i) => ({ i, rank: getOntologyRank(n.type) }))
+      .sort((a, b) => a.rank - b.rank || a.i - b.i);
+
+    const revealDelays = new Float32Array(cappedNodes.length);
+    sortedIndices.forEach((item, orderIndex) => {
+      // 24 ms stagger, capped at 480 ms total (beyond cap, batch by type)
+      const delay = Math.min(480, orderIndex * 24);
+      revealDelays[item.i] = delay;
+    });
 
     const initialSimNodes: SimNode[] = cappedNodes.map((n, i) => {
       let x = width / 2 + (Math.random() - 0.5) * 360;
@@ -336,9 +606,10 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         y = height / 2 + Math.sin(angle) * radius;
       }
 
-      const radius = n.betweenness !== undefined
-        ? Math.max(7, Math.min(18, 8 + n.betweenness * 22))
-        : (n.r || 10);
+      const radius =
+        n.betweenness !== undefined
+          ? Math.max(7, Math.min(18, 8 + n.betweenness * 22))
+          : (n.r || 10);
 
       return {
         ...n,
@@ -348,12 +619,27 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         vy: 0,
         r: radius,
         color: getNodeColor(n),
+        revealDelay: revealDelays[i],
       };
     });
 
     simNodesRef.current = initialSimNodes;
     simEdgesRef.current = simEdges;
-    mountTimeRef.current = performance.now();
+    if (typeof window !== "undefined") {
+      (window as any).__VG_SIM_NODES__ = initialSimNodes;
+    }
+
+    // Unchanged refetch diff by node ID set (§M8.2)
+    const newIds = new Set(cappedNodes.map((n) => n.id));
+    const isSameSet =
+      prevNodeIdsRef.current.size > 0 &&
+      prevNodeIdsRef.current.size === newIds.size &&
+      [...newIds].every((id) => prevNodeIdsRef.current.has(id));
+
+    if (!isSameSet) {
+      prevNodeIdsRef.current = newIds;
+      mountTimeRef.current = performance.now();
+    }
   }, [cappedNodes, simEdges, layoutMode]);
 
   // Handle node selection
@@ -564,14 +850,82 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
       const prefersReducedMotion = isReducedMotion() || isT0;
 
-      const getNodeRevealProgress = (n: SimNode, idx: number): number => {
+      // Closed-form snappy spring reveal progress solver (§M8.2)
+      const getNodeRevealProgress = (n: SimNode): number => {
         if (prefersReducedMotion) return 1.0;
-        const delay = getNodeDelay(n, idx);
-        const elapsed = now - mountTimeRef.current - delay;
-        if (elapsed <= 0) return 0;
-        const t = Math.min(1, elapsed / 240);
-        return 1 - Math.pow(1 - t, 3);
+        const elapsed = now - (mountTimeRef.current + n.revealDelay);
+        return snappyProgress(elapsed);
       };
+
+      // Exact dim-to-40% via weighted spring solver (§M8.3)
+      const currentDim = isT0
+        ? (hasActiveQuestion ? 0.40 : 1.0)
+        : dimSpringRef.current.step(dtMs);
+      const exactDim = dimSpringRef.current.isAtRest ? dimSpringRef.current.target : currentDim;
+
+      if (typeof window !== "undefined") {
+        (window as any).__VG_GRAPH_DIM_ALPHA__ = exactDim;
+      }
+
+      // 4b. Draw Community Hulls (T3: 9s sine breathe 0.05->0.08, T2: static 0.06, T1/T0: none §M8.6)
+      if (!isT0 && tier !== "T1") {
+        const commMap = new Map<number, Point[]>();
+        for (let i = 0; i < nodes.length; i++) {
+          const n = nodes[i];
+          if (n.community !== undefined && n.community >= 0) {
+            let pts = commMap.get(n.community);
+            if (!pts) {
+              pts = [];
+              commMap.set(n.community, pts);
+            }
+            pts.push({ x: n.x, y: n.y });
+          }
+        }
+
+        let hullIdx = 0;
+        commMap.forEach((pts) => {
+          if (pts.length >= 2) {
+            const hull = computeConvexHull(pts);
+            if (hull.length >= 2) {
+              let hullOpacity = 0.06;
+              if (tier === "T3" && !isOffscreenRef.current) {
+                // 9s sine oscillation (0.05 -> 0.08) with phase offset hullIndex / 7 (§M8.6)
+                const phase = hullIdx / 7;
+                hullOpacity = 0.065 + 0.015 * Math.sin((2 * Math.PI * now) / 9000 + phase);
+              }
+
+              let cx = 0;
+              let cy = 0;
+              for (let j = 0; j < hull.length; j++) {
+                cx += hull[j].x;
+                cy += hull[j].y;
+              }
+              cx /= hull.length;
+              cy /= hull.length;
+
+              ctx.save();
+              ctx.beginPath();
+              for (let j = 0; j < hull.length; j++) {
+                const hp = hull[j];
+                const dx = hp.x - cx;
+                const dy = hp.y - cy;
+                const dist = Math.hypot(dx, dy) || 1;
+                const px = hp.x + (dx / dist) * 24;
+                const py = hp.y + (dy / dist) * 24;
+                if (j === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+              }
+              ctx.closePath();
+              ctx.setLineDash([6, 4]);
+              ctx.strokeStyle = `rgba(155, 161, 176, ${hullOpacity})`;
+              ctx.lineWidth = 1.2;
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+          hullIdx++;
+        });
+      }
 
       // 5. Draw Curved Edges with Viewport Culling & Incident Edge Emphasis (§M8.5)
       const hasHover = hs.hoveredId !== null;
@@ -593,19 +947,18 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           continue;
         }
 
-        const sProgress = getNodeRevealProgress(s, e.source);
-        const tProgress = getNodeRevealProgress(t, e.target);
-        if (sProgress <= 0.05 && tProgress <= 0.05) continue;
+        const sProgress = getNodeRevealProgress(s);
+        const tProgress = getNodeRevealProgress(t);
+        if (sProgress <= 0.01 || tProgress <= 0.01) continue;
 
         let edgeProgress = 1.0;
         if (!prefersReducedMotion) {
-          const sDelay = getNodeDelay(s, e.source);
-          const tDelay = getNodeDelay(t, e.target);
-          const edgeStart = Math.max(sDelay, tDelay) + 30;
-          const edgeElapsed = now - mountTimeRef.current - edgeStart;
+          // Edges draw after both endpoints exist: 240 ms servo curve (§M8.2)
+          const edgeStart = Math.max(s.revealDelay, t.revealDelay);
+          const edgeElapsed = now - (mountTimeRef.current + edgeStart);
           if (edgeElapsed <= 0) continue;
           const ep = Math.min(1, edgeElapsed / 240);
-          edgeProgress = 1 - Math.pow(1 - ep, 3);
+          edgeProgress = servoEase(ep);
         }
 
         const sActive = isNodeActive(s);
@@ -651,7 +1004,8 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           ctx.strokeStyle = `rgba(121, 184, 166, ${0.85 * edgeProgress})`;
           ctx.lineWidth = 1.8;
         } else if (hasActiveQuestion) {
-          ctx.strokeStyle = `rgba(43, 52, 64, ${0.40 * edgeProgress})`;
+          // Inactive edges dim to exactDim via weighted spring (§M8.3)
+          ctx.strokeStyle = `rgba(43, 52, 64, ${exactDim * edgeProgress})`;
           ctx.lineWidth = 0.8;
         } else if (activeId) {
           ctx.strokeStyle = `rgba(43, 52, 64, ${0.35 * edgeProgress})`;
@@ -661,6 +1015,64 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           ctx.lineWidth = 1.0;
         }
         ctx.stroke();
+      }
+
+      // 5b. Draw Photons (T3 only, <= 24 pooled dots travel beziers, vanish 120ms fade, §M8.3)
+      let activePhotonsCount = 0;
+      if (tier === "T3" && !prefersReducedMotion) {
+        const photons = photonPoolRef.current;
+        for (let i = 0; i < MAX_PHOTONS; i++) {
+          const p = photons[i];
+          if (!p.active) continue;
+          if (p.delay > 0) {
+            p.delay -= dtMs;
+            continue;
+          }
+
+          if (p.t < 1.0) {
+            p.t = Math.min(1.0, p.t + dtMs / p.duration);
+          } else {
+            p.vanishElapsed += dtMs;
+            if (p.vanishElapsed >= 120) {
+              p.active = false;
+              continue;
+            }
+          }
+
+          activePhotonsCount++;
+
+          const e = edges[p.edgeIndex];
+          if (!e) continue;
+          const sNode = nodes[p.reverse ? e.target : e.source];
+          const tNode = nodes[p.reverse ? e.source : e.target];
+          if (!sNode || !tNode) continue;
+
+          const midX = (sNode.x + tNode.x) / 2;
+          const midY = (sNode.y + tNode.y) / 2;
+          const dx = tNode.x - sNode.x;
+          const dy = tNode.y - sNode.y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          const curveOffset = Math.min(24, dist * 0.12);
+          const cpx = midX - (dy / dist) * (p.reverse ? -curveOffset : curveOffset);
+          const cpy = midY + (dx / dist) * (p.reverse ? -curveOffset : curveOffset);
+
+          const u = p.t;
+          const px = (1 - u) * (1 - u) * sNode.x + 2 * (1 - u) * u * cpx + u * u * tNode.x;
+          const py = (1 - u) * (1 - u) * sNode.y + 2 * (1 - u) * u * cpy + u * u * tNode.y;
+
+          const alpha = p.t < 1.0 ? 0.50 : Math.max(0, 0.50 * (1 - p.vanishElapsed / 120));
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(px, py, 2.5, 0, 2 * Math.PI);
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = alpha;
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+      if (typeof window !== "undefined") {
+        (window as any).__VG_ACTIVE_PHOTONS__ = activePhotonsCount;
       }
 
       // 6. Draw Nodes with Viewport Culling, Glow Sprites, and Hover Scale (§M8.1, §M8.5)
@@ -677,8 +1089,8 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           continue;
         }
 
-        const revealScale = getNodeRevealProgress(n, idx);
-        if (revealScale <= 0) continue;
+        const revealProgress = getNodeRevealProgress(n);
+        if (revealProgress <= 0) continue;
 
         const isSelected = selectedNode?.id === n.id;
         const isConceptActive = isNodeActive(n);
@@ -687,7 +1099,9 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
         // Hover scale: 1 -> 1.06 (120ms §M8.5)
         const scaleMultiplier = isHovered ? 1.0 + 0.06 * hp : 1.0;
-        const currentRadius = n.r * revealScale * scaleMultiplier;
+        // Node scale: 0.6 -> 1 via snappy spring (§M8.2)
+        const snappyScale = 0.6 + 0.4 * revealProgress;
+        const currentRadius = n.r * snappyScale * scaleMultiplier;
 
         const isDimmed =
           (hasActiveQuestion && !isConceptActive && !isSelected) ||
@@ -710,27 +1124,27 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           ctx.stroke();
         }
 
-        // Glow sprite cache (§M8.1: replaces per-frame gradients)
+        // Glow sprite cache (T3 / T2 §M8.1: replaces per-frame gradients)
         const glowSprite = getGlowSprite(n.color);
-        if (glowSprite && (isSelected || isConceptActive)) {
+        if (glowSprite && (isSelected || isConceptActive) && tier !== "T1" && tier !== "T0") {
           ctx.save();
-          ctx.globalAlpha = (isSelected ? 0.35 : 0.30) * revealScale;
+          ctx.globalAlpha = (isSelected ? 0.35 : 0.30) * revealProgress;
           const glowD = (currentRadius + 8) * 2;
           ctx.drawImage(glowSprite, n.x - glowD / 2, n.y - glowD / 2, glowD, glowD);
           ctx.restore();
         }
 
         // Hover glow sprite (alpha 0 -> 0.35 §M8.5)
-        if (glowSprite && isHovered && hp > 0.01) {
+        if (glowSprite && isHovered && hp > 0.01 && tier !== "T1" && tier !== "T0") {
           ctx.save();
-          ctx.globalAlpha = 0.35 * hp * revealScale;
+          ctx.globalAlpha = 0.35 * hp * revealProgress;
           const hoverGlowD = (currentRadius + 10) * 2;
           ctx.drawImage(glowSprite, n.x - hoverGlowD / 2, n.y - hoverGlowD / 2, hoverGlowD, hoverGlowD);
           ctx.restore();
         }
 
-        // Inactive nodes dim to exactly 40% (frozen specification §M8.3)
-        ctx.globalAlpha = (isDimmed ? 0.40 : 1.0) * revealScale;
+        // Inactive nodes dim to exactly 40% via weighted spring (§M8.3)
+        ctx.globalAlpha = (isDimmed ? exactDim : 1.0) * revealProgress;
         ctx.beginPath();
         ctx.arc(n.x, n.y, currentRadius, 0, 2 * Math.PI);
         ctx.fillStyle = n.color;
@@ -741,8 +1155,81 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         ctx.stroke();
         ctx.globalAlpha = 1.0;
 
+        // Measurement chips & Flag tags (§M8.7)
+        const isMeasurement = (n.type || "").toLowerCase() === "measurement" || n.value !== undefined;
+        if (isMeasurement && revealProgress > 0.4) {
+          const hairlineProgress = prefersReducedMotion ? 1.0 : Math.min(1.0, Math.max(0, (revealProgress - 0.4) / 0.6));
+          const hairlineEase = servoEase(hairlineProgress);
+          const hairlineLen = 12 * hairlineEase;
+
+          ctx.save();
+          ctx.strokeStyle = "rgba(217, 164, 65, 0.50)";
+          ctx.lineWidth = 1.0;
+          ctx.beginPath();
+          ctx.moveTo(n.x, n.y - currentRadius);
+          ctx.lineTo(n.x, n.y - currentRadius - hairlineLen);
+          ctx.stroke();
+
+          if (hairlineProgress > 0.8) {
+            const chipAlpha = (hairlineProgress - 0.8) / 0.2;
+            const chipX = n.x;
+            const chipY = n.y - currentRadius - 12 - 8;
+            const valText = n.value !== undefined ? `${n.value} ${n.unit || ""}` : (n.label || "");
+            const hasHighFlag = n.flag && n.flag.toUpperCase() === "HIGH";
+
+            ctx.font = "600 10px 'JetBrains Mono', monospace";
+            const textW = ctx.measureText(valText).width;
+            const flagW = hasHighFlag ? 32 : 0;
+            const chipW = textW + flagW + 12;
+            const chipH = 16;
+            const rectX = chipX - chipW / 2;
+            const rectY = chipY - chipH / 2;
+
+            ctx.globalAlpha = (isDimmed ? exactDim : 1.0) * chipAlpha;
+            ctx.fillStyle = "rgba(26, 31, 38, 0.92)";
+            ctx.beginPath();
+            ctx.roundRect(rectX, rectY, chipW, chipH, 4);
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(217, 164, 65, 0.45)";
+            ctx.lineWidth = 1.0;
+            ctx.stroke();
+
+            // Value text
+            ctx.fillStyle = "#D9A441";
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            ctx.fillText(valText, rectX + 6, chipY);
+
+            // HIGH flag tag with single 240ms madder wash (§M8.7)
+            if (hasHighFlag) {
+              const flagX = rectX + textW + 8;
+              const flagTagW = 26;
+              const flagTagH = 12;
+              const flagTagY = chipY - flagTagH / 2;
+
+              // Check 240ms madder wash on first reveal (once, never looping)
+              const nodeRevealTime = mountTimeRef.current + n.revealDelay;
+              const washElapsed = now - (nodeRevealTime + 180);
+              if (washElapsed >= 0 && washElapsed < 240 && !prefersReducedMotion) {
+                const washAlpha = 0.35 * (1 - washElapsed / 240);
+                ctx.save();
+                ctx.fillStyle = `rgba(217, 128, 141, ${washAlpha})`;
+                ctx.beginPath();
+                ctx.roundRect(flagX - 2, flagTagY, flagTagW, flagTagH, 2);
+                ctx.fill();
+                ctx.restore();
+              }
+
+              ctx.fillStyle = "#D9808D";
+              ctx.fillText("HIGH", flagX, chipY);
+            }
+          }
+          ctx.restore();
+        }
+
         // Proportional labels with neighbor emphasis (§M8.5)
-        if (revealScale > 0.45 && (!isDimmed || isSelected || isHovered || isNeighbor)) {
+        if (revealProgress > 0.45 && (!isDimmed || isSelected || isHovered || isNeighbor)) {
           const fontSize = Math.max(9, Math.min(14, 8 + currentRadius * 0.45));
           ctx.font = `${isSelected || isConceptActive || isHovered ? "600" : "500"} ${fontSize}px 'Plus Jakarta Sans', sans-serif`;
           if (isSelected || isConceptActive || isHovered) {
@@ -761,6 +1248,43 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           const displayLabel = labelText.length > 20 ? labelText.slice(0, 18) + "…" : labelText;
           ctx.fillText(displayLabel, n.x, n.y + currentRadius + 4);
         }
+      }
+
+      // 7. Draw Evidence Dust Particles (T3 only, <= 40 pooled, drift <= 12px, §M8.3)
+      let activeDustCount = 0;
+      if (tier === "T3" && !prefersReducedMotion) {
+        const dust = dustPoolRef.current;
+        const dtScale = dtMs / 16.67;
+        for (let i = 0; i < MAX_DUST; i++) {
+          const d = dust[i];
+          if (!d.active) continue;
+
+          d.x += d.vx * dtScale;
+          d.y += d.vy * dtScale;
+          d.vx *= Math.pow(0.94, dtScale);
+          d.vy *= Math.pow(0.94, dtScale);
+          d.age += dtMs;
+
+          if (d.age >= d.lifetime) {
+            d.active = false;
+            continue;
+          }
+
+          activeDustCount++;
+          const lifeProgress = d.age / d.lifetime;
+          d.alpha = Math.max(0, 0.25 * (1 - lifeProgress));
+
+          ctx.save();
+          ctx.fillStyle = d.color;
+          ctx.globalAlpha = d.alpha;
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, 1.3, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+      if (typeof window !== "undefined") {
+        (window as any).__VG_ACTIVE_DUST__ = activeDustCount;
       }
 
       ctx.restore();

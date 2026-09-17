@@ -184,7 +184,7 @@
       "id": "MS-06",
       "title": "Graph reveal & activation FX",
       "spec": "\u00a7M8.2, M8.3, M8.6, M8.7",
-      "passes": false,
+      "passes": true,
       "acceptance": "Ontology-ordered reveal from real node records (Report->Category->Test->Measurement->Chunk), 24 ms stagger cap 480; edges draw after endpoints; dim-to-40 % spring lands exactly on 0.40; frozen 1200 ms pulse kept; photons <=24 speed proportional to 1/latency; dust <=40 pooled T3-only; hull breathe <=2 % screen change, paused off-screen; no re-reveal on unchanged refetch",
       "gates": "18,21,22,28",
       "verify": "activation.webm, dim-0.40 assert, T1 throttle.webm"
