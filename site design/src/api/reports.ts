@@ -80,9 +80,7 @@ export const reportsApi = {
     if (jobId) {
       form.append("job_id", jobId);
     }
-    if (background) {
-      form.append("background", "true");
-    }
+    form.append("background", background ? "true" : "false");
     return api.upload<ReportStatus>("/api/reports/upload", form);
   },
   list: (userId: string) => api.get<Report[]>(`/api/reports?user_id=${userId}`),

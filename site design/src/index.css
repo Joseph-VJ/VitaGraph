@@ -282,10 +282,106 @@ button:not(:disabled):active,
 .boot-hidden { opacity: 0; }
 .boot-ready { opacity: 1; }
 
+/* ─── §M7.2 Upload & Stepper keyframes ─── */
+@keyframes dashMarch {
+  to { stroke-dashoffset: -24px; }
+}
+.animate-dash-march {
+  animation: dashMarch 2s linear infinite; /* 24px / 2s = 12 px/s per §M7.2 */
+}
+
+@keyframes workDot {
+  0%   { transform: translateX(0); opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+.animate-work-dot {
+  animation: workDot 1.2s cubic-bezier(0.32, 0, 0.24, 1) infinite; /* 0.83 Hz <= 1 Hz per §M5.3, Gate 24 */
+}
+
+@keyframes ringPulseOnce {
+  0%   { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+.animate-ring-once {
+  animation: ringPulseOnce 400ms var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) forwards;
+}
+
+@keyframes scanlineSweep {
+  0%   { transform: translateY(-4px); opacity: 0; }
+  20%  { opacity: 0.85; }
+  80%  { opacity: 0.85; }
+  100% { transform: translateY(40px); opacity: 0; }
+}
+.animate-scanline {
+  animation: scanlineSweep 600ms var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) forwards;
+}
+
+@keyframes impulseShake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-2px); }
+  75%      { transform: translateX(2px); }
+}
+.animate-impulse {
+  animation: impulseShake 120ms var(--ease-detent, cubic-bezier(0.30, 0.80, 0.20, 1)) 2;
+}
+
+@keyframes drawCheck {
+  from { stroke-dashoffset: 24; }
+  to   { stroke-dashoffset: 0; }
+}
+.animate-draw-check {
+  animation: drawCheck 200ms var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) forwards;
+}
+
+@keyframes detentImpulse {
+  0%   { transform: translateY(0); }
+  35%  { transform: translateY(-1px); }
+  100% { transform: translateY(0); }
+}
+.animate-detent-impulse {
+  animation: detentImpulse 180ms var(--ease-detent, cubic-bezier(0.30, 0.80, 0.20, 1));
+}
+
+@keyframes scaleXIn {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.animate-underline-draw {
+  animation: scaleXIn var(--m-quick, 180ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) forwards;
+}
+
+@keyframes scaleChipLand {
+  from { transform: scale(0.96); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.animate-chip-land {
+  animation: scaleChipLand var(--m-instant, 80ms) var(--ease-detent, cubic-bezier(0.30, 0.80, 0.20, 1)) forwards;
+}
+
+@keyframes ruleWipe {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.animate-rule-wipe {
+  animation: ruleWipe var(--m-deliberate, 360ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) forwards;
+}
+
 /* ─── Reduced motion support (§8.1, §M11) ─── */
 @media (prefers-reduced-motion: reduce) {
   .animate-breathe,
   .animate-pulse-once,
+  .animate-dash-march,
+  .animate-work-dot,
+  .animate-ring-once,
+  .animate-scanline,
+  .animate-impulse,
+  .animate-draw-check,
+  .animate-detent-impulse,
+  .animate-underline-draw,
+  .animate-chip-land,
+  .animate-rule-wipe,
   .skeleton-shimmer,
   .m-enter, .m-enter-card, .m-exit,
   .m-route-enter {

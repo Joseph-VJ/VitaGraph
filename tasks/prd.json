@@ -166,7 +166,7 @@
       "id": "MS-04",
       "title": "Upload motion pass (SSE-gated stepper)",
       "spec": "\u00a7M7.2",
-      "passes": false,
+      "passes": true,
       "acceptance": "Drag lifecycle states real-only; stepper advances only on SSE events; work-dot when stage > cap; checkmark draws; OCR scanline once (T3); quarantine impulse <=2/session; copy = check draw, no toast",
       "gates": "18,21,24",
       "verify": "stepper.webm (live SSE), quarantine png"

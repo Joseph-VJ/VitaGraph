@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "./Buttons";
+import { governor, isReducedMotion } from "../../motion";
 
 interface QuarantineRowProps {
   filename: string;
@@ -14,10 +15,53 @@ export const QuarantineRow: React.FC<QuarantineRowProps> = ({
   onRetry,
   className = "",
 }) => {
+  const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+  const [isImpulsing, setIsImpulsing] = useState(false);
+  const hasRunRef = useRef(false);
+
+  useEffect(() => {
+    if (isT0) return;
+    if (hasRunRef.current) return;
+    hasRunRef.current = true;
+
+    // Track repeated failures in sessionStorage: max 2 impulses per session on the same row (§M7.2)
+    const sessionKey = `vg_quarantine_impulse_${filename}`;
+    const rawCount = sessionStorage.getItem(sessionKey);
+    const count = rawCount ? parseInt(rawCount, 10) : 0;
+
+    if (count > 0 && count <= 2) {
+      // Repeated failure! Trigger detent impulse (§M5.4, §M7.2)
+      setIsImpulsing(true);
+      sessionStorage.setItem(sessionKey, String(count + 1));
+      const timer = setTimeout(() => setIsImpulsing(false), 240);
+      return () => clearTimeout(timer);
+    } else if (count === 0) {
+      // First failure: record initial encounter, no impulse yet
+      sessionStorage.setItem(sessionKey, "1");
+    }
+  }, [filename, isT0]);
+
+  const handleRetry = () => {
+    // Retry clicked: detent press feedback (handled by Button)
+    onRetry?.();
+  };
+
   return (
     <div
-      className={`flex items-center justify-between p-3 border-l-2 border-l-[var(--madder)] bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-strong)] ${className}`}
+      data-testid={`quarantine-row-${filename}`}
+      data-impulse={isImpulsing ? "active" : "idle"}
+      className={`relative overflow-hidden flex items-center justify-between p-3 border-l-2 border-l-[var(--madder)] bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-strong)] ${
+        isImpulsing ? "animate-impulse" : ""
+      } ${className}`}
     >
+      {/* Madder 2px rule scaleX wipe across top (§M7.2) */}
+      <div
+        className={`absolute top-0 left-0 right-0 h-[2px] bg-[var(--madder)] origin-left ${
+          !isT0 ? "animate-rule-wipe" : ""
+        }`}
+        style={{ transformOrigin: "left" }}
+      />
+
       <div className="flex items-start gap-3 min-w-0 flex-1 mr-3">
         <svg
           className="w-5 h-5 text-[var(--madder)] flex-shrink-0 mt-0.5"
@@ -31,11 +75,21 @@ export const QuarantineRow: React.FC<QuarantineRowProps> = ({
         </svg>
         <div className="min-w-0 flex-1">
           <div className="type-mono text-[var(--bone)] truncate">{filename}</div>
-          <div className="type-meta text-[var(--dim)] mt-0.5">{reason}</div>
+          <div
+            className={`type-meta text-[var(--dim)] mt-0.5 ${
+              !isT0 ? "animate-fade-in" : ""
+            }`}
+          >
+            {reason}
+          </div>
         </div>
       </div>
 
-      <Button variant="solid-danger" onClick={onRetry} className="h-8 px-3">
+      <Button
+        variant="solid-danger"
+        onClick={handleRetry}
+        className="h-8 px-3"
+      >
         Retry
       </Button>
     </div>

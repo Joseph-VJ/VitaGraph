@@ -1,44 +1,117 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "./Buttons";
+import { governor, isReducedMotion } from "../../motion";
 
 interface DropzoneProps {
   onFileSelect?: (file: File) => void;
+  file?: File | null;
   isDragOverDemo?: boolean;
   className?: string;
 }
 
 export const Dropzone: React.FC<DropzoneProps> = ({
   onFileSelect,
+  file,
   isDragOverDemo = false,
   className = "",
 }) => {
-  const [isDragOver, setIsDragOver] = useState(isDragOverDemo);
+  const [isWindowDrag, setIsWindowDrag] = useState(false);
+  const [isLocalDrag, setIsLocalDrag] = useState(false);
+  const [droppedFile, setDroppedFile] = useState<File | null>(null);
+  const activeFile = file || droppedFile;
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragCounterRef = useRef<number>(0);
+
+  const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+  const isDragging = isLocalDrag || isWindowDrag || isDragOverDemo;
+
+  // Window-level drag lifecycle (§M7.2)
+  useEffect(() => {
+    const handleWindowDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounterRef.current++;
+      if (e.dataTransfer?.types?.includes("Files")) {
+        setIsWindowDrag(true);
+      }
+    };
+
+    const handleWindowDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounterRef.current--;
+      if (dragCounterRef.current <= 0) {
+        dragCounterRef.current = 0;
+        setIsWindowDrag(false);
+      }
+    };
+
+    const handleWindowDrop = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounterRef.current = 0;
+      setIsWindowDrag(false);
+    };
+
+    window.addEventListener("dragenter", handleWindowDragEnter);
+    window.addEventListener("dragleave", handleWindowDragLeave);
+    window.addEventListener("drop", handleWindowDrop);
+
+    return () => {
+      window.removeEventListener("dragenter", handleWindowDragEnter);
+      window.removeEventListener("dragleave", handleWindowDragLeave);
+      window.removeEventListener("drop", handleWindowDrop);
+    };
+  }, []);
 
   const handleChoose = () => {
     fileInputRef.current?.click();
   };
 
+  const handleIncomingFile = (file: File) => {
+    setDroppedFile(file);
+    onFileSelect?.(file);
+  };
+
   return (
     <div
+      data-testid="upload-dropzone"
+      data-drag-state={isDragging ? "active" : "idle"}
       onDragOver={(e) => {
         e.preventDefault();
-        setIsDragOver(true);
+        setIsLocalDrag(true);
       }}
-      onDragLeave={() => setIsDragOver(false)}
+      onDragLeave={() => setIsLocalDrag(false)}
       onDrop={(e) => {
         e.preventDefault();
-        setIsDragOver(false);
+        setIsLocalDrag(false);
+        setIsWindowDrag(false);
+        dragCounterRef.current = 0;
         if (e.dataTransfer.files?.[0]) {
-          onFileSelect?.(e.dataTransfer.files[0]);
+          handleIncomingFile(e.dataTransfer.files[0]);
         }
       }}
-      className={`rounded-[var(--r-14)] border-2 border-dashed transition-all duration-[120ms] ease-out p-8 flex flex-col items-center justify-center text-center select-none ${
-        isDragOver || isDragOverDemo
+      className={`relative rounded-[var(--r-14)] border-2 border-dashed transition-colors duration-[120ms] p-8 flex flex-col items-center justify-center text-center select-none overflow-hidden ${
+        isDragging
           ? "border-[var(--verdigris)] bg-[rgba(121,184,166,0.06)]"
           : "border-[var(--line-strong)] bg-[var(--ink-800)]/30 hover:border-[var(--dim)]"
       } ${className}`}
     >
+      {/* Dashed border stroke-dashoffset march at 12 px/s (only during active drag, state-bound, §M7.2) */}
+      {isDragging && !isT0 && (
+        <svg className="absolute inset-0 w-full h-full pointer-events-none rounded-[var(--r-14)]">
+          <rect
+            x="1"
+            y="1"
+            width="calc(100% - 2px)"
+            height="calc(100% - 2px)"
+            rx="14"
+            fill="none"
+            stroke="var(--verdigris)"
+            strokeWidth="2"
+            strokeDasharray="6 6"
+            className="animate-dash-march"
+          />
+        </svg>
+      )}
+
       <input
         type="file"
         ref={fileInputRef}
@@ -46,13 +119,26 @@ export const Dropzone: React.FC<DropzoneProps> = ({
         accept=".pdf,.txt"
         onChange={(e) => {
           if (e.target.files?.[0]) {
-            onFileSelect?.(e.target.files[0]);
+            handleIncomingFile(e.target.files[0]);
           }
         }}
       />
 
-      {/* Hand-drawn style page icon (96px) */}
-      <div className="mb-4 text-[var(--dim)]">
+      {/* Hand-drawn style page icon (96px) — lifts -4px on paper spring (§M7.2) */}
+      <div
+        style={
+          isDragging && !isT0
+            ? {
+                transform: "translateY(-4px)",
+                transition: "transform var(--m-base, 240ms) var(--ease-paper, cubic-bezier(0.16, 1, 0.30, 1))",
+              }
+            : {
+                transform: "translateY(0px)",
+                transition: "transform var(--m-base, 240ms) var(--ease-paper, cubic-bezier(0.16, 1, 0.30, 1))",
+              }
+        }
+        className="mb-4 text-[var(--dim)]"
+      >
         <svg
           className="w-24 h-24 stroke-current"
           viewBox="0 0 96 96"
@@ -81,6 +167,15 @@ export const Dropzone: React.FC<DropzoneProps> = ({
         Drop a report PDF. VitaGraph reads it page by page.
       </p>
 
+      {/* Drop file chip landing (§M7.2: scale .96->1 detent, --m-instant) */}
+      {activeFile && (
+        <div className={`mb-4 px-3 py-1.5 rounded-[var(--r-6)] bg-[var(--ink-700)] border border-[var(--verdigris)] text-[var(--bone)] flex items-center gap-2 type-mono-sm ${!isT0 ? "animate-chip-land" : ""}`}>
+          <span className="w-2 h-2 rounded-full bg-[var(--verdigris)]" />
+          <span className="truncate max-w-xs">{activeFile.name}</span>
+          <span className="text-[var(--dim)]">({(activeFile.size / 1024).toFixed(0)} KB)</span>
+        </div>
+      )}
+
       {/* Primary button */}
       <Button variant="primary" className="mb-2" onClick={handleChoose}>
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -97,9 +192,9 @@ export const Dropzone: React.FC<DropzoneProps> = ({
         or drag and drop here
       </span>
 
-      {/* Footnote */}
-      <span className="type-mono-sm text-[var(--faint)]">
-        Supports PDF · Max 50 MB · Encrypted in transit
+      {/* Footnote — fades to 'Release to ingest.' during drag (§M7.2) */}
+      <span className="type-mono-sm text-[var(--faint)] transition-opacity duration-[180ms]">
+        {isDragging ? "Release to ingest." : "Supports PDF · Max 50 MB · Encrypted in transit"}
       </span>
     </div>
   );

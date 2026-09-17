@@ -1,4 +1,5 @@
 import React from "react";
+import { governor, isReducedMotion } from "../../motion";
 
 interface QualityBarProps {
   percentage: number; // 0 to 100
@@ -11,6 +12,7 @@ export const QualityBar: React.FC<QualityBarProps> = ({
   method = "native",
   className = "",
 }) => {
+  const isT0 = governor.getState().tier === "T0" || isReducedMotion();
   const clamped = Math.max(0, Math.min(100, percentage));
   const fillColor = method === "native" ? "bg-[var(--verdigris)]" : "bg-[var(--ochre)]";
 
@@ -20,8 +22,14 @@ export const QualityBar: React.FC<QualityBarProps> = ({
       title={`Quality: ${clamped}% (${method})`}
     >
       <div
-        style={{ transform: `scaleX(${clamped / 100})`, transformOrigin: "left" }}
-        className={`w-full h-full ${fillColor} transition-transform duration-[240ms] ease-out rounded-[2px]`}
+        style={{
+          transform: `scaleX(${clamped / 100})`,
+          transformOrigin: "left",
+          transition: !isT0
+            ? "transform var(--m-deliberate, 360ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1))"
+            : "none",
+        }}
+        className={`w-full h-full ${fillColor} rounded-[2px]`}
       />
     </div>
   );

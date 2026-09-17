@@ -16,6 +16,7 @@ import type { PipelineStep } from "../components/gallery/PipelineStepper";
 import { reportsApi, type ReportStatus } from "../api/reports";
 import { useActiveUser } from "../context/UserContext";
 import type { ReportPage, Report } from "../types";
+import { governor, isReducedMotion } from "../motion";
 
 export const UploadPage: React.FC = () => {
   const navigate = useNavigate();
@@ -176,6 +177,21 @@ export const UploadPage: React.FC = () => {
             next[4] = { name: "Indexed", value: "ChromaDB ok", status: "done" };
             next[5] = { name: "Graphed", value: "NetworkX mapped", status: "done" };
           } else if (evt.stage === "done") {
+            if (evt.metadata?.error || evt.description?.startsWith("Error:") || evt.status === "error") {
+              const errMsg = evt.metadata?.error || evt.description || "Corrupted document structure or unreadable text layers.";
+              setUploadError(errMsg);
+              setQuarantinedFiles((prev) => [
+                ...prev,
+                {
+                  filename: selectedFile.name,
+                  reason: errMsg,
+                },
+              ]);
+              addToast("failed", "Document Quarantined", errMsg);
+              setIsUploading(false);
+              es.close();
+              return next.map((s) => s.status === "active" ? { ...s, value: "quarantined", status: "pending" } : s);
+            }
             const pageCount = evt.metadata?.pages || evt.metadata?.report?.page_count || 1;
             const chunkCount = evt.metadata?.chunks || evt.metadata?.report?.chunk_count || 1;
             const reportId = evt.metadata?.report_id || evt.metadata?.report?.id;
@@ -262,7 +278,10 @@ export const UploadPage: React.FC = () => {
 
     // Subscribed EventSource first, now dispatch POST to start background pipeline
     try {
-      const res = await reportsApi.upload(effectiveUserId, selectedFile, jobId, true);
+      const isPdf = selectedFile.name.toLowerCase().endsWith(".pdf");
+      console.log("[Test] dispatching upload for:", selectedFile.name, "isPdf:", isPdf);
+      const res = await reportsApi.upload(effectiveUserId, selectedFile, jobId, isPdf);
+      console.log("[Test] upload response:", res);
       setUploadStatus(res);
       if (res.status === "failed") {
         setQuarantinedFiles((prev) => [
@@ -277,6 +296,7 @@ export const UploadPage: React.FC = () => {
       }
     } catch (err: any) {
       const errMsg = err?.message || String(err);
+      console.log("[Test] upload caught exception:", errMsg);
       setUploadError(`Upload failed: ${errMsg}`);
       setQuarantinedFiles((prev) => [
         ...prev,
@@ -318,6 +338,7 @@ export const UploadPage: React.FC = () => {
 
   // Helper to test uploading invalid/corrupted file to trigger quarantine
   const handleTestUploadCorruptedFile = async () => {
+    console.log("[Test] handleTestUploadCorruptedFile triggered");
     const invalidContent = "This is a plain text file, not a valid clinical PDF.";
     const blob = new Blob([invalidContent], { type: "text/plain" });
     const invalidFile = new File([blob], "corrupted_report_2025-06-18.txt", { type: "text/plain" });
@@ -339,6 +360,8 @@ export const UploadPage: React.FC = () => {
     }
   };
 
+  const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+  const isT3 = governor.getState().tier === "T3" && !isReducedMotion();
   const nativePagesCount = pages.filter((p) => p.extraction_method === "native").length;
   const ocrPagesCount = pages.filter((p) => p.extraction_method.startsWith("ocr")).length;
   const uncertainPages = pages.filter((p) => p.quality === "uncertain");
@@ -403,7 +426,7 @@ export const UploadPage: React.FC = () => {
         {/* Main Column */}
         <div className="flex-1 flex flex-col gap-6 min-w-0 w-full">
           {/* Dropzone (§7.11) */}
-          <Dropzone onFileSelect={handleFileSelect} />
+          <Dropzone file={file} onFileSelect={handleFileSelect} />
 
           {/* Ingestion Pipeline Stepper Card (§7.12, §9.2) */}
           <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-6">
@@ -505,9 +528,10 @@ export const UploadPage: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    pages.map((row) => {
+                    pages.map((row, idx) => {
                       const isNative = row.extraction_method === "native";
                       const isUncertain = row.quality === "uncertain";
+                      const isOcr = row.extraction_method.toLowerCase().includes("ocr");
                       const qualityNum =
                         row.quality === "good"
                           ? 95
@@ -517,23 +541,50 @@ export const UploadPage: React.FC = () => {
                           ? 35
                           : 85;
 
+                      const staggerDelay = Math.min(idx * 24, 240);
+
                       return (
                         <tr
                           key={row.page_number}
-                          className="hover:bg-[var(--ink-700)]/40 transition-colors duration-[120ms] ease-out"
+                          data-row-method={row.extraction_method}
+                          data-scanline={isOcr && isT3 ? "active" : "none"}
+                          className={`hover:bg-[var(--ink-700)]/40 transition-colors duration-[120ms] relative ${
+                            !isT0 ? "m-enter" : ""
+                          }`}
+                          style={!isT0 ? { animationDelay: `${staggerDelay}ms` } : undefined}
                         >
-                          <td className="type-mono-sm text-[var(--bone)] py-3 px-3">
+                          <td className="type-mono-sm text-[var(--bone)] py-3 px-3 relative">
+                            {isOcr && isT3 && (
+                              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                                <div className="w-full h-[1.5px] bg-[var(--ochre)]/80 shadow-[0_0_8px_var(--ochre)] animate-scanline" />
+                              </div>
+                            )}
                             Page {row.page_number}
                           </td>
-                          <td className="type-mono-sm text-[var(--dim)] py-3 px-3">
+                          <td className="type-mono-sm text-[var(--dim)] py-3 px-3 relative">
+                            {isOcr && isT3 && (
+                              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                                <div className="w-full h-[1.5px] bg-[var(--ochre)]/80 shadow-[0_0_8px_var(--ochre)] animate-scanline" />
+                              </div>
+                            )}
                             {row.text_length.toLocaleString()} chars
                           </td>
-                          <td className="py-3 px-3">
+                          <td className="py-3 px-3 relative">
+                            {isOcr && isT3 && (
+                              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                                <div className="w-full h-[1.5px] bg-[var(--ochre)]/80 shadow-[0_0_8px_var(--ochre)] animate-scanline" />
+                              </div>
+                            )}
                             <Badge variant={isUncertain ? "madder" : isNative ? "verdigris" : "ochre"}>
                               {row.extraction_method}
                             </Badge>
                           </td>
-                          <td className="py-3 px-3">
+                          <td className="py-3 px-3 relative">
+                            {isOcr && isT3 && (
+                              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                                <div className="w-full h-[1.5px] bg-[var(--ochre)]/80 shadow-[0_0_8px_var(--ochre)] animate-scanline" />
+                              </div>
+                            )}
                             <div className="flex items-center gap-2">
                               <QualityBar percentage={qualityNum} method={isNative ? "native" : row.extraction_method} />
                               <span className="type-mono-sm text-[var(--bone)]">
@@ -541,7 +592,12 @@ export const UploadPage: React.FC = () => {
                               </span>
                             </div>
                           </td>
-                          <td className="type-meta text-[var(--dim)] py-3 px-3">
+                          <td className="type-meta text-[var(--dim)] py-3 px-3 relative">
+                            {isOcr && isT3 && (
+                              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                                <div className="w-full h-[1.5px] bg-[var(--ochre)]/80 shadow-[0_0_8px_var(--ochre)] animate-scanline" />
+                              </div>
+                            )}
                             {row.quality === "good"
                               ? "High structural text density"
                               : row.quality === "sparse"
@@ -660,11 +716,12 @@ export const UploadPage: React.FC = () => {
               <div className="space-y-2">
                 {quarantinedFiles.map((item, idx) => (
                   <QuarantineRow
-                    key={idx}
+                    key={`${item.filename}-${idx}`}
                     filename={item.filename}
                     reason={item.reason}
                     onRetry={() => {
                       setQuarantinedFiles((prev) => prev.filter((_, i) => i !== idx));
+                      handleTestUploadCorruptedFile();
                     }}
                   />
                 ))}
