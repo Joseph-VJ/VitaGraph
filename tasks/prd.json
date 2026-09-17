@@ -157,7 +157,7 @@
       "id": "MS-03",
       "title": "Home motion pass",
       "spec": "\u00a7M7.1",
-      "passes": false,
+      "passes": true,
       "acceptance": "Tiles odometer only after real fetch; sparkline draws once; activity insert FLIPs; health LEDs ignite in order; refusals tile has no celebration motion",
       "gates": "21,25,27",
       "verify": "home T3/T0 png pair, odometer assert"

@@ -9,6 +9,8 @@ interface ActivityRowProps {
   details: string;
   objectName: string;
   className?: string;
+  isNew?: boolean;
+  rowKey?: string;
 }
 
 export const ActivityRow: React.FC<ActivityRowProps> = ({
@@ -18,6 +20,8 @@ export const ActivityRow: React.FC<ActivityRowProps> = ({
   details,
   objectName,
   className = "",
+  isNew = false,
+  rowKey,
 }) => {
   const classStyles: Record<ActivityClass, { border: string; iconColor: string; icon: React.ReactNode }> = {
     indexed: {
@@ -76,7 +80,8 @@ export const ActivityRow: React.FC<ActivityRowProps> = ({
 
   return (
     <div
-      className={`flex items-center justify-between py-2.5 px-3 border-l-2 ${current.border} bg-[var(--ink-800)]/40 hover:bg-[var(--ink-600)] transition-colors duration-[120ms] border-b border-[var(--line-faint)] last:border-b-0 ${className}`}
+      data-activity-key={rowKey}
+      className={`flex items-center justify-between py-2.5 px-3 border-l-2 ${current.border} bg-[var(--ink-800)]/40 hover:bg-[var(--ink-600)] transition-colors duration-[120ms] border-b border-[var(--line-faint)] last:border-b-0 ${isNew ? "m-enter" : ""} ${className}`}
     >
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <span className="type-mono-sm text-[var(--dim)] w-36 flex-shrink-0">

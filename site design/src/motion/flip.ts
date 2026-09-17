@@ -6,6 +6,7 @@
 
 import { springToLinear, SpringPresetName } from "./spring";
 import { governor } from "./quality";
+import { isReducedMotion } from "./features";
 
 export interface FlipOptions {
   spring?: SpringPresetName;
@@ -13,25 +14,18 @@ export interface FlipOptions {
   onComplete?: () => void;
 }
 
-export function flip(
+export function flipFrom(
   el: HTMLElement,
-  mutate: () => void,
+  firstRect: DOMRect,
   options: FlipOptions = {}
 ): Promise<void> {
   const { spring = "weighted", capMs = 240, onComplete } = options;
 
-  // At tier T0, bypass animation and execute mutation instantly (§M4.4, §M11)
-  if (governor.getState().tier === "T0") {
-    mutate();
+  // At tier T0 or reduced motion, bypass animation instantly (§M4.4, §M11)
+  if (governor.getState().tier === "T0" || isReducedMotion()) {
     onComplete?.();
     return Promise.resolve();
   }
-
-  // 1. First (measure)
-  const firstRect = el.getBoundingClientRect();
-
-  // 2. Mutate DOM
-  mutate();
 
   // 3. Last (single forced reflow, Gate 19)
   const lastRect = el.getBoundingClientRect();
@@ -86,4 +80,25 @@ export function flip(
     anim.onfinish = cleanup;
     anim.oncancel = cleanup;
   });
+}
+
+export function flip(
+  el: HTMLElement,
+  mutate: () => void,
+  options: FlipOptions = {}
+): Promise<void> {
+  // At tier T0, bypass animation and execute mutation instantly (§M4.4, §M11)
+  if (governor.getState().tier === "T0" || isReducedMotion()) {
+    mutate();
+    options.onComplete?.();
+    return Promise.resolve();
+  }
+
+  // 1. First (measure)
+  const firstRect = el.getBoundingClientRect();
+
+  // 2. Mutate DOM
+  mutate();
+
+  return flipFrom(el, firstRect, options);
 }

@@ -1,4 +1,5 @@
 import React from "react";
+import { Odometer } from "../../motion";
 
 export type StatMetricType = "doc" | "cube" | "graph" | "link" | "speech" | "shield";
 
@@ -7,6 +8,7 @@ interface StatTileProps {
   label: string;
   value: string | number;
   className?: string;
+  staggerIndex?: number;
 }
 
 export const StatTile: React.FC<StatTileProps> = ({
@@ -14,7 +16,12 @@ export const StatTile: React.FC<StatTileProps> = ({
   label,
   value,
   className = "",
+  staggerIndex,
 }) => {
+  const isRefusal = type === "shield";
+  const valueColorClass = isRefusal ? "text-[var(--madder)]" : "text-[var(--bone)]";
+  const staggerDelay = staggerIndex !== undefined ? Math.min(staggerIndex * 60, 480) : 0;
+
   const getIcon = (t: StatMetricType) => {
     switch (t) {
       case "doc":
@@ -65,7 +72,8 @@ export const StatTile: React.FC<StatTileProps> = ({
 
   return (
     <div
-      className={`rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-4 flex flex-col justify-between min-w-[140px] flex-1 ${className}`}
+      style={staggerIndex !== undefined ? { animationDelay: `${staggerDelay}ms` } : undefined}
+      className={`rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-4 flex flex-col justify-between min-w-[140px] flex-1 m-enter ${className}`}
     >
       <div className="flex items-center justify-between mb-3">
         <span className="p-1.5 rounded-[var(--r-6)] bg-[var(--ink-700)] flex items-center justify-center">
@@ -74,7 +82,9 @@ export const StatTile: React.FC<StatTileProps> = ({
       </div>
       <div>
         <div className="type-label text-[var(--dim)] mb-1">{label}</div>
-        <div className="type-stat text-[var(--bone)]">{value}</div>
+        <div className={`type-stat ${valueColorClass}`}>
+          <Odometer value={value} testId={`odometer-${type}`} />
+        </div>
       </div>
     </div>
   );

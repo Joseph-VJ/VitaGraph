@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   StatTile,
@@ -17,6 +17,7 @@ import { reportsApi } from "../api/reports";
 import { graphApi, type GraphResponse } from "../api/graph";
 import { timelineApi } from "../api/questions";
 import type { Report, TimelineEvent } from "../types";
+import { springToLinear, governor, isReducedMotion } from "../motion";
 
 interface HealthData {
   status: string;
@@ -25,6 +26,7 @@ interface HealthData {
 }
 
 interface ActivityItem {
+  id: string;
   activityClass: ActivityClass;
   timestamp: string;
   eventName: string;
@@ -43,6 +45,11 @@ export const HomePage: React.FC = () => {
   const [healthData, setHealthData] = useState<HealthData | null>(null);
   const [clientLatency, setClientLatency] = useState<number | null>(null);
   const [latencyHistory, setLatencyHistory] = useState<number[]>([]);
+
+  const activityContainerRef = useRef<HTMLDivElement | null>(null);
+  const prevActivityIdsRef = useRef<string[]>([]);
+  const prevRowTopsRef = useRef<Map<string, number>>(new Map());
+  const [animatedInsertId, setAnimatedInsertId] = useState<string | null>(null);
 
   const handleLoadDemoCohort = async () => {
     if (loadingCohort) return;
@@ -167,12 +174,14 @@ export const HomePage: React.FC = () => {
   ).length;
 
   // Map timeline events to activity items
-  const activityItems: ActivityItem[] = timelineEvents.slice(0, 10).map((event) => {
+  const activityItems: ActivityItem[] = timelineEvents.slice(0, 10).map((event, idx) => {
     const p = (event.payload || {}) as Record<string, any>;
     const dateStr = event.timestamp ? event.timestamp.replace("T", " ").slice(0, 19) : "—";
+    const itemId = event.id || `${event.event_type}-${event.timestamp || idx}`;
 
     if (event.event_type === "report_indexed" || event.event_type === "report_uploaded") {
       return {
+        id: itemId,
         activityClass: "indexed",
         timestamp: dateStr,
         eventName: event.event_type === "report_indexed" ? "Report indexed" : "Report uploaded",
@@ -183,6 +192,7 @@ export const HomePage: React.FC = () => {
     if (event.event_type === "answer_generated" || event.event_type === "question_asked") {
       const isRefusal = p.status === "refused" || p.safety_status === "refused";
       return {
+        id: itemId,
         activityClass: isRefusal ? "refusal" : "answered",
         timestamp: dateStr,
         eventName: isRefusal ? "Safety refusal" : (event.event_type === "answer_generated" ? "Question answered" : "Question asked"),
@@ -192,6 +202,7 @@ export const HomePage: React.FC = () => {
     }
     if (event.event_type === "processing_failed") {
       return {
+        id: itemId,
         activityClass: "refusal",
         timestamp: dateStr,
         eventName: "Processing failed",
@@ -201,6 +212,7 @@ export const HomePage: React.FC = () => {
     }
     if (event.event_type === "persona_created" || event.event_type === "consent_accepted") {
       return {
+        id: itemId,
         activityClass: "dataset",
         timestamp: dateStr,
         eventName: event.event_type === "consent_accepted" ? "Consent accepted" : "Persona created",
@@ -209,6 +221,7 @@ export const HomePage: React.FC = () => {
       };
     }
     return {
+      id: itemId,
       activityClass: "graph",
       timestamp: dateStr,
       eventName: event.event_type.replace(/_/g, " "),
@@ -216,6 +229,62 @@ export const HomePage: React.FC = () => {
       objectName: "VitaGraph",
     };
   });
+
+  // FLIP animation for timeline activity updates (§M7.1)
+  useLayoutEffect(() => {
+    if (!activityContainerRef.current) return;
+    const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+
+    const currentItemIds = activityItems.map((i) => i.id);
+    const prevIds = prevActivityIdsRef.current;
+
+    // Detect if new items were prepended
+    if (prevIds.length > 0 && currentItemIds.length > 0) {
+      const newestId = currentItemIds[0];
+      if (!prevIds.includes(newestId)) {
+        // Max 1 animated insert per tick (batch by supersede)
+        setAnimatedInsertId(newestId);
+
+        if (!isT0) {
+          // FLIP shifted existing rows downward using weighted spring
+          const rows = activityContainerRef.current.querySelectorAll<HTMLElement>("[data-activity-key]");
+          rows.forEach((row) => {
+            const key = row.getAttribute("data-activity-key");
+            if (key && key !== newestId && prevRowTopsRef.current.has(key)) {
+              const prevTop = prevRowTopsRef.current.get(key)!;
+              const currentTop = row.getBoundingClientRect().top;
+              const dy = prevTop - currentTop;
+              if (Math.abs(dy) > 0.5) {
+                row.animate(
+                  [
+                    { transform: `translateY(${dy}px)` },
+                    { transform: "none" },
+                  ],
+                  {
+                    duration: 240,
+                    easing: springToLinear("weighted"),
+                    fill: "none",
+                  }
+                );
+              }
+            }
+          });
+        }
+      }
+    }
+
+    // Save positions for next tick
+    const newTops = new Map<string, number>();
+    const rows = activityContainerRef.current.querySelectorAll<HTMLElement>("[data-activity-key]");
+    rows.forEach((row) => {
+      const key = row.getAttribute("data-activity-key");
+      if (key) {
+        newTops.set(key, row.getBoundingClientRect().top);
+      }
+    });
+    prevRowTopsRef.current = newTops;
+    prevActivityIdsRef.current = currentItemIds;
+  }, [activityItems]);
 
   // Last open document and last question for Continue card
   const lastDocument = reports.length > 0 ? reports[0] : null;
@@ -274,31 +343,37 @@ export const HomePage: React.FC = () => {
                   type="doc"
                   label="Reports"
                   value={backendOnline ? String(reportsCount) : "0"}
+                  staggerIndex={0}
                 />
                 <StatTile
                   type="cube"
                   label="Chunks"
                   value={backendOnline ? chunksCount.toLocaleString() : "0"}
+                  staggerIndex={1}
                 />
                 <StatTile
                   type="graph"
                   label="Graph nodes"
                   value={backendOnline ? String(nodesCount) : "0"}
+                  staggerIndex={2}
                 />
                 <StatTile
                   type="link"
                   label="Edges"
                   value={backendOnline ? String(edgesCount) : "0"}
+                  staggerIndex={3}
                 />
                 <StatTile
                   type="speech"
                   label="Questions"
                   value={backendOnline ? String(questionsCount) : "0"}
+                  staggerIndex={4}
                 />
                 <StatTile
                   type="shield"
                   label="Refusals"
                   value={backendOnline ? String(refusalsCount) : "0"}
+                  staggerIndex={5}
                 />
               </>
             )}
@@ -324,7 +399,7 @@ export const HomePage: React.FC = () => {
             </div>
 
             {/* Activity Rows */}
-            <div className="divide-y divide-[var(--line-faint)]">
+            <div ref={activityContainerRef} className="divide-y divide-[var(--line-faint)]">
               {!backendOnline ? (
                 <div className="py-8 text-center text-[var(--dim)] text-[13px]">
                   Backend server is offline. Realtime timeline activity unavailable.
@@ -345,14 +420,16 @@ export const HomePage: React.FC = () => {
                   No timeline events recorded yet for this persona.
                 </div>
               ) : (
-                activityItems.map((item, idx) => (
+                activityItems.map((item) => (
                   <ActivityRow
-                    key={idx}
+                    key={item.id}
+                    rowKey={item.id}
                     activityClass={item.activityClass}
                     timestamp={item.timestamp}
                     eventName={item.eventName}
                     details={item.details}
                     objectName={item.objectName}
+                    isNew={item.id === animatedInsertId}
                   />
                 ))
               )}
@@ -387,6 +464,8 @@ export const HomePage: React.FC = () => {
                 status={backendOnline ? "ok" : "error"}
                 latency={clientLatency !== null ? `${clientLatency} ms` : "—"}
                 statusLabel={backendOnline ? undefined : "unreachable"}
+                staggerIndex={0}
+                igniteDelay={0}
               />
               <SystemHealthRow
                 name="Chroma (vector DB)"
@@ -405,6 +484,8 @@ export const HomePage: React.FC = () => {
                     ? `${healthData?.retrieval_store?.chunks ?? 0} chunks`
                     : "unreachable"
                 }
+                staggerIndex={1}
+                igniteDelay={120}
               />
               <SystemHealthRow
                 name="SQLite (metadata)"
@@ -415,26 +496,24 @@ export const HomePage: React.FC = () => {
                     : "—"
                 }
                 statusLabel={backendOnline ? undefined : "unreachable"}
+                staggerIndex={2}
+                igniteDelay={240}
               />
               <SystemHealthRow
                 name="SSE (realtime)"
                 status={backendOnline ? "live" : "error"}
                 latency="—"
                 statusLabel={backendOnline ? undefined : "disconnected"}
+                staggerIndex={3}
+                igniteDelay={360}
               />
               <SystemHealthRow
                 name="LLM (answering)"
-                status={
-                  backendOnline && healthData?.ai_service?.includes("enabled")
-                    ? "ok"
-                    : "disabled"
-                }
-                statusLabel={
-                  backendOnline
-                    ? healthData?.ai_service || "disabled by policy"
-                    : "offline"
-                }
+                status="disabled"
+                statusLabel="disabled by policy"
                 latency="—"
+                staggerIndex={4}
+                igniteDelay={480}
               />
             </div>
           </div>
