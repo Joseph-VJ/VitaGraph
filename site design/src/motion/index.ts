@@ -14,3 +14,4 @@ export * from "./boot";
 export * from "./fx/Odometer";
 export * from "./fx/WashSweep";
 export * from "./fx/UnderlineDraw";
+export * from "./audio";

@@ -15,6 +15,7 @@ import {
 import { useUser } from "../context/UserContext";
 import { questionsApi } from "../api/questions";
 import type { Answer, EvidenceCard } from "../types";
+import { playChime, playThud } from "../motion";
 
 interface ThreadItem {
   id: string;
@@ -124,6 +125,7 @@ export const AskPage: React.FC = () => {
       }
 
       if (answer.status === "refused") {
+        playThud();
         setThreads((prev) =>
           prev.map((item) =>
             item.id === threadId
@@ -140,6 +142,7 @@ export const AskPage: React.FC = () => {
         );
         addToast("done", "Clinical Boundary Guard", "Query handled with diagnostic boundary refusal");
       } else {
+        playChime();
         setThreads((prev) =>
           prev.map((item) =>
             item.id === threadId
@@ -216,6 +219,7 @@ export const AskPage: React.FC = () => {
 
     // §M7.4 Stream Error Freeze: Freezes sequence at last completed row without wiping state
     es.onerror = () => {
+      playThud();
       setStreamError("Backend stream interrupted. EventSource disconnected.");
       addToast("failed", "Stream Disconnected", "Backend connection lost during generation");
       setIsAsking(false);
@@ -231,6 +235,7 @@ export const AskPage: React.FC = () => {
         finishAnswer(response);
       }
     } catch (err) {
+      playThud();
       setStreamError(`Backend inquiry failed: ${(err as Error).message}`);
       addToast("failed", "Inquiry Failed", (err as Error).message);
       setThreads((prev) =>

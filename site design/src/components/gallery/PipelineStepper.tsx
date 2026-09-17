@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Odometer, governor, isReducedMotion } from "../../motion";
+import { Odometer, governor, isReducedMotion, playDetent } from "../../motion";
 
 export interface PipelineStep {
   name: string;
@@ -30,7 +30,7 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
   const prevStepsRef = useRef<string>(JSON.stringify(steps));
   const isFirstRenderRef = useRef<boolean>(true);
 
-  // Card DetentPress impulse -1px on real event arrival (§M7.2)
+  // Card DetentPress impulse -1px on real event arrival (§M7.2) + audio detent (§M9)
   useEffect(() => {
     if (isFirstRenderRef.current) {
       isFirstRenderRef.current = false;
@@ -42,6 +42,7 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
     if (currentStr !== prevStepsRef.current) {
       prevStepsRef.current = currentStr;
       setIsImpulsing(true);
+      playDetent();
       const timer = setTimeout(() => setIsImpulsing(false), 180);
       return () => clearTimeout(timer);
     }

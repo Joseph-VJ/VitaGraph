@@ -1,0 +1,50 @@
+{
+  "story": "MS-12",
+  "spec": "\u00a7M9, DESIGN \u00a713",
+  "timestamp": "2026-09-17T12:08:46Z",
+  "audio_off_proof": {
+    "pass": true,
+    "default_is_enabled": false,
+    "can_play_audio": false,
+    "calls_blocked": 3,
+    "detail": "Confirmed: audio is off by default, zero acoustic output produced"
+  },
+  "audio_on_verification": {
+    "pass": true,
+    "detents_played": 1,
+    "chimes_played": 1,
+    "thuds_played": 1,
+    "detail": "WebAudio synthesis verified for 1200Hz triangle, 660->990Hz sine pair, and 220Hz sine"
+  },
+  "t0_suppression_proof": {
+    "pass": true,
+    "can_play_at_t0": false,
+    "detail": "Confirmed: audio is hard-disabled at tier T0 even if toggle is ON"
+  },
+  "hidden_tab_suppression_proof": {
+    "pass": true,
+    "can_play_when_hidden": false,
+    "detail": "Confirmed: audio is muted when tab is hidden per \u00a7M9"
+  },
+  "motion_specimens": {
+    "pass": true,
+    "total_primitives": 7,
+    "verified_primitives": [
+      "M5.1 Enter/Exit",
+      "M5.2 Morph",
+      "M5.3 Draw",
+      "M5.4 Impulse",
+      "M5.5 Odometer",
+      "M5.6 Reveal-Mask",
+      "M9 Audio"
+    ],
+    "section_found": true
+  },
+  "gate_31_multi_channel": {
+    "pass": true,
+    "aria_live_present": true,
+    "visual_counterparts": "LEDs, badges, wash sweeps, and status text accompany all sounds",
+    "detail": "Audio is never sole channel per Gate 31"
+  },
+  "all_passed": true
+}

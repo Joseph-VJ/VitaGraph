@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Badge, Marginalia } from "../components/gallery";
-import { governor, useMotionGovernor } from "../motion";
+import { governor, useMotionGovernor, setAudioEnabled, playDetent, isAudioEnabled } from "../motion";
 
 export const SettingsPage: React.FC = () => {
   const motion = useMotionGovernor();
@@ -8,9 +8,7 @@ export const SettingsPage: React.FC = () => {
   const [diagnosticGuard, setDiagnosticGuard] = useState(true);
   const [localOnly, setLocalOnly] = useState(true);
   const [activeTheme, setActiveTheme] = useState<"instrument" | "paper">("instrument");
-  const [soundEnabled, setSoundEnabled] = useState(() => {
-    return typeof window !== "undefined" && localStorage.getItem("vg_sound_enabled") === "true";
-  });
+  const [soundEnabled, setSoundEnabled] = useState(() => isAudioEnabled());
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-4xl">
@@ -273,7 +271,10 @@ export const SettingsPage: React.FC = () => {
               onClick={() => {
                 const next = !soundEnabled;
                 setSoundEnabled(next);
-                localStorage.setItem("vg_sound_enabled", String(next));
+                setAudioEnabled(next);
+                if (next) {
+                  playDetent();
+                }
               }}
               className={`w-11 h-6 rounded-full transition-colors duration-[120ms] p-1 flex items-center cursor-pointer ${
                 soundEnabled ? "bg-[var(--verdigris)]" : "bg-[var(--ink-700)]"

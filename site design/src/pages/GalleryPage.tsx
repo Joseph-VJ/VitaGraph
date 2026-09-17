@@ -31,6 +31,7 @@ import {
   UncertainState,
   Marginalia,
   Breadcrumb,
+  MotionSpecimensSection,
 } from "../components/gallery";
 
 export const GalleryPage: React.FC = () => {
@@ -44,7 +45,7 @@ export const GalleryPage: React.FC = () => {
               ROUTE /gallery
             </span>
             <span className="type-mono-sm text-[var(--dim)]">·</span>
-            <span className="type-mono-sm text-[var(--dim)]">DESIGN.md §7 Component Gallery (Items 1–26)</span>
+            <span className="type-mono-sm text-[var(--dim)]">DESIGN.md §7 Component Gallery (Items 1–26) + Motion Specimens (§M5, §M9)</span>
           </div>
           <h1 className="type-display">Instrument & Paper — Gallery</h1>
           <p className="type-screen-sub mt-1">
@@ -514,6 +515,9 @@ export const GalleryPage: React.FC = () => {
             />
           </div>
         </section>
+
+        {/* 27. MOTION SPECIMENS & AUDIO DETENTS */}
+        <MotionSpecimensSection />
       </div>
 
       {/* Footer Status Bar preview */}
@@ -524,7 +528,7 @@ export const GalleryPage: React.FC = () => {
             <span className="text-[var(--bone)]">System online</span>
           </div>
           <span>|</span>
-          <span>Gallery QA: 26/26 Components rendered</span>
+          <span>Gallery QA: 26 Components + Motion Specimens (§M5, §M9) rendered</span>
         </div>
         <div className="flex items-center gap-3">
           <span>v0.3.1</span>

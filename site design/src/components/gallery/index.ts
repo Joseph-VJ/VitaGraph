@@ -26,3 +26,4 @@ export * from "./Marginalia";
 export * from "./Breadcrumb";
 export * from "./EvidenceSpanViewer";
 export * from "./Toast";
+export * from "./MotionSpecimensSection";
