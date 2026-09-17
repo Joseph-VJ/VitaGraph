@@ -1,6 +1,6 @@
-# VitaGraph (v1.0.0)
+# VitaGraph (v1.1.0-motion)
 
-**A Privacy-Aware Retrieval-Augmented System for Longitudinal Health-Report Analysis with Evidence-Linked Visualization**  
+**A Privacy-Aware Retrieval-Augmented System for Longitudinal Health-Report Analysis with Evidence-Linked Visualization & Adaptive Motion**  
 *Final-Year B.Tech Computer Science & Engineering Project*
 
 ---
@@ -14,7 +14,7 @@
 ## 1. System Architecture
 
 VitaGraph is built on the **"Instrument & Paper"** design paradigm:
-- **The Instrument (Machine Voice):** Dark, dense, precise telemetry rendered with `IBM Plex Mono`, sub-millisecond latencies, NetworkX force-directed graph stages, and real-time Server-Sent Events (SSE).
+- **The Instrument (Machine Voice):** Dark, dense, precise telemetry rendered with `IBM Plex Mono`, sub-millisecond latencies, NetworkX force-directed graph stages, single-ticker 60fps physics, and real-time Server-Sent Events (SSE).
 - **The Paper (Human Voice):** Clean, serif typography (`Spectral`), notebook-style `PaperSlip` evidence cards with 22px folded corners, and character-accurate bounding-box highlights from raw documents.
 
 ```mermaid
@@ -37,12 +37,12 @@ graph TD
 ### Core Technology Stack
 - **Backend Core:** FastAPI (Python 3.13), Uvicorn, SQLite3 (foreign key integrity, audit trails), NetworkX (graph topology & Louvain modularity), ChromaDB (cosine vector store), `sentence-transformers/all-MiniLM-L6-v2`.
 - **Streaming Pipeline:** Server-Sent Events (SSE) `text/event-stream` with multi-subscriber broadcast broker and replay buffers.
-- **Frontend Core:** React 19, TypeScript 5.8, Vite 8.2, Tailwind CSS 4, Lucide SVG iconography.
-- **Verification Engine:** Pytest (43 backend unit & integration tests), Playwright browser automated verification.
+- **Frontend Core:** React 19, TypeScript 5.8, Vite 8.2, Tailwind CSS 4, zero-dependency motion engine (ticker, springs, FLIP, adaptive quality governor).
+- **Verification Engine:** Pytest (54 backend unit & integration tests), Playwright browser automated verification.
 
 ---
 
-## 2. User Stories & Implementation Verification (US-01 — US-14)
+## 2. Functional User Stories (US-01 — US-19)
 
 | User Story | Title | Acceptance Criteria | Test Status |
 |---|---|---|:---:|
@@ -60,10 +60,34 @@ graph TD
 | **US-12** | Failure-Injection & Honest States | Global top banner on backend drop; Chroma failure isolates gracefully; `allow_api=false` and `REPLAY MODE` badges. | **PASSED** |
 | **US-13** | Evidence Span Viewer | Clicking evidence opens extracted page text from `/api/reports/{id}/pages` with `char_start–char_end` bounding box. | **PASSED** |
 | **US-14** | QA, Docs, Viva Script, Release Tag | 16 DESIGN gates passed; 43/43 pytest green; `docs/demo-script.md` written per plan §19.1; tagged `v1.0.0`. | **PASSED** |
+| **US-15** | Async Jobs & Paced Live UI | SSE pre-subscription, 280ms presentation dwell queue, skeleton shimmers, toast notification system. | **PASSED** |
+| **US-16** | Extraction Robustness & Dual OCR | PyMuPDF scan detection, rapidocr-onnxruntime fallback, table structure normalization. | **PASSED** |
+| **US-17** | Graph Richness Guarantee | Full Plan §11 ontology (`person`, `report`, `section`, `date`, `chunk`, `uncertainty`), ≥6 nodes guarantee. | **PASSED** |
+| **US-18** | Global Liveliness Pass | Route transitions, active press micro-feedback, dynamic health telemetry, reduced-motion honor. | **PASSED** |
+| **US-19** | One-Click Demo Cohort | `POST /api/demo/cohort` provisions evaluation persona with 2 longitudinal panels (≥25 nodes), viva updates. | **PASSED** |
 
 ---
 
-## 3. Quickstart & Verification Guide
+## 3. Motion & Adaptive Quality Governor System (MS-01 — MS-12)
+
+| Story | Title | Key Acceptance Criteria | Gates | Status |
+|---|---|---|:---:|:---:|
+| **MS-01** | Motion Foundation | Zero-dependency engine (`ticker`, `spring`, `sequence`, `quality`, `flip`), StatusStrip tier chip, 500ms auto-idle. | 17, 19, 20, 29 | **PASSED** |
+| **MS-02** | Global Grammar & Boot | Dual route transitions (View Transitions + fallback), Sidebar FLIP rule, skippable boot sequence ≤1.6s. | 18, 24, 30, 32 | **PASSED** |
+| **MS-03** | Home Motion Pass | Stat tiles 60ms stagger, needle-curve count-up Odometer, sparkline DrawPath, sequential health LEDs. | 21, 25, 27 | **PASSED** |
+| **MS-04** | Upload Motion Pass | Real-only drag states, SSE-gated stepper, work-dot (0.83 Hz), OCR scanline, quarantine impulse. | 18, 21, 24 | **PASSED** |
+| **MS-05** | GraphStage Engine Pass | Glow sprite cache, DPR tier caps (2.0/1.5/1.0), 1-frame hover response, camera spring, zero-alloc draw loop. | 19, 28, 29 | **PASSED** |
+| **MS-06** | Graph Reveal & Activation FX | Ontology reveal order, dim-to-40% spring, 1200ms ring pulse, photons (speed ∝ 1/latency), dust particles. | 18, 21, 22, 28 | **PASSED** |
+| **MS-07** | Ask Choreography | Real SSE event landing, FLIP input morph, rank chips FLIP reorder, 4-part answer reveal, refusal impulse + wash. | 18, 21, 23, 27 | **PASSED** |
+| **MS-08** | Timeline + Evidence Viewer | Scroll-bound spine (Firefox verified), single-fire card enters, 4-bracket evidence sheet morph, exact char odometers. | 21, 25, 26, 27 | **PASSED** |
+| **MS-09** | Compare + Insights + Library | Converging diff rows, modularity Q ring sweep, centrality FLIP race-sort, clockwise predicates, sketch draw-once. | 21, 25, 27, 32 | **PASSED** |
+| **MS-10** | Failure & Honest States | Banner drop + static 45° hatch, LED fail blink (1.667 Hz ≤ 2.0 Hz), error card rule wipe + wash, static REPLAY badge. | 21, 24 | **PASSED** |
+| **MS-11** | Performance & QA Audit | Performance budgets met (60fps, 0 frames >33ms, JS ≤4ms, CLS 0.00), all Gates 17–32 passed, viva appendix, v1.1.0-motion. | 17–32 | **PASSED** |
+| **MS-12** | Audio Detents & Specimens | WebAudio detents (zero assets, default off, persisted toggle, muted when hidden, disabled at T0), motion specimens. | 31 | *QUEUED* |
+
+---
+
+## 4. Quickstart & Verification Guide
 
 ### Prerequisites
 - Python 3.10+ (Python 3.13 recommended)
@@ -77,7 +101,7 @@ cd vitagraph/backend
 # Activate virtual environment
 .\.venv\Scripts\activate
 
-# Run full backend test suite (43 tests)
+# Run full backend test suite (54 tests)
 python -m pytest tests -q
 
 # Start FastAPI backend server
@@ -101,7 +125,7 @@ npm run dev -- --host 127.0.0.1 --port 5174
 
 ---
 
-## 4. API Endpoints Reference
+## 5. API Endpoints Reference
 
 | Route | Method | Description |
 |---|:---:|---|
@@ -120,12 +144,12 @@ npm run dev -- --host 127.0.0.1 --port 5174
 
 ---
 
-## 5. Viva Defense Reference & Demonstration Script
+## 6. Viva Defense Reference & Demonstration Script
 
-A step-by-step 14-stage viva presentation protocol is documented in [`docs/demo-script.md`](docs/demo-script.md), following Master Plan §19.1. It provides exact talking points, interaction steps, expected UI responses, and model answers for typical examiner inquiries.
+A step-by-step 14-stage viva presentation protocol and Motion Appendix M are documented in [`docs/demo-script.md`](docs/demo-script.md), following Master Plan §19.1 and MOTION.md §M10–M12. It provides exact talking points, interaction steps, expected UI responses, and model answers for typical examiner inquiries.
 
 ---
 
-## 6. License & Academic Declaration
+## 7. License & Academic Declaration
 Developed as an academic final-year project at B.Tech Level.  
 Submitted under the VitaGraph Project Constitution and Master Engineering Plan.

@@ -229,7 +229,7 @@
       "id": "MS-11",
       "title": "Performance, QA audit & viva material",
       "spec": "\u00a7M10\u2013M12",
-      "passes": false,
+      "passes": true,
       "acceptance": "All budgets met with artifacts (traces, Lighthouse diff, memory diff, governor throttle recording); gates 17\u201332 all green; MOTION.md + demo-script motion appendix committed (talking points: tier chip, governor demo, event-gated reveals, exact-40 % dim, 1200 ms frozen ring); README motion row; tag v1.1.0-motion",
       "gates": "all",
       "verify": "full artifact set, lighthouse pair"

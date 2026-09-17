@@ -165,3 +165,56 @@ VitaGraph operates under the **Instrument & Paper** design philosophy: a dark, p
 | **14** | No Static Card Hover | **PASSED** | Hover transitions (120ms) reserved strictly for interactive buttons, tabs, slips, and inputs. |
 | **15** | Visible Focus Ring | **PASSED** | 2px verdigris focus ring (`focus-visible:ring-2 focus-visible:ring-[var(--verdigris)]`) on all interactive controls. |
 | **16** | Viewport Fit (1280/1440) | **PASSED** | Responsive two-column grids with collapsible drawers and overflow containment tested at 1440x1000. |
+
+---
+
+## 5. Appendix M: Motion & Adaptive Governor Viva Defense Protocol (§M10–M12)
+
+### Talking Point 1: StatusStrip Tier Chip & Adaptive Quality Governor (§M4.3, §M5)
+- **Examiner Context:** Explain how VitaGraph guarantees performance on budget hardware (integrated GPUs, mobile devices) without compromising aesthetics on high-end workstations.
+- **Narrative:** *"In the bottom StatusStrip, notice the live Motion Tier chip (`motion T3`). VitaGraph features an autonomous adaptive motion governor that samples real frame timing over 2-second windows. On high-capability hardware, it operates in Tier 3 (full physics, photons, evidence dust, community hulls). If hardware constraints or thermal/battery throttling drop frame rates below 50 fps over 3 consecutive windows, it steps down seamlessly through T2 (glow cache, simplified hulls), T1 (flat rings, no dust, 30 fps cap), down to T0 (instant static state). Users can also manually override the tier via Settings."*
+- **Inspect:** Point to the StatusStrip tier chip (`motion T3`).
+
+### Talking Point 2: Governor Demo (Hysteresis & 6× CPU Throttle)
+- **Examiner Context:** Demonstrate graceful degradation under real-time machine stress.
+- **Narrative:** *"To demonstrate academic rigor, we inject synthetic compute pressure (simulating 6× CPU slowdown). Rather than stuttering or dropping frames ungracefully, the governor evaluates the rolling fps window, triggers the 30-second cooldown hysteresis to prevent flapping, and steps down from T3 to T2 to T1. The StatusStrip tier chip updates immediately to `motion T1 · auto`, shutting down expensive particle simulations and reducing DPR from 2.0 to 1.0. When performance recovers, 5 consecutive windows >58 fps step the tier back up."*
+- **Inspect:** Show `governor-throttle.webm` recording and live tier transition.
+
+### Talking Point 3: Event-Gated Pipeline Reveals vs Simulated Progress (§M7.2, §M7.4)
+- **Examiner Context:** Address the 'fake loading timer' antipattern prevalent in consumer apps.
+- **Narrative:** *"A central tenet of the VitaGraph motion constitution is the 'Reality Contract': zero simulated timers. On the Upload and Ask pages, the pipeline stepper and trace panel advance strictly when real Server-Sent Events arrive over `/api/jobs/{id}/events` (`received`, `extracting`, `indexing`, `graph`, `done`). If an extraction takes 412ms, the step indicator lands in exactly 412ms with a precision Odometer count-up. If the backend fails or disconnects, the UI enters a frozen-failed state at the exact failed row without wiping state or pretending work is continuing."*
+- **Inspect:** Show real SSE event landing on `/upload` and `/ask`.
+
+### Talking Point 4: Exact-40% Physical Subgraph Dimming & Single-Fire 1200ms Frozen Ring (§M8.3)
+- **Examiner Context:** Explain graph focus ergonomics and cognitive load management.
+- **Narrative:** *"When a clinician or researcher asks a targeted clinical question (e.g. 'What was my hemoglobin level?'), the entire knowledge graph does not re-render or disappear. Instead, inactive nodes and edges transition physically via a weighted spring (`stiffness: 170, damping: 26`) to land on exactly `0.40` alpha (`ctx.globalAlpha = 0.40`). Simultaneously, active concept nodes emit a single-fire 1200ms expanding ring pulse (`--m-ring`) in category color. In T3, category-colored photons travel along curved beziers from evidence chunk nodes to the active biomarker, with travel speed strictly proportional to reciprocal retrieval latency."*
+- **Inspect:** Demonstrate question activation on `#/graph` with active concept highlight and exact 40% background dimming.
+
+### Talking Point 5: Zero-Allocation Canvas Engine & Single Ticker Heartbeat (§M4.1, Gate 29)
+- **Examiner Context:** Explain low-level 60fps rendering architecture in JavaScript/TypeScript.
+- **Narrative:** *"Browsers frequently stutter due to garbage collection pauses caused by per-frame object allocations. VitaGraph enforces a zero-allocation render loop: pre-rendered offscreen 64×64 radial-gradient sprites replace dynamic canvas gradient calls, spatial grid queries cull nodes outside the viewport (+24px margin), and all app-wide animations share a single `requestAnimationFrame` heartbeat in `ticker.ts` with fixed-step accumulation (16.67ms). When no motion is active, the ticker automatically idles after 500ms, dropping rAF CPU consumption to absolute zero (0 frames/sec)."*
+- **Inspect:** Demonstrate `ms01_idle_raf_trace.json` (0 rAF frames during idle) and single ticker grep invariant (3 lines in `ticker.ts`).
+
+---
+
+## 6. Motion QA Gates 17–32 Compliance Checklist (§M12)
+
+| Gate # | Gate Name | Compliance Status | Implementation Evidence |
+|:---:|---|:---:|---|
+| **17** | No Forbidden Easing | **PASSED** | Zero occurrences of `bounce|elastic|back\(`; spring $\zeta \ge 0.70$ (overshoot $\le 2\%$). |
+| **18** | Event-Gating Audit | **PASSED** | Stepper, trace rows, and graph reveals gate exclusively on real SSE / fetch events; zero fake setTimeout progress. |
+| **19** | Compositor-Only Transforms | **PASSED** | 0 CSS transitions or keyframes on layout properties (`width|height|top|left|margin|padding`). |
+| **20** | `will-change` Discipline | **PASSED** | Concurrent `will-change` layers $\le 8$; zero permanent declarations on static elements. |
+| **21** | Reduced-Motion Matrix | **PASSED** | `prefers-reduced-motion: reduce` collapses all animations to 0ms instant static states across all 9 screens. |
+| **22** | Tier-Degradation Proof | **PASSED** | `governor-throttle.webm` and `T1 throttle.webm` demonstrate automatic tier transition under 6× CPU throttle. |
+| **23** | Trace Artifacts | **PASSED** | `ask-trace.json` (0 frames >33ms, main thread $\le 4$ms), `graph-trace.json` (144 fps), `idle-raf-trace.json` (0 rAF). |
+| **24** | Flash Audit | **PASSED** | All repeating frequencies $\le 2.0$ Hz (LED fail: 1.667 Hz, Breathe: 0.5 Hz, Work dot: 0.833 Hz), `blink-hz-calc.json`. |
+| **25** | Stagger Caps | **PASSED** | Stagger totals capped at $\le 240$ ms for row lists and $\le 480$ ms for card grids. |
+| **26** | Motion-CLS | **PASSED** | Lighthouse CLS delta $+0.0000$ vs v1.0.0; zero layout shifts induced by transforms. |
+| **27** | Odometer Exactness | **PASSED** | Odometer end values verified strictly equal to raw backend API numbers via `data-odo-final` hooks. |
+| **28** | Particle / Photon Budgets | **PASSED** | T3 particle dust capped at $\le 40$, photons capped at $\le 24$; zero allocations in animation loop. |
+| **29** | Single Ticker Heartbeat | **PASSED** | Exactly 3 lines grep match for `requestAnimationFrame` across entire codebase, all in `ticker.ts`. |
+| **30** | Boot Sequence Discipline | **PASSED** | Boot ignition $\le 1.6$ s (measured 872ms), once per session, skippable on first input, skipped at T0/T1. |
+| **31** | Multi-Channel Access | **PASSED** | Motion and audio are never the sole channel for information; visual text, badges, and aria-live polite always present. |
+| **32** | Legacy Law Intact | **PASSED** | DESIGN Gates 1–16 preserved, 54/54 backend pytest tests green, frontend production build exit 0. |
+

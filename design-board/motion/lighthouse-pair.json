@@ -1,0 +1,27 @@
+{
+  "url": "http://localhost:5174/#/",
+  "baseline_v1_0_0": {
+    "performance_score": 100,
+    "first_contentful_paint_ms": 210,
+    "largest_contentful_paint_ms": 248,
+    "total_blocking_time_ms": 0,
+    "cumulative_layout_shift": 0.0,
+    "speed_index_ms": 230
+  },
+  "motion_v1_1_0": {
+    "performance_score": 100,
+    "first_contentful_paint_ms": 215,
+    "largest_contentful_paint_ms": 252,
+    "total_blocking_time_ms": 12,
+    "cumulative_layout_shift": 0.0,
+    "speed_index_ms": 238
+  },
+  "deltas": {
+    "cls_delta": 0.0,
+    "lcp_variance_percent": "+1.61% (budget: +/- 5%)",
+    "tbt_delta_ms": "+12 ms (budget: <= +30 ms)",
+    "performance_delta": 0
+  },
+  "gate_26_motion_cls_pass": true,
+  "all_budgets_passed": true
+}

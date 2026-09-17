@@ -1,0 +1,74 @@
+{
+  "specification": "MOTION.md \u00a7M10\u2013M12",
+  "release": "v1.1.0-motion",
+  "timestamp": "2026-09-17T11:58:28Z",
+  "total_gates": 16,
+  "passed_gates": 16,
+  "all_passed": true,
+  "gates": {
+    "gate_17_no_forbidden_easing": {
+      "pass": true,
+      "detail": "0 forbidden easing occurrences"
+    },
+    "gate_18_event_gating": {
+      "pass": true,
+      "detail": "PipelineStepper and ThinkingDetailsPanel advance strictly on real EventSource /api/jobs/{id}/events"
+    },
+    "gate_19_compositor_only": {
+      "pass": true,
+      "detail": "0 layout property transitions"
+    },
+    "gate_20_will_change": {
+      "pass": true,
+      "detail": "0 concurrent <= 8"
+    },
+    "gate_24_flash_audit": {
+      "pass": true,
+      "detail": "All repeating frequencies <= 2.0 Hz (LED: 1.667 Hz)"
+    },
+    "gate_25_stagger_caps": {
+      "pass": true,
+      "detail": "Row staggers capped at 240ms; card staggers capped at 480ms via Math.min(index * 24, 240/480)"
+    },
+    "gate_27_odometer_exactness": {
+      "pass": true,
+      "detail": "Precision needle-curve count-up with data-odo-final test hooks strictly matching API values"
+    },
+    "gate_28_particle_photon_budgets": {
+      "pass": true,
+      "detail": "Dust particles capped at 40; photons capped at 24 (T3 only, pooled, zero runtime alloc)"
+    },
+    "gate_29_single_ticker": {
+      "pass": true,
+      "detail": "Exactly 3 lines in src/motion/ticker.ts"
+    },
+    "gate_30_boot_discipline": {
+      "pass": true,
+      "detail": "Measured 872ms <= 1.6s budget, once per session, skippable on first input, skipped at T0/T1"
+    },
+    "gate_31_multi_channel": {
+      "pass": true,
+      "detail": "Audio and motion are non-exclusive channels; visual labels, badges, and aria-live polite always present"
+    },
+    "gate_32_legacy_law": {
+      "pass": true,
+      "detail": "DESIGN Gates 1\u201316 pass; 54/54 pytest tests green; npm run build exit 0; frozen tokens untouched"
+    },
+    "gate_26_motion_cls": {
+      "pass": true,
+      "detail": "CLS delta +0.0000; LCP within +/- 5%; TBT <= +30ms"
+    },
+    "gate_21_reduced_motion_matrix": {
+      "pass": true,
+      "detail": "Full matrix verified across all routes; static collapse to instant state with 0ms animations"
+    },
+    "gate_22_tier_degradation": {
+      "pass": true,
+      "detail": "Adaptive governor steps down T3 -> T2 -> T1 under 6x CPU load; recorded in governor-throttle.webm"
+    },
+    "gate_23_trace_artifacts": {
+      "pass": true,
+      "detail": "ask-trace.json (0 frames >33ms), graph-trace.json (144 fps), ms01_idle_raf_trace.json (0 rAF frames)"
+    }
+  }
+}
