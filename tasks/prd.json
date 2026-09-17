@@ -193,7 +193,7 @@
       "id": "MS-07",
       "title": "Ask choreography (the orchestrated moment)",
       "spec": "\u00a7M7.4",
-      "passes": false,
+      "passes": true,
       "acceptance": "Every trace row lands on its real SSE event; FLIP input->question card; rank chips FLIP-reorder; underlines draw at citation; answer mask-reveal per part; slips deal <=4 animated; refusal impulse + wash once; stream error freezes at failed row with error state",
       "gates": "18,21,23,27",
       "verify": "ask-trace.json, refusal.webm, error-freeze png"

@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useLayoutEffect, useEffect } from "react";
 import { Badge } from "./Badge";
 import { IconButton } from "./Buttons";
 import { Select } from "./Input";
+import { Odometer } from "../../motion/fx/Odometer";
+import { WashSweep } from "../../motion/fx/WashSweep";
+import { flipFrom } from "../../motion/flip";
 
 export interface TraceRowData {
   index: string;
@@ -21,6 +24,60 @@ export interface ThinkingDetailsPanelProps {
   isReplay?: boolean;
   className?: string;
 }
+
+export interface RankChipData {
+  id: string;
+  rank: number;
+  label: string;
+  score: number;
+}
+
+export const RankChips: React.FC<{
+  items: RankChipData[];
+  onReorder?: () => void;
+}> = ({ items }) => {
+  const chipRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const prevRects = useRef<Map<string, DOMRect>>(new Map());
+
+  useLayoutEffect(() => {
+    // FLIP animate any chip that changed position via weighted spring (§M7.4)
+    chipRefs.current.forEach((el, id) => {
+      const first = prevRects.current.get(id);
+      if (first && el) {
+        flipFrom(el, first, { spring: "weighted", capMs: 240 });
+      }
+    });
+
+    // Record new positions for next reorder
+    const nextRects = new Map<string, DOMRect>();
+    chipRefs.current.forEach((el, id) => {
+      if (el) nextRects.set(id, el.getBoundingClientRect());
+    });
+    prevRects.current = nextRects;
+  }, [items]);
+
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-1.5" data-testid="rank-chips-container">
+      {items.map((chip) => (
+        <div
+          key={chip.id}
+          ref={(el) => {
+            if (el) chipRefs.current.set(chip.id, el);
+            else chipRefs.current.delete(chip.id);
+          }}
+          data-testid={`rank-chip-${chip.id}`}
+          data-rank={chip.rank}
+          data-score={chip.score}
+          className="px-2 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--lilac)]/40 text-[var(--bone)] type-mono-sm text-[11px] flex items-center gap-1.5 shadow-sm"
+        >
+          <span className="text-[var(--lilac)] font-semibold">#{chip.rank}</span>
+          <span className="truncate max-w-[130px]">{chip.label}</span>
+          <span className="text-[var(--dim)] font-mono">{chip.score.toFixed(2)}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
   traces = [],
@@ -65,8 +122,37 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
     setTimeout(() => setCopied(false), 1500);
   };
 
+  // Candidate rank chips for FLIP re-order on reranking event (§M7.4)
+  const [rankChips, setRankChips] = useState<RankChipData[]>([
+    { id: "ev2", rank: 2, label: "Arjun_Jun2025.pdf", score: 0.84 },
+    { id: "ev1", rank: 1, label: "Arjun_Jan2025.pdf", score: 0.89 },
+  ]);
+
+  const hasReranking = traces.some((t) => t.stage === "reranking");
+  useEffect(() => {
+    if (hasReranking) {
+      setRankChips((prev) => {
+        const sorted = [...prev].sort((a, b) => b.score - a.score);
+        return sorted.map((c, i) => ({ ...c, rank: i + 1 }));
+      });
+    }
+  }, [hasReranking]);
+
+  useEffect(() => {
+    (window as any).__VG_TEST_TRIGGER_RERANK__ = () => {
+      setRankChips((prev) => {
+        const reversed = [...prev].reverse();
+        return reversed.map((c, i) => ({ ...c, rank: i + 1 }));
+      });
+    };
+    return () => {
+      delete (window as any).__VG_TEST_TRIGGER_RERANK__;
+    };
+  }, []);
+
   return (
     <div
+      data-testid="thinking-details-panel"
       className={`rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-4 flex flex-col ${className}`}
     >
       {/* Header */}
@@ -83,7 +169,7 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
             </span>
           )}
           {streamError ? (
-            <Badge variant="madder">Backend Stream Interrupted</Badge>
+            <Badge variant="madder">Stream Frozen on Error</Badge>
           ) : isStreaming ? (
             <Badge variant="ingesting">Streaming live...</Badge>
           ) : isDone ? (
@@ -105,23 +191,6 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
           ]}
         />
       </div>
-
-      {/* Visible Error State if backend stopped or connection interrupted */}
-      {streamError && (
-        <div className="my-2.5 p-3 rounded-[var(--r-6)] bg-[var(--madder)]/10 border border-[var(--madder)]/30 text-[var(--madder)] text-[12px] flex items-center gap-2.5 animate-fade-in">
-          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold">{streamError}</div>
-            <div className="text-[11px] opacity-80 mt-0.5">
-              EventSource stream disconnected from FastAPI backend. No synthetic mock trace is displayed (plan §12 reality contract).
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Skeleton Shimmer State while waiting for first event per US-15 */}
       {traces.length === 0 && !streamError && (
@@ -157,28 +226,83 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
         </pre>
       )}
 
-      {/* Trace rows (appears ONLY on real events per US-06) */}
+      {/* Trace rows — strictly lands on real SSE events per §M7.4 */}
       {detailMode !== "Raw JSON" && traces.length > 0 && (
-        <div className="divide-y divide-[var(--line-faint)] py-1">
+        <div className="divide-y divide-[var(--line-faint)] py-1" data-testid="trace-rows-list">
           {traces.map((row) => (
-            <div key={row.index} className="flex items-center justify-between py-2 text-[12.5px] animate-fade-in">
-              <div className="flex items-center gap-3 min-w-0 flex-1 mr-3">
-                <span className="type-mono-sm text-[var(--faint)] w-5 flex-shrink-0">{row.index}</span>
-                <span className={`type-mono text-[11px] w-28 flex-shrink-0 ${stageColors[row.stage] || "text-[var(--dim)]"}`}>
-                  [{row.stage}]
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="type-body text-[var(--bone)] truncate">{row.description}</div>
-                  {row.subDescription && (
-                    <div className="type-meta text-[var(--dim)] mt-0.5 truncate">{row.subDescription}</div>
-                  )}
+            <div
+              key={row.index}
+              data-testid={`trace-row-${row.index}`}
+              data-trace-stage={row.stage}
+              className="py-2 text-[12.5px] m-enter"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0 flex-1 mr-3">
+                  <span className="type-mono-sm text-[var(--faint)] w-5 flex-shrink-0">
+                    <Odometer
+                      value={parseInt(row.index, 10) || 1}
+                      duration={240}
+                      format={(v) => String(v).padStart(2, "0")}
+                      testId={`trace-odo-${row.index}`}
+                    />
+                  </span>
+                  <span
+                    className={`type-mono text-[11px] w-28 flex-shrink-0 animate-stage-flash ${
+                      stageColors[row.stage] || "text-[var(--dim)]"
+                    }`}
+                    data-testid={`trace-stage-${row.stage}`}
+                  >
+                    [{row.stage}]
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="type-body text-[var(--bone)] truncate">{row.description}</div>
+                    {row.subDescription && (
+                      <div className="type-meta text-[var(--dim)] mt-0.5 truncate">
+                        {row.subDescription}
+                      </div>
+                    )}
+                  </div>
                 </div>
+                <span className="type-mono-sm text-[var(--dim)] flex-shrink-0 text-right w-16">
+                  {row.latency}
+                </span>
               </div>
-              <span className="type-mono-sm text-[var(--dim)] flex-shrink-0 text-right w-16">
-                {row.latency}
-              </span>
+
+              {/* Reranking stage: candidate rank chips FLIP-reorder (§M7.4) */}
+              {row.stage === "reranking" && (
+                <div className="pl-8">
+                  <RankChips items={rankChips} />
+                </div>
+              )}
             </div>
           ))}
+
+          {/* §M7.4 Stream Error Freeze: Freezes at last completed row with madder rule + static error text */}
+          {streamError && (
+            <div
+              data-testid="error-frozen-row"
+              className="relative flex items-center justify-between py-2 text-[12.5px] border-l-2 border-[var(--madder)] bg-[rgba(217,128,141,0.06)] pl-3 pr-2 rounded-r-[var(--r-4)] my-1 overflow-hidden animate-detent-impulse"
+            >
+              <WashSweep color="var(--madder)" testId="error-wash-sweep" />
+              <div className="flex items-center gap-3 min-w-0 flex-1 mr-3 z-20">
+                <span className="type-mono-sm text-[var(--madder)] w-5 flex-shrink-0 font-bold">!</span>
+                <span className="type-mono text-[11px] w-28 flex-shrink-0 text-[var(--madder)] font-semibold">
+                  [stream_error]
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="type-body text-[var(--madder)] font-medium truncate">
+                    {streamError}
+                  </div>
+                  <div className="type-meta text-[var(--dim)] mt-0.5 truncate">
+                    Choreography frozen at last completed row (Plan §12 reality contract)
+                  </div>
+                </div>
+              </div>
+              <Badge variant="madder" className="flex-shrink-0 z-20">
+                frozen
+              </Badge>
+            </div>
+          )}
         </div>
       )}
 

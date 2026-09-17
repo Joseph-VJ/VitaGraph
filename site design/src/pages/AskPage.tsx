@@ -26,6 +26,7 @@ interface ThreadItem {
   answer?: Answer;
   elapsedTime?: string;
   refusalText?: string;
+  sourceRect?: DOMRect | null;
 }
 
 export const AskPage: React.FC = () => {
@@ -54,9 +55,8 @@ export const AskPage: React.FC = () => {
     "Lipid Profile",
   ]);
 
+  const inputRef = useRef<HTMLInputElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const eventQueueRef = useRef<any[]>([]);
-  const isProcessingQueueRef = useRef<boolean>(false);
 
   // Suggested prompt chips for quick clinical & boundary verification
   const suggestedQuestions = [
@@ -80,6 +80,7 @@ export const AskPage: React.FC = () => {
     const trimmed = queryText.trim();
     if (!trimmed || isAsking) return;
 
+    const inputRect = inputRef.current?.getBoundingClientRect() || null;
     setIsAsking(true);
     setQuestionInput("");
     const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -90,7 +91,7 @@ export const AskPage: React.FC = () => {
     setStreamError(null);
     setIsReplayJob(false);
 
-    // Append loading thread item
+    // Append loading thread item with input sourceRect for FLIP morph (§M5.2, §M7.4)
     setThreads((prev) => [
       ...prev,
       {
@@ -99,6 +100,7 @@ export const AskPage: React.FC = () => {
         questionText: trimmed,
         timestamp,
         category: "educational",
+        sourceRect: inputRect,
       },
     ]);
 
@@ -107,8 +109,6 @@ export const AskPage: React.FC = () => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
-    eventQueueRef.current = [];
-    isProcessingQueueRef.current = false;
 
     const es = new EventSource(`${backendUrl}/api/jobs/${jobId}/events`);
     eventSourceRef.current = es;
@@ -133,6 +133,7 @@ export const AskPage: React.FC = () => {
                   refusalText: answer.summary_text,
                   elapsedTime: elapsedStr,
                   category: "diagnostic boundary",
+                  sourceRect: inputRect,
                 }
               : item
           )
@@ -149,6 +150,7 @@ export const AskPage: React.FC = () => {
                   elapsedTime: elapsedStr,
                   category: answer.classification || "educational",
                   rewrittenQuery: trimmed.toLowerCase(),
+                  sourceRect: inputRect,
                 }
               : item
           )
@@ -162,58 +164,7 @@ export const AskPage: React.FC = () => {
       setIsAsking(false);
     };
 
-    const processQueue = () => {
-      if (eventQueueRef.current.length === 0) {
-        isProcessingQueueRef.current = false;
-        return;
-      }
-      isProcessingQueueRef.current = true;
-      const evt = eventQueueRef.current.shift();
-
-      if (evt && evt.stage) {
-        setStreamTraces((prev) => {
-          if (prev.some((item) => item.index === evt.index && item.stage === evt.stage)) {
-            return prev;
-          }
-          return [...prev, evt];
-        });
-
-        if (evt.stage === "graph" && evt.subDescription) {
-          const match = evt.subDescription.match(/Active concepts:\s*(.+)$/i);
-          if (match && match[1]) {
-            const concepts = match[1].split(",").map((s: string) => s.trim());
-            setGraphConcepts(concepts);
-          }
-        }
-
-        if (evt.stage === "done") {
-          const answer: Answer | undefined = evt.metadata?.answer;
-          if (answer) {
-            finishAnswer(answer);
-          } else {
-            questionsApi
-              .result(jobId)
-              .then((res) => {
-                if (res.result) {
-                  finishAnswer(res.result);
-                } else {
-                  setIsAsking(false);
-                }
-              })
-              .catch(() => setIsAsking(false));
-          }
-          if (eventSourceRef.current) {
-            eventSourceRef.current.close();
-            eventSourceRef.current = null;
-          }
-        }
-      }
-
-      // Pacing interval: >=250ms presentation dwell per event (US-15)
-      // presentation dwell (US-15)
-      setTimeout(processQueue, 280);
-    };
-
+    // Every trace row lands on its real SSE event (§M7.4)
     es.onmessage = (e) => {
       try {
         const evt = JSON.parse(e.data);
@@ -221,9 +172,41 @@ export const AskPage: React.FC = () => {
           if (evt.is_replay) {
             setIsReplayJob(true);
           }
-          eventQueueRef.current.push(evt);
-          if (!isProcessingQueueRef.current) {
-            processQueue();
+          setStreamTraces((prev) => {
+            if (prev.some((item) => item.index === evt.index && item.stage === evt.stage)) {
+              return prev;
+            }
+            return [...prev, evt];
+          });
+
+          if (evt.stage === "graph" && evt.subDescription) {
+            const match = evt.subDescription.match(/Active concepts:\s*(.+)$/i);
+            if (match && match[1]) {
+              const concepts = match[1].split(",").map((s: string) => s.trim());
+              setGraphConcepts(concepts);
+            }
+          }
+
+          if (evt.stage === "done") {
+            const answer: Answer | undefined = evt.metadata?.answer;
+            if (answer) {
+              finishAnswer(answer);
+            } else {
+              questionsApi
+                .result(jobId)
+                .then((res) => {
+                  if (res.result) {
+                    finishAnswer(res.result);
+                  } else {
+                    setIsAsking(false);
+                  }
+                })
+                .catch(() => setIsAsking(false));
+            }
+            if (eventSourceRef.current) {
+              eventSourceRef.current.close();
+              eventSourceRef.current = null;
+            }
           }
         }
       } catch {
@@ -231,6 +214,7 @@ export const AskPage: React.FC = () => {
       }
     };
 
+    // §M7.4 Stream Error Freeze: Freezes sequence at last completed row without wiping state
     es.onerror = () => {
       setStreamError("Backend stream interrupted. EventSource disconnected.");
       addToast("failed", "Stream Disconnected", "Backend connection lost during generation");
@@ -277,6 +261,25 @@ export const AskPage: React.FC = () => {
     }
   }, []);
 
+  // Expose test hooks for automated verification of MS-07 Ask choreography
+  useEffect(() => {
+    (window as any).__VG_TEST_ASK_QUESTION__ = (query: string) => {
+      handleAskQuestion(query);
+    };
+    (window as any).__VG_TEST_SIMULATE_STREAM_ERROR__ = (msg: string = "Backend stream interrupted: simulated disconnection") => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      setStreamError(msg);
+      setIsAsking(false);
+    };
+    return () => {
+      delete (window as any).__VG_TEST_ASK_QUESTION__;
+      delete (window as any).__VG_TEST_SIMULATE_STREAM_ERROR__;
+    };
+  }, []);
+
   const drawerTabs = ["Thinking details", "Retrieved chunks", "Graph context"];
 
   // Trace stage colors
@@ -291,7 +294,7 @@ export const AskPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
+    <div className="flex flex-col lg:flex-row gap-6 items-start w-full" data-testid="ask-page">
       {/* Main Conversation Stream (1fr) */}
       <div className="flex-1 flex flex-col gap-6 min-w-0 w-full">
         {/* Suggested Quick Inquiries */}
@@ -310,10 +313,10 @@ export const AskPage: React.FC = () => {
         </div>
 
         {/* Conversation Threads */}
-        <div className="space-y-6">
+        <div className="space-y-6" data-testid="conversation-threads">
           {threads.map((item) => (
-            <div key={item.id} className="space-y-4 animate-fade-in">
-              {/* User Question Card (for answered or in-flight questions) */}
+            <div key={item.id} className="space-y-4">
+              {/* User Question Card (FLIP-morphs from input via sourceRect per §M5.2, §M7.4) */}
               {item.type !== "refusal" && (
                 <QuestionCard
                   initial={user?.display_label ? user.display_label[0].toUpperCase() : "A"}
@@ -321,12 +324,13 @@ export const AskPage: React.FC = () => {
                   date={item.timestamp}
                   category={item.category}
                   rewrittenQuery={item.rewrittenQuery}
+                  sourceRect={item.sourceRect}
                 />
               )}
 
               {/* Loading active stream state */}
               {item.type === "loading" && (
-                <div className="rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-5 flex flex-col gap-3 animate-fade-in">
+                <div className="rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-5 flex flex-col gap-3 m-enter">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className="w-2.5 h-2.5 rounded-full bg-[var(--verdigris)] animate-ping" />
@@ -363,14 +367,14 @@ export const AskPage: React.FC = () => {
                   )}
 
                   {streamError && (
-                    <div className="p-2.5 rounded-[var(--r-6)] bg-[var(--madder)]/15 border border-[var(--madder)]/30 text-[var(--madder)] text-[12px]">
+                    <div className="p-2.5 rounded-[var(--r-6)] bg-[var(--madder)]/15 border border-[var(--madder)]/30 text-[var(--madder)] text-[12px] animate-detent-impulse">
                       {streamError}
                     </div>
                   )}
 
                   <div className="type-meta text-[var(--dim)] text-[12px] border-t border-[var(--line-faint)] pt-2 flex items-center justify-between">
                     <span>User privacy filtered to {effectiveUserId}.</span>
-                    <span>Paced SSE stream (&ge;250ms dwell)</span>
+                    <span>Real EventSource stream</span>
                   </div>
                 </div>
               )}
@@ -405,8 +409,13 @@ export const AskPage: React.FC = () => {
         </div>
 
         {/* Ask Bar / Follow-up Input */}
-        <div className="rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-2.5 flex items-center gap-2 sticky bottom-4 shadow-lg backdrop-blur-md">
+        <div
+          className={`rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-2.5 flex items-center gap-2 sticky bottom-4 shadow-lg backdrop-blur-md transition-opacity duration-[180ms] ${
+            isAsking ? "opacity-60" : "opacity-100"
+          }`}
+        >
           <input
+            ref={inputRef}
             type="text"
             value={questionInput}
             onChange={(e) => setQuestionInput(e.target.value)}
@@ -418,7 +427,8 @@ export const AskPage: React.FC = () => {
             }}
             disabled={isAsking}
             placeholder={isAsking ? "Processing inquiry..." : "Ask a medical question about your reports…"}
-            className="flex-1 bg-transparent px-3 py-1.5 type-body text-[var(--bone)] placeholder-[var(--faint)] focus:outline-none"
+            className="flex-1 bg-transparent px-3 py-1.5 type-body text-[var(--bone)] placeholder-[var(--faint)] focus:outline-none focus:ring-1 focus:ring-[var(--verdigris)] rounded-[var(--r-4)] transition-[box-shadow] duration-[80ms]"
+            data-testid="ask-question-input"
           />
           <Select
             compactPaper
@@ -434,6 +444,7 @@ export const AskPage: React.FC = () => {
             className="h-9 px-4 flex items-center gap-2"
             disabled={isAsking || !questionInput.trim()}
             onClick={() => handleAskQuestion(questionInput)}
+            data-testid="ask-send-button"
           >
             {isAsking ? (
               <span className="w-3.5 h-3.5 rounded-full border-2 border-[var(--ink-900)] border-t-transparent animate-spin" />

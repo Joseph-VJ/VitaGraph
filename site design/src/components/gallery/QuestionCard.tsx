@@ -1,13 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Badge } from "./Badge";
 import { IconButton } from "./Buttons";
+import { flipFrom } from "../../motion/flip";
 
-interface QuestionCardProps {
+export interface QuestionCardProps {
   initial?: string;
   question: string;
   date: string;
   category?: string;
   rewrittenQuery?: string;
+  sourceRect?: DOMRect | null;
   className?: string;
 }
 
@@ -17,9 +19,17 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   date,
   category = "educational",
   rewrittenQuery,
+  sourceRect,
   className = "",
 }) => {
   const [copied, setCopied] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (sourceRect && cardRef.current) {
+      flipFrom(cardRef.current, sourceRect, { spring: "weighted", capMs: 240 });
+    }
+  }, [sourceRect]);
 
   const handleCopy = () => {
     if (rewrittenQuery) {
@@ -31,7 +41,11 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
   return (
     <div
-      className={`rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-4 flex flex-col ${className}`}
+      ref={cardRef}
+      data-testid="question-card"
+      className={`rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-4 flex flex-col ${
+        !sourceRect ? "m-enter" : ""
+      } ${className}`}
     >
       {/* Top row: Avatar + Question + Date + Badge */}
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -54,9 +68,9 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         )}
       </div>
 
-      {/* Inner rewritten-query block */}
+      {/* Inner rewritten-query block reveals via mask M5.6 */}
       {rewrittenQuery && (
-        <div className="rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)] p-3 flex items-center justify-between gap-3">
+        <div className="rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)] p-3 flex items-center justify-between gap-3 m-mask-reveal">
           <div className="flex flex-wrap items-center gap-2.5 min-w-0 flex-1">
             <span className="px-1.5 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] text-[var(--dim)] type-mono-sm font-medium flex-shrink-0">
               Rewritten query (RAG)

@@ -1,6 +1,7 @@
 import React from "react";
 import { Badge } from "./Badge";
 import { PaperSlip } from "./PaperSlip";
+import { UnderlineDraw } from "../../motion/fx/UnderlineDraw";
 import type { EvidenceCard } from "../../types";
 
 export interface AnswerBlockProps {
@@ -63,8 +64,36 @@ export const AnswerBlock: React.FC<AnswerBlockProps> = ({
     safetyText ||
     "VitaGraph is an educational decision-support tool and does not provide diagnostic or therapeutic instructions. Consult your physician for medical decisions.";
 
+  // Helper to render clinical observations with UnderlineDraw at 40ms stagger (§M7.4)
+  const renderSummaryWithUnderlines = (text: string) => {
+    // Matches clinical values with units or bracket citations [1], [ev1], or decimals
+    const tokenRegex = /(\d+(?:\.\d+)?(?:\s*(?:-|to)\s*\d+(?:\.\d+)?)?\s*(?:g\/dL|mg\/dL|%|million\/mcL|mmol\/L|mcL|fL|pg|uIU\/mL|IU\/L|U\/L)\b|\[\w+\]|\b\d+\.\d+\b)/i;
+    const parts = text.split(/(\d+(?:\.\d+)?(?:\s*(?:-|to)\s*\d+(?:\.\d+)?)?\s*(?:g\/dL|mg\/dL|%|million\/mcL|mmol\/L|mcL|fL|pg|uIU\/mL|IU\/L|U\/L)\b|\[\w+\]|\b\d+\.\d+\b)/g);
+    let underlineCount = 0;
+
+    return parts.map((part, idx) => {
+      if (!part) return null;
+      if (tokenRegex.test(part)) {
+        const delay = underlineCount * 40;
+        underlineCount++;
+        return (
+          <UnderlineDraw
+            key={idx}
+            delayMs={delay}
+            color="var(--cornflower)"
+            testId="evidence-underline"
+          >
+            <span className="font-medium text-[var(--bone)]">{part}</span>
+          </UnderlineDraw>
+        );
+      }
+      return <React.Fragment key={idx}>{part}</React.Fragment>;
+    });
+  };
+
   return (
     <div
+      data-testid="answer-block"
       className={`rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-5 flex flex-col ${className}`}
     >
       {/* Header */}
@@ -91,32 +120,54 @@ export const AnswerBlock: React.FC<AnswerBlockProps> = ({
         <span className="type-mono-sm text-[var(--dim)]">{elapsedTime}</span>
       </div>
 
-      {/* Four Part Rows (§7.22 & Plan §10) */}
+      {/* Four Part Rows (§7.22, Plan §10, §M5.6 mask-reveal 90ms stagger) */}
       <div className="divide-y divide-[var(--line-faint)]">
         {/* Part 1: What the reports say */}
-        <div className="py-3.5 flex flex-col sm:flex-row gap-3">
+        <div
+          data-testid="answer-part-1"
+          className="py-3.5 flex flex-col sm:flex-row gap-3 m-mask-reveal"
+          style={{ animationDelay: "0ms" }}
+        >
           <div className="w-[180px] type-body font-medium text-[var(--bone)] flex-shrink-0">
             What the reports say
           </div>
           <div className="type-reading text-[var(--bone)] leading-[21px] flex-1">
-            {displaySummary}
+            {renderSummaryWithUnderlines(displaySummary)}
           </div>
         </div>
 
         {/* Part 2: Evidence used */}
-        <div className="py-3.5 flex flex-col sm:flex-row gap-3">
+        <div
+          data-testid="answer-part-2"
+          className="py-3.5 flex flex-col sm:flex-row gap-3 m-mask-reveal"
+          style={{ animationDelay: "90ms" }}
+        >
           <div className="w-[180px] type-body font-medium text-[var(--bone)] flex-shrink-0">
             Evidence used
           </div>
           <div className="type-reading text-[var(--bone)] leading-[21px] flex-1">
-            {activeCards.length > 0
-              ? `Referenced ${activeCards.length} verified laboratory evidence chunk${activeCards.length === 1 ? "" : "s"} extracted from patient reports with semantic vector similarity.`
-              : "No specific clinical document chunks met the retrieval confidence threshold for this query."}
+            {activeCards.length > 0 ? (
+              <span>
+                Referenced{" "}
+                <UnderlineDraw delayMs={0} color="var(--cornflower)" testId="evidence-underline">
+                  <span className="font-medium text-[var(--bone)]">
+                    {activeCards.length} verified laboratory evidence chunk{activeCards.length === 1 ? "" : "s"}
+                  </span>
+                </UnderlineDraw>{" "}
+                extracted from patient reports with semantic vector similarity.
+              </span>
+            ) : (
+              "No specific clinical document chunks met the retrieval confidence threshold for this query."
+            )}
           </div>
         </div>
 
         {/* Part 3: What cannot be concluded */}
-        <div className="py-3.5 flex flex-col sm:flex-row gap-3">
+        <div
+          data-testid="answer-part-3"
+          className="py-3.5 flex flex-col sm:flex-row gap-3 m-mask-reveal"
+          style={{ animationDelay: "180ms" }}
+        >
           <div className="w-[180px] type-body font-medium text-[var(--bone)] flex-shrink-0">
             What cannot be concluded
           </div>
@@ -126,7 +177,11 @@ export const AnswerBlock: React.FC<AnswerBlockProps> = ({
         </div>
 
         {/* Part 4: Safety guidance */}
-        <div className="py-3.5 flex flex-col sm:flex-row gap-3">
+        <div
+          data-testid="answer-part-4"
+          className="py-3.5 flex flex-col sm:flex-row gap-3 m-mask-reveal"
+          style={{ animationDelay: "270ms" }}
+        >
           <div className="w-[180px] type-body font-medium text-[var(--bone)] flex-shrink-0">
             Safety guidance
           </div>
@@ -136,7 +191,7 @@ export const AnswerBlock: React.FC<AnswerBlockProps> = ({
         </div>
       </div>
 
-      {/* Embedded Evidence Cards (§7.22 PaperSlips) */}
+      {/* Embedded Evidence Cards (§7.22 PaperSlips, §M7.4 deal-in <=4 animated, 90ms stagger) */}
       {activeCards.length > 0 && (
         <div className="mt-4 pt-4 border-t border-[var(--line-faint)]">
           <div className="flex items-center justify-between mb-3">
@@ -148,20 +203,30 @@ export const AnswerBlock: React.FC<AnswerBlockProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {activeCards.map((ev) => (
-              <PaperSlip
-                key={ev.chunk_id}
-                title={ev.report_filename}
-                citation={`p. ${ev.page_number}`}
-                quote={ev.snippet}
-                authors="Clinical Laboratory Report"
-                journal={ev.report_date ? `Date: ${ev.report_date}` : undefined}
-                similarity={ev.score}
-                onCite={() => onEvidenceClick?.(ev)}
-                onClick={() => onEvidenceClick?.(ev)}
-              />
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3" data-testid="paper-slips-container">
+            {activeCards.map((ev, idx) => {
+              const isAnimated = idx < 4; // Capped at 4 animated per §M7.4
+              return (
+                <div
+                  key={ev.chunk_id}
+                  className={isAnimated ? "animate-slip-deal" : ""}
+                  style={isAnimated ? { animationDelay: `${idx * 90}ms` } : undefined}
+                  data-deal-index={idx}
+                  data-deal-animated={isAnimated ? "true" : "false"}
+                >
+                  <PaperSlip
+                    title={ev.report_filename}
+                    citation={`p. ${ev.page_number}`}
+                    quote={ev.snippet}
+                    authors="Clinical Laboratory Report"
+                    journal={ev.report_date ? `Date: ${ev.report_date}` : undefined}
+                    similarity={ev.score}
+                    onCite={() => onEvidenceClick?.(ev)}
+                    onClick={() => onEvidenceClick?.(ev)}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

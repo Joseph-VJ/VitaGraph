@@ -368,6 +368,49 @@ button:not(:disabled):active,
   animation: ruleWipe var(--m-deliberate, 360ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) forwards;
 }
 
+/* ─── §M7.4 Ask Choreography FX ─── */
+@keyframes washSweep {
+  0%   { transform: scaleX(0); opacity: 0; }
+  25%  { transform: scaleX(1); opacity: 0.08; }
+  75%  { transform: scaleX(1); opacity: 0.08; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+.animate-wash-sweep {
+  transform-origin: left;
+  animation: washSweep var(--m-base, 240ms) var(--ease-ink, cubic-bezier(0, 0, 0.2, 1)) forwards;
+}
+
+@keyframes maskReveal {
+  from { clip-path: inset(0 0 100% 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+.m-mask-reveal {
+  animation: maskReveal var(--m-deliberate, 360ms) var(--ease-ink, cubic-bezier(0, 0, 0.2, 1)) both;
+}
+
+@keyframes stageFlash {
+  0%   { opacity: 1; filter: brightness(1.6); }
+  50%  { opacity: 0.6; filter: brightness(1.2); }
+  100% { opacity: 1; filter: brightness(1); }
+}
+.animate-stage-flash {
+  animation: stageFlash var(--m-base, 240ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) 1;
+}
+
+@keyframes paperSlipDeal {
+  from {
+    opacity: 0;
+    transform: translateY(12px) rotate(-2deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+}
+.animate-slip-deal {
+  animation: paperSlipDeal var(--m-settle, 480ms) var(--ease-paper, cubic-bezier(0.16, 1, 0.30, 1)) both;
+}
+
 /* ─── Reduced motion support (§8.1, §M11) ─── */
 @media (prefers-reduced-motion: reduce) {
   .animate-breathe,
@@ -382,10 +425,15 @@ button:not(:disabled):active,
   .animate-underline-draw,
   .animate-chip-land,
   .animate-rule-wipe,
+  .animate-wash-sweep,
+  .m-mask-reveal,
+  .animate-stage-flash,
+  .animate-slip-deal,
   .skeleton-shimmer,
   .m-enter, .m-enter-card, .m-exit,
   .m-route-enter {
     animation: none !important;
+    clip-path: none !important;
   }
   ::view-transition-old(root),
   ::view-transition-new(root) {

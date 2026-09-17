@@ -1,7 +1,8 @@
 import React from "react";
 import { Badge } from "./Badge";
+import { WashSweep } from "../../motion/fx/WashSweep";
 
-interface RefusalCardProps {
+export interface RefusalCardProps {
   initial?: string;
   question?: string;
   date?: string;
@@ -18,8 +19,11 @@ export const RefusalCard: React.FC<RefusalCardProps> = ({
 }) => {
   return (
     <div
-      className={`rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-4 flex flex-col ${className}`}
+      data-testid="refusal-card"
+      className={`relative rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-4 flex flex-col overflow-hidden animate-impulse ${className}`}
     >
+      {/* §M5.4 WashSweep once on refusal entry */}
+      <WashSweep color="var(--madder)" testId="refusal-wash-sweep" />
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-start gap-3 min-w-0 flex-1">
