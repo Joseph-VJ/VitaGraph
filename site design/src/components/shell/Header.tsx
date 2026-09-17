@@ -189,16 +189,16 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
 
       {/* Right: Mode badges + Search Input + User Chip (§5.2, §US-12) */}
       <div className="flex items-center gap-3 flex-shrink-0">
-        {/* Replay mode badge (§US-12) */}
+        {/* Replay mode badge (§US-12, §M7.10: pops on enter, static while on, never disguised as live) */}
         {isReplay && (
-          <Badge variant="ochre" className="animate-pulse">
+          <Badge variant="ochre" className="animate-chip-pop" testId="replay-mode-badge">
             REPLAY MODE
           </Badge>
         )}
 
-        {/* allow_api=false label (§US-12) */}
+        {/* allow_api=false label (§US-12, §M7.10: static ochre, never pulses) */}
         {allowApi === false && (
-          <Badge variant="dim">
+          <Badge variant="ochre" className="animate-none" testId="allow-api-chip">
             allow_api=false · Local Composer
           </Badge>
         )}

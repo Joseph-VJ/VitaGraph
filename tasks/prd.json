@@ -220,7 +220,7 @@
       "id": "MS-10",
       "title": "Failure & honest states",
       "spec": "\u00a7M7.10",
-      "passes": false,
+      "passes": true,
       "acceptance": "Banner drop + static hatch; LED blink <=2 Hz measured; error card single impulse+wash; REPLAY badge static-on; allow_api chip never pulses; all states legible at T0 (matrix screenshots)",
       "gates": "21,24",
       "verify": "blink-hz calc, failure matrix pngs"

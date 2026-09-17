@@ -31,16 +31,18 @@ export const LED: React.FC<LEDProps> = ({
   if (!color && status) {
     if (status === "online") resolvedColor = "verdigris";
     else if (status === "warning") resolvedColor = "ochre";
-    else if (status === "error") resolvedColor = "madder";
+    else if (status === "error" || status === "offline" || status === "fail") resolvedColor = "madder";
     else resolvedColor = "faint";
   }
+
+  const isFail = resolvedColor === "madder" && (status === "offline" || status === "error" || status === "fail" || live);
 
   return (
     <span
       title={title}
       style={{ width: `${size}px`, height: `${size}px` }}
       className={`inline-block rounded-full flex-shrink-0 transition-opacity duration-200 ${colorMap[resolvedColor]} ${
-        live ? "animate-breathe" : ""
+        isFail ? "animate-led-fail" : live ? "animate-breathe" : ""
       } ${className}`}
     />
   );

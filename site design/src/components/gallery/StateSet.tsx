@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "./Buttons";
+import { WashSweep } from "../../motion/fx/WashSweep";
 
 // 1. Empty State
 interface EmptyStateProps {
@@ -79,9 +80,18 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
 }) => {
   return (
     <div
-      className={`rounded-[var(--r-6)] border border-[var(--line-strong)] border-l-2 border-l-[var(--madder)] bg-[var(--ink-800)] p-4 flex items-center justify-between gap-4 ${className}`}
+      data-testid="error-card"
+      className={`rounded-[var(--r-6)] border border-[var(--line-strong)] bg-[var(--ink-800)] p-4 flex items-center justify-between gap-4 relative overflow-hidden animate-detent-impulse ${className}`}
     >
-      <div className="flex items-center gap-3">
+      {/* 2px madder rule scaleY wipe in (§M7.10) */}
+      <div
+        data-testid="error-madder-rule"
+        className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--madder)] origin-top animate-rule-wipe-y"
+      />
+      {/* WashSweep 8% once (§M7.10) */}
+      <WashSweep color="var(--madder)" testId="error-card-wash" />
+
+      <div className="flex items-center gap-3 z-10">
         <svg className="w-5 h-5 text-[var(--madder)] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="12" cy="12" r="10" />
           <line x1="12" y1="8" x2="12" y2="12" />
@@ -90,7 +100,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
         <span className="type-body text-[var(--bone)]">{message}</span>
       </div>
 
-      <Button variant="solid-danger" onClick={onRetry} className="h-8 px-3 text-[12px]">
+      <Button variant="solid-danger" onClick={onRetry} className="h-8 px-3 text-[12px] z-10">
         Retry
       </Button>
     </div>

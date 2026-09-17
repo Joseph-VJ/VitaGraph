@@ -19,16 +19,18 @@ interface BadgeProps {
   variant?: BadgeVariant;
   children?: React.ReactNode;
   className?: string;
+  testId?: string;
 }
 
 export const Badge: React.FC<BadgeProps> = ({
   variant = "verdigris",
   children,
   className = "",
+  testId,
 }) => {
   if (variant === "completed") {
     return (
-      <span className={`inline-flex items-center gap-1.5 type-mono-sm text-[var(--bone)] ${className}`}>
+      <span data-testid={testId} className={`inline-flex items-center gap-1.5 type-mono-sm text-[var(--bone)] ${className}`}>
         <LED color="verdigris" live={false} />
         <span>{children || "Completed in 4.8 s"}</span>
       </span>
@@ -100,6 +102,7 @@ export const Badge: React.FC<BadgeProps> = ({
 
   return (
     <span
+      data-testid={testId}
       className={`inline-flex items-center rounded-[var(--r-4)] px-2 py-0.5 type-mono-sm ${styles[variant]} ${className}`}
     >
       {children || defaultText[variant] || ""}

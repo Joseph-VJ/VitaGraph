@@ -85,11 +85,11 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
       {/* Main Area: Top Banner + Header + Content + Status Strip */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        {/* Failure-injection backend-down banner (§US-12) */}
+        {/* Failure-injection backend-down banner (§US-12, §M7.10) */}
         {!backendOnline && (
           <div
             data-testid="backend-down-banner"
-            className="bg-[var(--madder)] text-[var(--bone)] px-4 py-2 type-label text-xs flex items-center justify-between z-40 border-b border-[var(--line-strong)] animate-fade-in flex-shrink-0"
+            className="bg-madder-hatch text-[var(--bone)] px-4 py-2 type-label text-xs flex items-center justify-between z-40 border-b border-[var(--line-strong)] animate-banner-drop flex-shrink-0"
           >
             <div className="flex items-center gap-2.5">
               <LED status="offline" size={8} />
@@ -97,7 +97,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 <strong>Backend Offline:</strong> Connection to 127.0.0.1:8000 lost · Live RAG, vector retrieval, and pipeline ingestion are paused · Graph & timeline inspectable
               </span>
             </div>
-            <span className="type-mono-sm uppercase text-[11px] opacity-80">Fail-Closed Boundary</span>
+            <span className="type-mono-sm uppercase text-[11px] opacity-90 font-medium tracking-wide">Fail-Closed Boundary</span>
           </div>
         )}
 

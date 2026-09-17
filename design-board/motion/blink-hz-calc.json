@@ -1,0 +1,35 @@
+{
+  "gate": 24,
+  "wcag_criteria": "2.3.1 (Three Flashes or Below Threshold) & 2.3.3 (Animation from Interactions)",
+  "threshold_max_hz": 2.0,
+  "measured_frequencies": [
+    {
+      "name": "ledFailBlink",
+      "selector": ".animate-led-fail",
+      "cycle_ms": 1200,
+      "pulses_per_cycle": 2,
+      "pulse_breakdown": "0-5% on (60ms), 5-10% off (60ms), 10-15% on (60ms), 15-20% off (60ms), 20-100% pause (960ms)",
+      "measured_hz": 1.667,
+      "pass": true
+    },
+    {
+      "name": "breathe",
+      "selector": ".animate-breathe",
+      "cycle_ms": 2000,
+      "pulses_per_cycle": 1,
+      "pulse_breakdown": "continuous sine breathe opacity 0.6 <-> 1.0",
+      "measured_hz": 0.5,
+      "pass": true
+    },
+    {
+      "name": "workDot",
+      "selector": ".animate-work-dot",
+      "cycle_ms": 1200,
+      "pulses_per_cycle": 1,
+      "pulse_breakdown": "single pulse every 1200ms when stage > cap",
+      "measured_hz": 0.833,
+      "pass": true
+    }
+  ],
+  "all_frequencies_pass": true
+}

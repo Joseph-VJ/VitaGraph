@@ -580,6 +580,63 @@ button:not(:disabled):active,
   animation: sketchDraw var(--m-cinematic, 720ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) 1;
 }
 
+/* ─── §M7.10 Failure & Honest States FX ─── */
+@keyframes bannerDrop {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(0); }
+}
+.animate-banner-drop {
+  animation: bannerDrop var(--m-base, 240ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) forwards;
+}
+
+/* Static 45° madder hatch (CSS repeating-linear-gradient, frozen colors, never animated per §M7.10) */
+.bg-madder-hatch {
+  background-color: var(--madder);
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(184, 67, 81, 0.92),
+    rgba(184, 67, 81, 0.92) 10px,
+    #D9808D 10px,
+    #D9808D 20px
+  );
+}
+
+/* LED fail pattern: 2 blinks (120ms on/off total active) + 960ms pause = 1.2s cycle <= 2 Hz (1.667 Hz, WCAG 2.3.1, §M7.10) */
+@keyframes ledFailBlink {
+  0%, 5% {
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(217, 128, 141, 0.7));
+  }
+  5.01%, 10% {
+    opacity: 0.2;
+    filter: none;
+  }
+  10.01%, 15% {
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(217, 128, 141, 0.7));
+  }
+  15.01%, 20% {
+    opacity: 0.2;
+    filter: none;
+  }
+  20.01%, 100% {
+    opacity: 0.2;
+    filter: none;
+  }
+}
+.animate-led-fail {
+  animation: ledFailBlink 1.2s infinite;
+}
+
+@keyframes ruleWipeY {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+.animate-rule-wipe-y {
+  transform-origin: top;
+  animation: ruleWipeY var(--m-deliberate, 360ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) forwards;
+}
+
 /* ─── Reduced motion support (§8.1, §M11) ─── */
 @media (prefers-reduced-motion: reduce) {
   .animate-breathe,
@@ -616,12 +673,17 @@ button:not(:disabled):active,
   .animate-ring-sweep,
   .animate-predicate-sweep,
   .animate-sketch-draw,
+  .animate-banner-drop,
+  .animate-led-fail,
+  .animate-rule-wipe-y,
   .skeleton-shimmer,
   .m-enter, .m-enter-card, .m-exit,
   .m-route-enter {
     animation: none !important;
     clip-path: none !important;
     transform: none !important;
+    opacity: 1 !important;
+    filter: none !important;
   }
   ::view-transition-old(root),
   ::view-transition-new(root) {
