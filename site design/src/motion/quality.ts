@@ -188,18 +188,19 @@ class QualityGovernor {
     }
   }
 
-  private setTier(newTier: MotionTier, mode: MotionMode): void {
-    if (this.tier === newTier && this.mode === mode) return;
+  public setTier(newTier: MotionTier, mode: MotionMode = "manual"): void {
+    const resolvedMode = mode || "manual";
+    if (this.tier === newTier && this.mode === resolvedMode) return;
 
     const oldTier = this.tier;
     this.tier = newTier;
-    this.mode = mode;
+    this.mode = resolvedMode;
     this.lastTierChangeTime = performance.now();
     this.applyTierToEngine();
 
     // Telemetry log (§M4.4)
     console.info(
-      `[MotionGovernor] Tier changed: ${oldTier} -> ${newTier} (mode: ${mode}, FPS: ${ticker.getRollingFps()})`
+      `[MotionGovernor] Tier changed: ${oldTier} -> ${newTier} (mode: ${resolvedMode}, FPS: ${ticker.getRollingFps()})`
     );
 
     this.notifyListeners();

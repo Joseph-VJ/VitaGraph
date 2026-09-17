@@ -238,7 +238,7 @@ export const SettingsPage: React.FC = () => {
             <div className="p-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
               <span className="type-label text-[var(--dim)] block text-[11px]">Hardware / Governor Mode</span>
               <span className="type-mono-sm text-[var(--bone)] font-mono">
-                {motion.mode.toUpperCase()} ({motion.reducedMotion ? "prefers-reduced-motion active" : "standard display"})
+                {(motion.mode || "auto").toUpperCase()} ({motion.reducedMotion ? "prefers-reduced-motion active" : "standard display"})
               </span>
             </div>
             <div className="p-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
