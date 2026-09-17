@@ -175,7 +175,7 @@
       "id": "MS-05",
       "title": "GraphStage engine pass",
       "spec": "\u00a7M8.1, M8.4, M8.5",
-      "passes": false,
+      "passes": true,
       "acceptance": "Glow sprite cache (5 sprites, no per-frame gradients); DPR caps per tier; hover <=1-frame response w/ incident-edge emphasis; camera springs w/ user-interrupt + momentum hand-off; zero alloc in draw loop; single ticker (GraphStage rAF removed)",
       "gates": "19,28,29",
       "verify": "120-node benchmark json, hover.webm"
