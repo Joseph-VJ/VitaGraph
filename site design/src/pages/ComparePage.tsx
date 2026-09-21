@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { DeltaChip, Button, Marginalia, ErrorState } from "../components/gallery";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { DeltaChip, Button, Marginalia, ErrorState, EmptyState } from "../components/gallery";
 import { Odometer } from "../motion/fx/Odometer";
 import { flip, flipFrom } from "../motion/flip";
 import { DrawPath } from "../motion/fx/DrawPath";
@@ -13,6 +13,7 @@ import type { Report } from "../types";
 
 export const ComparePage: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useActiveUser();
   const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
 
@@ -58,7 +59,10 @@ export const ComparePage: React.FC = () => {
 
   // Load comparison data when baselineId or followupId is ready
   const loadComparison = useCallback(async () => {
-    if (!baselineId && !followupId && reports.length === 0) return;
+    if (!baselineId && !followupId && reports.length === 0) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -339,9 +343,15 @@ export const ComparePage: React.FC = () => {
             ))}
           </div>
         ) : rows.length === 0 ? (
-          <div className="p-8 text-center text-[var(--dim)] type-body">
-            No comparable lab observations found in the selected reports.
-          </div>
+          <EmptyState
+            quote="No comparable lab observations found in the selected reports."
+            actionLabel="+ Upload panel"
+            onAction={() => {
+              setNavDirection("forward");
+              navigate("/upload");
+            }}
+            className="border-0 bg-transparent py-12"
+          />
         ) : (
           <table className="w-full text-left border-collapse">
             <thead>

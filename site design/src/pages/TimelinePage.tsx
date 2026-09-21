@@ -7,6 +7,7 @@ import {
   IconButton,
   Marginalia,
   ErrorState,
+  EmptyState,
 } from "../components/gallery";
 import { useActiveUser } from "../context/UserContext";
 import { useToast } from "../components/gallery/Toast";
@@ -545,9 +546,15 @@ export const TimelinePage: React.FC = () => {
               ))}
             </div>
           ) : reports.length === 0 ? (
-            <div className="p-8 text-center bg-[var(--ink-800)] rounded-[var(--r-10)] border border-[var(--line-strong)] text-[var(--dim)]">
-              No reports found for this persona.
-            </div>
+            <EmptyState
+              quote="No reports found for this persona."
+              actionLabel="Upload first report"
+              onAction={() => {
+                setNavDirection("forward");
+                navigate("/upload");
+              }}
+              className="my-4"
+            />
           ) : (
             reports.map((report, idx) => {
               const isLatest = idx === 0;

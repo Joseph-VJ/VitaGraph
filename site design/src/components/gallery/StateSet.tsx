@@ -19,6 +19,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   onAction,
   className = "",
 }) => {
+  const isT0 = governor.getState().tier === "T0" || isReducedMotion();
   return (
     <div
       className={`rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-8 flex flex-col items-center justify-center text-center ${className}`}
@@ -32,21 +33,23 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             strokeWidth={1.5}
             stroke="currentColor"
             durationMs={720}
-            className="animate-sketch-draw"
+            className={!isT0 ? "animate-sketch-draw" : ""}
             data-testid="empty-state-sketch"
           />
-          <circle cx="20" cy="18" r="3" className="animate-sketch-draw" />
+          <circle cx="20" cy="18" r="3" className={!isT0 ? "animate-sketch-draw" : ""} />
         </svg>
       </div>
 
-      <p className="type-quote text-[var(--dim)] mb-4 max-w-sm m-fade-only" data-testid="empty-state-quote">
+      <p className={`type-quote text-[var(--dim)] mb-4 max-w-sm ${!isT0 ? "m-fade-only" : ""}`} data-testid="empty-state-quote">
         “{quote}”
       </p>
 
       {actionLabel && (
-        <Button variant="ghost" onClick={onAction}>
-          {actionLabel}
-        </Button>
+        <DetentPress>
+          <Button variant="ghost" onClick={onAction}>
+            {actionLabel}
+          </Button>
+        </DetentPress>
       )}
     </div>
   );

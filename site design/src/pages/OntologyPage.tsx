@@ -5,6 +5,9 @@ import { transitionNavigate } from "../motion/navigation";
 import { springToLinear, governor, isReducedMotion } from "../motion";
 import { Odometer } from "../motion/fx/Odometer";
 import { DetentPress } from "../motion/fx/DetentPress";
+import { DrawPath } from "../motion/fx/DrawPath";
+import { flip } from "../motion/flip";
+import { playDetent } from "../motion/audio";
 
 interface ConceptItem {
   id: string;
@@ -92,6 +95,23 @@ export const OntologyPage: React.FC = () => {
   };
 
   const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+
+  const handleClearFilters = () => {
+    playDetent();
+    if (isT0 || !tbodyRef.current) {
+      setSearchTerm("");
+      setActiveCat("all");
+      return;
+    }
+    flip(
+      tbodyRef.current,
+      () => {
+        setSearchTerm("");
+        setActiveCat("all");
+      },
+      { spring: "weighted", capMs: 240 }
+    );
+  };
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -198,7 +218,47 @@ export const OntologyPage: React.FC = () => {
             </tr>
           </thead>
           <tbody ref={tbodyRef} className="divide-y divide-[var(--line-faint)]">
-            {filtered.map((c) => {
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-12 px-4 text-center">
+                  <div
+                    data-testid="ontology-empty-state"
+                    className={`flex flex-col items-center justify-center gap-3 ${
+                      !isT0 ? "m-enter" : ""
+                    }`}
+                  >
+                    <div className="w-10 h-10 text-[var(--dim)] opacity-70">
+                      <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full">
+                        <DrawPath
+                          d="M12 48L24 24L36 40L44 30L52 48H12Z"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                          durationMs={720}
+                          className="animate-sketch-draw"
+                          data-testid="empty-state-sketch"
+                        />
+                      </svg>
+                    </div>
+                    <span className="type-body text-xs text-[var(--dim)]">
+                      No concepts match &ldquo;{searchTerm || activeCat}&rdquo;
+                    </span>
+                    <DetentPress>
+                      <Button
+                        variant="ghost"
+                        onClick={handleClearFilters}
+                        data-testid="ontology-clear-filters-btn"
+                        className="h-7 text-xs px-3"
+                      >
+                        Clear filters
+                      </Button>
+                    </DetentPress>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              filtered.map((c) => {
               const isMorphing = morphingConceptId === c.id && !isT0;
               return (
                 <tr
@@ -251,7 +311,7 @@ export const OntologyPage: React.FC = () => {
                   </td>
                 </tr>
               );
-            })}
+            }))}
           </tbody>
         </table>
       </div>

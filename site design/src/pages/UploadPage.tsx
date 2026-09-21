@@ -22,6 +22,7 @@ import { PhotonManager } from "../motion/fx/Photon";
 import { DustManager } from "../motion/fx/DustField";
 import { flip } from "../motion/flip";
 import { DetentPress } from "../motion/fx/DetentPress";
+import { DrawPath } from "../motion/fx/DrawPath";
 
 export const UploadPage: React.FC = () => {
   const navigate = useNavigate();
@@ -612,8 +613,27 @@ export const UploadPage: React.FC = () => {
                     </tr>
                   ) : pages.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-6 text-center text-[var(--dim)] type-meta">
-                        Upload a report PDF to view page-level extraction confidence.
+                      <td colSpan={5} className="py-8 text-center">
+                        <div
+                          data-testid="upload-quality-empty"
+                          className={`flex items-center justify-center gap-2.5 text-[var(--dim)] type-meta ${
+                            !isT0 ? "m-enter" : ""
+                          }`}
+                        >
+                          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 text-[var(--dim)]">
+                            <DrawPath
+                              d="M12 48L24 24L36 40L44 30L52 48H12Z"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1.5}
+                              stroke="currentColor"
+                              durationMs={720}
+                              className="animate-sketch-draw"
+                              data-testid="empty-state-sketch"
+                            />
+                          </svg>
+                          <span>Upload a report PDF to view page-level extraction confidence.</span>
+                        </div>
                       </td>
                     </tr>
                   ) : (
@@ -798,8 +818,25 @@ export const UploadPage: React.FC = () => {
             </div>
 
             {quarantinedFiles.length === 0 ? (
-              <div className="p-3 text-[12px] type-meta text-[var(--dim)] bg-[var(--ink-900)] rounded-[var(--r-6)] border border-[var(--line-faint)]">
-                No quarantined files. All uploaded documents passed security validation, encryption, and layout verification gates.
+              <div
+                data-testid="upload-quarantine-empty"
+                className={`p-3 text-[12px] type-meta text-[var(--dim)] bg-[var(--ink-900)] rounded-[var(--r-6)] border border-[var(--line-faint)] flex items-center gap-2.5 ${
+                  !isT0 ? "m-enter" : ""
+                }`}
+              >
+                <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-[var(--dim)] flex-shrink-0">
+                  <DrawPath
+                    d="M12 48L24 24L36 40L44 30L52 48H12Z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    durationMs={720}
+                    className="animate-sketch-draw"
+                    data-testid="empty-state-sketch"
+                  />
+                </svg>
+                <span>No quarantined files. All uploaded documents passed security validation, encryption, and layout verification gates.</span>
               </div>
             ) : (
               <div className="space-y-2">
