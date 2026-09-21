@@ -90,8 +90,12 @@ export const OntologyPage: React.FC = () => {
     const isT0 = governor.getState().tier === "T0" || isReducedMotion();
     if (!isT0) {
       setMorphingConceptId(conceptId);
+      requestAnimationFrame(() => {
+        transitionNavigate(navigate, "/graph", { direction: "forward" });
+      });
+    } else {
+      transitionNavigate(navigate, "/graph", { direction: "forward" });
     }
-    transitionNavigate(navigate, "/graph", { direction: "forward" });
   };
 
   const isT0 = governor.getState().tier === "T0" || isReducedMotion();

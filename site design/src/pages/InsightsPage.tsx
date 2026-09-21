@@ -74,7 +74,17 @@ export const InsightsPage: React.FC = () => {
       : 0;
 
     const data = await loadGraphData();
-    if (!data || isT0) return;
+    if (!data) return;
+
+    if (isT0) {
+      // In T0, skip WAAPI tweens and apply values instantly
+      const newMod = data.metrics?.modularity > 0 ? data.metrics.modularity : 0.48;
+      const targetOffset = 251.3 * (1 - Math.min(1, Math.max(0, newMod)));
+      if (gaugeRingRef.current) {
+        gaugeRingRef.current.style.strokeDashoffset = `${targetOffset}`;
+      }
+      return;
+    }
 
     const newMod = data.metrics?.modularity > 0 ? data.metrics.modularity : 0.48;
     const targetOffset = 251.3 * (1 - Math.min(1, Math.max(0, newMod)));
@@ -344,7 +354,7 @@ export const InsightsPage: React.FC = () => {
         /* Grid of 4 Insight Cards (§9.7) */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* 1. Louvain Community Card with Circular Modularity Gauge (§M7.8, M4.2) */}
-          <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between m-scroll-reveal">
+          <div className={`p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between ${!isT0 ? "m-scroll-reveal" : ""}`}>
             <div>
               <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--line-faint)]">
                 <h3 className="type-title text-[var(--bone)] text-base">
@@ -373,7 +383,7 @@ export const InsightsPage: React.FC = () => {
                       cx="50"
                       cy="50"
                       r="40"
-                      className={`text-[var(--verdigris)] origin-center ${isRefreshed ? "" : "animate-ring-sweep"}`}
+                      className={`text-[var(--verdigris)] origin-center ${isRefreshed || isT0 ? "" : "animate-ring-sweep"}`}
                       strokeWidth="8"
                       strokeDasharray={251.3}
                       strokeDashoffset={251.3 * (1 - Math.min(1, Math.max(0, modularityVal)))}
@@ -381,61 +391,55 @@ export const InsightsPage: React.FC = () => {
                       stroke="currentColor"
                       fill="transparent"
                       style={{
-                        animation: isRefreshed ? "none" : undefined,
+                        animation: isRefreshed || isT0 ? "none" : undefined,
                         ["--ring-circumference" as any]: "251.3",
                         ["--ring-target-offset" as any]: `${251.3 * (1 - Math.min(1, Math.max(0, modularityVal)))}`,
                       }}
-                      data-testid="modularity-gauge-ring"
                     />
                   </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="type-mono-sm font-bold text-xs text-[var(--bone)]">
-                      <Odometer
-                        value={modularityVal}
-                        decimals={2}
-                        duration={720}
-                        testId="odo-modularity"
-                      />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="type-mono-sm text-sm font-bold text-[var(--bone)]">
+                      <Odometer value={modularityVal} decimals={2} duration={720} testId="odo-modularity-center" />
                     </span>
-                    <span className="text-[9px] text-[var(--dim)] font-mono">Q SCORE</span>
+                    <span className="type-meta text-[10px] text-[var(--dim)]">Modularity</span>
                   </div>
                 </div>
+
                 <div className="min-w-0">
-                  <span className="type-label text-[var(--bone)] block text-xs mb-1">
-                    Dense Subgraph Modularity
+                  <span className="type-label text-[var(--bone)] block text-xs">
+                    Modular Subgraphs
                   </span>
-                  <p className="type-meta text-[var(--dim)] text-xs leading-relaxed">
-                    Network clustering partitions {metrics.total_nodes} biomedical entities into {metrics.communities_count} cohesive communities.
-                  </p>
+                  <span className="type-meta text-[var(--dim)] text-xs">
+                    {metrics.communities_count || 3} dense biomedical clusters detected with positive modularity.
+                  </span>
                 </div>
               </div>
 
-              <div className="space-y-3 py-2 border-y border-[var(--line-faint)] text-xs">
-                {communityClusters.map((cluster, idx) => (
-                  <div key={cluster.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          clusterColors[idx % clusterColors.length]
-                        }`}
-                      />
-                      <span className="type-label text-[var(--bone)] truncate max-w-[200px]">
-                        {cluster.label}
+              <div className="space-y-3 py-1 text-xs">
+                {communityClusters.slice(0, 3).map((comm, idx) => (
+                  <div key={comm.id} className="flex items-center justify-between py-1 border-b border-[var(--line-faint)]">
+                    <div className="flex items-center gap-2 truncate">
+                      <div className={`w-2 h-2 rounded-full ${clusterColors[idx % clusterColors.length]} flex-shrink-0`} />
+                      <span className="type-body text-[var(--bone)] truncate">
+                        {comm.label}
                       </span>
                     </div>
-                    <span className="type-mono-sm text-[var(--dim)]">
-                      {cluster.coreNodes} nodes · {cluster.edges} edges
-                    </span>
+                    <div className="flex items-center gap-3 text-[var(--dim)] font-mono text-[11px] flex-shrink-0">
+                      <span>{comm.coreNodes} nodes</span>
+                      <span>{comm.edges} edges</span>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="mt-4 pt-3 flex justify-end">
+            <div className="mt-4 pt-3 flex justify-between items-center">
+              <span className="type-meta text-[var(--faint)] text-[11px]">
+                Modularity range: 0.0 - 1.0 (higher = denser intra-cluster ties)
+              </span>
               <Link
                 to="/graph"
                 viewTransition
-                style={{ viewTransitionName: !isT0 ? "cluster-hull" : undefined }}
                 onClick={() => setNavDirection(getNavDirection(location.pathname, "/graph"))}
               >
                 <Button variant="ghost" className="h-7 text-xs">
@@ -446,7 +450,7 @@ export const InsightsPage: React.FC = () => {
           </div>
 
           {/* 2. Degree & Betweenness Centrality (Race-Sort, §M7.8) */}
-          <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between m-scroll-reveal">
+          <div className={`p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between ${!isT0 ? "m-scroll-reveal" : ""}`}>
             <div>
               <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--line-faint)]">
                 <div>
@@ -519,7 +523,7 @@ export const InsightsPage: React.FC = () => {
                           else rankBarRefs.current.delete(hub.id);
                         }}
                         style={{ width: `${Math.min(100, Math.max(12, hub.relativeScore * 100))}%` }}
-                        className="h-full bg-[var(--verdigris)] rounded-full animate-bar-settle origin-left"
+                        className={`h-full bg-[var(--verdigris)] rounded-full origin-left ${!isT0 ? "animate-bar-settle" : ""}`}
                       />
                     </div>
                   </div>
@@ -544,7 +548,7 @@ export const InsightsPage: React.FC = () => {
           </div>
 
           {/* 3. Predicate Distribution (§M7.8: clockwise sweep from 12 o'clock, 60ms stagger; odometer percentages) */}
-          <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between m-scroll-reveal">
+          <div className={`p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between ${!isT0 ? "m-scroll-reveal" : ""}`}>
             <div>
               <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--line-faint)]">
                 <h3 className="type-title text-[var(--bone)] text-base">
@@ -585,9 +589,9 @@ export const InsightsPage: React.FC = () => {
                           fill="transparent"
                           strokeDasharray={`${strokeDash} ${circumference}`}
                           strokeDashoffset={-p.accumulatedPct * circumference}
-                          className="animate-predicate-sweep origin-center"
+                          className={`origin-center ${!isT0 ? "animate-predicate-sweep" : ""}`}
                           style={{
-                            animationDelay: `${idx * 60}ms`,
+                            animationDelay: !isT0 ? `${idx * 60}ms` : undefined,
                             ["--pred-circumference" as any]: `${circumference}`,
                             ["--pred-target-offset" as any]: `${-p.accumulatedPct * circumference}`,
                           }}
@@ -620,9 +624,9 @@ export const InsightsPage: React.FC = () => {
                       <div
                         style={{
                           width: `${Math.max(p.pct, 4)}%`,
-                          animationDelay: `${idx * 60}ms`,
+                          animationDelay: !isT0 ? `${idx * 60}ms` : undefined,
                         }}
-                        className={`h-full ${p.color} rounded-full animate-bar-settle origin-left`}
+                        className={`h-full ${p.color} rounded-full origin-left ${!isT0 ? "animate-bar-settle" : ""}`}
                       />
                     </div>
                   </div>
@@ -638,7 +642,7 @@ export const InsightsPage: React.FC = () => {
           </div>
 
           {/* 4. Cross-Study Synthesis */}
-          <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between m-scroll-reveal">
+          <div className={`p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between ${!isT0 ? "m-scroll-reveal" : ""}`}>
             <div>
               <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--line-faint)]">
                 <h3 className="type-title text-[var(--bone)] text-base">

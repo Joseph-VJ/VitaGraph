@@ -344,9 +344,11 @@ export const TimelinePage: React.FC = () => {
     try {
       // 1. Measure existing report cards (FLIP First, Gate 19 single forced reflow)
       const firstRects = new Map<string, DOMRect>();
-      cardRefs.current.forEach((el, id) => {
-        if (el) firstRects.set(id, el.getBoundingClientRect());
-      });
+      if (!isT0) {
+        cardRefs.current.forEach((el, id) => {
+          if (el) firstRects.set(id, el.getBoundingClientRect());
+        });
+      }
 
       // 2. Real upload
       const pdfContent = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 4 0 R>>endobj\n4 0 obj<</Length 120>>stream\nBT /F1 12 Tf 100 700 Td (Follow-up Panel 2025-12-10: Hemoglobin 14.2 g/dL, HbA1c 6.2%, Vitamin D 32 ng/mL) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000010 00000 n \n0000000057 00000 n \n0000000114 00000 n \n0000000203 00000 n \ntrailer<</Size 5/Root 1 0 R>>\nstartxref\n376\n%%EOF";
@@ -366,14 +368,19 @@ export const TimelinePage: React.FC = () => {
       }
 
       // 4. Invert & Play on existing cards (weighted spring)
-      setTimeout(() => {
-        firstRects.forEach((firstRect, id) => {
-          const el = cardRefs.current.get(id);
-          if (el) {
-            flipFrom(el, firstRect, { spring: "weighted", capMs: 240 });
-          }
-        });
-      }, 0);
+      if (!isT0) {
+        new Sequence()
+          .wait(0)
+          .addAction(() => {
+            firstRects.forEach((firstRect, id) => {
+              const el = cardRefs.current.get(id);
+              if (el) {
+                flipFrom(el, firstRect, { spring: "weighted", capMs: 240 });
+              }
+            });
+          })
+          .play();
+      }
     } catch (err: any) {
       console.error("Simulation upload failed:", err);
       const msg = err.message || "Failed to upload follow-up report";
@@ -390,18 +397,25 @@ export const TimelinePage: React.FC = () => {
       const customEvent = e as CustomEvent;
       if (customEvent.detail?.type === "upload") {
         const firstRects = new Map<string, DOMRect>();
-        cardRefs.current.forEach((el, id) => {
-          if (el) firstRects.set(id, el.getBoundingClientRect());
-        });
+        if (!isT0) {
+          cardRefs.current.forEach((el, id) => {
+            if (el) firstRects.set(id, el.getBoundingClientRect());
+          });
+        }
         loadData().then(() => {
-          setTimeout(() => {
-            firstRects.forEach((firstRect, id) => {
-              const el = cardRefs.current.get(id);
-              if (el) {
-                flipFrom(el, firstRect, { spring: "weighted", capMs: 240 });
-              }
-            });
-          }, 0);
+          if (!isT0) {
+            new Sequence()
+              .wait(0)
+              .addAction(() => {
+                firstRects.forEach((firstRect, id) => {
+                  const el = cardRefs.current.get(id);
+                  if (el) {
+                    flipFrom(el, firstRect, { spring: "weighted", capMs: 240 });
+                  }
+                });
+              })
+              .play();
+          }
         });
       }
     };
