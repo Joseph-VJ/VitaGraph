@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Breadcrumb } from "../gallery/Breadcrumb";
 import { Badge } from "../gallery/Badge";
 import { useActiveUser } from "../../context/UserContext";
+import { supportsViewTransitions, governor } from "../../motion";
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
@@ -177,7 +178,15 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
         {config.breadcrumb ? (
           <div>
             <Breadcrumb items={config.breadcrumb} className="mb-0.5" />
-            <h1 className="type-display text-[22px] leading-tight text-[var(--bone)]">
+            <h1
+              className="type-display text-[22px] leading-tight text-[var(--bone)]"
+              style={{
+                viewTransitionName:
+                  supportsViewTransitions() && governor.getState().tier !== "T0"
+                    ? "header-title"
+                    : "none",
+              }}
+            >
               {config.title}
             </h1>
             <p className="type-screen-sub text-[13px] leading-tight text-[var(--dim)] mt-0.5">
@@ -186,7 +195,15 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
           </div>
         ) : (
           <div>
-            <h1 className="type-display text-[24px] leading-tight text-[var(--bone)]">
+            <h1
+              className="type-display text-[24px] leading-tight text-[var(--bone)]"
+              style={{
+                viewTransitionName:
+                  supportsViewTransitions() && governor.getState().tier !== "T0"
+                    ? "header-title"
+                    : "none",
+              }}
+            >
               {config.title}
             </h1>
             <p className="type-screen-sub text-[13px] leading-tight text-[var(--dim)] mt-0.5">

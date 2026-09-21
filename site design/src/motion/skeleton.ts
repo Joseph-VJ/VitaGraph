@@ -77,6 +77,7 @@ export interface CrossfadeContainerProps {
   children: React.ReactNode;
   className?: string;
   id?: string;
+  testId?: string;
 }
 
 /**
@@ -89,13 +90,14 @@ export const CrossfadeContainer: React.FC<CrossfadeContainerProps> = ({
   children,
   className = "",
   id,
+  testId,
 }) => {
   const { showSkeleton, showContent, skeletonClassName, contentClassName } =
     useSkeletonCrossfade(loading, { id });
 
   return React.createElement(
     "div",
-    { className: `relative ${className}` },
+    { className: `relative ${className}`, "data-testid": testId },
     showSkeleton
       ? React.createElement(
           "div",
@@ -112,4 +114,53 @@ export const CrossfadeContainer: React.FC<CrossfadeContainerProps> = ({
       : null
   );
 };
+
+/**
+ * crossfadeSkeleton imperative DOM function (§7.14-C, C3)
+ * .m-exit on skeleton -> chained .m-enter on content via Sequence.
+ * Settle instantly under reduced motion or T0.
+ */
+export function crossfadeSkeleton(
+  skeletonEl: HTMLElement | null,
+  contentEl: HTMLElement | null,
+  options?: { durationMs?: number; onComplete?: () => void }
+): void {
+  if (!skeletonEl && !contentEl) {
+    options?.onComplete?.();
+    return;
+  }
+  const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+  const duration = options?.durationMs ?? 180;
+
+  if (isT0) {
+    if (skeletonEl) skeletonEl.style.display = "none";
+    if (contentEl) {
+      contentEl.style.display = "";
+      contentEl.classList.remove("hidden");
+    }
+    options?.onComplete?.();
+    return;
+  }
+
+  if (skeletonEl) {
+    skeletonEl.classList.add("m-exit");
+  }
+
+  new Sequence()
+    .wait(duration)
+    .addAction(() => {
+      if (skeletonEl) {
+        skeletonEl.style.display = "none";
+        skeletonEl.classList.remove("m-exit");
+      }
+      if (contentEl) {
+        contentEl.style.display = "";
+        contentEl.classList.remove("hidden");
+        contentEl.classList.add("m-enter");
+      }
+      options?.onComplete?.();
+    })
+    .play();
+}
+
 

@@ -17,11 +17,13 @@ import {
   PulseRing,
   UnderlineDraw,
   CrossfadeContainer,
+  DetentPress,
 } from "../../motion";
 import { PhotonManager } from "../../motion/fx/Photon";
 import { Button } from "./Buttons";
 import { Badge } from "./Badge";
 import { LED } from "./LED";
+import { EmptyState } from "./StateSet";
 
 interface ReasoningStep {
   id: string;
@@ -267,6 +269,148 @@ export const MotionSpecimensSection: React.FC = () => {
         setFilter24Cat(cat);
       }
     }
+  };
+
+  // M5.25 KPI Impulse Tile state
+  const [kpi25Value, setKpi25Value] = useState(128);
+  const [kpi25Impulse, setKpi25Impulse] = useState(false);
+  const handleKpi25Increment = () => {
+    playDetent();
+    setKpi25Value((v) => v + 12);
+    if (!isT0) {
+      setKpi25Impulse(true);
+      new Sequence()
+        .wait(360)
+        .addAction(() => setKpi25Impulse(false))
+        .play();
+    }
+  };
+
+  // M5.26 Verify-Integrity Ritual state
+  const [integrity26Verified, setIntegrity26Verified] = useState(false);
+  const [integrity26Running, setIntegrity26Running] = useState(false);
+  const [integrity26Wash, setIntegrity26Wash] = useState(false);
+  const handleVerify26 = () => {
+    playDetent();
+    if (isT0) {
+      setIntegrity26Verified(true);
+      return;
+    }
+    setIntegrity26Running(true);
+    setIntegrity26Wash(true);
+    new Sequence()
+      .wait(240)
+      .addAction(() => {
+        setIntegrity26Verified(true);
+        setIntegrity26Running(false);
+        setIntegrity26Wash(false);
+        playChime();
+      })
+      .play();
+  };
+
+  // M5.27 Skeleton Crossfade state
+  const [skeleton27Loading, setSkeleton27Loading] = useState(false);
+  const handleSkeleton27Toggle = () => {
+    playDetent();
+    setSkeleton27Loading((v) => !v);
+  };
+
+  // M5.28 Run-Notebook Ritual state
+  const [notebook28Running, setNotebook28Running] = useState(false);
+  const [notebook28Step, setNotebook28Step] = useState(0);
+  const [notebook28Wash, setNotebook28Wash] = useState(false);
+  const handleRunNotebook28 = () => {
+    playDetent();
+    if (isT0) {
+      setNotebook28Step(3);
+      return;
+    }
+    setNotebook28Running(true);
+    setNotebook28Step(0);
+    setNotebook28Wash(true);
+    new Sequence()
+      .wait(120)
+      .addAction(() => {
+        setNotebook28Step(1);
+        playDetent();
+      })
+      .wait(120)
+      .addAction(() => {
+        setNotebook28Step(2);
+        playDetent();
+      })
+      .wait(120)
+      .addAction(() => {
+        setNotebook28Step(3);
+        setNotebook28Running(false);
+        setNotebook28Wash(false);
+        playChime();
+      })
+      .play();
+  };
+
+  // M5.30 Toast Stack FLIP state
+  interface SpecimenToast {
+    id: string;
+    text: string;
+    variant: "verdigris" | "ochre" | "madder";
+  }
+  const [toasts30, setToasts30] = useState<SpecimenToast[]>([
+    { id: "t1", text: "Graph metrics synchronized", variant: "verdigris" },
+    { id: "t2", text: "Longitudinal observation extracted", variant: "ochre" },
+  ]);
+  const [exitingToast30Ids, setExitingToast30Ids] = useState<string[]>([]);
+  const toast30ContainerRef = useRef<HTMLDivElement>(null);
+  const handleDismissToast30 = (id: string) => {
+    playDetent();
+    if (isT0) {
+      setToasts30((ts) => ts.filter((t) => t.id !== id));
+      return;
+    }
+    setExitingToast30Ids((prev) => [...prev, id]);
+    new Sequence()
+      .wait(180)
+      .addAction(() => {
+        if (toast30ContainerRef.current) {
+          flip(toast30ContainerRef.current, () => {
+            setToasts30((ts) => ts.filter((t) => t.id !== id));
+            setExitingToast30Ids((prev) => prev.filter((i) => i !== id));
+          }, { spring: "weighted", capMs: 240 });
+        } else {
+          setToasts30((ts) => ts.filter((t) => t.id !== id));
+          setExitingToast30Ids((prev) => prev.filter((i) => i !== id));
+        }
+      })
+      .play();
+  };
+  const handleSpawnToast30 = () => {
+    playDetent();
+    const newId = `t${Date.now()}`;
+    const variants: Array<"verdigris" | "ochre" | "madder"> = ["verdigris", "ochre", "madder"];
+    const v = variants[toasts30.length % 3];
+    setToasts30((ts) => [...ts, { id: newId, text: `Event dispatch #${ts.length + 1}`, variant: v }]);
+  };
+
+  // M5.31 Modal Sheet Choreography state
+  const [modal31Open, setModal31Open] = useState(false);
+  const handleToggleModal31 = () => {
+    playDetent();
+    setModal31Open((v) => !v);
+  };
+
+  // M5.32 Dual Container state
+  const [dual32Loading, setDual32Loading] = useState(false);
+  const handleDual32Toggle = () => {
+    playDetent();
+    setDual32Loading((v) => !v);
+  };
+
+  // M5.33 Empty State Loop replay
+  const [empty33Key, setEmpty33Key] = useState(0);
+  const handleReplayEmpty33 = () => {
+    playDetent();
+    setEmpty33Key((k) => k + 1);
   };
 
   // M9 Audio states
@@ -2180,6 +2324,538 @@ export const MotionSpecimensSection: React.FC = () => {
             </div>
             <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
               Active: {filter24Cat}
+            </span>
+          </div>
+        </div>
+
+        {/* Specimen M5.25: KPI Value-Change Impulse Tile (§7.1-A) */}
+        <div
+          data-testid="specimen-kpi-impulse-tile"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between relative overflow-hidden"
+        >
+          {kpi25Impulse && <WashSweep color="var(--verdigris)" />}
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.25 KPI Impulse Tile
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                --m-settle (480ms) + WashSweep
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Retween Odometer count-up, trend arrow nudge, and WashSweep impulse on value change.
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 flex flex-col justify-between">
+              <div>
+                <span className="type-meta text-[10px] text-[var(--dim)] block">Fasting Glucose (mg/dL)</span>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span className="type-mono text-2xl font-bold text-[var(--bone)]">
+                    <Odometer value={kpi25Value} duration={480} testId="specimen-odo-kpi" />
+                  </span>
+                  <span className={`text-xs text-[var(--verdigris)] ${kpi25Impulse ? "animate-arrow-nudge-up" : ""}`}>
+                    ↑ +12
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-[var(--line-faint)]">
+                <span className="type-meta text-[10px] text-[var(--dim)]">Norm: 70–99</span>
+                <Badge variant="verdigris">Normal</Badge>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Impulse: {kpi25Impulse ? "Active" : "Idle"}
+            </span>
+            <DetentPress>
+              <Button variant="ghost" onClick={handleKpi25Increment} data-testid="specimen-btn-kpi-impulse">
+                Increment KPI
+              </Button>
+            </DetentPress>
+          </div>
+        </div>
+
+        {/* Specimen M5.26: Verify-Integrity Ritual (§7.7-A, Datasets) */}
+        <div
+          data-testid="specimen-verify-integrity"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between relative overflow-hidden"
+        >
+          {integrity26Wash && <WashSweep color="var(--verdigris)" />}
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.26 Verify-Integrity Ritual
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                DrawPath + WashSweep + LED
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              DrawPath checkmark, verdigris wash, and LED ring-once choreography for dataset integrity.
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="type-label text-[13px] text-[var(--bone)] font-semibold block">Blood Panel Longitudinal</span>
+                  <span className="type-mono text-[10px] text-[var(--dim)]">sha256: 7e2f...91a4</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <LED color={integrity26Verified ? "verdigris" : "ochre"} live={integrity26Running} />
+                  <span className="type-meta text-[11px] text-[var(--bone)]">
+                    {integrity26Verified ? "Verified" : integrity26Running ? "Checking..." : "Unverified"}
+                  </span>
+                </div>
+              </div>
+
+              {integrity26Verified && (
+                <div className="flex items-center gap-2 p-2 rounded-[var(--r-4)] bg-[var(--verdigris)]/10 border border-[var(--verdigris)]/30 m-enter">
+                  <svg className="w-4 h-4 text-[var(--verdigris)] flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                    <DrawPath d="M4 12l5 5L20 6" stroke="var(--verdigris)" strokeWidth={2.5} durationMs={480} />
+                  </svg>
+                  <span className="type-meta text-[11px] text-[var(--verdigris)] font-mono">
+                    SHA-256 matched canonical registry
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Status: {integrity26Verified ? "Canonical OK" : "Pending"}
+            </span>
+            <DetentPress>
+              <Button
+                variant="ghost"
+                onClick={handleVerify26}
+                disabled={integrity26Running}
+                data-testid="specimen-verify-integrity-btn"
+              >
+                {integrity26Verified ? "Re-verify Integrity" : "Verify Integrity"}
+              </Button>
+            </DetentPress>
+          </div>
+        </div>
+
+        {/* Specimen M5.27: Skeleton Crossfade Helper (§7.14-C) */}
+        <div
+          data-testid="specimen-skeleton-crossfade"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.27 Skeleton Crossfade
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                CrossfadeContainer (.m-exit → .m-enter)
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Chained .m-exit on skeleton → .m-enter on content via Sequence with zero layout shift (CLS = 0).
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 overflow-hidden">
+              <CrossfadeContainer
+                loading={skeleton27Loading}
+                skeleton={
+                  <div className="space-y-2.5 animate-pulse">
+                    <div className="h-3.5 bg-[var(--ink-700)] rounded w-3/4" />
+                    <div className="h-3 bg-[var(--ink-700)] rounded w-1/2" />
+                    <div className="h-3 bg-[var(--ink-700)] rounded w-5/6" />
+                  </div>
+                }
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="type-body text-[13px] font-semibold text-[var(--bone)]">
+                      Longitudinal Hemoglobin
+                    </span>
+                    <Badge variant="verdigris">14.1 g/dL</Badge>
+                  </div>
+                  <p className="type-meta text-xs text-[var(--dim)] mb-2">
+                    Observation confirmed across 2 longitudinal panels with optimal reference range.
+                  </p>
+                  <span className="type-mono text-[10px] text-[var(--verdigris)] font-medium">
+                    Extraction confidence: 99.4%
+                  </span>
+                </div>
+              </CrossfadeContainer>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              State: {skeleton27Loading ? "Skeleton" : "Populated"}
+            </span>
+            <DetentPress>
+              <Button variant="ghost" onClick={handleSkeleton27Toggle} data-testid="specimen-skeleton-toggle">
+                {skeleton27Loading ? "Reveal Content" : "Show Skeleton"}
+              </Button>
+            </DetentPress>
+          </div>
+        </div>
+
+        {/* Specimen M5.28: Run-Notebook Ritual (§7.9, Notebooks) */}
+        <div
+          data-testid="specimen-run-notebook"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between relative overflow-hidden"
+        >
+          {notebook28Wash && <WashSweep color="var(--cornflower)" />}
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.28 Run-Notebook Ritual
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                Staged cell execution (80ms)
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Staged cell execution shimmer, step rows staggered entrance via Sequence, and audio detent ticks.
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-2.5 flex flex-col justify-between">
+              <div className="space-y-1.5 font-mono text-[11px]">
+                <div className={`flex items-center justify-between px-2 py-1 rounded bg-[var(--ink-900)] ${notebook28Step >= 1 ? "m-enter text-[var(--bone)]" : "text-[var(--faint)]"}`}>
+                  <span>[1] load_patient_graph()</span>
+                  {notebook28Step >= 1 && <span className="text-[var(--verdigris)]">✓ 12ms</span>}
+                </div>
+                <div className={`flex items-center justify-between px-2 py-1 rounded bg-[var(--ink-900)] ${notebook28Step >= 2 ? "m-enter text-[var(--bone)]" : "text-[var(--faint)]"}`}>
+                  <span>[2] louvain_modularity()</span>
+                  {notebook28Step >= 2 && <span className="text-[var(--verdigris)]">✓ Q=0.67</span>}
+                </div>
+                <div className={`flex items-center justify-between px-2 py-1 rounded bg-[var(--ink-900)] ${notebook28Step >= 3 ? "m-enter text-[var(--bone)]" : "text-[var(--faint)]"}`}>
+                  <span>[3] export_cytoscape()</span>
+                  {notebook28Step >= 3 && <span className="text-[var(--verdigris)]">✓ Done</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Steps: {notebook28Step}/3 executed
+            </span>
+            <DetentPress>
+              <Button
+                variant="ghost"
+                onClick={handleRunNotebook28}
+                disabled={notebook28Running}
+                data-testid="specimen-run-notebook-btn"
+              >
+                {notebook28Running ? "Executing..." : "Run Notebook"}
+              </Button>
+            </DetentPress>
+          </div>
+        </div>
+
+        {/* Specimen M5.29: Tier Preview Strip (§7.12, Settings) */}
+        <div
+          data-testid="specimen-tier-preview-strip"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.29 Tier Preview Strip
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                Live governor state ({motion.tier})
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Miniature specimens responding dynamically to governor tiers (T3=full FX, T2=capped DPR, T1/T0=zero ambient).
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 grid grid-cols-3 gap-2 text-center items-center">
+              <div className="p-2 bg-[var(--ink-900)] rounded-[var(--r-4)] border border-[var(--line-faint)]">
+                <span className="type-meta text-[10px] text-[var(--dim)] block mb-1">LED Breathe</span>
+                <div className="flex justify-center">
+                  <LED color="verdigris" live={!isT0} />
+                </div>
+              </div>
+              <div className="p-2 bg-[var(--ink-900)] rounded-[var(--r-4)] border border-[var(--line-faint)]">
+                <span className="type-meta text-[10px] text-[var(--dim)] block mb-1">Odometer</span>
+                <span className="type-mono text-xs font-bold text-[var(--bone)]">
+                  <Odometer value={motion.tier === "T3" ? 60 : motion.tier === "T2" ? 30 : 0} duration={360} />
+                </span>
+              </div>
+              <div className="p-2 bg-[var(--ink-900)] rounded-[var(--r-4)] border border-[var(--line-faint)]">
+                <span className="type-meta text-[10px] text-[var(--dim)] block mb-1">Particles</span>
+                <span className="type-mono text-[10px] text-[var(--verdigris)] font-medium">
+                  {motion.tier === "T3" ? "Active (24)" : "Suppressed"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Active Tier: {motion.tier} ({motion.mode})
+            </span>
+            <span className="type-meta text-[11px] text-[var(--bone)] font-mono">
+              {isT0 ? "Instant Settle" : "Physical Motion"}
+            </span>
+          </div>
+        </div>
+
+        {/* Specimen M5.30: Toast Stack FLIP (§7.14-C1, Shell) */}
+        <div
+          data-testid="specimen-toast-stack"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.30 Toast Stack FLIP
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                .m-exit + flipFrom stack collapse
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Toast enter animation, .m-exit slide out on dismiss, and FLIP stack reordering on removal.
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-2.5 overflow-hidden">
+              <div ref={toast30ContainerRef} className="space-y-1.5 max-h-28 overflow-y-auto">
+                {toasts30.map((t) => {
+                  const isExiting = exitingToast30Ids.includes(t.id);
+                  return (
+                    <div
+                      key={t.id}
+                      data-testid={`specimen-toast-${t.id}`}
+                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-[var(--r-4)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-xs ${
+                        isExiting ? "m-exit" : "m-enter"
+                      }`}
+                    >
+                      <span className="type-body text-[11px] text-[var(--bone)] truncate">{t.text}</span>
+                      <button
+                        onClick={() => handleDismissToast30(t.id)}
+                        data-testid={`specimen-toast-dismiss-${t.id}`}
+                        className="text-[var(--faint)] hover:text-[var(--bone)] text-xs ml-2"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Stack: {toasts30.length} items
+            </span>
+            <DetentPress>
+              <Button variant="ghost" onClick={handleSpawnToast30} data-testid="specimen-btn-toast-spawn">
+                Spawn Toast
+              </Button>
+            </DetentPress>
+          </div>
+        </div>
+
+        {/* Specimen M5.31: Modal Sheet Choreography (§7.14-C2, Shell) */}
+        <div
+          data-testid="specimen-modal-sheet"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between relative"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.31 Modal Sheet Choreography
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                .animate-sheet-settle
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Backdrop wash fade, paper spring sheet settle, corner brackets draw, and smooth reverse close.
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 flex items-center justify-center relative overflow-hidden">
+              {modal31Open ? (
+                <div
+                  data-testid="specimen-modal-sheet-inner"
+                  className="w-full h-full p-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between animate-sheet-settle"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="type-body text-xs font-semibold text-[var(--bone)]">Modal Inspection Sheet</span>
+                    <Badge variant="verdigris">Settled</Badge>
+                  </div>
+                  <span className="type-meta text-[10px] text-[var(--dim)] font-mono">
+                    Spring: stiffness 240, damping 28
+                  </span>
+                  <div className="flex justify-end">
+                    <DetentPress>
+                      <Button variant="ghost" onClick={handleToggleModal31} data-testid="specimen-btn-modal-close">
+                        Dismiss
+                      </Button>
+                    </DetentPress>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <span className="type-meta text-xs text-[var(--dim)] block mb-2">Modal sheet is closed</span>
+                  <DetentPress>
+                    <Button variant="ghost" onClick={handleToggleModal31} data-testid="specimen-btn-modal-open">
+                      Open Modal Sheet
+                    </Button>
+                  </DetentPress>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              State: {modal31Open ? "Open" : "Closed"}
+            </span>
+            <span className="type-meta text-[11px] text-[var(--bone)] font-mono">
+              Paper spring
+            </span>
+          </div>
+        </div>
+
+        {/* Specimen M5.32: Skeleton Crossfade Dual Container (§7.14-C3) */}
+        <div
+          data-testid="specimen-skeleton-dual"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.32 Skeleton Dual Container
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                Dual box reservation
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Synchronized crossfade across multiple reserved cards with zero cumulative layout shift.
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 grid grid-cols-2 gap-2 overflow-hidden">
+              <CrossfadeContainer
+                loading={dual32Loading}
+                skeleton={<div className="h-16 bg-[var(--ink-700)] rounded animate-pulse" />}
+              >
+                <div className="p-2 bg-[var(--ink-900)] rounded border border-[var(--line-faint)]">
+                  <span className="type-mono text-[10px] text-[var(--dim)] block">Entity A</span>
+                  <span className="type-body text-xs font-semibold text-[var(--bone)]">Arjun R.</span>
+                </div>
+              </CrossfadeContainer>
+              <CrossfadeContainer
+                loading={dual32Loading}
+                skeleton={<div className="h-16 bg-[var(--ink-700)] rounded animate-pulse" />}
+              >
+                <div className="p-2 bg-[var(--ink-900)] rounded border border-[var(--line-faint)]">
+                  <span className="type-mono text-[10px] text-[var(--dim)] block">Entity B</span>
+                  <span className="type-body text-xs font-semibold text-[var(--bone)]">Sarah L.</span>
+                </div>
+              </CrossfadeContainer>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              CLS: 0.0000
+            </span>
+            <DetentPress>
+              <Button variant="ghost" onClick={handleDual32Toggle} data-testid="specimen-dual-toggle">
+                {dual32Loading ? "Populate Dual" : "Skeleton Dual"}
+              </Button>
+            </DetentPress>
+          </div>
+        </div>
+
+        {/* Specimen M5.33: Empty-State Illustrated Loop (§7.14-C5, Shell) */}
+        <div
+          data-testid="specimen-empty-state-loop"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.33 Empty State Loop
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                DrawPath --m-cinematic (720ms)
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Gallery EmptyState component with DrawPath decorative loop that draws on mount.
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-2 overflow-hidden flex items-center justify-center">
+              <EmptyState
+                key={empty33Key}
+                quote="No longitudinal records found."
+                actionLabel="Inspect"
+                onAction={() => playDetent()}
+                className="scale-75 p-2 bg-transparent border-0"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Replay: #{empty33Key}
+            </span>
+            <DetentPress>
+              <Button variant="ghost" onClick={handleReplayEmpty33} data-testid="specimen-btn-empty-replay">
+                Replay Sketch
+              </Button>
+            </DetentPress>
+          </div>
+        </div>
+
+        {/* Specimen M5.34: Scroll-Timeline Reveal (§7.14-C6, Shell) */}
+        <div
+          data-testid="specimen-scroll-reveal"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.34 Scroll Reveal
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                .m-scroll-reveal utility
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Scroll-driven CSS animation timeline with translateY glide and opacity reveal.
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-2.5 overflow-y-auto space-y-2">
+              <div className="p-2 rounded bg-[var(--ink-900)] border border-[var(--line-faint)] m-scroll-reveal">
+                <span className="type-body text-xs font-semibold text-[var(--bone)] block">Scroll Item 1: Biomarkers</span>
+                <span className="type-meta text-[10px] text-[var(--dim)]">Glides into view as spine scrolls</span>
+              </div>
+              <div className="p-2 rounded bg-[var(--ink-900)] border border-[var(--line-faint)] m-scroll-reveal">
+                <span className="type-body text-xs font-semibold text-[var(--bone)] block">Scroll Item 2: Centrality Rank</span>
+                <span className="type-meta text-[10px] text-[var(--dim)]">Betweenness hub measurement</span>
+              </div>
+              <div className="p-2 rounded bg-[var(--ink-900)] border border-[var(--line-faint)] m-scroll-reveal">
+                <span className="type-body text-xs font-semibold text-[var(--bone)] block">Scroll Item 3: Louvain Partition</span>
+                <span className="type-meta text-[10px] text-[var(--dim)]">Community hull boundary detection</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Utility: .m-scroll-reveal
+            </span>
+            <span className="type-meta text-[11px] text-[var(--verdigris)] font-mono">
+              view() / IO
             </span>
           </div>
         </div>

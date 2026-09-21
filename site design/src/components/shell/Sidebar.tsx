@@ -356,6 +356,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
               strokeWidth="1.75"
               strokeLinecap="round"
               strokeLinejoin="round"
+              style={{
+                viewTransitionName: supportsViewTransitions() && governor.getState().tier !== "T0" ? "sidebar-leaf" : "none",
+              }}
             >
               <path d="M12 2L2 7l10 5 10-5-10-5z" />
               <path d="M2 17l10 5 10-5" />

@@ -1,5 +1,9 @@
 import React, { useState } from "react";
 import { Badge, Button, Marginalia } from "../components/gallery";
+import { Sequence, governor, isReducedMotion } from "../motion";
+import { DetentPress } from "../motion/fx/DetentPress";
+import { WashSweep } from "../motion/fx/WashSweep";
+import { playDetent, playChime } from "../motion/audio";
 
 interface NotebookItem {
   id: string;
@@ -72,6 +76,57 @@ print(f"Communities detected: {len(set(partition.values()))}, Modularity: {modul
 
 export const NotebooksPage: React.FC = () => {
   const [selectedNb, setSelectedNb] = useState<NotebookItem>(notebooksList[0]);
+  const [maskKey, setMaskKey] = useState<number>(0);
+  const [running, setRunning] = useState<boolean>(false);
+  const [step, setStep] = useState<number>(0);
+  const [wash, setWash] = useState<boolean>(false);
+
+  const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+
+  const handleSelectNotebook = (nb: NotebookItem) => {
+    playDetent();
+    if (!isT0 && (document as any).startViewTransition) {
+      (document as any).startViewTransition(() => {
+        setSelectedNb(nb);
+        setMaskKey((k) => k + 1);
+        setStep(0);
+      });
+    } else {
+      setSelectedNb(nb);
+      setMaskKey((k) => k + 1);
+      setStep(0);
+    }
+  };
+
+  const handleRunNotebook = () => {
+    playDetent();
+    if (isT0) {
+      setStep(3);
+      return;
+    }
+    setRunning(true);
+    setStep(0);
+    setWash(true);
+    new Sequence()
+      .wait(80)
+      .addAction(() => {
+        setStep(1);
+        playDetent();
+      })
+      .wait(80)
+      .addAction(() => {
+        setStep(2);
+        playDetent();
+      })
+      .wait(80)
+      .addAction(() => {
+        setStep(3);
+        setRunning(false);
+        setWash(false);
+        playChime();
+      })
+      .play();
+  };
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -97,44 +152,59 @@ export const NotebooksPage: React.FC = () => {
           {notebooksList.map((nb) => {
             const isSelected = selectedNb.id === nb.id;
             return (
-              <div
-                key={nb.id}
-                onClick={() => setSelectedNb(nb)}
-                className={`p-4 rounded-[var(--r-10)] border cursor-pointer transition-all duration-[120ms] ease-out ${
-                  isSelected
-                    ? "bg-[var(--ink-800)] border-[var(--verdigris)] shadow-sm"
-                    : "bg-[var(--ink-800)]/60 border-[var(--line-strong)] hover:border-[var(--dim)]"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="type-mono-sm text-[var(--dim)] text-xs">
-                    {nb.filename}
-                  </span>
-                  <Badge variant="verdigris">{nb.cells} cells</Badge>
+              <DetentPress key={nb.id} className="block w-full">
+                <div
+                  onClick={() => handleSelectNotebook(nb)}
+                  data-testid={`notebook-card-${nb.id}`}
+                  className={`p-4 rounded-[var(--r-10)] border cursor-pointer transition-all duration-[120ms] ease-out ${
+                    isSelected
+                      ? "bg-[var(--ink-800)] border-[var(--verdigris)] shadow-sm"
+                      : "bg-[var(--ink-800)]/60 border-[var(--line-strong)] hover:border-[var(--dim)]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="type-mono-sm text-[var(--dim)] text-xs">
+                      {nb.filename}
+                    </span>
+                    <Badge variant="verdigris">{nb.cells} cells</Badge>
+                  </div>
+                  <h3 className="type-title text-[var(--bone)] text-sm font-medium mb-1">
+                    {nb.title}
+                  </h3>
+                  <p className="type-meta text-[var(--dim)] text-xs line-clamp-2">
+                    {nb.summary}
+                  </p>
+                  <div className="mt-3 pt-2 border-t border-[var(--line-faint)] flex items-center justify-between text-[11px] text-[var(--faint)]">
+                    <span>{nb.kernel}</span>
+                    <span className="font-mono">{nb.lastRun}</span>
+                  </div>
                 </div>
-                <h3 className="type-title text-[var(--bone)] text-sm font-medium mb-1">
-                  {nb.title}
-                </h3>
-                <p className="type-meta text-[var(--dim)] text-xs line-clamp-2">
-                  {nb.summary}
-                </p>
-                <div className="mt-3 pt-2 border-t border-[var(--line-faint)] flex items-center justify-between text-[11px] text-[var(--faint)]">
-                  <span>{nb.kernel}</span>
-                  <span className="font-mono">{nb.lastRun}</span>
-                </div>
-              </div>
+              </DetentPress>
             );
           })}
         </div>
 
         {/* Notebook Preview (2 columns) */}
-        <div className="lg:col-span-2 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-6">
+        <div className="lg:col-span-2 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-6 relative overflow-hidden">
+          {wash && (
+            <WashSweep
+              active={wash}
+              color="var(--verdigris)"
+              testId="notebook-wash"
+            />
+          )}
+
           <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-[var(--line-faint)]">
             <div>
               <span className="type-mono-sm text-[var(--verdigris)] text-xs block mb-1">
                 {selectedNb.filename}
               </span>
-              <h3 className="type-title text-[var(--bone)] text-lg">
+              <h3
+                className="type-title text-[var(--bone)] text-lg"
+                style={{
+                  viewTransitionName: !isT0 ? "notebook-title" : "none",
+                }}
+              >
                 {selectedNb.title}
               </h3>
               <p className="type-meta text-[var(--dim)] text-xs mt-1">
@@ -142,12 +212,27 @@ export const NotebooksPage: React.FC = () => {
               </p>
             </div>
 
-            <Button variant="primary" className="h-8 px-3 text-xs">
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polygon points="5 3 19 12 5 21 5 3" />
-              </svg>
-              <span>Run notebook</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              {step > 0 && (
+                <span className="type-mono text-[11px] text-[var(--verdigris)]">
+                  {step === 3 ? "Execution complete (0.24s)" : `Executing step ${step}/3...`}
+                </span>
+              )}
+              <DetentPress>
+                <Button
+                  variant="primary"
+                  className="h-8 px-3 text-xs"
+                  onClick={handleRunNotebook}
+                  disabled={running}
+                  data-testid="run-notebook-btn"
+                >
+                  <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  <span>{running ? "Running…" : "Run notebook"}</span>
+                </Button>
+              </DetentPress>
+            </div>
           </div>
 
           <div className="mb-4">
@@ -168,7 +253,12 @@ export const NotebooksPage: React.FC = () => {
                 Python 3.11
               </span>
             </div>
-            <pre className="p-4 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] overflow-x-auto type-mono text-xs text-[var(--bone)] leading-relaxed font-mono">
+            <pre
+              key={maskKey}
+              className={`p-4 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] overflow-x-auto type-mono text-xs text-[var(--bone)] leading-relaxed font-mono ${
+                !isT0 ? "m-mask-reveal" : ""
+              }`}
+            >
               <code>{selectedNb.codeSnippet}</code>
             </pre>
           </div>

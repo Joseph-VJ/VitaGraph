@@ -1,4 +1,8 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useRef } from "react";
+import { Sequence } from "../../motion/sequence";
+import { flip } from "../../motion/flip";
+import { governor } from "../../motion/quality";
+import { isReducedMotion } from "../../motion/features";
 
 export type ToastType = "done" | "failed" | "info";
 
@@ -20,9 +24,30 @@ const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [exitingIds, setExitingIds] = useState<string[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+    if (isT0) {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+      return;
+    }
+    setExitingIds((prev) => [...prev, id]);
+    new Sequence()
+      .wait(180)
+      .addAction(() => {
+        if (containerRef.current) {
+          flip(containerRef.current, () => {
+            setToasts((prev) => prev.filter((t) => t.id !== id));
+            setExitingIds((prev) => prev.filter((i) => i !== id));
+          }, { spring: "weighted", capMs: 240 });
+        } else {
+          setToasts((prev) => prev.filter((t) => t.id !== id));
+          setExitingIds((prev) => prev.filter((i) => i !== id));
+        }
+      })
+      .play();
   }, []);
 
   const addToast = useCallback((type: ToastType, title: string, detail?: string) => {
@@ -32,18 +57,26 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setToasts((prev) => [...prev.slice(-4), newToast]); // keep at most 5 toasts
 
-    // presentation dwell (US-15) - auto dismiss after 4 seconds
-    setTimeout(() => {
-      removeToast(id);
-    }, 4000);
+    // presentation dwell (US-15, Gate 18: Sequence timer)
+    new Sequence()
+      .wait(4000)
+      .addAction(() => {
+        removeToast(id);
+      })
+      .play();
   }, [removeToast]);
 
   return (
     <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
       {children}
       {/* Floating Toast Container */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-sm pointer-events-none">
+      <div
+        ref={containerRef}
+        data-testid="toast-container"
+        className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"
+      >
         {toasts.map((toast) => {
+          const isExiting = exitingIds.includes(toast.id);
           const borderClass =
             toast.type === "done"
               ? "border-l-4 border-l-[var(--verdigris)]"
@@ -55,7 +88,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             <div
               key={toast.id}
               role="alert"
-              className={`pointer-events-auto flex items-start gap-3 p-3.5 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] ${borderClass} shadow-lg transition-all duration-[120ms] animate-fade-in`}
+              data-testid={`toast-${toast.id}`}
+              className={`pointer-events-auto flex items-start gap-3 p-3.5 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] ${borderClass} shadow-lg transition-all duration-[120ms] ${
+                isExiting ? "m-exit" : "animate-fade-in"
+              }`}
             >
               {/* Icon */}
               <div className="flex-shrink-0 mt-0.5">

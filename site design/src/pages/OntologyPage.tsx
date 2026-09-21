@@ -1,7 +1,10 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useRef, useLayoutEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Badge, Button, Marginalia } from "../components/gallery";
-import { setNavDirection } from "../motion/navigation";
+import { transitionNavigate } from "../motion/navigation";
+import { springToLinear, governor, isReducedMotion } from "../motion";
+import { Odometer } from "../motion/fx/Odometer";
+import { DetentPress } from "../motion/fx/DetentPress";
 
 interface ConceptItem {
   id: string;
@@ -26,8 +29,13 @@ const conceptsData: ConceptItem[] = [
 ];
 
 export const OntologyPage: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCat, setActiveCat] = useState<string>("all");
+  const [morphingConceptId, setMorphingConceptId] = useState<string | null>(null);
+
+  const tbodyRef = useRef<HTMLTableSectionElement | null>(null);
+  const prevRowTopsRef = useRef<Map<string, number>>(new Map());
 
   const filtered = conceptsData.filter((c) => {
     const matchesCat = activeCat === "all" || c.category === activeCat;
@@ -36,6 +44,54 @@ export const OntologyPage: React.FC = () => {
       c.standardCode.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCat && matchesSearch;
   });
+
+  // FLIP animation on row container when filter or search changes (§M5.3)
+  useLayoutEffect(() => {
+    if (!tbodyRef.current) return;
+    const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+
+    const rows = tbodyRef.current.querySelectorAll<HTMLElement>("[data-concept-id]");
+    if (!isT0 && prevRowTopsRef.current.size > 0) {
+      rows.forEach((row) => {
+        const id = row.getAttribute("data-concept-id");
+        if (id && prevRowTopsRef.current.has(id)) {
+          const prevTop = prevRowTopsRef.current.get(id)!;
+          const currentTop = row.getBoundingClientRect().top;
+          const dy = prevTop - currentTop;
+          if (Math.abs(dy) > 0.5) {
+            row.animate(
+              [
+                { transform: `translateY(${dy}px)` },
+                { transform: "none" },
+              ],
+              {
+                duration: 240,
+                easing: springToLinear("weighted"),
+                fill: "none",
+              }
+            );
+          }
+        }
+      });
+    }
+
+    const nextTops = new Map<string, number>();
+    rows.forEach((row) => {
+      const id = row.getAttribute("data-concept-id");
+      if (id) nextTops.set(id, row.getBoundingClientRect().top);
+    });
+    prevRowTopsRef.current = nextTops;
+  }, [filtered, activeCat]);
+
+  const handleInspectGraph = (conceptId: string) => {
+    const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+    if (!isT0) {
+      setMorphingConceptId(conceptId);
+    }
+    transitionNavigate(navigate, "/graph", { direction: "forward" });
+  };
+
+  const isT0 = governor.getState().tier === "T0" || isReducedMotion();
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -52,18 +108,18 @@ export const OntologyPage: React.FC = () => {
         />
       </div>
 
-      {/* Relation Type Ledger */}
+      {/* Relation Type Ledger (§M5.3 - animate-bar-settle + Odometer counts) */}
       <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)]">
         <span className="type-label text-[var(--dim)] block mb-3">
           Active relationship schema (5 core clinical predicates)
         </span>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
-            { rel: "indicates", desc: "Biomarker → Condition", count: "148 edges" },
-            { rel: "measures", desc: "Test → Entity", count: "112 edges" },
-            { rel: "treats", desc: "Drug → Disease", count: "96 edges" },
-            { rel: "increases_risk", desc: "Risk factor → Outcome", count: "72 edges" },
-            { rel: "leads_to", desc: "Pathophysiology", count: "58 edges" },
+            { rel: "indicates", desc: "Biomarker → Condition", count: 148, max: 150 },
+            { rel: "measures", desc: "Test → Entity", count: 112, max: 150 },
+            { rel: "treats", desc: "Drug → Disease", count: 96, max: 150 },
+            { rel: "increases_risk", desc: "Risk factor → Outcome", count: 72, max: 150 },
+            { rel: "leads_to", desc: "Pathophysiology", count: 58, max: 150 },
           ].map((r, i) => (
             <div key={i} className="p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/40 border border-[var(--line-faint)]">
               <span className="type-mono-sm text-[var(--verdigris)] font-semibold block">
@@ -72,9 +128,17 @@ export const OntologyPage: React.FC = () => {
               <span className="type-meta text-[var(--dim)] text-[11px] block mt-0.5">
                 {r.desc}
               </span>
-              <span className="type-mono-sm text-[var(--faint)] text-[10px] block mt-1">
-                {r.count}
-              </span>
+              <div className="mt-2 flex items-center justify-between">
+                <span className="type-mono-sm text-[var(--faint)] text-[10px] flex items-center gap-1">
+                  <Odometer value={r.count} duration={360} /> edges
+                </span>
+              </div>
+              <div className="mt-1.5 w-full h-1.5 bg-[var(--ink-900)] rounded-full overflow-hidden">
+                <div
+                  className={`h-full bg-[var(--verdigris)] rounded-full origin-left ${!isT0 ? "animate-bar-settle" : ""}`}
+                  style={{ width: `${Math.round((r.count / r.max) * 100)}%` }}
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -90,17 +154,18 @@ export const OntologyPage: React.FC = () => {
             { id: "treatment", label: "Treatments (2)" },
             { id: "outcome", label: "Outcomes (2)" },
           ].map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setActiveCat(t.id)}
-              className={`px-3 py-1 rounded-[var(--r-4)] type-label transition-all duration-[120ms] ease-out ${
-                activeCat === t.id
-                  ? "bg-[var(--ink-700)] text-[var(--bone)] shadow-sm"
-                  : "text-[var(--dim)] hover:text-[var(--bone)] hover:bg-[var(--ink-700)]/50"
-              }`}
-            >
-              {t.label}
-            </button>
+            <DetentPress key={t.id}>
+              <button
+                onClick={() => setActiveCat(t.id)}
+                className={`px-3 py-1 rounded-[var(--r-4)] type-label transition-all duration-[120ms] ease-out ${
+                  activeCat === t.id
+                    ? "bg-[var(--ink-700)] text-[var(--bone)] shadow-sm"
+                    : "text-[var(--dim)] hover:text-[var(--bone)] hover:bg-[var(--ink-700)]/50"
+                }`}
+              >
+                {t.label}
+              </button>
+            </DetentPress>
           ))}
         </div>
 
@@ -132,48 +197,61 @@ export const OntologyPage: React.FC = () => {
               <th className="type-label text-[var(--dim)] py-2.5 px-4 text-right">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--line-faint)]">
-            {filtered.map((c) => (
-              <tr
-                key={c.id}
-                className="hover:bg-[var(--ink-700)]/40 transition-colors duration-[120ms] ease-out"
-              >
-                <td className="py-3 px-4 type-body font-medium text-[var(--bone)]">
-                  {c.name}
-                </td>
-                <td className="py-3 px-4">
-                  <Badge
-                    variant={
-                      c.category === "condition"
-                        ? "cornflower"
-                        : c.category === "biomarker"
-                        ? "verdigris"
-                        : c.category === "treatment"
-                        ? "ochre"
-                        : "madder"
-                    }
-                  >
-                    {c.category}
-                  </Badge>
-                </td>
-                <td className="py-3 px-4 type-mono-sm text-[var(--dim)]">
-                  {c.standardCode}
-                </td>
-                <td className="py-3 px-4 type-mono-sm text-[var(--bone)]">
-                  {c.relationshipsCount}
-                </td>
-                <td className="py-3 px-4 type-mono-sm text-[var(--dim)]">
-                  {c.occurrences}
-                </td>
-                <td className="py-3 px-4 text-right">
-                  <Link to="/graph" viewTransition onClick={() => setNavDirection("forward")}>
-                    <Button variant="ghost" className="h-7 text-xs">
-                      View in graph
-                    </Button>
-                  </Link>
-                </td>
-              </tr>
-            ))}
+          <tbody ref={tbodyRef} className="divide-y divide-[var(--line-faint)]">
+            {filtered.map((c) => {
+              const isMorphing = morphingConceptId === c.id && !isT0;
+              return (
+                <tr
+                  key={c.id}
+                  data-concept-id={c.id}
+                  data-testid={`concept-row-${c.id}`}
+                  style={{
+                    viewTransitionName: isMorphing ? "concept-row" : "none",
+                  }}
+                  className="hover:bg-[var(--ink-700)]/40 transition-colors duration-[120ms] ease-out"
+                >
+                  <td className="py-3 px-4 type-body font-medium text-[var(--bone)]">
+                    {c.name}
+                  </td>
+                  <td className="py-3 px-4">
+                    <Badge
+                      variant={
+                        c.category === "condition"
+                          ? "cornflower"
+                          : c.category === "biomarker"
+                          ? "verdigris"
+                          : c.category === "treatment"
+                          ? "ochre"
+                          : "madder"
+                      }
+                    >
+                      {c.category}
+                    </Badge>
+                  </td>
+                  <td className="py-3 px-4 type-mono-sm text-[var(--dim)]">
+                    {c.standardCode}
+                  </td>
+                  <td className="py-3 px-4 type-mono-sm text-[var(--bone)]">
+                    {c.relationshipsCount}
+                  </td>
+                  <td className="py-3 px-4 type-mono-sm text-[var(--dim)]">
+                    {c.occurrences}
+                  </td>
+                  <td className="py-3 px-4 text-right">
+                    <DetentPress>
+                      <Button
+                        variant="ghost"
+                        className="h-7 text-xs"
+                        onClick={() => handleInspectGraph(c.id)}
+                        data-testid="concept-inspect-btn"
+                      >
+                        View in graph
+                      </Button>
+                    </DetentPress>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

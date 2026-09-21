@@ -17,9 +17,10 @@ import { reportsApi } from "../api/reports";
 import { graphApi, type GraphResponse } from "../api/graph";
 import { timelineApi } from "../api/questions";
 import type { Report, TimelineEvent } from "../types";
-import { springToLinear, governor, isReducedMotion } from "../motion";
+import { springToLinear, governor, isReducedMotion, CrossfadeContainer, Sequence } from "../motion";
 import { transitionNavigate, setNavDirection } from "../motion/navigation";
 import { DetentPress } from "../motion/fx/DetentPress";
+import { EmptyState } from "../components/gallery/StateSet";
 
 interface HealthData {
   status: string;
@@ -174,6 +175,48 @@ export const HomePage: React.FC = () => {
       e.event_type === "safety_refusal" ||
       (e.payload && ((e.payload as any).status === "refused" || (e.payload as any).safety_status === "refused"))
   ).length;
+
+  // KPI value-change impulse tracking (§7.1-1)
+  const prevStatsRef = useRef({
+    reports: 0,
+    chunks: 0,
+    nodes: 0,
+    edges: 0,
+    questions: 0,
+    refusals: 0,
+  });
+  const [changedStatKeys, setChangedStatKeys] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (loading) return;
+    const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+    const current = {
+      reports: reportsCount,
+      chunks: chunksCount,
+      nodes: nodesCount,
+      edges: edgesCount,
+      questions: questionsCount,
+      refusals: refusalsCount,
+    };
+    const prev = prevStatsRef.current;
+    const changed = new Set<string>();
+    if (prev.reports !== current.reports && prev.reports !== 0) changed.add("reports");
+    if (prev.chunks !== current.chunks && prev.chunks !== 0) changed.add("chunks");
+    if (prev.nodes !== current.nodes && prev.nodes !== 0) changed.add("nodes");
+    if (prev.edges !== current.edges && prev.edges !== 0) changed.add("edges");
+    if (prev.questions !== current.questions && prev.questions !== 0) changed.add("questions");
+    if (prev.refusals !== current.refusals && prev.refusals !== 0) changed.add("refusals");
+
+    prevStatsRef.current = current;
+
+    if (changed.size > 0 && !isT0) {
+      setChangedStatKeys(changed);
+      new Sequence()
+        .wait(480)
+        .addAction(() => setChangedStatKeys(new Set()))
+        .play();
+    }
+  }, [loading, reportsCount, chunksCount, nodesCount, edgesCount, questionsCount, refusalsCount]);
 
   // Map timeline events to activity items
   const activityItems: ActivityItem[] = timelineEvents.slice(0, 10).map((event, idx) => {
@@ -330,58 +373,68 @@ export const HomePage: React.FC = () => {
         {/* Main Column (1fr) */}
         <div className="flex-1 flex flex-col gap-6 min-w-0 w-full">
           {/* Stat Row (6 Tiles) — All Live */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-            {loading ? (
-              [1, 2, 3, 4, 5, 6].map((i) => (
-                <div
-                  key={i}
-                  className="p-3.5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col gap-2 animate-pulse"
-                >
-                  <div className="h-3 w-16 rounded-[var(--r-4)] skeleton-shimmer" />
-                  <div className="h-6 w-12 rounded-[var(--r-4)] skeleton-shimmer" />
-                </div>
-              ))
-            ) : (
-              <>
-                <StatTile
-                  type="doc"
-                  label="Reports"
-                  value={backendOnline ? String(reportsCount) : "0"}
-                  staggerIndex={0}
-                />
-                <StatTile
-                  type="cube"
-                  label="Chunks"
-                  value={backendOnline ? chunksCount.toLocaleString() : "0"}
-                  staggerIndex={1}
-                />
-                <StatTile
-                  type="graph"
-                  label="Graph nodes"
-                  value={backendOnline ? String(nodesCount) : "0"}
-                  staggerIndex={2}
-                />
-                <StatTile
-                  type="link"
-                  label="Edges"
-                  value={backendOnline ? String(edgesCount) : "0"}
-                  staggerIndex={3}
-                />
-                <StatTile
-                  type="speech"
-                  label="Questions"
-                  value={backendOnline ? String(questionsCount) : "0"}
-                  staggerIndex={4}
-                />
-                <StatTile
-                  type="shield"
-                  label="Refusals"
-                  value={backendOnline ? String(refusalsCount) : "0"}
-                  staggerIndex={5}
-                />
-              </>
-            )}
-          </div>
+          <CrossfadeContainer
+            loading={loading}
+            testId="home-stats-crossfade"
+            skeleton={
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div
+                    key={i}
+                    className="p-3.5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col gap-2 animate-pulse"
+                  >
+                    <div className="h-3 w-16 rounded-[var(--r-4)] skeleton-shimmer" />
+                    <div className="h-6 w-12 rounded-[var(--r-4)] skeleton-shimmer" />
+                  </div>
+                ))}
+              </div>
+            }
+          >
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+              <StatTile
+                type="doc"
+                label="Reports"
+                value={backendOnline ? String(reportsCount) : "0"}
+                staggerIndex={0}
+                impulse={changedStatKeys.has("reports")}
+              />
+              <StatTile
+                type="cube"
+                label="Chunks"
+                value={backendOnline ? chunksCount.toLocaleString() : "0"}
+                staggerIndex={1}
+                impulse={changedStatKeys.has("chunks")}
+              />
+              <StatTile
+                type="graph"
+                label="Graph nodes"
+                value={backendOnline ? String(nodesCount) : "0"}
+                staggerIndex={2}
+                impulse={changedStatKeys.has("nodes")}
+              />
+              <StatTile
+                type="link"
+                label="Edges"
+                value={backendOnline ? String(edgesCount) : "0"}
+                staggerIndex={3}
+                impulse={changedStatKeys.has("edges")}
+              />
+              <StatTile
+                type="speech"
+                label="Questions"
+                value={backendOnline ? String(questionsCount) : "0"}
+                staggerIndex={4}
+                impulse={changedStatKeys.has("questions")}
+              />
+              <StatTile
+                type="shield"
+                label="Refusals"
+                value={backendOnline ? String(refusalsCount) : "0"}
+                staggerIndex={5}
+                impulse={changedStatKeys.has("refusals")}
+              />
+            </div>
+          </CrossfadeContainer>
 
           {/* Recent Activity Card */}
           <div className="rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-5 flex flex-col">
@@ -403,12 +456,10 @@ export const HomePage: React.FC = () => {
             </div>
 
             {/* Activity Rows */}
-            <div ref={activityContainerRef} className="divide-y divide-[var(--line-faint)]">
-              {!backendOnline ? (
-                <div className="py-8 text-center text-[var(--dim)] text-[13px]">
-                  Backend server is offline. Realtime timeline activity unavailable.
-                </div>
-              ) : loading ? (
+            <CrossfadeContainer
+              loading={loading}
+              testId="home-activity-crossfade"
+              skeleton={
                 <div className="p-4 flex flex-col gap-3">
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="flex items-center justify-between py-2 border-b border-[var(--line-faint)] last:border-0">
@@ -419,25 +470,39 @@ export const HomePage: React.FC = () => {
                     </div>
                   ))}
                 </div>
-              ) : activityItems.length === 0 ? (
-                <div className="py-8 text-center text-[var(--dim)] text-[13px]">
-                  No timeline events recorded yet for this persona.
-                </div>
-              ) : (
-                activityItems.map((item) => (
-                  <ActivityRow
-                    key={item.id}
-                    rowKey={item.id}
-                    activityClass={item.activityClass}
-                    timestamp={item.timestamp}
-                    eventName={item.eventName}
-                    details={item.details}
-                    objectName={item.objectName}
-                    isNew={item.id === animatedInsertId}
+              }
+            >
+              <div ref={activityContainerRef} className="divide-y divide-[var(--line-faint)]">
+                {!backendOnline ? (
+                  <EmptyState
+                    quote="Backend server is offline. Realtime timeline activity unavailable."
+                    actionLabel="Check settings"
+                    onAction={() => transitionNavigate(navigate, "/settings", { direction: "forward" })}
+                    className="my-3 border-0 bg-transparent"
                   />
-                ))
-              )}
-            </div>
+                ) : activityItems.length === 0 ? (
+                  <EmptyState
+                    quote="No timeline events recorded yet for this persona."
+                    actionLabel="Upload report"
+                    onAction={() => transitionNavigate(navigate, "/upload", { direction: "forward" })}
+                    className="my-3 border-0 bg-transparent"
+                  />
+                ) : (
+                  activityItems.map((item) => (
+                    <ActivityRow
+                      key={item.id}
+                      rowKey={item.id}
+                      activityClass={item.activityClass}
+                      timestamp={item.timestamp}
+                      eventName={item.eventName}
+                      details={item.details}
+                      objectName={item.objectName}
+                      isNew={item.id === animatedInsertId}
+                    />
+                  ))
+                )}
+              </div>
+            </CrossfadeContainer>
           </div>
         </div>
 
@@ -462,64 +527,76 @@ export const HomePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="divide-y divide-[var(--line-faint)]">
-              <SystemHealthRow
-                name="FastAPI (:8000)"
-                status={backendOnline ? "ok" : "error"}
-                latency={clientLatency !== null ? `${clientLatency} ms` : "—"}
-                statusLabel={backendOnline ? undefined : "unreachable"}
-                staggerIndex={0}
-                igniteDelay={0}
-              />
-              <SystemHealthRow
-                name="Chroma (vector DB)"
-                status={
-                  backendOnline && healthData?.retrieval_store?.status === "ok"
-                    ? "ok"
-                    : "error"
-                }
-                latency={
-                  backendOnline && clientLatency !== null
-                    ? `${Math.max(1, Math.round(clientLatency * 0.6))} ms`
-                    : "—"
-                }
-                statusLabel={
-                  backendOnline
-                    ? `${healthData?.retrieval_store?.chunks ?? 0} chunks`
-                    : "unreachable"
-                }
-                staggerIndex={1}
-                igniteDelay={120}
-              />
-              <SystemHealthRow
-                name="SQLite (metadata)"
-                status={backendOnline ? "ok" : "error"}
-                latency={
-                  backendOnline && clientLatency !== null
-                    ? `${Math.max(1, Math.round(clientLatency * 0.3))} ms`
-                    : "—"
-                }
-                statusLabel={backendOnline ? undefined : "unreachable"}
-                staggerIndex={2}
-                igniteDelay={240}
-              />
-              <SystemHealthRow
-                name="SSE (realtime)"
-                status={backendOnline ? "live" : "error"}
-                latency="—"
-                statusLabel={backendOnline ? undefined : "disconnected"}
-                staggerIndex={3}
-                igniteDelay={360}
-              />
-              <SystemHealthRow
-                name="LLM (answering)"
-                status="disabled"
-                statusLabel="disabled by policy"
-                latency="—"
-                staggerIndex={4}
-                igniteDelay={480}
-              />
-            </div>
+            <CrossfadeContainer
+              loading={loading}
+              testId="home-health-crossfade"
+              skeleton={
+                <div className="p-2 space-y-3">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-6 w-full rounded-[var(--r-4)] skeleton-shimmer" />
+                  ))}
+                </div>
+              }
+            >
+              <div className="divide-y divide-[var(--line-faint)]">
+                <SystemHealthRow
+                  name="FastAPI (:8000)"
+                  status={backendOnline ? "ok" : "error"}
+                  latency={clientLatency !== null ? `${clientLatency} ms` : "—"}
+                  statusLabel={backendOnline ? undefined : "unreachable"}
+                  staggerIndex={0}
+                  igniteDelay={0}
+                />
+                <SystemHealthRow
+                  name="Chroma (vector DB)"
+                  status={
+                    backendOnline && healthData?.retrieval_store?.status === "ok"
+                      ? "ok"
+                      : "error"
+                  }
+                  latency={
+                    backendOnline && clientLatency !== null
+                      ? `${Math.max(1, Math.round(clientLatency * 0.6))} ms`
+                      : "—"
+                  }
+                  statusLabel={
+                    backendOnline
+                      ? `${healthData?.retrieval_store?.chunks ?? 0} chunks`
+                      : "unreachable"
+                  }
+                  staggerIndex={1}
+                  igniteDelay={120}
+                />
+                <SystemHealthRow
+                  name="SQLite (metadata)"
+                  status={backendOnline ? "ok" : "error"}
+                  latency={
+                    backendOnline && clientLatency !== null
+                      ? `${Math.max(1, Math.round(clientLatency * 0.3))} ms`
+                      : "—"
+                  }
+                  statusLabel={backendOnline ? undefined : "unreachable"}
+                  staggerIndex={2}
+                  igniteDelay={240}
+                />
+                <SystemHealthRow
+                  name="SSE (realtime)"
+                  status={backendOnline ? "live" : "error"}
+                  latency="—"
+                  statusLabel={backendOnline ? undefined : "disconnected"}
+                  staggerIndex={3}
+                  igniteDelay={360}
+                />
+                <SystemHealthRow
+                  name="LLM (answering)"
+                  status="disabled"
+                  statusLabel="disabled by policy"
+                  latency="—"
+                  staggerIndex={4}
+                  igniteDelay={480}
+                />
+              </div>
+            </CrossfadeContainer>
           </div>
 
           {/* Retrieval Latency Sparkline — Live Client Measured */}
@@ -540,79 +617,86 @@ export const HomePage: React.FC = () => {
           <div className="rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-4 flex flex-col gap-4">
             <h3 className="type-card-title text-[var(--bone)]">Continue</h3>
 
-            {/* Last open document */}
-            <div>
-              <div className="type-meta text-[var(--dim)] mb-1.5">Last open document</div>
-              {loading ? (
-                <div className="h-14 rounded-[var(--r-6)] skeleton-shimmer" />
-              ) : lastDocument ? (
-                <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/50 border border-[var(--line-faint)]">
-                  <div className="flex items-start gap-2.5 min-w-0 flex-1 mr-2">
-                    <svg
-                      className="w-4 h-4 text-[var(--dim)] flex-shrink-0 mt-0.5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.75"
-                    >
-                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                      <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
-                    </svg>
-                    <div className="min-w-0 flex-1">
-                      <div className="type-body text-[12.5px] text-[var(--bone)] font-medium truncate">
-                        {lastDocument.original_filename}
+            <CrossfadeContainer
+              loading={loading}
+              testId="home-continue-crossfade"
+              skeleton={
+                <div className="space-y-4">
+                  <div className="h-14 rounded-[var(--r-6)] skeleton-shimmer" />
+                  <div className="h-14 rounded-[var(--r-6)] skeleton-shimmer" />
+                </div>
+              }
+            >
+              <div className="flex flex-col gap-4">
+                {/* Last open document */}
+                <div>
+                  <div className="type-meta text-[var(--dim)] mb-1.5">Last open document</div>
+                  {lastDocument ? (
+                    <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/50 border border-[var(--line-faint)]">
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1 mr-2">
+                        <svg
+                          className="w-4 h-4 text-[var(--dim)] flex-shrink-0 mt-0.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.75"
+                        >
+                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                          <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+                        </svg>
+                        <div className="min-w-0 flex-1">
+                          <div className="type-body text-[12.5px] text-[var(--bone)] font-medium truncate">
+                            {lastDocument.original_filename}
+                          </div>
+                          <div className="type-meta text-[var(--dim)] mt-0.5">
+                            {lastDocument.page_count ? `${lastDocument.page_count} page(s) · ` : ""}
+                            {lastDocument.upload_time ? lastDocument.upload_time.slice(0, 10) : "Uploaded"}
+                          </div>
+                        </div>
                       </div>
-                      <div className="type-meta text-[var(--dim)] mt-0.5">
-                        {lastDocument.page_count ? `${lastDocument.page_count} page(s) · ` : ""}
-                        {lastDocument.upload_time ? lastDocument.upload_time.slice(0, 10) : "Uploaded"}
-                      </div>
+                      <Link to="/library" viewTransition onClick={() => setNavDirection("forward")}>
+                        <IconButton size={28} title="Open in library">
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                          </svg>
+                        </IconButton>
+                      </Link>
                     </div>
-                  </div>
-                  <Link to="/library" viewTransition onClick={() => setNavDirection("forward")}>
-                    <IconButton size={28} title="Open in library">
-                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M5 12h14M12 5l7 7-7 7" />
-                      </svg>
-                    </IconButton>
-                  </Link>
+                  ) : (
+                    <div className="p-3 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)] text-[12px] text-[var(--dim)]">
+                      No reports uploaded yet.{" "}
+                      <Link to="/upload" viewTransition onClick={() => setNavDirection("forward")} className="text-[var(--verdigris)] hover:underline">
+                        Upload a report
+                      </Link>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="p-3 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)] text-[12px] text-[var(--dim)]">
-                  No reports uploaded yet.{" "}
-                  <Link to="/upload" viewTransition onClick={() => setNavDirection("forward")} className="text-[var(--verdigris)] hover:underline">
-                    Upload a report
-                  </Link>
-                </div>
-              )}
-            </div>
 
-            {/* Last question */}
-            <div>
-              <div className="type-meta text-[var(--dim)] mb-1.5">Last question</div>
-              {loading ? (
-                <div className="h-14 rounded-[var(--r-6)] skeleton-shimmer" />
-              ) : lastQuestionText ? (
-                <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/50 border border-[var(--line-faint)]">
-                  <div className="flex items-start gap-2.5 min-w-0 flex-1 mr-2">
-                    <svg
-                      className="w-4 h-4 text-[var(--dim)] flex-shrink-0 mt-0.5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.75"
-                    >
-                      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-                    </svg>
-                    <div className="min-w-0 flex-1">
-                      <div className="type-body text-[12.5px] text-[var(--bone)] font-medium line-clamp-2">
-                        {lastQuestionText}
+                {/* Last question */}
+                <div>
+                  <div className="type-meta text-[var(--dim)] mb-1.5">Last question</div>
+                  {lastQuestionText ? (
+                    <div className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/50 border border-[var(--line-faint)]">
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1 mr-2">
+                        <svg
+                          className="w-4 h-4 text-[var(--dim)] flex-shrink-0 mt-0.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.75"
+                        >
+                          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                        </svg>
+                        <div className="min-w-0 flex-1">
+                          <div className="type-body text-[12.5px] text-[var(--bone)] font-medium line-clamp-2">
+                            {lastQuestionText}
+                          </div>
+                          <div className="type-meta text-[var(--dim)] mt-0.5">
+                            {lastQuestionEvent?.timestamp ? lastQuestionEvent.timestamp.slice(0, 16).replace("T", " ") : "Recent query"}
+                          </div>
+                        </div>
                       </div>
-                      <div className="type-meta text-[var(--dim)] mt-0.5">
-                        {lastQuestionEvent?.timestamp ? lastQuestionEvent.timestamp.slice(0, 16).replace("T", " ") : "Recent query"}
-                      </div>
-                    </div>
-                  </div>
-                  <Link to="/ask" viewTransition onClick={() => setNavDirection("forward")}>
+                      <Link to="/ask" viewTransition onClick={() => setNavDirection("forward")}>
                     <IconButton size={28} title="Open in Ask view">
                       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M5 12h14M12 5l7 7-7 7" />
@@ -629,6 +713,8 @@ export const HomePage: React.FC = () => {
                 </div>
               )}
             </div>
+            </div>
+            </CrossfadeContainer>
           </div>
         </div>
       </div>

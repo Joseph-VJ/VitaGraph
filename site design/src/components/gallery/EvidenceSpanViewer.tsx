@@ -5,6 +5,8 @@ import type { EvidenceCard, ReportPage } from "../../types";
 import { governor } from "../../motion/quality";
 import { isReducedMotion } from "../../motion/features";
 import { Odometer } from "../../motion/fx/Odometer";
+import { Sequence } from "../../motion/sequence";
+import { ticker } from "../../motion/ticker";
 
 export interface EvidenceSpanViewerProps {
   evidence: EvidenceCard | null;
@@ -67,20 +69,27 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
     const tier = governor.getState().tier;
     if (tier === "T3" && !isReducedMotion()) {
       setIsRetracting(true);
-      setTimeout(() => {
-        setIsClosing(true);
-        setTimeout(() => {
+      new Sequence()
+        .wait(168)
+        .addAction(() => {
+          setIsClosing(true);
+        })
+        .wait(288)
+        .addAction(() => {
           onClose();
           setIsClosing(false);
           setIsRetracting(false);
-        }, 288); // 60% of 480ms (--m-settle) = 288ms
-      }, 168); // retract duration 168ms
+        })
+        .play();
     } else if (tier !== "T0" && !isReducedMotion()) {
       setIsClosing(true);
-      setTimeout(() => {
-        onClose();
-        setIsClosing(false);
-      }, 288);
+      new Sequence()
+        .wait(288)
+        .addAction(() => {
+          onClose();
+          setIsClosing(false);
+        })
+        .play();
     } else {
       onClose();
     }
@@ -100,12 +109,13 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
   // Smooth scroll to highlight once rendered
   useEffect(() => {
     if (highlightRef.current && scrollContainerRef.current) {
-      setTimeout(() => {
+      ticker.subscribe("L0", () => {
         highlightRef.current?.scrollIntoView({
           behavior: "smooth",
           block: "center",
         });
-      }, 100);
+        return false;
+      });
     }
   }, [currentPageIndex, pages, isLoading]);
 
@@ -151,7 +161,7 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
   const handleCopySnippet = () => {
     navigator.clipboard.writeText(evidence.snippet);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    new Sequence().wait(1500).addAction(() => setCopied(false)).play();
   };
 
   return (

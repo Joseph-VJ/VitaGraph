@@ -1,5 +1,4 @@
-import React from "react";
-import { Odometer } from "../../motion";
+import { Odometer, WashSweep } from "../../motion";
 
 export type StatMetricType = "doc" | "cube" | "graph" | "link" | "speech" | "shield";
 
@@ -9,6 +8,8 @@ interface StatTileProps {
   value: string | number;
   className?: string;
   staggerIndex?: number;
+  impulse?: boolean;
+  washColor?: string;
 }
 
 export const StatTile: React.FC<StatTileProps> = ({
@@ -17,6 +18,8 @@ export const StatTile: React.FC<StatTileProps> = ({
   value,
   className = "",
   staggerIndex,
+  impulse = false,
+  washColor,
 }) => {
   const isRefusal = type === "shield";
   const valueColorClass = isRefusal ? "text-[var(--madder)]" : "text-[var(--bone)]";
@@ -73,8 +76,11 @@ export const StatTile: React.FC<StatTileProps> = ({
   return (
     <div
       style={staggerIndex !== undefined ? { animationDelay: `${staggerDelay}ms` } : undefined}
-      className={`rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-4 flex flex-col justify-between min-w-[140px] flex-1 m-enter ${className}`}
+      className={`rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-4 flex flex-col justify-between min-w-[140px] flex-1 m-enter relative overflow-hidden ${className}`}
     >
+      {impulse && (
+        <WashSweep color={washColor || (isRefusal ? "var(--madder)" : "var(--verdigris)")} />
+      )}
       <div className="flex items-center justify-between mb-3">
         <span className="p-1.5 rounded-[var(--r-6)] bg-[var(--ink-700)] flex items-center justify-center">
           {getIcon(type)}
@@ -82,7 +88,7 @@ export const StatTile: React.FC<StatTileProps> = ({
       </div>
       <div>
         <div className="type-label text-[var(--dim)] mb-1">{label}</div>
-        <div className={`type-stat ${valueColorClass}`}>
+        <div className={`type-stat ${valueColorClass} ${impulse ? "animate-chip-pop" : ""}`}>
           <Odometer value={value} testId={`odometer-${type}`} />
         </div>
       </div>

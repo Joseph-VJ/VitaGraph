@@ -46,3 +46,14 @@ Reality contract: no timers, no static graph.json, SSE-driven UI (plan §2.4, §
 5. Gallery specimens M5.21 (Compare Data Tween), M5.22 (Insights Refresh Rig), M5.23 (Timeline Scrub Morph), M5.24 (Filter FLIP List) built and verified.
 6. T0 / reduced-motion lockdown: all viewTransitionNames neutralized, instant spine 1.0, particle suppression, zero setTimeout (Gate 18), single ticker heartbeat (Gate 29).
 All 7 tests in scripts/verify_m4.py pass 100%. Backend 54/54 pytest green, frontend npm run build exit 0. Passes: true.
+[M5-Remaining-Screens-Shell] Remaining screens and shell motion choreography (Home §7.1, Datasets §7.7, Ontology §7.8, Notebooks, Settings §7.12, Gallery & Shell §7.14; Gallery Specimens M5.25–M5.34):
+1. HomePage: Wrapped stats, activity, health, and continue cards in CrossfadeContainer; added KPI value-change impulse tracking with WashSweep and .animate-chip-pop on StatTiles; preserved FLIP on activity rows; zero setTimeout.
+2. DatasetsPage: Added staggered card enter (.m-enter with min(idx*60, 240)ms); implemented Verify Integrity micro-ritual with DrawPath check draw (480ms), WashSweep, LED live pulse, and SHA-256 confirmed status; wrapped buttons in DetentPress.
+3. OntologyPage: Added relation ledger bars with .animate-bar-settle and Odometer counts; wired category-filter FLIP on row container; added concept-row view transition morph on inspect.
+4. NotebooksPage: Added notebook switch morph with view-transition-name: "notebook-title" and .m-mask-reveal code block; added Run Notebook ritual with staggered cell steps (1->2->3 via Sequence(80ms)), WashSweep progress, and audio feedback.
+5. SettingsPage: Added quality tier-switch confirmation with WashSweep on card and .animate-chip-pop on tier badge; added data-testid="tier-preview-strip" miniature live preview specimens (LED breathe, Odometer roll, Particles); wrapped switches in DetentPress.
+6. Gallery & Shell: Applied .m-scroll-reveal utility to all GalleryPage component sections; verified EmptyState DrawPath decorative loop; wired singular view-transition-name on sidebar leaf ("sidebar-leaf") and header title ("header-title") with verified zero duplicate collision audit.
+7. Gallery specimens M5.25 through M5.34 built, interactive, and passing: M5.25 KPI Impulse Tile, M5.26 Verify-Integrity Ritual, M5.27 Skeleton Crossfade, M5.28 Run-Notebook Ritual, M5.29 Tier Preview Strip, M5.30 Toast Stack FLIP, M5.31 Modal Sheet Choreography, M5.32 Skeleton Dual Container, M5.33 Empty-State Loop, M5.34 Scroll Reveal.
+8. T0 / reduced-motion lockdown: strict instant settles, viewTransitionNames neutralized at T0, zero particle bursts, zero setTimeout (Gate 18), single ticker heartbeat (Gate 29).
+All 9 verification suites in scripts/verify_m5.py pass 100%. Backend 54/54 pytest green, frontend npm run build exit 0. Passes: true.
+

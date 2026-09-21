@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { LED, type LEDColor } from "./LED";
-import { Odometer, Sequence } from "../../motion";
+import { Odometer, Sequence, WashSweep } from "../../motion";
 import { governor, isReducedMotion } from "../../motion";
 
 export type HealthStatus = "ok" | "live" | "disabled" | "error";
@@ -40,9 +40,25 @@ export const SystemHealthRow: React.FC<SystemHealthRowProps> = ({
   const config = getStatusConfig(status);
   const ledRef = useRef<HTMLDivElement | null>(null);
   const [latencyActive, setLatencyActive] = useState<boolean>(false);
+  const [statusFlipped, setStatusFlipped] = useState<boolean>(false);
+  const prevStatusRef = useRef<HealthStatus>(status);
 
   const isT0 = governor.getState().tier === "T0" || isReducedMotion();
   const staggerDelayMs = staggerIndex !== undefined ? Math.min(staggerIndex * 24, 240) : 0;
+
+  // Health-status transitions (§7.1-4)
+  useEffect(() => {
+    if (prevStatusRef.current !== status) {
+      prevStatusRef.current = status;
+      if (!isT0) {
+        setStatusFlipped(true);
+        new Sequence()
+          .wait(480)
+          .addAction(() => setStatusFlipped(false))
+          .play();
+      }
+    }
+  }, [status, isT0]);
 
   // LED ignite animation 120ms before latency odometer (§M7.1)
   useEffect(() => {
@@ -84,10 +100,13 @@ export const SystemHealthRow: React.FC<SystemHealthRowProps> = ({
   return (
     <div
       style={staggerIndex !== undefined ? { animationDelay: `${staggerDelayMs}ms` } : undefined}
-      className={`flex items-center justify-between py-2 border-b border-[var(--line-faint)] last:border-b-0 m-enter ${className}`}
+      className={`flex items-center justify-between py-2 border-b border-[var(--line-faint)] last:border-b-0 m-enter relative overflow-hidden ${className}`}
     >
+      {statusFlipped && (
+        <WashSweep color={config.color === "madder" ? "var(--madder)" : "var(--verdigris)"} />
+      )}
       <div className="flex items-center gap-2.5">
-        <div ref={ledRef}>
+        <div ref={ledRef} className={statusFlipped && config.color === "madder" ? "animate-led-fail" : ""}>
           <LED color={config.color} live={config.live} />
         </div>
         <span className="type-body text-[var(--bone)]">{name}</span>
