@@ -334,6 +334,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
 
   return (
     <aside
+      aria-label="Primary navigation"
       className={`w-[240px] h-screen bg-[var(--ink-800)] border-r border-[var(--line-faint)] flex flex-col justify-between flex-shrink-0 select-none overflow-y-auto ${className}`}
     >
       <div>

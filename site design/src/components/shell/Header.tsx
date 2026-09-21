@@ -15,7 +15,13 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
   const path = location.pathname;
   const { user, users, setUser } = useActiveUser();
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [allowApi, setAllowApi] = useState<boolean | null>(null);
+  const [allowApi, setAllowApi] = useState<boolean | null>(() => {
+    if (typeof sessionStorage !== "undefined") {
+      const cached = sessionStorage.getItem("vg_allow_api");
+      if (cached !== null) return cached === "true";
+    }
+    return null;
+  });
 
   // Check if in replay mode (§US-12: replay badge if replay mode)
   const isReplay =
@@ -34,6 +40,9 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
       .then((data) => {
         if (isMounted && typeof data.allow_api === "boolean") {
           setAllowApi(data.allow_api);
+          if (typeof sessionStorage !== "undefined") {
+            sessionStorage.setItem("vg_allow_api", String(data.allow_api));
+          }
         }
       })
       .catch(() => {

@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "./Buttons";
 import { WashSweep } from "../../motion/fx/WashSweep";
+import { DrawPath } from "../../motion/fx/DrawPath";
 
 // 1. Empty State
 interface EmptyStateProps {
@@ -22,11 +23,13 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     >
       <div className="w-16 h-16 mb-4 text-[var(--dim)] opacity-70">
         <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full">
-          <path
+          <DrawPath
             d="M12 48L24 24L36 40L44 30L52 48H12Z"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="animate-sketch-draw"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            durationMs={720}
             data-testid="empty-state-sketch"
           />
           <circle cx="20" cy="18" r="3" className="animate-sketch-draw" />

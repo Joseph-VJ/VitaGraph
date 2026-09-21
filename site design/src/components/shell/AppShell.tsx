@@ -42,37 +42,42 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const hasBooted = useRef(false);
 
   // Boot ignition sequence (§M6.1, WS-3)
+  const executeBoot = () => {
+    const grain = grainRef.current;
+    const statusLed = document.querySelector<HTMLElement>('[data-boot-target="status-led"]');
+    const statusSegments = document.querySelectorAll('[data-boot-target="status-segment"]');
+    const sidebarLeaf = document.querySelector<HTMLElement>('[data-boot-target="sidebar-leaf"]');
+    const navItems = document.querySelectorAll('[data-boot-target="nav-item"]');
+    const headerSearch = document.querySelector<HTMLElement>('[data-boot-target="header-search"]');
+    const headerUser = document.querySelector<HTMLElement>('[data-boot-target="header-user"]');
+    const mainContent = mainRef.current;
+
+    runBoot({
+      grain,
+      statusLed,
+      statusSegments,
+      sidebarLeaf,
+      navItems,
+      headerSearch,
+      headerUser,
+      mainContent,
+    });
+  };
+
   useEffect(() => {
     const isBooted = typeof sessionStorage !== "undefined" && sessionStorage.getItem("vg_booted") === "1";
-    if (isBooted && hasBooted.current) return;
-
-    if (!isBooted || !hasBooted.current) {
+    if (!isBooted && !hasBooted.current) {
       hasBooted.current = true;
-      const grain = grainRef.current;
-      const statusLed = document.querySelector<HTMLElement>('[data-boot-target="status-led"]');
-      const statusSegments = document.querySelectorAll('[data-boot-target="status-segment"]');
-      const sidebarLeaf = document.querySelector<HTMLElement>('[data-boot-target="sidebar-leaf"]');
-      const navItems = document.querySelectorAll('[data-boot-target="nav-item"]');
-      const headerSearch = document.querySelector<HTMLElement>('[data-boot-target="header-search"]');
-      const headerUser = document.querySelector<HTMLElement>('[data-boot-target="header-user"]');
-      const mainContent = mainRef.current;
-
-      runBoot({
-        grain,
-        statusLed,
-        statusSegments,
-        sidebarLeaf,
-        navItems,
-        headerSearch,
-        headerUser,
-        mainContent,
-      });
+      executeBoot();
     }
-  }, [location.pathname]);
+  }, []);
 
   useEffect(() => {
     const handleReplay = () => {
-      hasBooted.current = false;
+      hasBooted.current = true;
+      setTimeout(() => {
+        executeBoot();
+      }, 60);
     };
     window.addEventListener("vitagraph:replay-boot", handleReplay);
     return () => window.removeEventListener("vitagraph:replay-boot", handleReplay);

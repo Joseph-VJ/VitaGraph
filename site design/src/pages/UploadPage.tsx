@@ -17,6 +17,7 @@ import { reportsApi, type ReportStatus } from "../api/reports";
 import { useActiveUser } from "../context/UserContext";
 import type { ReportPage, Report } from "../types";
 import { governor, isReducedMotion } from "../motion";
+import { transitionNavigate } from "../motion/navigation";
 
 export const UploadPage: React.FC = () => {
   const navigate = useNavigate();
@@ -46,7 +47,7 @@ export const UploadPage: React.FC = () => {
         "Demo Cohort Loaded",
         `Ingested 2 synthetic panels (${res.nodes} nodes, ${res.edges} edges) labeled 'demo data'`
       );
-      navigate("/graph");
+      transitionNavigate(navigate, "/graph", { direction: "forward" });
     } catch (err: any) {
       addToast("failed", "Failed to Load Demo Cohort", err?.message || String(err));
     } finally {

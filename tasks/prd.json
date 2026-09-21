@@ -248,7 +248,7 @@
       "title": "Motion Flow Pass v2 (Directional Transitions, Journey Rail, FX Primitives)",
       "spec": "§M4, §M5, §M6, §M9, §M11, WS-1..WS-5",
       "passes": true,
-      "acceptance": "Directional View Transitions (320ms expo-out forward, 180ms ink back); shared chrome stays planted (app-chrome, no full-page flash); fallback path with .m-route-enter; JourneyRail floating 5-step pill with detent pop, n/Arrow keyboard traversal, h1 autofocus; first-page boot sequence <=1.6s (measured 1.05s) skippable on input, replayable from Settings; FX primitives (DrawPath, PulseRing, DetentPress, Photon, DustField); quality governor hard-locked to T0 under reduced-motion (setOverride hole fixed); CLS < 0.05 (measured 0.0212); aria-live route announcer",
+      "acceptance": "Directional View Transitions (320ms expo-out forward, 180ms ink back); shared chrome stays planted (app-chrome, no full-page flash); fallback path with .m-route-enter; JourneyRail floating 5-step pill with detent pop, n/Arrow keyboard traversal, h1 autofocus; first-page boot sequence <=1.6s skippable on input, replayable from Settings via explicit listener; FX primitives (DrawPath, PulseRing, DetentPress, Photon, DustField); quality governor hard-locked to T0 under reduced-motion (setOverride hole fixed); CLS < 0.05; aria-live route announcer",
       "gates": "all",
       "verify": "verify_ms13.py (100% pass), ms13_journey_rail.png, ms13_directional_forward.png, ms13_directional_back.png, ms13_t0_reduced_motion_lock.png, ms13-verification-report.json"
     }

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Odometer, governor, isReducedMotion, playDetent } from "../../motion";
+import { DrawPath } from "../../motion/fx/DrawPath";
+import { PulseRing } from "../../motion/fx/PulseRing";
 
 export interface PipelineStep {
   name: string;
@@ -95,12 +97,15 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
                       stroke="currentColor"
                       strokeWidth="2.5"
                     >
-                      <path
+                      <DrawPath
                         d="M4 10.5l4 4 8-8"
                         strokeLinecap="round"
                         strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        stroke="currentColor"
+                        durationMs={240}
                         className={!isT0 ? "animate-draw-check" : ""}
-                        style={{ strokeDasharray: 24 }}
+                        data-testid="stepper-check-draw"
                       />
                     </svg>
                   </div>
@@ -110,7 +115,7 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
                 {step.status === "active" && (
                   <div className="relative w-7 h-7 rounded-full border-2 border-[var(--verdigris)] bg-[var(--ink-800)] flex items-center justify-center">
                     {!isT0 && (
-                      <div className="absolute -inset-1.5 rounded-full border border-[var(--verdigris)] animate-ring-once pointer-events-none" />
+                      <PulseRing color="verdigris" />
                     )}
                     <div className="w-2.5 h-2.5 rounded-full bg-[var(--verdigris)] shadow-[0_0_6px_var(--verdigris)]" />
                   </div>

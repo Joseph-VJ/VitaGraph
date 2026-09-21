@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import { governor } from "../quality";
 import { isReducedMotion } from "../features";
 
-export interface PulseRingProps {
+export interface PulseRingProps extends React.HTMLAttributes<HTMLSpanElement> {
   color?: "verdigris" | "ochre" | "madder" | "cornflower" | "lilac";
   size?: number;
   className?: string;
+  testId?: string;
   onComplete?: () => void;
 }
 
@@ -26,32 +27,37 @@ export const PulseRing: React.FC<PulseRingProps> = ({
   color = "verdigris",
   size,
   className = "",
+  testId,
   onComplete,
+  ...props
 }) => {
-  const [visible, setVisible] = useState(true);
+  const [completed, setCompleted] = useState(false);
 
   useEffect(() => {
     const tier = governor.getState().tier;
     if (isReducedMotion() || tier === "T0") {
-      setVisible(false);
+      setCompleted(true);
       onComplete?.();
       return;
     }
 
     const timer = setTimeout(() => {
-      setVisible(false);
+      setCompleted(true);
       onComplete?.();
     }, 1200);
 
     return () => clearTimeout(timer);
   }, [onComplete]);
 
-  if (!visible) return null;
+  const tier = governor.getState().tier;
+  if (isReducedMotion() || tier === "T0") return null;
 
   const rgba = COLOR_MAP[color] || COLOR_MAP.verdigris;
 
   return (
     <span
+      data-testid={testId || "pulse-ring"}
+      data-completed={completed ? "true" : "false"}
       className={`pointer-events-none absolute -inset-2 rounded-full border ${className}`}
       style={{
         borderColor: rgba,
@@ -60,6 +66,7 @@ export const PulseRing: React.FC<PulseRingProps> = ({
         animation: "pulseRingOnce 1200ms cubic-bezier(0.16, 1, 0.3, 1) forwards",
       }}
       aria-hidden="true"
+      {...props}
     />
   );
 };

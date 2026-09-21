@@ -79,15 +79,6 @@ if (typeof window !== "undefined") {
     lastPath = currentPath;
     historyDepth = Math.max(0, historyDepth - 1);
   });
-
-  (window as any).__VT_NAV__ = {
-    getNavDirection,
-    setNavDirection,
-    getCurrentNavDirection,
-    transitionNavigate,
-    CANONICAL_JOURNEY,
-    ROUTE_INDEX,
-  };
 }
 
 /**

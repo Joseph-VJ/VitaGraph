@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Badge, Button, Marginalia } from "../components/gallery";
 import { Odometer } from "../motion/fx/Odometer";
 import { flipFrom } from "../motion/flip";
+import { setNavDirection } from "../motion/navigation";
 import { useActiveUser } from "../context/UserContext";
 import { graphApi, type GraphResponse } from "../api/graph";
 
@@ -526,7 +527,7 @@ export const InsightsPage: React.FC = () => {
             </div>
 
             <div className="mt-4 pt-3 border-t border-[var(--line-faint)] flex justify-end">
-              <Link to="/ask">
+              <Link to="/ask" viewTransition onClick={() => setNavDirection("forward")}>
                 <Button variant="ghost" className="h-7 text-xs">
                   Query evidence in Ask
                 </Button>

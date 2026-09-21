@@ -248,11 +248,27 @@ a:focus-visible,
 
 /* ─── §M6.2 Route transitions (ViewTransition path) ─── */
 /* ─── WS-1 Directional View Transitions & Shared Chrome (§M6.2, MS-13) ─── */
-aside,
-header,
-footer,
+@view-transition {
+  navigation: auto;
+}
+
+aside[aria-label="Primary navigation"],
 [data-view-chrome="true"] {
   view-transition-name: app-chrome;
+}
+
+header {
+  view-transition-name: app-header;
+}
+
+footer,
+[data-testid="status-strip"] {
+  view-transition-name: app-footer;
+}
+
+aside[data-testid="journey-rail"],
+[data-view-journey-rail="true"] {
+  view-transition-name: journey-rail;
 }
 
 main#main-content {
@@ -261,7 +277,16 @@ main#main-content {
 
 ::view-transition-group(app-chrome),
 ::view-transition-old(app-chrome),
-::view-transition-new(app-chrome) {
+::view-transition-new(app-chrome),
+::view-transition-group(app-header),
+::view-transition-old(app-header),
+::view-transition-new(app-header),
+::view-transition-group(app-footer),
+::view-transition-old(app-footer),
+::view-transition-new(app-footer),
+::view-transition-group(journey-rail),
+::view-transition-old(journey-rail),
+::view-transition-new(journey-rail) {
   animation: none !important;
 }
 
@@ -291,38 +316,38 @@ main#main-content {
   to   { opacity: 1; transform: translateX(0); }
 }
 
-/* Forward: content enters from right (24px -> 0, 320ms ease-out-expo) */
+/* Forward: content enters from right (24px -> 0, --m-deliberate ease-out-expo) */
 html[data-nav-dir="forward"]::view-transition-old(main-content) {
-  animation: vtSlideLeftOut 180ms var(--ease-ink, cubic-bezier(0, 0, 0.2, 1)) both;
+  animation: vtSlideLeftOut var(--m-quick) var(--ease-ink, cubic-bezier(0, 0, 0.2, 1)) both;
 }
 html[data-nav-dir="forward"]::view-transition-new(main-content) {
-  animation: vtSlideLeftIn 320ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) both;
+  animation: vtSlideLeftIn var(--m-deliberate) var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
 
-/* Back: content enters from left (-24px -> 0, 320ms ease-out-expo) */
+/* Back: content enters from left (-24px -> 0, --m-deliberate ease-out-expo) */
 html[data-nav-dir="back"]::view-transition-old(main-content) {
-  animation: vtSlideRightOut 180ms var(--ease-ink, cubic-bezier(0, 0, 0.2, 1)) both;
+  animation: vtSlideRightOut var(--m-quick) var(--ease-ink, cubic-bezier(0, 0, 0.2, 1)) both;
 }
 html[data-nav-dir="back"]::view-transition-new(main-content) {
-  animation: vtSlideRightIn 320ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) both;
+  animation: vtSlideRightIn var(--m-deliberate) var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
 
 ::view-transition-old(root) {
-  animation: vtFadeOut 108ms var(--ease-ink, cubic-bezier(0, 0, 0.2, 1)) both;
+  animation: vtFadeOut calc(var(--m-quick) * 0.6) var(--ease-ink, cubic-bezier(0, 0, 0.2, 1)) both;
 }
 ::view-transition-new(root) {
-  animation: vtFadeIn 180ms var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) both;
+  animation: vtFadeIn var(--m-quick) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) both;
 }
 
 /* Directional Fallback route enter for browsers without ViewTransition API */
 .m-route-enter[data-nav-dir="forward"] {
-  animation: vtSlideLeftIn 320ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) both;
+  animation: vtSlideLeftIn var(--m-deliberate) var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
 .m-route-enter[data-nav-dir="back"] {
-  animation: vtSlideRightIn 320ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) both;
+  animation: vtSlideRightIn var(--m-deliberate) var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
 .m-route-enter:not([data-nav-dir]) {
-  animation: mEnter var(--m-quick, 180ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) both;
+  animation: mEnter var(--m-quick) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) both;
 }
 
 /* ─── §M5.4 Press micro-feedback (detent) ─── */
@@ -745,12 +770,21 @@ button:not(:disabled):active,
   ::view-transition-group(root),
   ::view-transition-group(main-content),
   ::view-transition-group(app-chrome),
+  ::view-transition-group(app-header),
+  ::view-transition-group(app-footer),
+  ::view-transition-group(journey-rail),
   ::view-transition-old(root),
   ::view-transition-new(root),
   ::view-transition-old(main-content),
   ::view-transition-new(main-content),
   ::view-transition-old(app-chrome),
-  ::view-transition-new(app-chrome) {
+  ::view-transition-new(app-chrome),
+  ::view-transition-old(app-header),
+  ::view-transition-new(app-header),
+  ::view-transition-old(app-footer),
+  ::view-transition-new(app-footer),
+  ::view-transition-old(journey-rail),
+  ::view-transition-new(journey-rail) {
     animation: none !important;
   }
   button:not(:disabled):active,

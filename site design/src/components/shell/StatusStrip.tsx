@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LED } from "../gallery/LED";
 import { useMotionGovernor } from "../../motion";
+import { transitionNavigate } from "../../motion/navigation";
 
 interface HealthState {
   online: boolean;
@@ -80,7 +81,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
 
     return (
       <div
-        onClick={() => navigate("/settings")}
+        onClick={() => transitionNavigate(navigate, "/settings", { direction: "forward" })}
         className="flex items-center gap-1 cursor-pointer hover:text-[var(--bone)] transition-colors group"
         title={`Motion Tier: ${motion.tier} (${motion.mode} mode${motion.reducedMotion ? ", reduced-motion locked" : ""}) — Click to configure in Settings`}
       >

@@ -1,8 +1,8 @@
 {
   "benchmark": "10-route churn memory & leak audit",
-  "initial_heap_mb": 16.49,
-  "post_churn_heap_mb": 18.85,
-  "heap_growth_mb": 2.35,
+  "initial_heap_mb": 16.75,
+  "post_churn_heap_mb": 18.89,
+  "heap_growth_mb": 2.14,
   "budget_max_growth_mb": 5.0,
   "idle_active_raf_count": 0,
   "pass": true,

@@ -5,6 +5,8 @@ import type { GraphResponse, GraphNode } from "../../api/graph";
 import { ticker } from "../../motion/ticker";
 import { governor, isReducedMotion } from "../../motion";
 import { Spring } from "../../motion/spring";
+import { PhotonManager } from "../../motion/fx/Photon";
+import { DustManager } from "../../motion/fx/DustField";
 
 export interface GraphStageProps {
   graphData?: GraphResponse | null;
@@ -431,6 +433,11 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     });
 
     if (activeIndices.length > 0) {
+      activeIndices.forEach((nodeIdx) => {
+        const node = nodes[nodeIdx];
+        DustManager.spawn(node.x, node.y, node.color, 4);
+      });
+
       const dustPool = dustPoolRef.current;
       console.assert(dustPool.length <= MAX_DUST, "Dust pool must not exceed 40");
       for (let i = 0; i < MAX_DUST; i++) {
@@ -471,6 +478,15 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         candidateEdges.push({ edgeIdx: i, reverse: sActive, color: sActive ? s.color : t.color });
       }
     }
+
+    candidateEdges.forEach((ce) => {
+      const e = edges[ce.edgeIdx];
+      const s = nodes[ce.reverse ? e.target : e.source];
+      const t = nodes[ce.reverse ? e.source : e.target];
+      if (s && t) {
+        PhotonManager.spawn(s.x, s.y, t.x, t.y, ce.color, 340);
+      }
+    });
 
     const photonPool = photonPoolRef.current;
     console.assert(photonPool.length <= MAX_PHOTONS, "Photon pool must not exceed 24");
@@ -1020,6 +1036,8 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       // 5b. Draw Photons (T3 only, <= 24 pooled dots travel beziers, vanish 120ms fade, §M8.3)
       let activePhotonsCount = 0;
       if (tier === "T3" && !prefersReducedMotion) {
+        PhotonManager.update(dtMs);
+        PhotonManager.render(ctx);
         const photons = photonPoolRef.current;
         for (let i = 0; i < MAX_PHOTONS; i++) {
           const p = photons[i];
@@ -1070,6 +1088,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           ctx.fill();
           ctx.restore();
         }
+        activePhotonsCount = Math.max(activePhotonsCount, PhotonManager.getActiveCount());
       }
       if (typeof window !== "undefined") {
         (window as any).__VG_ACTIVE_PHOTONS__ = activePhotonsCount;
@@ -1253,6 +1272,8 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       // 7. Draw Evidence Dust Particles (T3 only, <= 40 pooled, drift <= 12px, §M8.3)
       let activeDustCount = 0;
       if (tier === "T3" && !prefersReducedMotion) {
+        DustManager.update(dtMs);
+        DustManager.render(ctx);
         const dust = dustPoolRef.current;
         const dtScale = dtMs / 16.67;
         for (let i = 0; i < MAX_DUST; i++) {
@@ -1282,6 +1303,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           ctx.fill();
           ctx.restore();
         }
+        activeDustCount = Math.max(activeDustCount, DustManager.getActiveCount());
       }
       if (typeof window !== "undefined") {
         (window as any).__VG_ACTIVE_DUST__ = activeDustCount;

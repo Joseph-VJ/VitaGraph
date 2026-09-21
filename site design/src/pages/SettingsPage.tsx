@@ -9,6 +9,7 @@ import {
   isAudioEnabled,
   transitionNavigate,
 } from "../motion";
+import { DetentPress } from "../motion/fx/DetentPress";
 
 export const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -307,21 +308,23 @@ export const SettingsPage: React.FC = () => {
                 Replay the instrument ignition animation (§M6.1) on next page visit
               </span>
             </div>
-            <button
-              type="button"
-              data-testid="replay-boot-btn"
-              onClick={() => {
-                sessionStorage.removeItem("vg_booted");
-                window.dispatchEvent(new CustomEvent("vitagraph:replay-boot"));
-                if (isAudioEnabled()) {
-                  playDetent();
-                }
-                transitionNavigate(navigate, "/", { direction: "back" });
-              }}
-              className="px-3 py-1.5 rounded-[var(--r-6)] border border-[var(--line-strong)] hover:border-[var(--verdigris)] text-[var(--bone)] type-mono-sm text-xs transition-colors cursor-pointer"
-            >
-              Replay Boot
-            </button>
+            <DetentPress className="inline-flex">
+              <button
+                type="button"
+                data-testid="replay-boot-btn"
+                onClick={() => {
+                  sessionStorage.removeItem("vg_booted");
+                  window.dispatchEvent(new CustomEvent("vitagraph:replay-boot"));
+                  if (isAudioEnabled()) {
+                    playDetent();
+                  }
+                  transitionNavigate(navigate, "/", { direction: "back" });
+                }}
+                className="px-3 py-1.5 rounded-[var(--r-6)] border border-[var(--line-strong)] hover:border-[var(--verdigris)] text-[var(--bone)] type-mono-sm text-xs transition-colors cursor-pointer"
+              >
+                Replay Boot
+              </button>
+            </DetentPress>
           </div>
         </div>
       </div>

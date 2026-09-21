@@ -18,6 +18,8 @@ import { graphApi, type GraphResponse } from "../api/graph";
 import { timelineApi } from "../api/questions";
 import type { Report, TimelineEvent } from "../types";
 import { springToLinear, governor, isReducedMotion } from "../motion";
+import { transitionNavigate, setNavDirection } from "../motion/navigation";
+import { DetentPress } from "../motion/fx/DetentPress";
 
 interface HealthData {
   status: string;
@@ -69,7 +71,7 @@ export const HomePage: React.FC = () => {
         "Demo Cohort Loaded",
         `Ingested 2 synthetic panels (${res.nodes} nodes, ${res.edges} edges) labeled 'demo data'`
       );
-      navigate("/graph");
+      transitionNavigate(navigate, "/graph", { direction: "forward" });
     } catch (err: any) {
       addToast("failed", "Failed to Load Demo Cohort", err?.message || String(err));
     } finally {
@@ -300,15 +302,17 @@ export const HomePage: React.FC = () => {
       {/* Top Header Marginalia (§9.1) */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            onClick={handleLoadDemoCohort}
-            disabled={loadingCohort || backendOnline === false}
-            className="h-8 px-3 text-[12px] flex items-center gap-2 border-[var(--line-strong)] hover:border-[var(--verdigris)] text-[var(--bone)]"
-          >
-            <span className="w-2 h-2 rounded-full bg-[var(--verdigris)] animate-pulse" />
-            {loadingCohort ? "Loading demo cohort…" : "Load demo cohort"}
-          </Button>
+          <DetentPress className="inline-flex">
+            <Button
+              variant="ghost"
+              onClick={handleLoadDemoCohort}
+              disabled={loadingCohort || backendOnline === false}
+              className="h-8 px-3 text-[12px] flex items-center gap-2 border-[var(--line-strong)] hover:border-[var(--verdigris)] text-[var(--bone)]"
+            >
+              <span className="w-2 h-2 rounded-full bg-[var(--verdigris)] animate-pulse" />
+              {loadingCohort ? "Loading demo cohort…" : "Load demo cohort"}
+            </Button>
+          </DetentPress>
           {backendOnline === false && (
             <span className="px-2.5 py-1 rounded-[var(--r-4)] bg-[var(--madder)]/15 border border-[var(--madder)]/30 text-[var(--madder)] text-[12px] font-medium flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[var(--madder)] animate-pulse" />
@@ -383,7 +387,7 @@ export const HomePage: React.FC = () => {
           <div className="rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-5 flex flex-col">
             <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--line-faint)]">
               <h3 className="type-card-title text-[var(--bone)]">Recent activity</h3>
-              <Link to="/timeline">
+              <Link to="/timeline" viewTransition onClick={() => setNavDirection("forward")}>
                 <Button variant="ghost" className="h-7 px-2.5 text-[12px]">
                   View all
                 </Button>
@@ -564,7 +568,7 @@ export const HomePage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  <Link to="/library">
+                  <Link to="/library" viewTransition onClick={() => setNavDirection("forward")}>
                     <IconButton size={28} title="Open in library">
                       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M5 12h14M12 5l7 7-7 7" />
@@ -575,7 +579,7 @@ export const HomePage: React.FC = () => {
               ) : (
                 <div className="p-3 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)] text-[12px] text-[var(--dim)]">
                   No reports uploaded yet.{" "}
-                  <Link to="/upload" className="text-[var(--verdigris)] hover:underline">
+                  <Link to="/upload" viewTransition onClick={() => setNavDirection("forward")} className="text-[var(--verdigris)] hover:underline">
                     Upload a report
                   </Link>
                 </div>
@@ -608,7 +612,7 @@ export const HomePage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  <Link to="/ask">
+                  <Link to="/ask" viewTransition onClick={() => setNavDirection("forward")}>
                     <IconButton size={28} title="Open in Ask view">
                       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M5 12h14M12 5l7 7-7 7" />
@@ -619,7 +623,7 @@ export const HomePage: React.FC = () => {
               ) : (
                 <div className="p-3 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)] text-[12px] text-[var(--dim)]">
                   No questions asked yet.{" "}
-                  <Link to="/ask" className="text-[var(--verdigris)] hover:underline">
+                  <Link to="/ask" viewTransition onClick={() => setNavDirection("forward")} className="text-[var(--verdigris)] hover:underline">
                     Ask a question
                   </Link>
                 </div>

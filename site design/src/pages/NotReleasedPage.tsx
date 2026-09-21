@@ -1,6 +1,7 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { EmptyState, Button, Marginalia } from "../components/gallery";
+import { transitionNavigate, setNavDirection } from "../motion/navigation";
 
 interface NotReleasedPageProps {
   featureName: string;
@@ -11,6 +12,8 @@ export const NotReleasedPage: React.FC<NotReleasedPageProps> = ({
   featureName,
   description = "This capability is scheduled for a future release cycle.",
 }) => {
+  const navigate = useNavigate();
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-xl mx-auto text-center gap-6 py-12">
       <Marginalia
@@ -31,17 +34,17 @@ export const NotReleasedPage: React.FC<NotReleasedPageProps> = ({
           quote="Not in first release — reserved for future version"
           actionLabel="Return to workspace overview"
           onAction={() => {
-            window.location.href = "/";
+            transitionNavigate(navigate, "/", { direction: "back" });
           }}
           className="w-full"
         />
       </div>
 
       <div className="flex items-center gap-3">
-        <Link to="/">
+        <Link to="/" viewTransition onClick={() => setNavDirection("back")}>
           <Button variant="ghost">Workspace overview</Button>
         </Link>
-        <Link to="/graph">
+        <Link to="/graph" viewTransition onClick={() => setNavDirection("forward")}>
           <Button variant="ghost">Knowledge Graph</Button>
         </Link>
       </div>

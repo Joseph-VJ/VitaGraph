@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge, Button, Marginalia } from "../components/gallery";
+import { setNavDirection } from "../motion/navigation";
 
 interface ConceptItem {
   id: string;
@@ -165,7 +166,7 @@ export const OntologyPage: React.FC = () => {
                   {c.occurrences}
                 </td>
                 <td className="py-3 px-4 text-right">
-                  <Link to="/graph">
+                  <Link to="/graph" viewTransition onClick={() => setNavDirection("forward")}>
                     <Button variant="ghost" className="h-7 text-xs">
                       View in graph
                     </Button>

@@ -61,7 +61,7 @@ export const DetentPress: React.FC<DetentPressProps> = ({
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerLeave}
-      className={`transition-transform duration-[120ms] ease-[cubic-bezier(0.30,0.80,0.20,1)] select-none ${
+      className={`transition-transform duration-[var(--m-micro)] ease-[var(--ease-detent)] select-none ${
         isPressed ? "scale-[0.985] translate-y-[1px]" : "scale-100 translate-y-0"
       } ${className}`}
       {...props}

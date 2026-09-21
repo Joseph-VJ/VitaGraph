@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Badge,
   Button,
@@ -9,8 +9,10 @@ import {
 import { useActiveUser } from "../context/UserContext";
 import { reportsApi } from "../api/reports";
 import type { Report } from "../types";
+import { setNavDirection, getNavDirection } from "../motion/navigation";
 
 export const LibraryPage: React.FC = () => {
+  const location = useLocation();
   const { user } = useActiveUser();
   const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
 
@@ -156,13 +158,13 @@ export const LibraryPage: React.FC = () => {
           )}
         </div>
 
-        <Link to="/compare">
+        <Link to="/compare" viewTransition onClick={() => setNavDirection(getNavDirection(location.pathname, "/compare"))}>
           <Button variant="ghost" className="h-10 px-4 text-xs">
             <span>Compare reports</span>
           </Button>
         </Link>
 
-        <Link to="/upload">
+        <Link to="/upload" viewTransition onClick={() => setNavDirection(getNavDirection(location.pathname, "/upload"))}>
           <Button variant="primary" className="h-10 px-4">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -196,7 +198,7 @@ export const LibraryPage: React.FC = () => {
         ) : filteredReports.length === 0 ? (
           <div className="p-8 text-center bg-[var(--ink-800)] rounded-[var(--r-10)] border border-[var(--line-strong)] text-[var(--dim)]">
             <p className="type-body">No reports found matching your criteria.</p>
-            <Link to="/upload" className="mt-3 inline-block">
+            <Link to="/upload" viewTransition onClick={() => setNavDirection(getNavDirection(location.pathname, "/upload"))} className="mt-3 inline-block">
               <Button variant="primary" className="text-xs">Upload your first report</Button>
             </Link>
           </div>
@@ -280,17 +282,17 @@ export const LibraryPage: React.FC = () => {
 
               {/* Right: Actions */}
               <div className="flex items-center gap-2 flex-shrink-0 w-full md:w-auto justify-end pt-2 md:pt-0 border-t md:border-t-0 border-[var(--line-faint)]">
-                <Link to="/compare">
+                <Link to="/compare" viewTransition onClick={() => setNavDirection(getNavDirection(location.pathname, "/compare"))}>
                   <Button variant="ghost" className="h-8 text-xs">
                     Compare
                   </Button>
                 </Link>
-                <Link to="/graph">
+                <Link to="/graph" viewTransition onClick={() => setNavDirection(getNavDirection(location.pathname, "/graph"))}>
                   <Button variant="ghost" className="h-8 text-xs">
                     Graph
                   </Button>
                 </Link>
-                <Link to="/ask">
+                <Link to="/ask" viewTransition onClick={() => setNavDirection(getNavDirection(location.pathname, "/ask"))}>
                   <Button variant="ghost" className="h-8 text-xs">
                     Ask RAG
                   </Button>

@@ -1,7 +1,7 @@
 {
   "specification": "MOTION.md \u00a7M10\u2013M12",
   "release": "v1.1.0-motion",
-  "timestamp": "2026-09-21T08:20:41Z",
+  "timestamp": "2026-09-21T10:02:14Z",
   "total_gates": 16,
   "passed_gates": 16,
   "all_passed": true,
