@@ -16,6 +16,7 @@ import { useUser } from "../context/UserContext";
 import { questionsApi } from "../api/questions";
 import type { Answer, EvidenceCard } from "../types";
 import { playChime, playThud, playDetent, governor, isReducedMotion } from "../motion";
+import { DetentPress } from "../motion/fx/DetentPress";
 
 interface ThreadItem {
   id: string;
@@ -317,14 +318,18 @@ export const AskPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2">
           <span className="type-label text-[var(--dim)] text-[12px] mr-1">Quick inquiries:</span>
           {suggestedQuestions.map((q) => (
-            <button
-              key={q}
-              disabled={isAsking}
-              onClick={() => handleAskQuestion(q)}
-              className="px-2.5 py-1 rounded-[var(--r-4)] bg-[var(--ink-800)] border border-[var(--line-strong)] hover:border-[var(--verdigris)] hover:text-[var(--bone)] text-[var(--dim)] type-mono-sm text-[11px] transition-all cursor-pointer disabled:opacity-50"
-            >
-              {q}
-            </button>
+            <DetentPress key={q}>
+              <button
+                disabled={isAsking}
+                onClick={() => {
+                  playDetent();
+                  handleAskQuestion(q);
+                }}
+                className="px-2.5 py-1 rounded-[var(--r-4)] bg-[var(--ink-800)] border border-[var(--line-strong)] hover:border-[var(--verdigris)] hover:text-[var(--bone)] text-[var(--dim)] type-mono-sm text-[11px] transition-all cursor-pointer disabled:opacity-50"
+              >
+                {q}
+              </button>
+            </DetentPress>
           ))}
         </div>
 
@@ -455,23 +460,28 @@ export const AskPage: React.FC = () => {
               { value: "Graph", label: "Graph" },
             ]}
           />
-          <Button
-            variant="primary"
-            className="h-9 px-4 flex items-center gap-2"
-            disabled={isAsking || !questionInput.trim()}
-            onClick={() => handleAskQuestion(questionInput)}
-            data-testid="ask-send-button"
-          >
-            {isAsking ? (
-              <span className="w-3.5 h-3.5 rounded-full border-2 border-[var(--ink-900)] border-t-transparent animate-spin" />
-            ) : (
-              <svg className="w-3.5 h-3.5 rotate-45 -mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <path d="M22 2L11 13" />
-                <path d="M22 2l-7 20-4-9-9-4 20-7z" />
-              </svg>
-            )}
-            <span>{isAsking ? "Processing..." : "Send"}</span>
-          </Button>
+          <DetentPress>
+            <Button
+              variant="primary"
+              className="h-9 px-4 flex items-center gap-2"
+              disabled={isAsking || !questionInput.trim()}
+              onClick={() => {
+                playDetent();
+                handleAskQuestion(questionInput);
+              }}
+              data-testid="ask-send-button"
+            >
+              {isAsking ? (
+                <span className="w-3.5 h-3.5 rounded-full border-2 border-[var(--ink-900)] border-t-transparent animate-spin" />
+              ) : (
+                <svg className="w-3.5 h-3.5 rotate-45 -mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <path d="M22 2L11 13" />
+                  <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+                </svg>
+              )}
+              <span>{isAsking ? "Processing..." : "Send"}</span>
+            </Button>
+          </DetentPress>
         </div>
       </div>
 
@@ -496,17 +506,22 @@ export const AskPage: React.FC = () => {
                   {mode}
                 </span>
               </div>
-              <IconButton
-                size={24}
-                title="Collapse drawer"
-                onClick={() => setIsDrawerOpen(false)}
-                className="border-transparent bg-transparent hover:bg-[var(--ink-700)] text-[var(--dim)]"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </IconButton>
+              <DetentPress>
+                <IconButton
+                  size={24}
+                  title="Collapse drawer"
+                  onClick={() => {
+                    playDetent();
+                    setIsDrawerOpen(false);
+                  }}
+                  className="border-transparent bg-transparent hover:bg-[var(--ink-700)] text-[var(--dim)]"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </IconButton>
+              </DetentPress>
             </div>
 
             {/* Drawer Tabs */}
@@ -514,17 +529,21 @@ export const AskPage: React.FC = () => {
               {drawerTabs.map((tab) => {
                 const isActive = activeDrawerTab === tab;
                 return (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveDrawerTab(tab)}
-                    className={`py-2 px-3 type-label transition-colors duration-[120ms] relative cursor-pointer ${
-                      isActive
-                        ? "text-[var(--bone)] border-b-2 border-b-[var(--verdigris)] -mb-[1px]"
-                        : "text-[var(--dim)] hover:text-[var(--bone)]"
-                    }`}
-                  >
-                    {tab}
-                  </button>
+                  <DetentPress key={tab}>
+                    <button
+                      onClick={() => {
+                        playDetent();
+                        setActiveDrawerTab(tab);
+                      }}
+                      className={`py-2 px-3 type-label transition-colors duration-[120ms] relative cursor-pointer ${
+                        isActive
+                          ? "text-[var(--bone)] border-b-2 border-b-[var(--verdigris)] -mb-[1px]"
+                          : "text-[var(--dim)] hover:text-[var(--bone)]"
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  </DetentPress>
                 );
               })}
             </div>

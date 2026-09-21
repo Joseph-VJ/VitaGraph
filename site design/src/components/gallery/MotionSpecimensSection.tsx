@@ -20,7 +20,7 @@ import {
   DetentPress,
 } from "../../motion";
 import { PhotonManager } from "../../motion/fx/Photon";
-import { Button } from "./Buttons";
+import { Button, IconButton } from "./Buttons";
 import { Badge } from "./Badge";
 import { LED } from "./LED";
 import { EmptyState } from "./StateSet";
@@ -438,6 +438,38 @@ export const MotionSpecimensSection: React.FC = () => {
     setMg2Mode(val);
     setMg2Key(Date.now());
     playDetent();
+  };
+
+  // Specimen MG.3: DetentPress Sweep Proof-Board (§G4, Press Feedback)
+  const [mg3LastPressed, setMg3LastPressed] = useState<string>("none");
+  const handleMg3Press = (label: string) => {
+    setMg3LastPressed(label);
+    playDetent();
+  };
+
+  // Specimen MG.4: Confirm-Panel Exit (§G4, Press Feedback & Dialog Exit)
+  const [mg4ShowConfirm, setMg4ShowConfirm] = useState<boolean>(false);
+  const [mg4Exiting, setMg4Exiting] = useState<boolean>(false);
+  const handleMg4Open = () => {
+    playDetent();
+    setMg4ShowConfirm(true);
+    setMg4Exiting(false);
+  };
+  const handleMg4Cancel = () => {
+    playDetent();
+    if (isT0) {
+      setMg4ShowConfirm(false);
+      setMg4Exiting(false);
+      return;
+    }
+    setMg4Exiting(true);
+    new Sequence()
+      .wait(120)
+      .addAction(() => {
+        setMg4ShowConfirm(false);
+        setMg4Exiting(false);
+      })
+      .play();
   };
 
   // M9 Audio states
@@ -3000,6 +3032,165 @@ export const MotionSpecimensSection: React.FC = () => {
             </span>
             <span className="type-meta text-[11px] text-[var(--bone)] font-mono">
               Key remount
+            </span>
+          </div>
+        </div>
+
+        {/* Specimen MG.3: DetentPress Sweep Proof-Board (§G4, Press Feedback) */}
+        <div
+          data-testid="specimen-mg3-detentpress"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                MG.3 DetentPress Sweep Board
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                scale-[0.985] + detent
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Standardized tactile scale feedback across buttons, chips, links, and icon actions. Hard-disabled in T0.
+            </p>
+
+            <div className="bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 flex flex-wrap items-center gap-3">
+              <DetentPress>
+                <Button
+                  variant="primary"
+                  className="h-7 text-xs px-3"
+                  onClick={() => handleMg3Press("Button")}
+                  data-testid="specimen-mg3-btn"
+                >
+                  Action Button
+                </Button>
+              </DetentPress>
+
+              <DetentPress>
+                <button
+                  type="button"
+                  onClick={() => handleMg3Press("Chip")}
+                  data-testid="specimen-mg3-chip"
+                  className="px-2.5 py-1 text-xs rounded-full border border-[var(--line-strong)] bg-[var(--ink-700)] text-[var(--bone)] cursor-pointer"
+                >
+                  Filter Chip
+                </button>
+              </DetentPress>
+
+              <DetentPress>
+                <IconButton
+                  size={28}
+                  onClick={() => handleMg3Press("Icon")}
+                  data-testid="specimen-mg3-icon"
+                  className="border border-[var(--line-faint)] text-[var(--dim)] hover:text-[var(--bone)]"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </IconButton>
+              </DetentPress>
+
+              <DetentPress>
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleMg3Press("Link")}
+                  data-testid="specimen-mg3-link"
+                  className="text-xs text-[var(--verdigris)] underline cursor-pointer hover:text-[var(--bone)]"
+                >
+                  Inline Link
+                </span>
+              </DetentPress>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Last press: {mg3LastPressed}
+            </span>
+            <span className="type-meta text-[11px] text-[var(--verdigris)] font-mono">
+              DetentPress + 80ms
+            </span>
+          </div>
+        </div>
+
+        {/* Specimen MG.4: Confirm-Panel Exit (§G4, Confirm-Panel Exit) */}
+        <div
+          data-testid="specimen-mg4-confirmexit"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                MG.4 Confirm-Panel Exit
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                m-enter-card / m-exit 120ms
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Confirm dialog mounts with .m-enter-card and unmounts cleanly with .m-exit 120ms before DOM destruction.
+            </p>
+
+            <div className="bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 min-h-[92px] flex items-center justify-center">
+              {!mg4ShowConfirm ? (
+                <DetentPress>
+                  <Button
+                    variant="solid-danger"
+                    className="h-8 text-xs px-3"
+                    onClick={handleMg4Open}
+                    data-testid="specimen-mg4-trigger"
+                  >
+                    Delete record...
+                  </Button>
+                </DetentPress>
+              ) : (
+                <div
+                  data-testid="specimen-mg4-panel"
+                  className={`w-full p-3 rounded-[var(--r-6)] bg-[var(--madder)]/10 border border-[var(--madder)]/30 flex items-center justify-between gap-3 ${
+                    !isT0 ? (mg4Exiting ? "m-exit" : "m-enter-card") : ""
+                  }`}
+                >
+                  <span className="type-body text-xs text-[var(--bone)]">
+                    Are you sure?
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <DetentPress>
+                      <Button
+                        variant="solid-danger"
+                        className="h-7 text-xs px-2.5"
+                        onClick={() => {
+                          playDetent();
+                          setMg4ShowConfirm(false);
+                          setMg4Exiting(false);
+                        }}
+                        data-testid="specimen-mg4-confirm"
+                      >
+                        Delete
+                      </Button>
+                    </DetentPress>
+                    <DetentPress>
+                      <Button
+                        variant="ghost"
+                        className="h-7 text-xs px-2.5"
+                        onClick={handleMg4Cancel}
+                        data-testid="specimen-mg4-cancel"
+                      >
+                        Cancel
+                      </Button>
+                    </DetentPress>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Status: {mg4ShowConfirm ? (mg4Exiting ? "Exiting (120ms)" : "Mounted") : "Idle"}
+            </span>
+            <span className="type-meta text-[11px] text-[var(--bone)] font-mono">
+              Sequence.wait(120)
             </span>
           </div>
         </div>

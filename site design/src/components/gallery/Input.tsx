@@ -1,4 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
+import { governor, isReducedMotion } from "../../motion";
+import { playDetent } from "../../motion/audio";
+import { Sequence } from "../../motion/sequence";
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   icon?: React.ReactNode;
@@ -21,13 +24,13 @@ export const Input: React.FC<InputProps> = ({
       )}
       <input
         disabled={disabled}
-        className={`w-full h-9 bg-[var(--ink-800)] border border-[var(--line-strong)] text-[var(--bone)] placeholder-[var(--faint)] rounded-[var(--r-6)] type-body transition-colors duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--verdigris)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] disabled:opacity-40 disabled:cursor-not-allowed hover:border-[var(--dim)] ${
-          icon ? "pl-9" : "pl-3"
-        } ${shortcut ? "pr-16" : "pr-3"}`}
+        className={`w-full h-10 bg-[var(--ink-800)] border border-[var(--line-strong)] text-[var(--bone)] placeholder-[var(--faint)] rounded-[var(--r-8)] type-body pl-3 pr-3 transition-colors duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--verdigris)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] disabled:opacity-40 disabled:cursor-not-allowed ${
+          icon ? "pl-9" : ""
+        } ${shortcut ? "pr-12" : ""} ${className}`}
         {...props}
       />
       {shortcut && (
-        <span className="absolute right-2.5 px-1.5 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--line-strong)] text-[var(--dim)] type-mono-sm pointer-events-none">
+        <span className="absolute right-3 type-mono text-xs text-[var(--faint)] pointer-events-none border border-[var(--line-faint)] rounded px-1.5 py-0.5 bg-[var(--ink-700)]">
           {shortcut}
         </span>
       )}
@@ -35,6 +38,7 @@ export const Input: React.FC<InputProps> = ({
   );
 };
 
+// Select Dropdown
 interface SelectOption {
   value: string;
   label: string;
@@ -50,17 +54,31 @@ export const Select: React.FC<SelectProps> = ({
   compactPaper = false,
   disabled = false,
   className = "",
+  onChange,
   ...props
 }) => {
+  const [popping, setPopping] = useState(false);
+  const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    playDetent();
+    if (!isT0) {
+      setPopping(true);
+      new Sequence().wait(180).addAction(() => setPopping(false)).play();
+    }
+    onChange?.(e);
+  };
+
   return (
     <div
-      className={`relative inline-flex items-center ${
+      className={`relative inline-flex items-center transition-transform duration-[80ms] active:scale-[0.99] ${
         compactPaper ? "w-[84px]" : "w-auto"
-      }`}
+      } ${popping && !isT0 ? "animate-chip-pop" : ""}`}
     >
       <select
         disabled={disabled}
-        className={`appearance-none h-9 w-full bg-[var(--ink-800)] border border-[var(--line-strong)] text-[var(--bone)] rounded-[var(--r-6)] pl-3 pr-7 type-body transition-colors duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--verdigris)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] disabled:opacity-40 disabled:cursor-not-allowed hover:border-[var(--dim)] cursor-pointer ${className}`}
+        onChange={handleChange}
+        className={`appearance-none h-9 w-full bg-[var(--ink-800)] border border-[var(--line-strong)] text-[var(--bone)] rounded-[var(--r-6)] pl-3 pr-7 type-body transition-all duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--verdigris)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] focus-visible:border-[var(--verdigris)] disabled:opacity-40 disabled:cursor-not-allowed hover:border-[var(--dim)] cursor-pointer ${className}`}
         {...props}
       >
         {options.map((opt) => (

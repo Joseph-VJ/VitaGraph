@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "./Buttons";
 import { governor, isReducedMotion } from "../../motion";
+import { DetentPress } from "../../motion/fx/DetentPress";
+import { playDetent } from "../../motion/audio";
 
 interface QuarantineRowProps {
   filename: string;
@@ -42,7 +44,7 @@ export const QuarantineRow: React.FC<QuarantineRowProps> = ({
   }, [filename, isT0]);
 
   const handleRetry = () => {
-    // Retry clicked: detent press feedback (handled by Button)
+    playDetent();
     onRetry?.();
   };
 
@@ -85,13 +87,15 @@ export const QuarantineRow: React.FC<QuarantineRowProps> = ({
         </div>
       </div>
 
-      <Button
-        variant="solid-danger"
-        onClick={handleRetry}
-        className="h-8 px-3"
-      >
-        Retry
-      </Button>
+      <DetentPress>
+        <Button
+          variant="solid-danger"
+          onClick={handleRetry}
+          className="h-8 px-3"
+        >
+          Retry
+        </Button>
+      </DetentPress>
     </div>
   );
 };

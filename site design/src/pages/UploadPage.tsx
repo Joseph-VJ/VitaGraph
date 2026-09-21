@@ -23,6 +23,7 @@ import { DustManager } from "../motion/fx/DustField";
 import { flip } from "../motion/flip";
 import { DetentPress } from "../motion/fx/DetentPress";
 import { DrawPath } from "../motion/fx/DrawPath";
+import { playDetent } from "../motion/audio";
 
 export const UploadPage: React.FC = () => {
   const navigate = useNavigate();
@@ -451,39 +452,59 @@ export const UploadPage: React.FC = () => {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            className="h-7 text-[11px] px-2.5 bg-[var(--verdigris)]/15 border-[var(--verdigris)]/40 text-[var(--verdigris)] hover:bg-[var(--verdigris)]/25 flex items-center gap-1.5 font-medium"
-            disabled={isUploading || isLoadingCohort}
-            onClick={handleLoadDemoCohort}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--verdigris)] animate-pulse" />
-            {isLoadingCohort ? "Loading demo cohort…" : "Load demo cohort"}
-          </Button>
-          <Button
-            variant="ghost"
-            className="h-7 text-[11px] px-2.5"
-            disabled={isUploading || isLoadingCohort}
-            onClick={handleTestUploadSamplePdf}
-          >
-            Upload synthetic_panel_2025-01-15.pdf
-          </Button>
-          <Button
-            variant="ghost"
-            className="h-7 text-[11px] px-2.5 text-[var(--verdigris)] hover:text-[var(--verdigris)]"
-            disabled={isUploading || isLoadingCohort}
-            onClick={handleTestUploadScannedOcrPdf}
-          >
-            Upload Report4 Scanned OCR Test
-          </Button>
-          <Button
-            variant="ghost"
-            className="h-7 text-[11px] px-2.5 text-[var(--madder)] hover:text-[var(--madder)]"
-            disabled={isUploading || isLoadingCohort}
-            onClick={handleTestUploadCorruptedFile}
-          >
-            Upload corrupted .txt (Test Quarantine)
-          </Button>
+          <DetentPress>
+            <Button
+              variant="ghost"
+              className="h-7 text-[11px] px-2.5 bg-[var(--verdigris)]/15 border-[var(--verdigris)]/40 text-[var(--verdigris)] hover:bg-[var(--verdigris)]/25 flex items-center gap-1.5 font-medium"
+              disabled={isUploading || isLoadingCohort}
+              onClick={() => {
+                playDetent();
+                handleLoadDemoCohort();
+              }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--verdigris)] animate-pulse" />
+              {isLoadingCohort ? "Loading demo cohort…" : "Load demo cohort"}
+            </Button>
+          </DetentPress>
+          <DetentPress>
+            <Button
+              variant="ghost"
+              className="h-7 text-[11px] px-2.5"
+              disabled={isUploading || isLoadingCohort}
+              onClick={() => {
+                playDetent();
+                handleTestUploadSamplePdf();
+              }}
+            >
+              Upload synthetic_panel_2025-01-15.pdf
+            </Button>
+          </DetentPress>
+          <DetentPress>
+            <Button
+              variant="ghost"
+              className="h-7 text-[11px] px-2.5 text-[var(--verdigris)] hover:text-[var(--verdigris)]"
+              disabled={isUploading || isLoadingCohort}
+              onClick={() => {
+                playDetent();
+                handleTestUploadScannedOcrPdf();
+              }}
+            >
+              Upload Report4 Scanned OCR Test
+            </Button>
+          </DetentPress>
+          <DetentPress>
+            <Button
+              variant="ghost"
+              className="h-7 text-[11px] px-2.5 text-[var(--madder)] hover:text-[var(--madder)]"
+              disabled={isUploading || isLoadingCohort}
+              onClick={() => {
+                playDetent();
+                handleTestUploadCorruptedFile();
+              }}
+            >
+              Upload corrupted .txt (Test Quarantine)
+            </Button>
+          </DetentPress>
         </div>
       </div>
 
@@ -536,9 +557,18 @@ export const UploadPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <Button variant="ghost" className="h-7 text-[11px] px-2.5 text-[var(--madder)]" onClick={() => setUploadError(null)}>
-                  Dismiss
-                </Button>
+                <DetentPress>
+                  <Button
+                    variant="ghost"
+                    className="h-7 text-[11px] px-2.5 text-[var(--madder)]"
+                    onClick={() => {
+                      playDetent();
+                      setUploadError(null);
+                    }}
+                  >
+                    Dismiss
+                  </Button>
+                </DetentPress>
               </div>
             )}
 
@@ -552,13 +582,18 @@ export const UploadPage: React.FC = () => {
                   <span className="w-2 h-2 rounded-full bg-[var(--verdigris)] animate-pulse" />
                   All 6 pipeline stages verified and indexed
                 </span>
-                <Button
-                  variant="primary"
-                  className="flex items-center gap-2 text-xs font-semibold px-4 py-2"
-                  onClick={() => transitionNavigate(navigate, "/graph", { direction: "forward" })}
-                >
-                  View graph →
-                </Button>
+                <DetentPress>
+                  <Button
+                    variant="primary"
+                    className="flex items-center gap-2 text-xs font-semibold px-4 py-2"
+                    onClick={() => {
+                      playDetent();
+                      transitionNavigate(navigate, "/graph", { direction: "forward" });
+                    }}
+                  >
+                    View graph →
+                  </Button>
+                </DetentPress>
               </div>
             )}
           </div>
@@ -784,22 +819,27 @@ export const UploadPage: React.FC = () => {
             </div>
 
             <div className="mt-4 pt-3 border-t border-[var(--line-faint)] flex justify-end">
-              <Button
-                variant="ghost"
-                className="text-xs h-8"
-                onClick={() => {
-                  const meta = JSON.stringify({ activeReport, pages, steps }, null, 2);
-                  const blob = new Blob([meta], { type: "application/json" });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `manifest_${activeReport?.id || "report"}.json`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
-              >
-                Download JSON metadata
-              </Button>
+              <DetentPress>
+                <Button
+                  variant="ghost"
+                  className="text-xs h-8"
+                  data-testid="download-metadata-btn"
+                  onClick={() => {
+                    playDetent();
+                    const meta = JSON.stringify({ activeReport, pages, steps }, null, 2);
+                    const blob = new Blob([meta], { type: "application/json" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `manifest_${activeReport?.id || "report"}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    addToast("done", "Metadata Downloaded", "JSON metadata downloaded successfully");
+                  }}
+                >
+                  Download JSON metadata
+                </Button>
+              </DetentPress>
             </div>
           </div>
 

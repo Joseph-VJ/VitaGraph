@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Button, IconButton } from "./Buttons";
 import { PaperSlip } from "./PaperSlip";
 import type { GraphNode } from "../../api/graph";
+import { DetentPress } from "../../motion/fx/DetentPress";
+import { playDetent } from "../../motion/audio";
 
 interface DocumentPanelProps {
   className?: string;
@@ -83,17 +85,21 @@ export const DocumentPanel: React.FC<DocumentPanelProps> = ({
           {tabs.map((tab) => {
             const isActive = activeTab === tab;
             return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`py-2 px-3.5 type-label transition-colors duration-[120ms] relative cursor-pointer ${
-                  isActive
-                    ? "text-[var(--bone)] border-b-2 border-b-[var(--verdigris)] -mb-[1px]"
-                    : "text-[var(--dim)] hover:text-[var(--bone)]"
-                }`}
-              >
-                {tab}
-              </button>
+              <DetentPress key={tab}>
+                <button
+                  onClick={() => {
+                    playDetent();
+                    setActiveTab(tab);
+                  }}
+                  className={`py-2 px-3.5 type-label transition-colors duration-[120ms] relative cursor-pointer ${
+                    isActive
+                      ? "text-[var(--bone)] border-b-2 border-b-[var(--verdigris)] -mb-[1px]"
+                      : "text-[var(--dim)] hover:text-[var(--bone)]"
+                  }`}
+                >
+                  {tab}
+                </button>
+              </DetentPress>
             );
           })}
         </div>

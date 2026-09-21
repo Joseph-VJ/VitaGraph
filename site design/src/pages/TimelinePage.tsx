@@ -24,6 +24,7 @@ import { EvidenceSpanViewer } from "../components/gallery/EvidenceSpanViewer";
 import { Sequence, scheduleFor } from "../motion/sequence";
 import { DetentPress } from "../motion/fx/DetentPress";
 import { transitionNavigate, setNavDirection } from "../motion/navigation";
+import { playDetent } from "../motion/audio";
 
 export const TimelinePage: React.FC = () => {
   const { user, users, setUser, refreshUsers } = useActiveUser();
@@ -62,6 +63,7 @@ export const TimelinePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isCancellingDelete, setIsCancellingDelete] = useState(false);
   const [isSimulatingUpload, setIsSimulatingUpload] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -261,16 +263,33 @@ export const TimelinePage: React.FC = () => {
   const handleCopyId = () => {
     navigator.clipboard.writeText(effectiveUserId);
     setCopiedId(true);
-    setTimeout(() => setCopiedId(false), 1500);
+    playDetent();
+    new Sequence().wait(1500).addAction(() => setCopiedId(false)).play();
+  };
+
+  const handleCancelDelete = () => {
+    playDetent();
+    if (isT0) {
+      setShowDeleteConfirm(false);
+      setArmedState("idle");
+      return;
+    }
+    setIsCancellingDelete(true);
+    new Sequence()
+      .wait(120)
+      .addAction(() => {
+        setShowDeleteConfirm(false);
+        setIsCancellingDelete(false);
+        setArmedState("idle");
+      })
+      .play();
   };
 
   // Delete persona cascade: holds 400ms armed state friction (§M7.5)
   const handleArmDelete = () => {
     if (armedState === "idle") {
       setArmedState("arming");
-      setTimeout(() => {
-        setArmedState("armed");
-      }, 400); // 400ms armed anticipation hold (§M7.5)
+      new Sequence().wait(400).addAction(() => setArmedState("armed")).play();
     } else if (armedState === "armed") {
       executeDeleteCascade();
     }
@@ -434,24 +453,27 @@ export const TimelinePage: React.FC = () => {
           <label htmlFor="event-filter" className="type-label text-[var(--dim)]">
             Show:
           </label>
-          <select
-            id="event-filter"
-            value={filter}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (spineContainerRef.current && !isT0) {
-                flip(spineContainerRef.current, () => setFilter(val), { spring: "weighted", capMs: 240 });
-              } else {
-                setFilter(val);
-              }
-            }}
-            className="h-9 px-3 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] text-[var(--bone)] type-label focus:outline-none focus:border-[var(--verdigris)] transition-colors duration-[120ms] ease-out"
-          >
-            <option value="all">All events</option>
-            <option value="reports">Lab reports only</option>
-            <option value="questions">Questions & RAG</option>
-            <option value="graph">Graph updates</option>
-          </select>
+          <div className="inline-block transition-transform duration-[80ms] active:scale-[0.99]">
+            <select
+              id="event-filter"
+              value={filter}
+              onChange={(e) => {
+                const val = e.target.value;
+                playDetent();
+                if (spineContainerRef.current && !isT0) {
+                  flip(spineContainerRef.current, () => setFilter(val), { spring: "weighted", capMs: 240 });
+                } else {
+                  setFilter(val);
+                }
+              }}
+              className="h-9 px-3 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] text-[var(--bone)] type-label focus:outline-none focus:border-[var(--verdigris)] focus:ring-1 focus:ring-[var(--verdigris)]/50 focus:shadow-[0_0_8px_rgba(121,184,166,0.25)] transition-all duration-[120ms] ease-out cursor-pointer"
+            >
+              <option value="all">All events</option>
+              <option value="reports">Lab reports only</option>
+              <option value="questions">Questions & RAG</option>
+              <option value="graph">Graph updates</option>
+            </select>
+          </div>
           <span className="type-meta text-[var(--dim)]">
             Showing {reportCount} report panel{reportCount === 1 ? "" : "s"} and {derivedEventsCount} derived event{derivedEventsCount === 1 ? "" : "s"}
           </span>
@@ -944,17 +966,26 @@ export const TimelinePage: React.FC = () => {
                 </h4>
                 <div className="flex items-center gap-1 mt-0.5">
                   <span className="type-mono-sm text-[var(--dim)]">{effectiveUserId}</span>
-                  <IconButton
-                    size={20}
-                    title={copiedId ? "Copied" : "Copy ID"}
-                    onClick={handleCopyId}
-                    className="border-transparent bg-transparent hover:bg-[var(--ink-700)] text-[var(--dim)] hover:text-[var(--bone)]"
-                  >
-                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                    </svg>
-                  </IconButton>
+                  <DetentPress>
+                    <IconButton
+                      size={20}
+                      title={copiedId ? "Copied" : "Copy ID"}
+                      onClick={handleCopyId}
+                      data-testid="timeline-copy-id-btn"
+                      className="border-transparent bg-transparent hover:bg-[var(--ink-700)] text-[var(--dim)] hover:text-[var(--bone)]"
+                    >
+                      {copiedId ? (
+                        <svg className="w-3.5 h-3.5 text-[var(--verdigris)] animate-draw-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                        </svg>
+                      )}
+                    </IconButton>
+                  </DetentPress>
                 </div>
               </div>
             </div>
@@ -1027,15 +1058,25 @@ export const TimelinePage: React.FC = () => {
             {/* Delete persona with confirmation modal (§US-09, §M7.5) */}
             <div className="mt-4 pt-3 border-t border-[var(--line-faint)]">
               {!showDeleteConfirm ? (
-                <Button
-                  variant="solid-danger"
-                  className="w-full justify-center text-xs h-8 active:scale-[0.985] active:translate-y-[1px] transition-transform duration-[80ms] ease-[var(--ease-detent)]"
-                  onClick={() => setShowDeleteConfirm(true)}
-                >
-                  Delete persona
-                </Button>
+                <DetentPress>
+                  <Button
+                    variant="solid-danger"
+                    className="w-full justify-center text-xs h-8 active:scale-[0.985] active:translate-y-[1px] transition-transform duration-[80ms] ease-[var(--ease-detent)]"
+                    onClick={() => {
+                      playDetent();
+                      setShowDeleteConfirm(true);
+                    }}
+                  >
+                    Delete persona
+                  </Button>
+                </DetentPress>
               ) : (
-                <div className="p-3 rounded-[var(--r-6)] bg-[var(--madder)]/10 border border-[var(--madder)]/30 flex flex-col gap-2 m-enter-card">
+                <div
+                  data-testid="timeline-delete-confirm-panel"
+                  className={`p-3 rounded-[var(--r-6)] bg-[var(--madder)]/10 border border-[var(--madder)]/30 flex flex-col gap-2 ${
+                    !isT0 ? (isCancellingDelete ? "m-exit" : "m-enter-card") : ""
+                  }`}
+                >
                   <div className="type-mono-sm text-[var(--madder)] font-medium text-xs">
                     Confirm deletion of {effectiveUserId}?
                   </div>
@@ -1043,38 +1084,40 @@ export const TimelinePage: React.FC = () => {
                     Cascades: purges Chroma vectors, uploads, and database rows.
                   </p>
                   <div className="flex items-center gap-2 mt-1">
-                    <Button
-                      variant="solid-danger"
-                      className={`h-7 text-xs flex-1 justify-center transition-all duration-200 ${
-                        armedState === "arming"
-                          ? "border-[var(--madder)] shadow-[0_0_12px_rgba(217,128,141,0.6)] bg-[var(--madder)]/30 text-[var(--bone)]"
+                    <DetentPress>
+                      <Button
+                        variant="solid-danger"
+                        className={`h-7 text-xs flex-1 justify-center transition-all duration-200 ${
+                          armedState === "arming"
+                            ? "border-[var(--madder)] shadow-[0_0_12px_rgba(217,128,141,0.6)] bg-[var(--madder)]/30 text-[var(--bone)]"
+                            : armedState === "armed"
+                            ? "border-[var(--madder)] bg-[var(--madder)] text-[var(--bone)] font-semibold shadow-[0_0_8px_rgba(217,128,141,0.4)]"
+                            : ""
+                        }`}
+                        disabled={isDeleting}
+                        onClick={handleArmDelete}
+                        data-testid="confirm-purge-btn"
+                        data-armed-state={armedState}
+                      >
+                        {isDeleting
+                          ? "Purging..."
+                          : armedState === "arming"
+                          ? "Arming... (400ms)"
                           : armedState === "armed"
-                          ? "border-[var(--madder)] bg-[var(--madder)] text-[var(--bone)] font-semibold shadow-[0_0_8px_rgba(217,128,141,0.4)]"
-                          : ""
-                      }`}
-                      disabled={isDeleting}
-                      onClick={handleArmDelete}
-                      data-testid="confirm-purge-btn"
-                      data-armed-state={armedState}
-                    >
-                      {isDeleting
-                        ? "Purging..."
-                        : armedState === "arming"
-                        ? "Arming... (400ms)"
-                        : armedState === "armed"
-                        ? "ARMED — Click to Purge"
-                        : "Confirm Purge"}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="h-7 text-xs px-2"
-                      onClick={() => {
-                        setShowDeleteConfirm(false);
-                        setArmedState("idle");
-                      }}
-                    >
-                      Cancel
-                    </Button>
+                          ? "ARMED — Click to Purge"
+                          : "Confirm Purge"}
+                      </Button>
+                    </DetentPress>
+                    <DetentPress>
+                      <Button
+                        variant="ghost"
+                        className="h-7 text-xs px-2"
+                        onClick={handleCancelDelete}
+                        data-testid="cancel-purge-btn"
+                      >
+                        Cancel
+                      </Button>
+                    </DetentPress>
                   </div>
                 </div>
               )}

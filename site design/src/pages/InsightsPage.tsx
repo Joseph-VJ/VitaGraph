@@ -10,6 +10,8 @@ import { ticker } from "../motion/ticker";
 import { setNavDirection, getNavDirection } from "../motion/navigation";
 import { useActiveUser } from "../context/UserContext";
 import { graphApi, type GraphResponse } from "../api/graph";
+import { DetentPress } from "../motion/fx/DetentPress";
+import { playDetent } from "../motion/audio";
 
 export const InsightsPage: React.FC = () => {
   const location = useLocation();
@@ -63,6 +65,7 @@ export const InsightsPage: React.FC = () => {
   }, [loading]);
 
   const handleRefresh = async () => {
+    playDetent();
     setIsRefreshed(true);
     
     // Read current strokeDashoffset from DOM element
@@ -288,19 +291,21 @@ export const InsightsPage: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            data-testid="insights-refresh"
-            onClick={handleRefresh}
-            className="h-8 text-xs flex items-center gap-1.5"
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M23 4v6h-6" />
-              <path d="M1 20v-6h6" />
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-            </svg>
-            <span>Refresh Analytics</span>
-          </Button>
+          <DetentPress>
+            <Button
+              variant="ghost"
+              data-testid="insights-refresh"
+              onClick={handleRefresh}
+              className="h-8 text-xs flex items-center gap-1.5"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M23 4v6h-6" />
+                <path d="M1 20v-6h6" />
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+              </svg>
+              <span>Refresh Analytics</span>
+            </Button>
+          </DetentPress>
           <Marginalia
             text="Better data. Healthier decisions."
             sketch="leaf"

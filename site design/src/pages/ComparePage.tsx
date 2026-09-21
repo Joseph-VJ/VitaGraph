@@ -7,6 +7,8 @@ import { DrawPath } from "../motion/fx/DrawPath";
 import { governor } from "../motion/quality";
 import { isReducedMotion } from "../motion/features";
 import { getNavDirection, setNavDirection } from "../motion/navigation";
+import { DetentPress } from "../motion/fx/DetentPress";
+import { playDetent } from "../motion/audio";
 import { useActiveUser } from "../context/UserContext";
 import { reportsApi, type ComparisonData } from "../api/reports";
 import type { Report } from "../types";
@@ -165,7 +167,7 @@ export const ComparePage: React.FC = () => {
       {/* Selectors for Baseline and Follow-up panels with FLIP-swap (§M7.7, M4.1) */}
       <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4">
-          <div id="baseline-chip-container" className="flex items-center gap-2">
+          <div id="baseline-chip-container" className="flex items-center gap-2 transition-transform duration-[80ms] active:scale-[0.99]">
             <label htmlFor="baseline-select" className="type-label text-[var(--dim)] text-xs">
               Baseline panel:
             </label>
@@ -174,13 +176,14 @@ export const ComparePage: React.FC = () => {
               value={baselineId}
               onChange={(e) => {
                 const val = e.target.value;
+                playDetent();
                 if (rowsRef.current && !isT0) {
                   flip(rowsRef.current, () => setBaselineId(val), { spring: "weighted", capMs: 240 });
                 } else {
                   setBaselineId(val);
                 }
               }}
-              className="h-8 px-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)]"
+              className="h-8 px-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)] focus:ring-1 focus:ring-[var(--verdigris)]/50 focus:shadow-[0_0_8px_rgba(121,184,166,0.25)] transition-all duration-[120ms] ease-out cursor-pointer"
             >
               {reports.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -190,32 +193,35 @@ export const ComparePage: React.FC = () => {
             </select>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              const bEl = document.getElementById("baseline-chip-container");
-              const fEl = document.getElementById("followup-chip-container");
-              if (bEl && fEl) {
-                const bRect = bEl.getBoundingClientRect();
-                const fRect = fEl.getBoundingClientRect();
-                const temp = baselineId;
-                setBaselineId(followupId);
-                setFollowupId(temp);
-                flipFrom(bEl, fRect, { spring: "weighted", capMs: 240 });
-                flipFrom(fEl, bRect, { spring: "weighted", capMs: 240 });
-              } else {
-                const temp = baselineId;
-                setBaselineId(followupId);
-                setFollowupId(temp);
-              }
-            }}
-            title="Swap baseline and follow-up panels"
-            className="px-2.5 py-1 rounded-[var(--r-4)] bg-[var(--ink-900)] hover:bg-[var(--ink-700)] text-[var(--dim)] hover:text-[var(--bone)] border border-[var(--line-strong)] cursor-pointer text-xs font-mono transition-colors"
-          >
-            ⇄ Swap
-          </button>
+          <DetentPress>
+            <button
+              type="button"
+              onClick={() => {
+                playDetent();
+                const bEl = document.getElementById("baseline-chip-container");
+                const fEl = document.getElementById("followup-chip-container");
+                if (bEl && fEl) {
+                  const bRect = bEl.getBoundingClientRect();
+                  const fRect = fEl.getBoundingClientRect();
+                  const temp = baselineId;
+                  setBaselineId(followupId);
+                  setFollowupId(temp);
+                  flipFrom(bEl, fRect, { spring: "weighted", capMs: 240 });
+                  flipFrom(fEl, bRect, { spring: "weighted", capMs: 240 });
+                } else {
+                  const temp = baselineId;
+                  setBaselineId(followupId);
+                  setFollowupId(temp);
+                }
+              }}
+              title="Swap baseline and follow-up panels"
+              className="px-2.5 py-1 rounded-[var(--r-4)] bg-[var(--ink-900)] hover:bg-[var(--ink-700)] text-[var(--dim)] hover:text-[var(--bone)] border border-[var(--line-strong)] cursor-pointer text-xs font-mono transition-colors"
+            >
+              ⇄ Swap
+            </button>
+          </DetentPress>
 
-          <div id="followup-chip-container" className="flex items-center gap-2">
+          <div id="followup-chip-container" className="flex items-center gap-2 transition-transform duration-[80ms] active:scale-[0.99]">
             <label htmlFor="followup-select" className="type-label text-[var(--dim)] text-xs">
               Follow-up panel:
             </label>
@@ -224,13 +230,14 @@ export const ComparePage: React.FC = () => {
               value={followupId}
               onChange={(e) => {
                 const val = e.target.value;
+                playDetent();
                 if (rowsRef.current && !isT0) {
                   flip(rowsRef.current, () => setFollowupId(val), { spring: "weighted", capMs: 240 });
                 } else {
                   setFollowupId(val);
                 }
               }}
-              className="h-8 px-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)]"
+              className="h-8 px-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)] focus:ring-1 focus:ring-[var(--verdigris)]/50 focus:shadow-[0_0_8px_rgba(121,184,166,0.25)] transition-all duration-[120ms] ease-out cursor-pointer"
             >
               {reports.map((r) => (
                 <option key={r.id} value={r.id}>

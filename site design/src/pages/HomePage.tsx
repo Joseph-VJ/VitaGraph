@@ -20,6 +20,7 @@ import type { Report, TimelineEvent } from "../types";
 import { springToLinear, governor, isReducedMotion, CrossfadeContainer, Sequence } from "../motion";
 import { transitionNavigate, setNavDirection } from "../motion/navigation";
 import { DetentPress } from "../motion/fx/DetentPress";
+import { playDetent } from "../motion/audio";
 import { EmptyState } from "../components/gallery/StateSet";
 
 interface HealthData {
@@ -440,10 +441,12 @@ export const HomePage: React.FC = () => {
           <div className="rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-5 flex flex-col">
             <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--line-faint)]">
               <h3 className="type-card-title text-[var(--bone)]">Recent activity</h3>
-              <Link to="/timeline" viewTransition onClick={() => setNavDirection("forward")}>
-                <Button variant="ghost" className="h-7 px-2.5 text-[12px]">
-                  View all
-                </Button>
+              <Link to="/timeline" viewTransition onClick={() => { playDetent(); setNavDirection("forward"); }}>
+                <DetentPress>
+                  <Button variant="ghost" className="h-7 px-2.5 text-[12px]">
+                    View all
+                  </Button>
+                </DetentPress>
               </Link>
             </div>
 
@@ -654,20 +657,24 @@ export const HomePage: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      <Link to="/library" viewTransition onClick={() => setNavDirection("forward")}>
-                        <IconButton size={28} title="Open in library">
-                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M5 12h14M12 5l7 7-7 7" />
-                          </svg>
-                        </IconButton>
+                      <Link to="/library" viewTransition onClick={() => { playDetent(); setNavDirection("forward"); }}>
+                        <DetentPress>
+                          <IconButton size={28} title="Open in library">
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
+                          </IconButton>
+                        </DetentPress>
                       </Link>
                     </div>
                   ) : (
                     <div className="p-3 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)] text-[12px] text-[var(--dim)]">
                       No reports uploaded yet.{" "}
-                      <Link to="/upload" viewTransition onClick={() => setNavDirection("forward")} className="text-[var(--verdigris)] hover:underline">
-                        Upload a report
-                      </Link>
+                      <DetentPress>
+                        <Link to="/upload" viewTransition onClick={() => { playDetent(); setNavDirection("forward"); }} className="text-[var(--verdigris)] hover:underline active:scale-[0.98] inline-block transition-transform duration-[80ms]">
+                          Upload a report
+                        </Link>
+                      </DetentPress>
                     </div>
                   )}
                 </div>
@@ -696,23 +703,27 @@ export const HomePage: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      <Link to="/ask" viewTransition onClick={() => setNavDirection("forward")}>
-                    <IconButton size={28} title="Open in Ask view">
-                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M5 12h14M12 5l7 7-7 7" />
-                      </svg>
-                    </IconButton>
-                  </Link>
+                      <Link to="/ask" viewTransition onClick={() => { playDetent(); setNavDirection("forward"); }}>
+                        <DetentPress>
+                          <IconButton size={28} title="Open in Ask view">
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
+                          </IconButton>
+                        </DetentPress>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)] text-[12px] text-[var(--dim)]">
+                      No questions asked yet.{" "}
+                      <DetentPress>
+                        <Link to="/ask" viewTransition onClick={() => { playDetent(); setNavDirection("forward"); }} className="text-[var(--verdigris)] hover:underline active:scale-[0.98] inline-block transition-transform duration-[80ms]">
+                          Ask a question
+                        </Link>
+                      </DetentPress>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="p-3 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)] text-[12px] text-[var(--dim)]">
-                  No questions asked yet.{" "}
-                  <Link to="/ask" viewTransition onClick={() => setNavDirection("forward")} className="text-[var(--verdigris)] hover:underline">
-                    Ask a question
-                  </Link>
-                </div>
-              )}
-            </div>
             </div>
             </CrossfadeContainer>
           </div>
