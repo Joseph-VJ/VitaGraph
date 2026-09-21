@@ -7,12 +7,14 @@ interface DocumentPanelProps {
   className?: string;
   selectedNode?: GraphNode | null;
   reportFilename?: string | null;
+  onClose?: () => void;
 }
 
 export const DocumentPanel: React.FC<DocumentPanelProps> = ({
   className = "",
   selectedNode,
   reportFilename = "NEJM_2023_HeartFailure.pdf",
+  onClose,
 }) => {
   const [activeTab, setActiveTab] = useState("Overview");
 
@@ -28,8 +30,14 @@ export const DocumentPanel: React.FC<DocumentPanelProps> = ({
       className={`rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-4 flex flex-col justify-between ${className}`}
     >
       <div>
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 pb-3 border-b border-[var(--line-faint)] mb-3">
+        {/* Header with shared-element view transition (§7.3, §M5.15) */}
+        <div
+          data-testid="document-panel-header"
+          style={{
+            viewTransitionName: selectedNode ? "node-detail-header" : undefined,
+          }}
+          className="flex items-start justify-between gap-3 pb-3 border-b border-[var(--line-faint)] mb-3"
+        >
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-[var(--r-6)] bg-[var(--ink-700)] border border-[var(--line-strong)] flex items-center justify-center text-[var(--bone)] flex-shrink-0">
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
@@ -47,13 +55,27 @@ export const DocumentPanel: React.FC<DocumentPanelProps> = ({
             </div>
           </div>
 
-          <IconButton size={28} title="Actions">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="5" r="1.5" />
-              <circle cx="12" cy="12" r="1.5" />
-              <circle cx="12" cy="19" r="1.5" />
-            </svg>
-          </IconButton>
+          {onClose && selectedNode ? (
+            <IconButton
+              size={28}
+              title="Deselect Node (Esc)"
+              onClick={onClose}
+              data-testid="document-panel-close"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </IconButton>
+          ) : (
+            <IconButton size={28} title="Actions">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="1.5" />
+                <circle cx="12" cy="12" r="1.5" />
+                <circle cx="12" cy="19" r="1.5" />
+              </svg>
+            </IconButton>
+          )}
         </div>
 
         {/* Tab Row (underline-active §7.19) */}

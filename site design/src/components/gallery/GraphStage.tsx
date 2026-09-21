@@ -5,6 +5,7 @@ import type { GraphResponse, GraphNode } from "../../api/graph";
 import { ticker } from "../../motion/ticker";
 import { governor, isReducedMotion } from "../../motion";
 import { Spring } from "../../motion/spring";
+import { Odometer } from "../../motion/fx/Odometer";
 import { PhotonManager } from "../../motion/fx/Photon";
 import { DustManager } from "../../motion/fx/DustField";
 
@@ -556,6 +557,9 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         const isT0 = tier === "T0" || isReducedMotion();
         if (isT0) {
           dimSpringRef.current.reset(0.40);
+          if (typeof window !== "undefined") {
+            (window as any).__VG_GRAPH_DIM_ALPHA__ = 0.40;
+          }
         } else {
           dimSpringRef.current.setTarget(0.40);
         }
@@ -611,9 +615,13 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       revealDelays[item.i] = delay;
     });
 
+    // Preserve unchanged node positions across layout recalculations (stable node IDs §7.3, §M8.2)
+    const existingMap = new Map(simNodesRef.current.map((sn) => [sn.id, sn]));
+
     const initialSimNodes: SimNode[] = cappedNodes.map((n, i) => {
-      let x = width / 2 + (Math.random() - 0.5) * 360;
-      let y = height / 2 + (Math.random() - 0.5) * 260;
+      const existing = existingMap.get(n.id);
+      let x = existing ? existing.x : width / 2 + (Math.random() - 0.5) * 360;
+      let y = existing ? existing.y : height / 2 + (Math.random() - 0.5) * 260;
 
       if (layoutMode === "circular" && cappedNodes.length > 0) {
         const angle = (i / cappedNodes.length) * 2 * Math.PI;
@@ -631,8 +639,8 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         ...n,
         x,
         y,
-        vx: 0,
-        vy: 0,
+        vx: existing ? existing.vx : 0,
+        vy: existing ? existing.vy : 0,
         r: radius,
         color: getNodeColor(n),
         revealDelay: revealDelays[i],
@@ -698,15 +706,15 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         canvas.height = targetH;
       }
 
-      // 1. Camera spring solver (§M8.4, camera preset: stiffness 60, damping 14)
+      // 1. Camera spring solver (§M8.4, camera preset: stiffness 90, damping 20, mass 1.2)
       if (targetCamRef.current.active) {
         const dt = Math.min(dtMs / 1000, 0.05);
         const cam = cameraRef.current;
         const tgt = targetCamRef.current;
 
-        const ax = -60 * (cam.x - tgt.x) - 14 * cam.vx;
-        const ay = -60 * (cam.y - tgt.y) - 14 * cam.vy;
-        const ak = -60 * (cam.k - tgt.k) - 14 * cam.vk;
+        const ax = (-90 * (cam.x - tgt.x) - 20 * cam.vx) / 1.2;
+        const ay = (-90 * (cam.y - tgt.y) - 20 * cam.vy) / 1.2;
+        const ak = (-90 * (cam.k - tgt.k) - 20 * cam.vk) / 1.2;
 
         cam.vx += ax * dt;
         cam.vy += ay * dt;
@@ -875,7 +883,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
       // Exact dim-to-40% via weighted spring solver (§M8.3)
       const currentDim = isT0
-        ? (hasActiveQuestion ? 0.40 : 1.0)
+        ? dimSpringRef.current.target
         : dimSpringRef.current.step(dtMs);
       const exactDim = dimSpringRef.current.isAtRest ? dimSpringRef.current.target : currentDim;
 
@@ -1513,49 +1521,6 @@ export const GraphStage: React.FC<GraphStageProps> = ({
   const liveCommunitiesCount = graphData?.metrics?.communities_count ?? 0;
   const liveModularity = graphData?.metrics?.modularity ?? 0;
 
-  // Animated metrics count-up via single Ticker L1 lane (§M4.1, Gate 29)
-  const [animatedMetrics, setAnimatedMetrics] = useState({
-    nodes: 0,
-    edges: 0,
-    communities: 0,
-    modularity: 0,
-  });
-
-  useEffect(() => {
-    const isT0 = governor.getState().tier === "T0" || isReducedMotion();
-    if (isT0) {
-      setAnimatedMetrics({
-        nodes: liveNodesCount,
-        edges: liveEdgesCount,
-        communities: liveCommunitiesCount,
-        modularity: liveModularity,
-      });
-      return;
-    }
-
-    const duration = 650;
-    const startTime = performance.now();
-
-    const unsub = ticker.subscribe("L1", (_dtMs, now) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(1, elapsed / duration);
-      const ease = 1 - Math.pow(1 - progress, 3);
-
-      setAnimatedMetrics({
-        nodes: Math.round(ease * liveNodesCount),
-        edges: Math.round(ease * liveEdgesCount),
-        communities: Math.round(ease * liveCommunitiesCount),
-        modularity: Number((ease * liveModularity).toFixed(2)),
-      });
-
-      if (progress >= 1) {
-        return false; // auto-unsubscribe
-      }
-    });
-
-    return () => unsub();
-  }, [liveNodesCount, liveEdgesCount, liveCommunitiesCount, liveModularity]);
-
   return (
     <div ref={containerRef} className={`w-full flex flex-col ${className}`}>
       {/* Stats row & Controls above frame (§7.16) */}
@@ -1571,7 +1536,9 @@ export const GraphStage: React.FC<GraphStageProps> = ({
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
             </svg>
             <div>
-              <span className="type-mono font-medium text-[var(--bone)]">{animatedMetrics.nodes}</span>
+              <span className="type-mono font-medium text-[var(--bone)]">
+                <Odometer value={liveNodesCount} duration={480} testId="graph-odo-nodes" />
+              </span>
               <span className="type-meta text-[var(--dim)] ml-1.5">nodes</span>
             </div>
           </div>
@@ -1582,7 +1549,9 @@ export const GraphStage: React.FC<GraphStageProps> = ({
               <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
             </svg>
             <div>
-              <span className="type-mono font-medium text-[var(--bone)]">{animatedMetrics.edges}</span>
+              <span className="type-mono font-medium text-[var(--bone)]">
+                <Odometer value={liveEdgesCount} duration={480} testId="graph-odo-edges" />
+              </span>
               <span className="type-meta text-[var(--dim)] ml-1.5">edges</span>
             </div>
           </div>
@@ -1593,7 +1562,9 @@ export const GraphStage: React.FC<GraphStageProps> = ({
               <path d="M8 12a4 4 0 018 0" />
             </svg>
             <div>
-              <span className="type-mono font-medium text-[var(--bone)]">{animatedMetrics.communities}</span>
+              <span className="type-mono font-medium text-[var(--bone)]">
+                <Odometer value={liveCommunitiesCount} duration={480} testId="graph-odo-comm" />
+              </span>
               <span className="type-meta text-[var(--dim)] ml-1.5">communities</span>
             </div>
           </div>
@@ -1603,7 +1574,15 @@ export const GraphStage: React.FC<GraphStageProps> = ({
               <path d="M12 2L2 22h20L12 2z" />
             </svg>
             <div>
-              <span className="type-mono font-medium text-[var(--bone)]">{animatedMetrics.modularity.toFixed(2)}</span>
+              <span className="type-mono font-medium text-[var(--bone)]">
+                <Odometer
+                  value={liveModularity}
+                  decimals={2}
+                  format={(v) => v.toFixed(2)}
+                  duration={480}
+                  testId="graph-odo-mod"
+                />
+              </span>
               <span className="type-meta text-[var(--dim)] ml-1.5">modularity</span>
             </div>
           </div>
@@ -1692,9 +1671,15 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           className="w-full h-full relative z-10 block"
         />
 
-        {/* Node Provenance Card (pops up when a node is clicked) (§7.16, §M8.5) */}
+        {/* Node Provenance Card (pops up when a node is clicked) (§7.16, §M8.5, §M5.15) */}
         {selectedNode && (
-          <div className="absolute bottom-4 right-16 z-30 w-72 rounded-[var(--r-10)] bg-[var(--ink-800)]/95 backdrop-blur-md border border-[var(--line-strong)] p-3.5 shadow-xl flex flex-col gap-2 m-enter">
+          <div
+            data-testid="graph-node-provenance-card"
+            style={{
+              viewTransitionName: "node-detail-header",
+            }}
+            className="absolute bottom-4 right-16 z-30 w-72 rounded-[var(--r-10)] bg-[var(--ink-800)]/95 backdrop-blur-md border border-[var(--line-strong)] p-3.5 shadow-xl flex flex-col gap-2 m-enter"
+          >
             <div className="flex items-center justify-between pb-1.5 border-b border-[var(--line-faint)]">
               <span className="type-card-title text-[var(--bone)] truncate max-w-[200px]">
                 {selectedNode.label || selectedNode.id}

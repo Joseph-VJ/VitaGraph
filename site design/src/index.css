@@ -332,6 +332,12 @@ html[data-nav-dir="back"]::view-transition-new(main-content) {
   animation: vtSlideRightIn var(--m-deliberate) var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
 
+/* §M5.15 Shared-element morph for Node -> Detail header */
+::view-transition-group(node-detail-header) {
+  animation-duration: var(--m-base, 240ms);
+  animation-timing-function: var(--ease-weighted, cubic-bezier(0.25, 0.1, 0.25, 1));
+}
+
 ::view-transition-old(root) {
   animation: vtFadeOut calc(var(--m-quick) * 0.6) var(--ease-ink, cubic-bezier(0, 0, 0.2, 1)) both;
 }
@@ -804,6 +810,7 @@ button:not(:disabled):active,
   ::view-transition-group(app-header),
   ::view-transition-group(app-footer),
   ::view-transition-group(journey-rail),
+  ::view-transition-group(node-detail-header),
   ::view-transition-old(root),
   ::view-transition-new(root),
   ::view-transition-old(main-content),
@@ -815,7 +822,9 @@ button:not(:disabled):active,
   ::view-transition-old(app-footer),
   ::view-transition-new(app-footer),
   ::view-transition-old(journey-rail),
-  ::view-transition-new(journey-rail) {
+  ::view-transition-new(journey-rail),
+  ::view-transition-old(node-detail-header),
+  ::view-transition-new(node-detail-header) {
     animation: none !important;
   }
   button:not(:disabled):active,

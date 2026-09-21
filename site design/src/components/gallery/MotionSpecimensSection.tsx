@@ -18,6 +18,7 @@ import {
   UnderlineDraw,
   CrossfadeContainer,
 } from "../../motion";
+import { PhotonManager } from "../../motion/fx/Photon";
 import { Button } from "./Buttons";
 import { Badge } from "./Badge";
 import { LED } from "./LED";
@@ -81,6 +82,62 @@ export const MotionSpecimensSection: React.FC = () => {
 
   // M5.13 Focus+Context state
   const [evidenceHighlight, setEvidenceHighlight] = useState(false);
+
+  // M5.15 Node -> Detail Shared-Element Morph state
+  const [node15Expanded, setNode15Expanded] = useState(false);
+  const node15Ref = useRef<HTMLDivElement>(null);
+  const handleNode15Toggle = () => {
+    playDetent();
+    if (node15Ref.current && !isT0) {
+      flip(node15Ref.current, () => setNode15Expanded((v) => !v), {
+        spring: "weighted",
+        capMs: 240,
+      });
+    } else {
+      setNode15Expanded((v) => !v);
+    }
+  };
+
+  // M5.16 Question Subgraph Activation state
+  const [subgraph16Active, setSubgraph16Active] = useState(false);
+  const handleSubgraph16Toggle = () => {
+    setSubgraph16Active((v) => !v);
+    playDetent();
+  };
+
+  // M5.17 Directed Edge Photon Flow state
+  const [photon17Count, setPhoton17Count] = useState(0);
+  const handleFirePhotons17 = () => {
+    if (isT0) return;
+    playDetent();
+    setPhoton17Count((c) => c + 1);
+    for (let i = 0; i < 8; i++) {
+      PhotonManager.spawn(30 + i * 12, 50, 240, 50, "#79B8A6", 320);
+    }
+  };
+
+  // M5.18 Community Hull Breathing state
+  const [hull18Breathing, setHull18Breathing] = useState(true);
+
+  // M5.19 Dynamic Camera Pan & Zoom Spring state
+  const [camera19Target, setCamera19Target] = useState<"center" | "nodeA" | "nodeB">("center");
+  const handleCamera19Focus = (tgt: "center" | "nodeA" | "nodeB") => {
+    setCamera19Target(tgt);
+    playDetent();
+  };
+
+  // M5.20 Live Graph Statistics Odometers state
+  const stats20Presets = [
+    { name: "Panel A (Baseline)", nodes: 86, edges: 97, comm: 6, mod: 0.64 },
+    { name: "Panel B (Scanned)", nodes: 177, edges: 240, comm: 14, mod: 0.71 },
+    { name: "Panel C (Cohort)", nodes: 275, edges: 645, comm: 10, mod: 0.66 },
+  ];
+  const [stats20Idx, setStats20Idx] = useState(0);
+  const currentStats20 = stats20Presets[stats20Idx];
+  const handleCycleStats20 = () => {
+    setStats20Idx((i) => (i + 1) % stats20Presets.length);
+    playDetent();
+  };
 
   // M9 Audio states
   const [soundOn, setSoundOn] = useState(() => isAudioEnabled());
@@ -1302,6 +1359,393 @@ export const MotionSpecimensSection: React.FC = () => {
             <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
               Scroll container above ↑
             </span>
+          </div>
+        </div>
+
+        {/* Specimen M5.15: Node -> Detail Shared-Element Morph */}
+        <div
+          data-testid="specimen-node-detail-morph"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.15 Node → Detail Morph
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                ViewTransition / FLIP weighted
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Shared-element handoff from canvas node selection into detail drawer with physical weighted spring morph.
+            </p>
+
+            <div className="h-32 flex items-center justify-center bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 relative overflow-hidden">
+              <div
+                ref={node15Ref}
+                style={{ viewTransitionName: "specimen-node-header" }}
+                className={`transition-colors rounded-[var(--r-6)] border ${
+                  node15Expanded
+                    ? "w-full p-3 bg-[var(--ink-900)] border-[var(--verdigris)] space-y-1.5 shadow-md"
+                    : "px-3 py-1.5 bg-[var(--ink-700)] border-[var(--line-strong)] flex items-center gap-2 cursor-pointer hover:border-[var(--verdigris)]"
+                }`}
+                onClick={!node15Expanded ? handleNode15Toggle : undefined}
+              >
+                {node15Expanded ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <LED color="verdigris" />
+                        <span className="type-mono-sm text-xs text-[var(--bone)] font-semibold">
+                          Hemoglobin (HGB)
+                        </span>
+                      </div>
+                      <Badge variant="verdigris">14.1 g/dL</Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-[var(--dim)] font-mono pt-1 border-t border-[var(--line-faint)]">
+                      <span>Ref: 13.5 - 17.5</span>
+                      <span>Degree: 8 edges</span>
+                      <span>Page: 1</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <LED color="verdigris" />
+                    <span className="type-mono-sm text-xs text-[var(--bone)] font-medium">
+                      HGB
+                    </span>
+                    <Badge variant="dim">Node #42</Badge>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              View Transition: {node15Expanded ? "Detail Sheet" : "Canvas Chip"}
+            </span>
+            <Button variant="ghost" onClick={handleNode15Toggle}>
+              {node15Expanded ? "Deselect (Collapse)" : "Select Node (Morph)"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Specimen M5.16: Question Subgraph Activation (Pulse + Dim) */}
+        <div
+          data-testid="specimen-subgraph-activation"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.16 Subgraph Activation
+              </span>
+              <span className="type-mono-sm text-[var(--ochre)]">
+                PulseRing 1.2s + Dim 0.40
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Single 1200ms PulseRing on evidence concepts; non-evidence vertices smoothly dim to exact 0.40 alpha.
+            </p>
+
+            <div className="h-32 flex items-center justify-around bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 relative">
+              {/* Node 1: Activated Biomarker */}
+              <div className="flex flex-col items-center gap-1 relative">
+                {subgraph16Active && (
+                  <PulseRing color="verdigris" />
+                )}
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-mono text-xs border ${
+                    subgraph16Active
+                      ? "bg-[var(--ink-900)] border-[var(--verdigris)] text-[var(--verdigris)] shadow-[0_0_12px_rgba(121,184,166,0.4)]"
+                      : "bg-[var(--ink-700)] border-[var(--line-strong)] text-[var(--bone)]"
+                  }`}
+                >
+                  HGB
+                </div>
+                <span className="type-meta text-[9px] text-[var(--dim)] font-mono">Active</span>
+              </div>
+
+              {/* Edge */}
+              <svg width="40" height="4" viewBox="0 0 40 4" className="overflow-visible">
+                <line
+                  x1="0"
+                  y1="2"
+                  x2="40"
+                  y2="2"
+                  stroke={subgraph16Active ? "var(--verdigris)" : "var(--line-strong)"}
+                  strokeWidth="2"
+                  style={{ opacity: subgraph16Active ? 1 : 0.4 }}
+                />
+              </svg>
+
+              {/* Node 2: Distal concept (Dims to 0.40) */}
+              <div
+                className="flex flex-col items-center gap-1 transition-opacity duration-[240ms]"
+                style={{ opacity: subgraph16Active ? 0.4 : 1 }}
+              >
+                <div className="w-10 h-10 rounded-full flex items-center justify-center font-mono text-xs border bg-[var(--ink-700)] border-[var(--line-strong)] text-[var(--dim)]">
+                  GLU
+                </div>
+                <span className="type-meta text-[9px] text-[var(--dim)] font-mono">Distal (0.40)</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              State: {subgraph16Active ? "Activated (0.40 Dim)" : "Resting"}
+            </span>
+            <Button variant="ghost" onClick={handleSubgraph16Toggle}>
+              {subgraph16Active ? "Reset Activation" : "Trigger Subgraph Activation"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Specimen M5.17: Directed Edge Photon Flow */}
+        <div
+          data-testid="specimen-photon-edge-flow"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.17 Directed Edge Photon Flow
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                PhotonManager pool ≤ 24
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              6–12 photons traveling curved bezier paths from source chunk to evidence concept; speed ∝ 1/latency.
+            </p>
+
+            <div className="h-32 flex items-center justify-between bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-4 relative overflow-hidden">
+              <div className="flex flex-col items-center gap-1 z-10">
+                <div className="w-8 h-8 rounded-full bg-[var(--ink-700)] border border-[var(--line-strong)] flex items-center justify-center font-mono text-[10px] text-[var(--dim)]">
+                  Chunk
+                </div>
+                <span className="type-meta text-[9px] text-[var(--dim)]">p. 1 §4</span>
+              </div>
+
+              <div className="flex-1 mx-3 relative h-12 flex items-center">
+                <svg className="w-full h-full overflow-visible">
+                  <path
+                    d="M 0 24 Q 60 4, 120 24"
+                    fill="none"
+                    stroke="var(--line-strong)"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 3"
+                  />
+                  {photon17Count > 0 && (
+                    <circle cx="60" cy="14" r="3" fill="var(--verdigris)" className="animate-pulse" />
+                  )}
+                </svg>
+              </div>
+
+              <div className="flex flex-col items-center gap-1 z-10">
+                <div className="w-8 h-8 rounded-full bg-[var(--verdigris)] text-[var(--ink-900)] flex items-center justify-center font-mono text-[10px] font-bold">
+                  HGB
+                </div>
+                <span className="type-meta text-[9px] text-[var(--verdigris)]">Concept</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Photons fired: {photon17Count * 8} (T3 lane L1)
+            </span>
+            <Button variant="ghost" onClick={handleFirePhotons17}>
+              Spawn Photon Burst
+            </Button>
+          </div>
+        </div>
+
+        {/* Specimen M5.18: Community Hull Breathing */}
+        <div
+          data-testid="specimen-hull-breathing"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.18 Community Hull Breathing
+              </span>
+              <span className="type-mono-sm text-[var(--lilac)]">
+                9s sine (0.111 Hz ≤ 2Hz)
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Gentle sine oscillation on community hulls: 9s period, opacity 0.05 → 0.08. Pauses when off-screen.
+            </p>
+
+            <div className="h-32 flex items-center justify-center bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 relative">
+              <div
+                className={`w-36 h-20 rounded-[var(--r-14)] border border-dashed border-[var(--lilac)] flex items-center justify-center ${
+                  hull18Breathing && !isT0 ? "animate-breathe" : ""
+                }`}
+                style={{
+                  backgroundColor: "rgba(169, 146, 208, 0.06)",
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[var(--lilac)]" />
+                  <span className="type-mono-sm text-xs text-[var(--bone)]">
+                    Community #2
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Frequency: 0.111 Hz (Gate 24 pass)
+            </span>
+            <Button variant="ghost" onClick={() => setHull18Breathing((b) => !b)}>
+              {hull18Breathing ? "Pause Breathing" : "Resume Breathing"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Specimen M5.19: Dynamic Zoom & Camera Pan */}
+        <div
+          data-testid="specimen-camera-spring"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.19 Dynamic Camera Pan & Zoom
+              </span>
+              <span className="type-mono-sm text-[var(--ochre)]">
+                Preset (90/20/1.2)
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Spring-based camera framing (stiffness 90, damping 20, mass 1.2) centering on selected entity with momentum handoff.
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 relative overflow-hidden flex items-center justify-center">
+              <div
+                className="w-48 h-24 border border-[var(--line-strong)] rounded-[var(--r-6)] bg-[var(--ink-900)] relative transition-transform duration-[360ms] ease-[cubic-bezier(0.32,0,0.24,1)] flex items-center justify-center"
+                style={{
+                  transform:
+                    camera19Target === "nodeA"
+                      ? "scale(1.2) translate(-20px, -10px)"
+                      : camera19Target === "nodeB"
+                      ? "scale(1.2) translate(20px, 10px)"
+                      : "scale(1.0) translate(0px, 0px)",
+                }}
+              >
+                <div className="flex items-center gap-6">
+                  <div
+                    onClick={() => handleCamera19Focus("nodeA")}
+                    className={`w-8 h-8 rounded-full border flex items-center justify-center font-mono text-[10px] cursor-pointer ${
+                      camera19Target === "nodeA"
+                        ? "border-[var(--verdigris)] text-[var(--verdigris)] bg-[var(--verdigris)]/10"
+                        : "border-[var(--line-strong)] text-[var(--bone)]"
+                    }`}
+                  >
+                    A
+                  </div>
+                  <div
+                    onClick={() => handleCamera19Focus("nodeB")}
+                    className={`w-8 h-8 rounded-full border flex items-center justify-center font-mono text-[10px] cursor-pointer ${
+                      camera19Target === "nodeB"
+                        ? "border-[var(--ochre)] text-[var(--ochre)] bg-[var(--ochre)]/10"
+                        : "border-[var(--line-strong)] text-[var(--bone)]"
+                    }`}
+                  >
+                    B
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Target: {camera19Target}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <Button variant="ghost" className="h-7 text-xs px-2" onClick={() => handleCamera19Focus("nodeA")}>
+                Focus A
+              </Button>
+              <Button variant="ghost" className="h-7 text-xs px-2" onClick={() => handleCamera19Focus("nodeB")}>
+                Focus B
+              </Button>
+              <Button variant="ghost" className="h-7 text-xs px-2" onClick={() => handleCamera19Focus("center")}>
+                Reset
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Specimen M5.20: Live Graph Statistics Odometers */}
+        <div
+          data-testid="specimen-stats-odometers"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.20 Live Graph Statistics
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                Odometer count-up (Gate 27)
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Numeric count-up Odometers with needle easing for nodes, edges, communities, and modularity Q.
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 grid grid-cols-2 gap-2 content-center">
+              <div className="p-2 rounded-[var(--r-4)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
+                <div className="type-meta text-[10px] text-[var(--dim)] uppercase">Nodes</div>
+                <div className="type-mono text-base font-semibold text-[var(--bone)]">
+                  <Odometer value={currentStats20.nodes} duration={480} testId="specimen-odo-nodes" />
+                </div>
+              </div>
+
+              <div className="p-2 rounded-[var(--r-4)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
+                <div className="type-meta text-[10px] text-[var(--dim)] uppercase">Edges</div>
+                <div className="type-mono text-base font-semibold text-[var(--bone)]">
+                  <Odometer value={currentStats20.edges} duration={480} testId="specimen-odo-edges" />
+                </div>
+              </div>
+
+              <div className="p-2 rounded-[var(--r-4)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
+                <div className="type-meta text-[10px] text-[var(--dim)] uppercase">Communities</div>
+                <div className="type-mono text-base font-semibold text-[var(--bone)]">
+                  <Odometer value={currentStats20.comm} duration={480} testId="specimen-odo-comm" />
+                </div>
+              </div>
+
+              <div className="p-2 rounded-[var(--r-4)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
+                <div className="type-meta text-[10px] text-[var(--dim)] uppercase">Modularity Q</div>
+                <div className="type-mono text-base font-semibold text-[var(--bone)]">
+                  <Odometer
+                    value={currentStats20.mod}
+                    decimals={2}
+                    format={(v) => v.toFixed(2)}
+                    duration={480}
+                    testId="specimen-odo-mod"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Preset: {currentStats20.name}
+            </span>
+            <Button variant="ghost" onClick={handleCycleStats20}>
+              Cycle Cohort Presets
+            </Button>
           </div>
         </div>
       </div>

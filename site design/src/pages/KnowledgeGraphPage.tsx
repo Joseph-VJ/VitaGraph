@@ -10,6 +10,8 @@ import {
 import { useActiveUser } from "../context/UserContext";
 import { graphApi, type GraphResponse, type GraphNode } from "../api/graph";
 import { questionsApi } from "../api/questions";
+import { governor } from "../motion/quality";
+import { isReducedMotion } from "../motion/features";
 
 export const KnowledgeGraphPage: React.FC = () => {
   const { user } = useActiveUser();
@@ -51,6 +53,29 @@ export const KnowledgeGraphPage: React.FC = () => {
   useEffect(() => {
     loadGraph();
   }, [loadGraph]);
+
+  // Node -> detail shared-element morph (§7.3, §M5.15)
+  const handleSelectNode = useCallback((node: GraphNode | null) => {
+    const isT0 = isReducedMotion() || governor.getState().tier === "T0";
+    if (isT0 || typeof document === "undefined" || !("startViewTransition" in document)) {
+      setSelectedNode(node);
+      return;
+    }
+    (document as any).startViewTransition(() => {
+      setSelectedNode(node);
+    });
+  }, []);
+
+  // Global Escape key listener to reverse morph / deselect (§7.3)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && selectedNode) {
+        handleSelectNode(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedNode, handleSelectNode]);
 
   // Clean up SSE stream on unmount
   useEffect(() => {
@@ -243,7 +268,7 @@ export const KnowledgeGraphPage: React.FC = () => {
           activeNodeIds={activeNodeIds}
           subgraphMetrics={subgraphMetrics}
           selectedNode={selectedNode}
-          onSelectNode={setSelectedNode}
+          onSelectNode={handleSelectNode}
         />
 
         {/* Ask Bar (§7.17) */}
@@ -264,7 +289,10 @@ export const KnowledgeGraphPage: React.FC = () => {
 
       {/* Right Panel (400px) */}
       <div className="w-full lg:w-[400px] flex-shrink-0">
-        <DocumentPanel selectedNode={selectedNode} />
+        <DocumentPanel
+          selectedNode={selectedNode}
+          onClose={() => handleSelectNode(null)}
+        />
       </div>
     </div>
   );
