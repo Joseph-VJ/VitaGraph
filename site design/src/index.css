@@ -719,6 +719,26 @@ button:not(:disabled):active,
   animation: ruleWipeY var(--m-deliberate, 360ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) forwards;
 }
 
+/* ─── §M7.5 / §M7.11 / §M7.13 Scroll-Driven Reveals ─── */
+@keyframes scrollRevealItem {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .scroll-reveal {
+    animation: scrollRevealItem linear both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 30%;
+  }
+}
+
 /* ─── Reduced motion support (§8.1, §M11) ─── */
 @media (prefers-reduced-motion: reduce) {
   .animate-breathe,
@@ -759,6 +779,7 @@ button:not(:disabled):active,
   .animate-led-fail,
   .animate-rule-wipe-y,
   .skeleton-shimmer,
+  .scroll-reveal,
   .m-enter, .m-enter-card, .m-exit,
   .m-route-enter {
     animation: none !important;

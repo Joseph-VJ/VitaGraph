@@ -21,3 +21,4 @@ export * from "./fx/Photon";
 export * from "./fx/DustField";
 export * from "./audio";
 export * from "./navigation";
+export * from "./skeleton";
