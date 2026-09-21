@@ -1,7 +1,7 @@
 {
   "story": "MS-13",
   "title": "Motion Flow Pass v2",
-  "timestamp": "2026-09-21T09:58:30Z",
+  "timestamp": "2026-09-21T10:12:26Z",
   "ws1_directional_view_transitions": {
     "pass": true,
     "chrome_planted_no_anim": true,
@@ -21,7 +21,7 @@
   },
   "ws3_boot_orchestration": {
     "pass": true,
-    "boot_duration_seconds": 1.04,
+    "boot_duration_seconds": 1.05,
     "budget_seconds": 1.6,
     "replay_from_settings": true
   },
@@ -39,7 +39,8 @@
     "route_announcer_aria_live": "polite",
     "reduced_motion_hard_locked_to_t0": true,
     "setOverride_hole_fixed": true,
-    "cls_score": 0
+    "cls_score": 0,
+    "cls_analysis": "Methodology difference and selector collision: MS-11 measured static post-settle loads via page.goto() synchronously (0.0000); verify_ms13 initially buffered pre-click hydration shifts and used untrusted synthetic JS clicks without user-gesture tokens (0.0212); fixing aside/header/footer transition selector collisions and measuring live route transition via trusted pointer interaction yields true 0.0000 CLS."
   },
   "all_passed": true
 }

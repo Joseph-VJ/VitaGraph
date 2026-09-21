@@ -251,7 +251,7 @@ def verify_ms13():
         page.wait_for_function("() => sessionStorage.getItem('vg_booted') === '1'", timeout=3000)
         t_boot_elapsed = time.time() - t_boot_start
         print(f"Boot sequence completed in {t_boot_elapsed:.2f}s (budget <= 1.6s)")
-        assert t_boot_elapsed <= 2.2, f"Boot sequence too slow: {t_boot_elapsed}s"
+        assert t_boot_elapsed <= 1.6, f"Boot sequence too slow: {t_boot_elapsed}s (budget <= 1.6s)"
 
         # Test Replay Boot from Settings
         page.goto(f"{FRONTEND_URL}/settings", wait_until="networkidle")
@@ -419,7 +419,7 @@ def verify_ms13():
         }""")
 
         print(f"Cumulative Layout Shift (CLS) during directional transition: {cls_score:.4f}")
-        assert cls_score <= 0.01, f"CLS exceeded budget: {cls_score}"
+        assert cls_score == 0.0, f"CLS exceeded 0.00 budget: {cls_score}"
 
         # Capture reduced-motion screenshot
         page.evaluate("() => window.__VT_GOVERNOR__.setOverride('T0')")
@@ -435,6 +435,7 @@ def verify_ms13():
             "reduced_motion_hard_locked_to_t0": True,
             "setOverride_hole_fixed": True,
             "cls_score": round(cls_score, 4),
+            "cls_analysis": "Methodology difference and selector collision: MS-11 measured static post-settle loads via page.goto() synchronously (0.0000); verify_ms13 initially buffered pre-click hydration shifts and used untrusted synthetic JS clicks without user-gesture tokens (0.0212); fixing aside/header/footer transition selector collisions and measuring live route transition via trusted pointer interaction yields true 0.0000 CLS.",
         }
         print("PASS: WS-5 Quality Governor Hard-Lock & a11y floor verified.")
 

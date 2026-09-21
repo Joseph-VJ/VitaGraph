@@ -342,6 +342,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
         <div className="p-5 pb-4 border-b border-[var(--line-faint)]">
           <Link
             to="/"
+            viewTransition={supportsViewTransitions() && governor.getState().tier !== "T0"}
             onClick={() => setNavDirection(getNavDirection(currentPath, "/"))}
             className="flex items-center gap-2.5 focus:outline-none"
           >

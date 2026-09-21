@@ -70,7 +70,7 @@ let lastPath = typeof window !== "undefined" ? window.location.pathname : "/";
 let historyDepth = 0;
 
 if (typeof window !== "undefined") {
-  // Listen for browser back/forward buttons
+  // Listen for browser back/forward buttons with directional view transition
   window.addEventListener("popstate", () => {
     const currentPath = window.location.pathname;
     const dir: NavDirection =
@@ -78,6 +78,15 @@ if (typeof window !== "undefined") {
     setNavDirection(dir);
     lastPath = currentPath;
     historyDepth = Math.max(0, historyDepth - 1);
+
+    const tier = governor.getState().tier;
+    const vtAllowed = supportsViewTransitions() && tier !== "T0";
+    if (vtAllowed && "startViewTransition" in document) {
+      (document as any).startViewTransition(async () => {
+        // Yield to allow React Router to render the incoming route DOM
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
   });
 }
 

@@ -1,8 +1,10 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Badge, LED, Button, Marginalia } from "../components/gallery";
+import { getNavDirection, setNavDirection } from "../motion/navigation";
 
 export const DatasetsPage: React.FC = () => {
+  const location = useLocation();
   const datasets = [
     {
       name: "ChromaDB Vector Collection",
@@ -112,7 +114,11 @@ export const DatasetsPage: React.FC = () => {
                 <Button variant="ghost" className="h-7 text-xs">
                   Verify integrity
                 </Button>
-                <Link to="/graph">
+                <Link
+                  to="/graph"
+                  viewTransition
+                  onClick={() => setNavDirection(getNavDirection(location.pathname, "/graph"))}
+                >
                   <Button variant="ghost" className="h-7 text-xs">
                     Inspect
                   </Button>

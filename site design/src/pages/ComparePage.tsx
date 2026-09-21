@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { DeltaChip, Button, Marginalia } from "../components/gallery";
 import { Odometer } from "../motion/fx/Odometer";
 import { flipFrom } from "../motion/flip";
+import { getNavDirection, setNavDirection } from "../motion/navigation";
 import { useActiveUser } from "../context/UserContext";
 import { reportsApi, type ComparisonData } from "../api/reports";
 import type { Report } from "../types";
 
 export const ComparePage: React.FC = () => {
+  const location = useLocation();
   const { user } = useActiveUser();
   const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
 
@@ -150,7 +152,11 @@ export const ComparePage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link to="/upload">
+          <Link
+            to="/upload"
+            viewTransition
+            onClick={() => setNavDirection(getNavDirection(location.pathname, "/upload"))}
+          >
             <Button variant="ghost" className="h-8 text-xs">
               + Upload panel
             </Button>
@@ -321,7 +327,11 @@ export const ComparePage: React.FC = () => {
           <span className="type-quote-sm italic text-[var(--dim)] text-xs">
             "Automated clinical difference extraction verified against ground truth PDFs."
           </span>
-          <Link to="/timeline">
+          <Link
+            to="/timeline"
+            viewTransition
+            onClick={() => setNavDirection(getNavDirection(location.pathname, "/timeline"))}
+          >
             <Button variant="ghost" className="h-7 text-xs">
               Return to timeline spine
             </Button>

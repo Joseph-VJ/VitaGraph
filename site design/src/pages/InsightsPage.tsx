@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Badge, Button, Marginalia } from "../components/gallery";
 import { Odometer } from "../motion/fx/Odometer";
 import { flipFrom } from "../motion/flip";
-import { setNavDirection } from "../motion/navigation";
+import { setNavDirection, getNavDirection } from "../motion/navigation";
 import { useActiveUser } from "../context/UserContext";
 import { graphApi, type GraphResponse } from "../api/graph";
 
 export const InsightsPage: React.FC = () => {
+  const location = useLocation();
   const { user } = useActiveUser();
   const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
 
@@ -312,7 +313,11 @@ export const InsightsPage: React.FC = () => {
             </div>
 
             <div className="mt-4 pt-3 flex justify-end">
-              <Link to="/graph">
+              <Link
+                to="/graph"
+                viewTransition
+                onClick={() => setNavDirection(getNavDirection(location.pathname, "/graph"))}
+              >
                 <Button variant="ghost" className="h-7 text-xs">
                   Inspect clusters in graph
                 </Button>
@@ -402,7 +407,11 @@ export const InsightsPage: React.FC = () => {
               <span className="type-meta text-[var(--faint)] text-[11px]">
                 FLIP race-sort on metric toggle ({centralityMetric})
               </span>
-              <Link to="/graph">
+              <Link
+                to="/graph"
+                viewTransition
+                onClick={() => setNavDirection(getNavDirection(location.pathname, "/graph"))}
+              >
                 <Button variant="ghost" className="h-7 text-xs">
                   Filter by hub
                 </Button>
