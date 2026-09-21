@@ -380,6 +380,7 @@ export const InsightsPage: React.FC = () => {
                     />
                     <circle
                       ref={gaugeRingRef}
+                      data-testid="modularity-gauge-ring"
                       cx="50"
                       cy="50"
                       r="40"
@@ -399,7 +400,7 @@ export const InsightsPage: React.FC = () => {
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="type-mono-sm text-sm font-bold text-[var(--bone)]">
-                      <Odometer value={modularityVal} decimals={2} duration={720} testId="odo-modularity-center" />
+                      <Odometer value={modularityVal} decimals={2} duration={720} testId="odo-modularity" />
                     </span>
                     <span className="type-meta text-[10px] text-[var(--dim)]">Modularity</span>
                   </div>
