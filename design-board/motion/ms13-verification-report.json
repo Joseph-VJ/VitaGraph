@@ -1,0 +1,50 @@
+{
+  "story": "MS-13",
+  "title": "Motion Flow Pass v2",
+  "timestamp": "2026-09-21T08:26:25Z",
+  "ws1_directional_view_transitions": {
+    "pass": true,
+    "chrome_planted_no_anim": true,
+    "directional_keyframes": true,
+    "forward_nav_attribution": "forward",
+    "backward_nav_attribution": "back",
+    "fallback_path_verified": true
+  },
+  "ws2_guided_journey_rail": {
+    "pass": true,
+    "steps_count": 5,
+    "next_button_advance": true,
+    "prev_button_retreat": true,
+    "keyboard_shortcuts_n_and_arrows": true,
+    "h1_autofocus_verified": true,
+    "hidden_on_settings": true
+  },
+  "ws3_boot_orchestration": {
+    "pass": true,
+    "boot_duration_seconds": 1.05,
+    "budget_seconds": 1.6,
+    "replay_from_settings": true
+  },
+  "ws4_motion_fx_primitives": {
+    "pass": true,
+    "primitives_verified": [
+      "DrawPath.tsx",
+      "PulseRing.tsx",
+      "DetentPress.tsx",
+      "Photon.ts",
+      "DustField.ts",
+      "Odometer.tsx",
+      "WashSweep.tsx",
+      "UnderlineDraw.tsx"
+    ],
+    "zero_dependencies": true
+  },
+  "ws5_governor_lock_and_a11y": {
+    "pass": true,
+    "route_announcer_aria_live": "polite",
+    "reduced_motion_hard_locked_to_t0": true,
+    "setOverride_hole_fixed": true,
+    "cls_score": 0.0212
+  },
+  "all_passed": true
+}

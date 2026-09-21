@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { LED } from "../gallery/LED";
 import { Marginalia, type MarginaliaSketch } from "../gallery/Marginalia";
-import { flip, supportsViewTransitions, governor } from "../../motion";
+import { flip, supportsViewTransitions, governor, setNavDirection, getNavDirection } from "../../motion";
 
 export interface NavItem {
   id: string;
@@ -339,7 +339,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
       <div>
         {/* Brand Block (§5.1) */}
         <div className="p-5 pb-4 border-b border-[var(--line-faint)]">
-          <Link to="/" className="flex items-center gap-2.5 focus:outline-none">
+          <Link
+            to="/"
+            onClick={() => setNavDirection(getNavDirection(currentPath, "/"))}
+            className="flex items-center gap-2.5 focus:outline-none"
+          >
             {/* Leaf glyph (verdigris hand-drawn SVG) */}
             <svg
               data-boot-target="sidebar-leaf"
@@ -382,6 +386,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
                 key={item.id}
                 to={item.path}
                 viewTransition={useVT}
+                onClick={() => setNavDirection(getNavDirection(currentPath, item.path))}
                 data-active={isActive ? "true" : "false"}
                 data-boot-target="nav-item"
                 className={`flex items-center gap-3 px-3 py-2 rounded-[var(--r-6)] transition-colors duration-[120ms] ease-out group relative border-l-2 ${
@@ -419,6 +424,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
         <div className="mt-4 pt-3 border-t border-[var(--line-faint)]">
           <Link
             to="/gallery"
+            viewTransition={supportsViewTransitions() && governor.getState().tier !== "T0"}
+            onClick={() => setNavDirection(getNavDirection(currentPath, "/gallery"))}
             className="flex items-center gap-2.5 px-3 py-1.5 rounded-[var(--r-6)] text-[var(--dim)] hover:text-[var(--bone)] hover:bg-[var(--ink-700)]/70 transition-colors duration-[120ms]"
           >
             <span className="type-mono-sm text-[11px] text-[var(--verdigris)]">§7</span>

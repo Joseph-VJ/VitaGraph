@@ -1,8 +1,17 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Badge, Marginalia } from "../components/gallery";
-import { governor, useMotionGovernor, setAudioEnabled, playDetent, isAudioEnabled } from "../motion";
+import {
+  governor,
+  useMotionGovernor,
+  setAudioEnabled,
+  playDetent,
+  isAudioEnabled,
+  transitionNavigate,
+} from "../motion";
 
 export const SettingsPage: React.FC = () => {
+  const navigate = useNavigate();
   const motion = useMotionGovernor();
   const [allowApi, setAllowApi] = useState(false);
   const [diagnosticGuard, setDiagnosticGuard] = useState(true);
@@ -299,9 +308,15 @@ export const SettingsPage: React.FC = () => {
               </span>
             </div>
             <button
+              type="button"
+              data-testid="replay-boot-btn"
               onClick={() => {
                 sessionStorage.removeItem("vg_booted");
-                alert("Boot state cleared. Reload or visit Home to replay ignition.");
+                window.dispatchEvent(new CustomEvent("vitagraph:replay-boot"));
+                if (isAudioEnabled()) {
+                  playDetent();
+                }
+                transitionNavigate(navigate, "/", { direction: "back" });
               }}
               className="px-3 py-1.5 rounded-[var(--r-6)] border border-[var(--line-strong)] hover:border-[var(--verdigris)] text-[var(--bone)] type-mono-sm text-xs transition-colors cursor-pointer"
             >

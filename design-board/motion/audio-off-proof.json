@@ -1,7 +1,7 @@
 {
   "story": "MS-12",
   "spec": "\u00a7M9, DESIGN \u00a713",
-  "timestamp": "2026-09-17T12:08:46Z",
+  "timestamp": "2026-09-21T08:19:28Z",
   "audio_off_proof": {
     "pass": true,
     "default_is_enabled": false,

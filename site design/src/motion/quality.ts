@@ -190,6 +190,12 @@ class QualityGovernor {
 
   public setTier(newTier: MotionTier, mode: MotionMode = "manual"): void {
     const resolvedMode = mode || "manual";
+    // Hard-lock T0 if prefers-reduced-motion is active (§M4.4, §M11, WS-5)
+    // No manual override or tier change may bypass the reduced-motion floor.
+    if (this.reducedMotion && newTier !== "T0") {
+      newTier = "T0";
+    }
+
     if (this.tier === newTier && this.mode === resolvedMode) return;
 
     const oldTier = this.tier;
@@ -217,7 +223,9 @@ class QualityGovernor {
       }
     } else {
       localStorage.setItem(STORAGE_KEY, override);
-      this.setTier(override, "manual");
+      // Hard-lock: if reducedMotion is active, tier stays T0 even if override says T3 (§M11, WS-5)
+      const targetTier = this.reducedMotion ? "T0" : override;
+      this.setTier(targetTier, "manual");
     }
   }
 

@@ -1,13 +1,35 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { StatusStrip } from "./StatusStrip";
+import { JourneyRail } from "./JourneyRail";
 import { LED } from "../gallery/LED";
-import { runBoot, supportsViewTransitions, useMotionGovernor } from "../../motion";
+import {
+  runBoot,
+  supportsViewTransitions,
+  useMotionGovernor,
+  getCurrentNavDirection,
+} from "../../motion";
+
+const ROUTE_TITLES: Record<string, string> = {
+  "/": "Overview",
+  "/upload": "Upload and Ingest",
+  "/graph": "Knowledge Graph",
+  "/ask": "Ask Questions",
+  "/timeline": "Patient Timeline",
+  "/compare": "Compare Reports",
+  "/insights": "Graph Insights",
+  "/library": "Document Library",
+  "/datasets": "Datasets and Knowledge Sources",
+  "/ontology": "Biomedical Ontology",
+  "/notebooks": "Research Notebooks",
+  "/settings": "Settings and System Configuration",
+  "/gallery": "Component Gallery",
+};
 
 interface AppShellProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
@@ -19,30 +41,41 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const mainRef = useRef<HTMLElement>(null);
   const hasBooted = useRef(false);
 
-  // Boot ignition sequence (§M6.1)
+  // Boot ignition sequence (§M6.1, WS-3)
   useEffect(() => {
-    if (hasBooted.current) return;
-    hasBooted.current = true;
+    const isBooted = typeof sessionStorage !== "undefined" && sessionStorage.getItem("vg_booted") === "1";
+    if (isBooted && hasBooted.current) return;
 
-    const grain = grainRef.current;
-    const statusLed = document.querySelector<HTMLElement>('[data-boot-target="status-led"]');
-    const statusSegments = document.querySelectorAll('[data-boot-target="status-segment"]');
-    const sidebarLeaf = document.querySelector<HTMLElement>('[data-boot-target="sidebar-leaf"]');
-    const navItems = document.querySelectorAll('[data-boot-target="nav-item"]');
-    const headerSearch = document.querySelector<HTMLElement>('[data-boot-target="header-search"]');
-    const headerUser = document.querySelector<HTMLElement>('[data-boot-target="header-user"]');
-    const mainContent = mainRef.current;
+    if (!isBooted || !hasBooted.current) {
+      hasBooted.current = true;
+      const grain = grainRef.current;
+      const statusLed = document.querySelector<HTMLElement>('[data-boot-target="status-led"]');
+      const statusSegments = document.querySelectorAll('[data-boot-target="status-segment"]');
+      const sidebarLeaf = document.querySelector<HTMLElement>('[data-boot-target="sidebar-leaf"]');
+      const navItems = document.querySelectorAll('[data-boot-target="nav-item"]');
+      const headerSearch = document.querySelector<HTMLElement>('[data-boot-target="header-search"]');
+      const headerUser = document.querySelector<HTMLElement>('[data-boot-target="header-user"]');
+      const mainContent = mainRef.current;
 
-    runBoot({
-      grain,
-      statusLed,
-      statusSegments,
-      sidebarLeaf,
-      navItems,
-      headerSearch,
-      headerUser,
-      mainContent,
-    });
+      runBoot({
+        grain,
+        statusLed,
+        statusSegments,
+        sidebarLeaf,
+        navItems,
+        headerSearch,
+        headerUser,
+        mainContent,
+      });
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleReplay = () => {
+      hasBooted.current = false;
+    };
+    window.addEventListener("vitagraph:replay-boot", handleReplay);
+    return () => window.removeEventListener("vitagraph:replay-boot", handleReplay);
   }, []);
 
   useEffect(() => {
@@ -70,17 +103,24 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     };
   }, []);
 
-  // Dual-path route transitions (§M6.2)
+  // Dual-path route transitions (§M6.2, WS-1)
   const vtActive = supportsViewTransitions() && motion.tier !== "T0";
   const isFallback = !vtActive && motion.tier !== "T0";
   const routeAnimClass = isFallback ? "m-route-enter" : "";
+  const navDir = getCurrentNavDirection();
+  const routeTitle = ROUTE_TITLES[location.pathname] || "VitaGraph";
 
   return (
     <div className="flex h-screen w-screen bg-[var(--ink-900)] text-[var(--bone)] overflow-hidden relative">
+      {/* Route change announcer for assistive technology (WCAG a11y, WS-5) */}
+      <div data-testid="route-announcer" aria-live="polite" aria-atomic="true" className="sr-only">
+        Navigated to {routeTitle}
+      </div>
+
       {/* 3% opacity grain overlay (§4.7) */}
       <div ref={grainRef} className="absolute inset-0 grain-overlay z-50 pointer-events-none" />
 
-      {/* Sidebar (§5.1) */}
+      {/* Sidebar (§5.1, shared chrome) */}
       <Sidebar />
 
       {/* Main Area: Top Banner + Header + Content + Status Strip */}
@@ -104,15 +144,21 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         <Header backendOnline={backendOnline} />
         <main
           ref={mainRef}
+          id="main-content"
           key={location.pathname}
+          data-nav-dir={navDir}
           className={`flex-1 overflow-y-auto p-6 relative ${routeAnimClass}`}
         >
           <div className="max-w-[1440px] mx-auto min-h-full flex flex-col">
-            {children}
+            {children || <Outlet />}
           </div>
         </main>
         <StatusStrip backendOnline={backendOnline} />
       </div>
+
+      {/* Guided Journey Flow Rail (§WS-2) */}
+      <JourneyRail />
     </div>
   );
 };
+

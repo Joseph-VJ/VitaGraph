@@ -23,112 +23,28 @@ export const App: React.FC = () => {
       <ToastProvider>
         <UserProvider>
           <Routes>
-        {/* Full Gallery route (§7 Items 1–26) */}
-        <Route path="/gallery" element={<GalleryPage />} />
+            {/* Full Gallery route (§7 Items 1–26) */}
+            <Route path="/gallery" element={<GalleryPage />} />
 
-        {/* Live Core Screens wrapped in AppShell */}
-        <Route
-          path="/"
-          element={
-            <AppShell>
-              <HomePage />
-            </AppShell>
-          }
-        />
-        <Route
-          path="/upload"
-          element={
-            <AppShell>
-              <UploadPage />
-            </AppShell>
-          }
-        />
-        <Route
-          path="/graph"
-          element={
-            <AppShell>
-              <KnowledgeGraphPage />
-            </AppShell>
-          }
-        />
-        <Route
-          path="/ask"
-          element={
-            <AppShell>
-              <AskPage />
-            </AppShell>
-          }
-        />
-        <Route
-          path="/timeline"
-          element={
-            <AppShell>
-              <TimelinePage />
-            </AppShell>
-          }
-        />
+            {/* Persistent AppShell with Shared Chrome (§WS-1) */}
+            <Route element={<AppShell />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/upload" element={<UploadPage />} />
+              <Route path="/graph" element={<KnowledgeGraphPage />} />
+              <Route path="/ask" element={<AskPage />} />
+              <Route path="/timeline" element={<TimelinePage />} />
+              <Route path="/library" element={<LibraryPage />} />
+              <Route path="/datasets" element={<DatasetsPage />} />
+              <Route path="/ontology" element={<OntologyPage />} />
+              <Route path="/notebooks" element={<NotebooksPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/compare" element={<ComparePage />} />
+              <Route path="/insights" element={<InsightsPage />} />
+            </Route>
 
-        {/* Fully Implemented Analytic & Research Screens */}
-        <Route
-          path="/library"
-          element={
-            <AppShell>
-              <LibraryPage />
-            </AppShell>
-          }
-        />
-        <Route
-          path="/datasets"
-          element={
-            <AppShell>
-              <DatasetsPage />
-            </AppShell>
-          }
-        />
-        <Route
-          path="/ontology"
-          element={
-            <AppShell>
-              <OntologyPage />
-            </AppShell>
-          }
-        />
-        <Route
-          path="/notebooks"
-          element={
-            <AppShell>
-              <NotebooksPage />
-            </AppShell>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <AppShell>
-              <SettingsPage />
-            </AppShell>
-          }
-        />
-        <Route
-          path="/compare"
-          element={
-            <AppShell>
-              <ComparePage />
-            </AppShell>
-          }
-        />
-        <Route
-          path="/insights"
-          element={
-            <AppShell>
-              <InsightsPage />
-            </AppShell>
-          }
-        />
-
-        {/* Catch-all fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+            {/* Catch-all fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
     </UserProvider>
     </ToastProvider>
   </BrowserRouter>
