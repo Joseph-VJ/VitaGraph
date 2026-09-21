@@ -32,3 +32,7 @@ vitagraph/.git_old/
 .zcode/
 Thumbs.db
 .DS_Store
+
+# Temporary test recordings
+design-board/motion/recordings/
+design-board/motion/recordings_ms07/

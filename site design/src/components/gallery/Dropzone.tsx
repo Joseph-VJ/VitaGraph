@@ -88,7 +88,13 @@ export const Dropzone: React.FC<DropzoneProps> = ({
           handleIncomingFile(e.dataTransfer.files[0]);
         }
       }}
-      className={`relative rounded-[var(--r-14)] border-2 border-dashed transition-colors duration-[120ms] p-8 flex flex-col items-center justify-center text-center select-none overflow-hidden ${
+      style={{
+        transform: isDragging && !isT0 ? "scale(0.995)" : "scale(1)",
+        transition: !isT0
+          ? "transform var(--m-base, 240ms) var(--ease-paper, cubic-bezier(0.16, 1, 0.30, 1)), border-color var(--m-micro, 120ms), background-color var(--m-micro, 120ms)"
+          : "none",
+      }}
+      className={`relative rounded-[var(--r-14)] border-2 border-dashed p-8 flex flex-col items-center justify-center text-center select-none overflow-hidden ${
         isDragging
           ? "border-[var(--verdigris)] bg-[rgba(121,184,166,0.06)]"
           : "border-[var(--line-strong)] bg-[var(--ink-800)]/30 hover:border-[var(--dim)]"

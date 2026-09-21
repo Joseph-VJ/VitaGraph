@@ -618,6 +618,15 @@ button:not(:disabled):active,
   animation: arrowNudgeDown var(--m-base, 240ms) var(--ease-detent, cubic-bezier(0.30, 0.80, 0.20, 1)) 1;
 }
 
+@keyframes uncertainPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.008); }
+  100% { transform: scale(1); }
+}
+.animate-uncertain-pulse {
+  animation: uncertainPulse var(--m-deliberate, 400ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1)) 1;
+}
+
 @keyframes scaleXProportion {
   from { transform: scaleX(0); }
   to   { transform: scaleX(1); }
@@ -778,6 +787,7 @@ button:not(:disabled):active,
   .animate-banner-drop,
   .animate-led-fail,
   .animate-rule-wipe-y,
+  .animate-uncertain-pulse,
   .skeleton-shimmer,
   .scroll-reveal,
   .m-enter, .m-enter-card, .m-exit,

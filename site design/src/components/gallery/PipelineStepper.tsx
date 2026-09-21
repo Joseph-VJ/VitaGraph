@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Odometer, governor, isReducedMotion, playDetent } from "../../motion";
+import { Odometer, governor, isReducedMotion, playDetent, WashSweep } from "../../motion";
 import { DrawPath } from "../../motion/fx/DrawPath";
 import { PulseRing } from "../../motion/fx/PulseRing";
 
@@ -29,10 +29,11 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
 }) => {
   const isT0 = governor.getState().tier === "T0" || isReducedMotion();
   const [isImpulsing, setIsImpulsing] = useState(false);
-  const prevStepsRef = useRef<string>(JSON.stringify(steps));
+  const [completedStepIndices, setCompletedStepIndices] = useState<Set<number>>(new Set());
+  const prevStepsRef = useRef<PipelineStep[]>(steps);
   const isFirstRenderRef = useRef<boolean>(true);
 
-  // Card DetentPress impulse -1px on real event arrival (§M7.2) + audio detent (§M9)
+  // Choreographed stage handoffs (§7.2-A, §M7.2): WashSweep on completed node + DetentPress impulse + playDetent()
   useEffect(() => {
     if (isFirstRenderRef.current) {
       isFirstRenderRef.current = false;
@@ -41,8 +42,26 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
     if (isT0) return;
 
     const currentStr = JSON.stringify(steps);
-    if (currentStr !== prevStepsRef.current) {
-      prevStepsRef.current = currentStr;
+    const prevStr = JSON.stringify(prevStepsRef.current);
+
+    if (currentStr !== prevStr) {
+      // Identify newly completed steps for WashSweep
+      const newlyCompleted = new Set<number>();
+      steps.forEach((step, idx) => {
+        const prevStep = prevStepsRef.current[idx];
+        if (prevStep && prevStep.status !== "done" && step.status === "done") {
+          newlyCompleted.add(idx);
+        }
+      });
+
+      if (newlyCompleted.size > 0) {
+        setCompletedStepIndices(newlyCompleted);
+        setTimeout(() => {
+          setCompletedStepIndices(new Set());
+        }, 360);
+      }
+
+      prevStepsRef.current = steps;
       setIsImpulsing(true);
       playDetent();
       const timer = setTimeout(() => setIsImpulsing(false), 180);
@@ -87,11 +106,16 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
             <React.Fragment key={step.name}>
               {/* Node item */}
               <div className="flex flex-col items-center relative z-10">
-                {/* Done State — checkmark DrawPath (§M7.2) */}
+                {/* Done State — checkmark DrawPath (§M7.2) + WashSweep on complete (§7.2-A) */}
                 {step.status === "done" && (
-                  <div className="relative w-7 h-7 rounded-full bg-[var(--verdigris)] text-[var(--ink-900)] flex items-center justify-center font-bold shadow-[0_0_8px_rgba(121,184,166,0.3)]">
+                  <div className="relative w-7 h-7 rounded-full bg-[var(--verdigris)] text-[var(--ink-900)] flex items-center justify-center font-bold shadow-[0_0_8px_rgba(121,184,166,0.3)] overflow-hidden">
+                    <WashSweep
+                      active={completedStepIndices.has(idx)}
+                      color="rgba(255, 255, 255, 0.45)"
+                      testId={`stepper-node-wash-${step.name.toLowerCase()}`}
+                    />
                     <svg
-                      className="w-4 h-4"
+                      className="w-4 h-4 z-20 relative"
                       viewBox="0 0 20 20"
                       fill="none"
                       stroke="currentColor"

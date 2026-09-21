@@ -29,7 +29,7 @@ export const QualityBar: React.FC<QualityBarProps> = ({
             ? "transform var(--m-deliberate, 360ms) var(--ease-servo, cubic-bezier(0.32, 0, 0.24, 1))"
             : "none",
         }}
-        className={`w-full h-full ${fillColor} rounded-[2px]`}
+        className={`w-full h-full ${fillColor} rounded-[2px] ${!isT0 ? "animate-bar-settle" : ""}`}
       />
     </div>
   );

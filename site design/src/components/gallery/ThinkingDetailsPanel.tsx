@@ -4,6 +4,7 @@ import { IconButton } from "./Buttons";
 import { Select } from "./Input";
 import { Odometer } from "../../motion/fx/Odometer";
 import { WashSweep } from "../../motion/fx/WashSweep";
+import { UnderlineDraw } from "../../motion/fx/UnderlineDraw";
 import { flipFrom } from "../../motion/flip";
 
 export interface TraceRowData {
@@ -68,7 +69,7 @@ export const RankChips: React.FC<{
           data-testid={`rank-chip-${chip.id}`}
           data-rank={chip.rank}
           data-score={chip.score}
-          className="px-2 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--lilac)]/40 text-[var(--bone)] type-mono-sm text-[11px] flex items-center gap-1.5 shadow-sm"
+          className="px-2 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--lilac)]/40 text-[var(--bone)] type-mono-sm text-[11px] flex items-center gap-1.5 shadow-sm animate-chip-pop"
         >
           <span className="text-[var(--lilac)] font-semibold">#{chip.rank}</span>
           <span className="truncate max-w-[130px]">{chip.label}</span>
@@ -229,14 +230,18 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
       {/* Trace rows — strictly lands on real SSE events per §M7.4 */}
       {detailMode !== "Raw JSON" && traces.length > 0 && (
         <div className="divide-y divide-[var(--line-faint)] py-1" data-testid="trace-rows-list">
-          {traces.map((row) => (
+          {traces.map((row, idx) => (
             <div
               key={row.index}
               data-testid={`trace-row-${row.index}`}
               data-trace-stage={row.stage}
-              className="py-2 text-[12.5px] m-enter"
+              className="py-2 text-[12.5px] m-enter relative overflow-hidden"
             >
-              <div className="flex items-center justify-between">
+              <WashSweep
+                color="rgba(224, 169, 109, 0.10)"
+                testId={`trace-row-wash-${row.index}`}
+              />
+              <div className="flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-3 min-w-0 flex-1 mr-3">
                   <span className="type-mono-sm text-[var(--faint)] w-5 flex-shrink-0">
                     <Odometer
@@ -252,7 +257,13 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
                     }`}
                     data-testid={`trace-stage-${row.stage}`}
                   >
-                    [{row.stage}]
+                    {idx === traces.length - 1 && isStreaming ? (
+                      <UnderlineDraw color="var(--ochre)" delayMs={0} testId={`stage-underline-${row.index}`}>
+                        [{row.stage}]
+                      </UnderlineDraw>
+                    ) : (
+                      `[${row.stage}]`
+                    )}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="type-body text-[var(--bone)] truncate">{row.description}</div>

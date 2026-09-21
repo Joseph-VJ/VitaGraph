@@ -16,18 +16,50 @@ import type { PipelineStep } from "../components/gallery/PipelineStepper";
 import { reportsApi, type ReportStatus } from "../api/reports";
 import { useActiveUser } from "../context/UserContext";
 import type { ReportPage, Report } from "../types";
-import { governor, isReducedMotion } from "../motion";
+import { governor, isReducedMotion, Odometer, ticker } from "../motion";
 import { transitionNavigate } from "../motion/navigation";
+import { PhotonManager } from "../motion/fx/Photon";
+import { DustManager } from "../motion/fx/DustField";
 
 export const UploadPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, setUser, refreshUsers } = useActiveUser();
   const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
   const { addToast } = useToast();
+  const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+  const isT3 = governor.getState().tier === "T3" && !isReducedMotion();
 
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingCohort, setIsLoadingCohort] = useState(false);
+  const [showSuccessMoment, setShowSuccessMoment] = useState(false);
+  const successCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    if (!showSuccessMoment || !isT3) return;
+    const canvas = successCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    canvas.width = canvas.parentElement?.clientWidth || 600;
+    canvas.height = canvas.parentElement?.clientHeight || 200;
+
+    const unsubscribe = ticker.subscribe("L1", () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      DustManager.render(ctx);
+      PhotonManager.render(ctx);
+    });
+
+    const timer = setTimeout(() => {
+      setShowSuccessMoment(false);
+    }, 1800);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timer);
+    };
+  }, [showSuccessMoment, isT3]);
 
   const handleLoadDemoCohort = async () => {
     if (isLoadingCohort) return;
@@ -198,6 +230,17 @@ export const UploadPage: React.FC = () => {
             const reportId = evt.metadata?.report_id || evt.metadata?.report?.id;
             addToast("done", "Report Ingestion Complete", `${pageCount} pages, ${chunkCount} chunks indexed`);
             window.dispatchEvent(new CustomEvent("vitagraph:job-done", { detail: evt }));
+
+            // Ingestion success moment (§7.2-B): Photon burst + Dust puff
+            setShowSuccessMoment(true);
+            if (isT3) {
+              for (let i = 0; i < 6; i++) {
+                PhotonManager.spawn(50 + i * 80, 30, 480, 30, "#79B8A6", 240);
+              }
+              DustManager.spawn(280, 40, "#79B8A6", 16);
+              DustManager.spawn(160, 40, "#86A9D9", 12);
+            }
+
             try {
               localStorage.setItem("vitagraph:last_job_done", JSON.stringify({ time: Date.now(), stage: "done", reportId }));
             } catch {}
@@ -361,8 +404,6 @@ export const UploadPage: React.FC = () => {
     }
   };
 
-  const isT0 = governor.getState().tier === "T0" || isReducedMotion();
-  const isT3 = governor.getState().tier === "T3" && !isReducedMotion();
   const nativePagesCount = pages.filter((p) => p.extraction_method === "native").length;
   const ocrPagesCount = pages.filter((p) => p.extraction_method.startsWith("ocr")).length;
   const uncertainPages = pages.filter((p) => p.quality === "uncertain");
@@ -430,7 +471,14 @@ export const UploadPage: React.FC = () => {
           <Dropzone file={file} onFileSelect={handleFileSelect} />
 
           {/* Ingestion Pipeline Stepper Card (§7.12, §9.2) */}
-          <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-6">
+          <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-6 relative overflow-hidden">
+            {/* Success Moment Canvas Overlay (§7.2-B) */}
+            {showSuccessMoment && isT3 && (
+              <canvas
+                ref={successCanvasRef}
+                className="absolute inset-0 pointer-events-none z-30 w-full h-full"
+              />
+            )}
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-[var(--line-faint)]">
               <div>
                 <h3 className="type-title text-[var(--bone)]">
@@ -472,6 +520,23 @@ export const UploadPage: React.FC = () => {
 
             {/* Stepper (§7.12) */}
             <PipelineStepper steps={steps} />
+
+            {/* Forward navigation hint button on completion (§7.2-B) */}
+            {steps.every((s) => s.status === "done") && !isUploading && (
+              <div className="mt-5 pt-4 border-t border-[var(--line-faint)] flex items-center justify-between animate-fade-in">
+                <span className="type-meta text-[var(--verdigris)] flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[var(--verdigris)] animate-pulse" />
+                  All 6 pipeline stages verified and indexed
+                </span>
+                <Button
+                  variant="primary"
+                  className="flex items-center gap-2 text-xs font-semibold px-4 py-2"
+                  onClick={() => transitionNavigate(navigate, "/graph", { direction: "forward" })}
+                >
+                  View graph →
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Page Quality Assessment Table (§9.2) */}
@@ -551,7 +616,7 @@ export const UploadPage: React.FC = () => {
                           data-scanline={isOcr && isT3 ? "active" : "none"}
                           className={`hover:bg-[var(--ink-700)]/40 transition-colors duration-[120ms] relative ${
                             !isT0 ? "m-enter" : ""
-                          }`}
+                          } ${isUncertain && !isT0 ? "animate-uncertain-pulse" : ""}`}
                           style={!isT0 ? { animationDelay: `${staggerDelay}ms` } : undefined}
                         >
                           <td className="type-mono-sm text-[var(--bone)] py-3 px-3 relative">
@@ -588,8 +653,8 @@ export const UploadPage: React.FC = () => {
                             )}
                             <div className="flex items-center gap-2">
                               <QualityBar percentage={qualityNum} method={isNative ? "native" : row.extraction_method} />
-                              <span className="type-mono-sm text-[var(--bone)]">
-                                {qualityNum}%
+                              <span className="type-mono-sm text-[var(--bone)] inline-flex items-center">
+                                <Odometer value={qualityNum} />%
                               </span>
                             </div>
                           </td>
