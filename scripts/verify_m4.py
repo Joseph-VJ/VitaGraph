@@ -74,11 +74,8 @@ def run_verification():
             cwd=os.getcwd()
         )
         t_lines = [l for l in res_timeout.stdout.strip().split("\n") if l.strip()]
-        if page_file in ["InsightsPage.tsx", "LibraryPage.tsx"]:
-            assert len(t_lines) == 0, f"Gate 18 violation: setTimeout found in {page_file}: {t_lines}"
-            print(f"  [PASS] Gate 18: Zero setTimeout in {page_file}.")
-        else:
-            print(f"  [PASS] Gate 18: Checked {page_file} (timeouts: {len(t_lines)}).")
+        assert len(t_lines) == 0, f"Gate 18 violation: setTimeout found in {page_file}: {t_lines}"
+        print(f"  [PASS] Gate 18: Zero setTimeout in {page_file}.")
 
     with sync_playwright() as p:
         browser = p.chromium.launch(channel="msedge", headless=True)

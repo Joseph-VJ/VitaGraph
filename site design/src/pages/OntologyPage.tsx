@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge, Button, Marginalia } from "../components/gallery";
 import { transitionNavigate } from "../motion/navigation";
 import { springToLinear, governor, isReducedMotion } from "../motion";
+import { Ticker } from "../motion/ticker";
 import { Odometer } from "../motion/fx/Odometer";
 import { DetentPress } from "../motion/fx/DetentPress";
 import { DrawPath } from "../motion/fx/DrawPath";
@@ -90,8 +91,9 @@ export const OntologyPage: React.FC = () => {
     const isT0 = governor.getState().tier === "T0" || isReducedMotion();
     if (!isT0) {
       setMorphingConceptId(conceptId);
-      requestAnimationFrame(() => {
+      Ticker.getInstance().subscribe("L0", () => {
         transitionNavigate(navigate, "/graph", { direction: "forward" });
+        return false;
       });
     } else {
       transitionNavigate(navigate, "/graph", { direction: "forward" });

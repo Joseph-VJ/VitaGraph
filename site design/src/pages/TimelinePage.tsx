@@ -301,15 +301,16 @@ export const TimelinePage: React.FC = () => {
     const reduced = isReducedMotion() || tier === "T0";
 
     if (!reduced) {
-      // Cascade collapse in dependency order (vectors -> files -> rows, 120ms stagger)
+      // Cascade collapse in dependency order (vectors -> files -> rows, 120ms stagger via Sequence ticker)
+      const waitTick = (ms: number) => new Promise<void>((r) => new Sequence().wait(ms).addAction(r).play());
       setCascadeStage(1); // vectors collapse
-      await new Promise((r) => setTimeout(r, 120));
+      await waitTick(120);
       setCascadeStage(2); // files collapse
-      await new Promise((r) => setTimeout(r, 120));
+      await waitTick(120);
       setCascadeStage(3); // rows collapse
-      await new Promise((r) => setTimeout(r, 120));
+      await waitTick(120);
       setCascadeStage(4); // persona card .m-fade-only out
-      await new Promise((r) => setTimeout(r, 120));
+      await waitTick(120);
     }
 
     try {
