@@ -28,6 +28,7 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
   const highlightRef = useRef<HTMLElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const sheetRef = useRef<HTMLDivElement | null>(null);
+  const isT0 = isReducedMotion() || governor.getState().tier === "T0";
 
   // Fetch report pages when evidence card changes
   useEffect(() => {
@@ -172,8 +173,13 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
           isClosing ? "animate-sheet-close" : "animate-sheet-settle"
         }`}
       >
-        {/* Header Bar (§9.8) */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--line-strong)] bg-[var(--ink-850,var(--ink-800))]">
+        {/* Header Bar (§9.8, §M4.3) */}
+        <div
+          style={{
+            viewTransitionName: !isT0 ? "timeline-report" : undefined,
+          }}
+          className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--line-strong)] bg-[var(--ink-850,var(--ink-800))]"
+        >
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-8 h-8 rounded-[var(--r-6)] bg-[var(--ink-700)] border border-[var(--line-strong)] flex items-center justify-center text-[var(--bone)] flex-shrink-0">
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -212,6 +212,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
   const [layoutMode, setLayoutMode] = useState<string>("force");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const isT0 = isReducedMotion() || governor.getState().tier === "T0";
 
   // Staggered node reveal and edge draw-in timing ref
   const mountTimeRef = useRef<number>(performance.now());
@@ -1734,6 +1735,13 @@ export const GraphStage: React.FC<GraphStageProps> = ({
             <div className="h-3 w-32 rounded-[var(--r-4)] skeleton-shimmer opacity-75" />
           </div>
         )}
+
+        {/* Cluster hull morph target (§M4.2) */}
+        <div
+          data-testid="graph-cluster-hull-target"
+          style={{ viewTransitionName: !isT0 ? "cluster-hull" : undefined }}
+          className="pointer-events-none absolute inset-0"
+        />
 
         {/* Interactive Canvas */}
         <canvas

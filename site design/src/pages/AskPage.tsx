@@ -15,7 +15,7 @@ import {
 import { useUser } from "../context/UserContext";
 import { questionsApi } from "../api/questions";
 import type { Answer, EvidenceCard } from "../types";
-import { playChime, playThud } from "../motion";
+import { playChime, playThud, governor, isReducedMotion } from "../motion";
 
 interface ThreadItem {
   id: string;
@@ -34,6 +34,7 @@ export const AskPage: React.FC = () => {
   const { user } = useUser();
   const { addToast } = useToast();
   const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
+  const isT0 = isReducedMotion() || governor.getState().tier === "T0";
 
   const [activeDrawerTab, setActiveDrawerTab] = useState("Thinking details");
   const [isDrawerOpen, setIsDrawerOpen] = useState(true);
@@ -301,7 +302,10 @@ export const AskPage: React.FC = () => {
   return (
     <div className="flex flex-col lg:flex-row gap-6 items-start w-full" data-testid="ask-page">
       {/* Main Conversation Stream (1fr) */}
-      <div className="flex-1 flex flex-col gap-6 min-w-0 w-full">
+      <div
+        className="flex-1 flex flex-col gap-6 min-w-0 w-full"
+        style={{ viewTransitionName: !isT0 ? "report-title" : undefined }}
+      >
         {/* Suggested Quick Inquiries */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="type-label text-[var(--dim)] text-[12px] mr-1">Quick inquiries:</span>

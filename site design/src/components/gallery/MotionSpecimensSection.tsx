@@ -139,6 +139,136 @@ export const MotionSpecimensSection: React.FC = () => {
     playDetent();
   };
 
+  // M5.21 Compare Data Tween state
+  const [compare21Idx, setCompare21Idx] = useState(0);
+  const compare21Presets = [
+    { name: "Cohort A vs B", improved: 5, declined: 2, stable: 11, propImp: 0.28, propDec: 0.11, propStb: 0.61 },
+    { name: "Cohort B vs C", improved: 9, declined: 1, stable: 8, propImp: 0.50, propDec: 0.06, propStb: 0.44 },
+  ];
+  const compare21Current = compare21Presets[compare21Idx];
+  const barImpRef = useRef<HTMLDivElement>(null);
+  const barDecRef = useRef<HTMLDivElement>(null);
+  const barStbRef = useRef<HTMLDivElement>(null);
+  const prevProps21Ref = useRef(compare21Presets[0]);
+
+  const handleToggleCompare21 = () => {
+    playDetent();
+    const nextIdx = (compare21Idx + 1) % compare21Presets.length;
+    const next = compare21Presets[nextIdx];
+    const prev = prevProps21Ref.current;
+    prevProps21Ref.current = next;
+    setCompare21Idx(nextIdx);
+
+    if (!isT0) {
+      const animateScale = (el: HTMLElement | null, from: number, to: number) => {
+        if (!el) return;
+        el.animate(
+          [
+            { transform: `scaleX(${from})` },
+            { transform: `scaleX(${to})` }
+          ],
+          { duration: 360, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "forwards" }
+        );
+      };
+      animateScale(barImpRef.current, prev.propImp, next.propImp);
+      animateScale(barDecRef.current, prev.propDec, next.propDec);
+      animateScale(barStbRef.current, prev.propStb, next.propStb);
+    }
+  };
+
+  // M5.22 Insights Refresh Rig state
+  const [insights22Score, setInsights22Score] = useState(0.64);
+  const [insights22Rank, setInsights22Rank] = useState(0.85);
+  const ring22Ref = useRef<SVGCircleElement>(null);
+  const rankBar22Ref = useRef<HTMLDivElement>(null);
+  const prevRingOffset22Ref = useRef(76.9);
+
+  const handleRefreshInsights22 = () => {
+    playDetent();
+    const nextScore = insights22Score === 0.64 ? 0.82 : 0.64;
+    const nextRank = insights22Rank === 0.85 ? 0.45 : 0.85;
+    const circumference = 213.6;
+    const nextOffset = circumference * (1 - nextScore);
+    const prevOffset = prevRingOffset22Ref.current;
+    prevRingOffset22Ref.current = nextOffset;
+
+    setInsights22Score(nextScore);
+    setInsights22Rank(nextRank);
+
+    if (!isT0) {
+      if (ring22Ref.current) {
+        ring22Ref.current.animate(
+          [
+            { strokeDashoffset: `${prevOffset}` },
+            { strokeDashoffset: `${nextOffset}` }
+          ],
+          { duration: 480, easing: "cubic-bezier(0.16, 1, 0.3, 1)", fill: "forwards" }
+        );
+      }
+      if (rankBar22Ref.current) {
+        rankBar22Ref.current.animate(
+          [
+            { transform: `scaleX(${insights22Rank})` },
+            { transform: `scaleX(${nextRank})` }
+          ],
+          { duration: 480, easing: "cubic-bezier(0.16, 1, 0.3, 1)", fill: "forwards" }
+        );
+      }
+    }
+  };
+
+  // M5.23 Timeline Scrub Morph state
+  const [scrub23Val, setScrub23Val] = useState(0.35); // 0.0 to 1.0
+  const scrub23Hemo = (13.8 + (14.8 - 13.8) * scrub23Val).toFixed(1);
+  const scrub23VitD = Math.round(28 + (46 - 28) * scrub23Val);
+
+  // M5.24 Filter FLIP List state
+  const allList24 = [
+    { id: "hemo", name: "Hemoglobin", cat: "Lab" },
+    { id: "chol", name: "Total Cholesterol", cat: "Cardio" },
+    { id: "gluc", name: "Fasting Glucose", cat: "Endo" },
+    { id: "vitd", name: "Vitamin D, 25-OH", cat: "Lab" },
+    { id: "bnp", name: "NT-proBNP", cat: "Cardio" },
+  ];
+  const [filter24Cat, setFilter24Cat] = useState<string>("All");
+  const [exiting24Ids, setExiting24Ids] = useState<string[]>([]);
+  const list24ContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleFilter24Change = (cat: string) => {
+    if (cat === filter24Cat) return;
+    playDetent();
+    if (isT0) {
+      setFilter24Cat(cat);
+      return;
+    }
+    const survivors = allList24.filter((item) => cat === "All" || item.cat === cat).map((i) => i.id);
+    const removed = allList24.filter((item) => (filter24Cat === "All" || item.cat === filter24Cat) && !survivors.includes(item.id)).map((i) => i.id);
+    
+    if (removed.length > 0) {
+      setExiting24Ids(removed);
+      new Sequence()
+        .wait(180)
+        .addAction(() => {
+          if (list24ContainerRef.current) {
+            flip(list24ContainerRef.current, () => {
+              setFilter24Cat(cat);
+              setExiting24Ids([]);
+            }, { spring: "weighted", capMs: 240 });
+          } else {
+            setFilter24Cat(cat);
+            setExiting24Ids([]);
+          }
+        })
+        .play();
+    } else {
+      if (list24ContainerRef.current) {
+        flip(list24ContainerRef.current, () => setFilter24Cat(cat), { spring: "weighted", capMs: 240 });
+      } else {
+        setFilter24Cat(cat);
+      }
+    }
+  };
+
   // M9 Audio states
   const [soundOn, setSoundOn] = useState(() => isAudioEnabled());
   const [audioFeedbackText, setAudioFeedbackText] = useState("Ready");
@@ -1746,6 +1876,311 @@ export const MotionSpecimensSection: React.FC = () => {
             <Button variant="ghost" onClick={handleCycleStats20}>
               Cycle Cohort Presets
             </Button>
+          </div>
+        </div>
+
+        {/* Specimen M5.21: Compare Data Tween */}
+        <div
+          data-testid="specimen-compare-tween"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.21 Compare Data Tween
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                --m-deliberate (360ms) WAAPI
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Proportion segment scaleX WAAPI tween + Odometer retween on cohort diff switch without layout remount.
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 flex flex-col justify-between">
+              <div>
+                <div className="type-meta text-[10px] text-[var(--dim)] mb-1.5 flex justify-between">
+                  <span>Proportional Diff Balance</span>
+                  <span className="font-mono text-[var(--bone)]">{compare21Current.name}</span>
+                </div>
+                <div className="h-3.5 w-full bg-[var(--ink-900)] rounded-full overflow-hidden flex">
+                  <div
+                    ref={barImpRef}
+                    style={{ transform: `scaleX(${compare21Current.propImp})`, transformOrigin: "left" }}
+                    className="h-full w-1/3 bg-[var(--verdigris)]"
+                  />
+                  <div
+                    ref={barDecRef}
+                    style={{ transform: `scaleX(${compare21Current.propDec})`, transformOrigin: "left" }}
+                    className="h-full w-1/3 bg-[var(--madder)]"
+                  />
+                  <div
+                    ref={barStbRef}
+                    style={{ transform: `scaleX(${compare21Current.propStb})`, transformOrigin: "left" }}
+                    className="h-full w-1/3 bg-[var(--cornflower)]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 pt-1 border-t border-[var(--line-faint)]">
+                <div className="text-center">
+                  <span className="type-meta text-[10px] text-[var(--verdigris)] block">Improved</span>
+                  <span className="type-mono text-sm font-semibold text-[var(--bone)]">
+                    <Odometer value={compare21Current.improved} duration={360} testId="specimen-odo-compare-imp" />
+                  </span>
+                </div>
+                <div className="text-center">
+                  <span className="type-meta text-[10px] text-[var(--madder)] block">Declined</span>
+                  <span className="type-mono text-sm font-semibold text-[var(--bone)]">
+                    <Odometer value={compare21Current.declined} duration={360} testId="specimen-odo-compare-dec" />
+                  </span>
+                </div>
+                <div className="text-center">
+                  <span className="type-meta text-[10px] text-[var(--cornflower)] block">Stable</span>
+                  <span className="type-mono text-sm font-semibold text-[var(--bone)]">
+                    <Odometer value={compare21Current.stable} duration={360} testId="specimen-odo-compare-stb" />
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Mode: WAAPI transform-only
+            </span>
+            <Button variant="ghost" onClick={handleToggleCompare21} data-testid="specimen-compare-toggle">
+              Switch Cohort Diff
+            </Button>
+          </div>
+        </div>
+
+        {/* Specimen M5.22: Insights Refresh Rig */}
+        <div
+          data-testid="specimen-insights-rig"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.22 Insights Refresh Rig
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                --m-settle (480ms) WAAPI
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              WAAPI stroke-dashoffset tween on modularity ring + scaleX rank bars without CSS class re-mounting.
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 flex items-center justify-around">
+              <div className="flex items-center gap-3">
+                <svg className="w-16 h-16 -rotate-90" viewBox="0 0 80 80">
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r="34"
+                    stroke="var(--line-strong)"
+                    strokeWidth="5"
+                    fill="none"
+                  />
+                  <circle
+                    ref={ring22Ref}
+                    cx="40"
+                    cy="40"
+                    r="34"
+                    stroke="var(--verdigris)"
+                    strokeWidth="5"
+                    fill="none"
+                    strokeDasharray={213.6}
+                    strokeDashoffset={213.6 * (1 - insights22Score)}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div>
+                  <span className="type-meta text-[10px] text-[var(--dim)] block">Modularity Q</span>
+                  <span className="type-mono text-base font-semibold text-[var(--bone)]">
+                    <Odometer
+                      value={insights22Score}
+                      decimals={2}
+                      format={(v) => v.toFixed(2)}
+                      duration={480}
+                      testId="specimen-odo-insights-q"
+                    />
+                  </span>
+                </div>
+              </div>
+
+              <div className="w-32">
+                <div className="type-meta text-[10px] text-[var(--dim)] mb-1 flex justify-between">
+                  <span>Hub Rank</span>
+                  <span className="font-mono text-[var(--bone)]">{Math.round(insights22Rank * 100)}%</span>
+                </div>
+                <div className="h-2 w-full bg-[var(--ink-900)] rounded-full overflow-hidden">
+                  <div
+                    ref={rankBar22Ref}
+                    style={{ transform: `scaleX(${insights22Rank})`, transformOrigin: "left" }}
+                    className="h-full w-full bg-[var(--cornflower)]"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Gate 18: No class remount
+            </span>
+            <Button variant="ghost" onClick={handleRefreshInsights22} data-testid="specimen-insights-refresh-btn">
+              Refresh Analytics
+            </Button>
+          </div>
+        </div>
+
+        {/* Specimen M5.23: Timeline Scrub Morph */}
+        <div
+          data-testid="specimen-timeline-scrub"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.23 Timeline Scrub Morph
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                ticker-L0 scrub binding
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Spine scrubber interpolates lab observation values continuously with zero React render thrash.
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="type-meta text-[10px] text-[var(--dim)] block">Hemoglobin (g/dL)</span>
+                  <span
+                    data-testid="specimen-scrub-hemo"
+                    className="type-mono text-base font-semibold text-[var(--bone)]"
+                  >
+                    {scrub23Hemo}
+                  </span>
+                </div>
+                <div>
+                  <span className="type-meta text-[10px] text-[var(--dim)] block">Vitamin D (ng/mL)</span>
+                  <span
+                    data-testid="specimen-scrub-vitd"
+                    className="type-mono text-base font-semibold text-[var(--bone)]"
+                  >
+                    {scrub23VitD}
+                  </span>
+                </div>
+                <div>
+                  <span className="type-meta text-[10px] text-[var(--dim)] block">Spine Depth</span>
+                  <span className="type-mono text-xs text-[var(--verdigris)] font-mono">
+                    {Math.round(scrub23Val * 100)}%
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={scrub23Val}
+                  onChange={(e) => setScrub23Val(parseFloat(e.target.value))}
+                  data-testid="specimen-scrub-input"
+                  className="w-full accent-[var(--verdigris)] cursor-pointer"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Scrub: baseline → follow-up
+            </span>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                playDetent();
+                setScrub23Val((v) => (v < 0.5 ? 1.0 : 0.0));
+              }}
+            >
+              {scrub23Val < 0.5 ? "Jump to Latest" : "Jump to Baseline"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Specimen M5.24: Filter FLIP List */}
+        <div
+          data-testid="specimen-filter-flip"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                M5.24 Filter FLIP List
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                --m-quick (180ms) exit → FLIP
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Exit-aware FLIP: removed items play .m-exit via Sequence (180ms), container reconciles survivors via flipFrom.
+            </p>
+
+            <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-2.5 flex flex-col justify-between overflow-hidden">
+              <div
+                ref={list24ContainerRef}
+                data-testid="specimen-filter-list"
+                className="flex flex-col gap-1 overflow-y-auto max-h-24 pr-1"
+              >
+                {allList24
+                  .filter((item) => filter24Cat === "All" || item.cat === filter24Cat || exiting24Ids.includes(item.id))
+                  .map((item) => {
+                    const isExiting = exiting24Ids.includes(item.id);
+                    return (
+                      <div
+                        key={item.id}
+                        data-testid={`specimen-filter-item-${item.id}`}
+                        className={`flex items-center justify-between px-2 py-1 rounded-[var(--r-4)] bg-[var(--ink-900)] border border-[var(--line-faint)] text-xs ${
+                          isExiting ? "m-exit" : "m-enter"
+                        }`}
+                      >
+                        <span className="type-body text-[var(--bone)] text-[11px]">{item.name}</span>
+                        <Badge variant={item.cat === "Lab" ? "verdigris" : item.cat === "Cardio" ? "madder" : "cornflower"}>
+                          {item.cat}
+                        </Badge>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <div className="flex gap-1">
+              {["All", "Lab", "Cardio", "Endo"].map((c) => (
+                <button
+                  key={c}
+                  onClick={() => handleFilter24Change(c)}
+                  data-testid={`specimen-filter-tab-${c.toLowerCase()}`}
+                  className={`px-2 py-0.5 text-[10px] font-mono rounded-[var(--r-4)] transition-colors ${
+                    filter24Cat === c
+                      ? "bg-[var(--verdigris)] text-[var(--ink-950)] font-medium"
+                      : "bg-[var(--ink-800)] text-[var(--dim)] hover:text-[var(--bone)]"
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Active: {filter24Cat}
+            </span>
           </div>
         </div>
       </div>

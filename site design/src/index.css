@@ -332,8 +332,12 @@ html[data-nav-dir="back"]::view-transition-new(main-content) {
   animation: vtSlideRightIn var(--m-deliberate) var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
 
-/* §M5.15 Shared-element morph for Node -> Detail header */
-::view-transition-group(node-detail-header) {
+/* §M5.15 & M4 Shared-element morphs */
+::view-transition-group(node-detail-header),
+::view-transition-group(compare-row-timeline),
+::view-transition-group(cluster-hull),
+::view-transition-group(timeline-report),
+::view-transition-group(report-title) {
   animation-duration: var(--m-base, 240ms);
   animation-timing-function: var(--ease-weighted, cubic-bezier(0.25, 0.1, 0.25, 1));
 }
@@ -754,6 +758,26 @@ button:not(:disabled):active,
   }
 }
 
+/* §M4.2 Scroll-driven card reveals */
+@keyframes scrollReveal {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .m-scroll-reveal {
+    animation: scrollReveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 60%;
+  }
+}
+
 /* ─── Reduced motion support (§8.1, §M11) ─── */
 @media (prefers-reduced-motion: reduce) {
   .animate-breathe,
@@ -796,6 +820,7 @@ button:not(:disabled):active,
   .animate-uncertain-pulse,
   .skeleton-shimmer,
   .scroll-reveal,
+  .m-scroll-reveal,
   .m-enter, .m-enter-card, .m-exit,
   .m-route-enter {
     animation: none !important;
@@ -811,6 +836,10 @@ button:not(:disabled):active,
   ::view-transition-group(app-footer),
   ::view-transition-group(journey-rail),
   ::view-transition-group(node-detail-header),
+  ::view-transition-group(compare-row-timeline),
+  ::view-transition-group(cluster-hull),
+  ::view-transition-group(timeline-report),
+  ::view-transition-group(report-title),
   ::view-transition-old(root),
   ::view-transition-new(root),
   ::view-transition-old(main-content),
@@ -824,7 +853,15 @@ button:not(:disabled):active,
   ::view-transition-old(journey-rail),
   ::view-transition-new(journey-rail),
   ::view-transition-old(node-detail-header),
-  ::view-transition-new(node-detail-header) {
+  ::view-transition-new(node-detail-header),
+  ::view-transition-old(compare-row-timeline),
+  ::view-transition-new(compare-row-timeline),
+  ::view-transition-old(cluster-hull),
+  ::view-transition-new(cluster-hull),
+  ::view-transition-old(timeline-report),
+  ::view-transition-new(timeline-report),
+  ::view-transition-old(report-title),
+  ::view-transition-new(report-title) {
     animation: none !important;
   }
   button:not(:disabled):active,

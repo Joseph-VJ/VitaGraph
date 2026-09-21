@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { DeltaChip, Button, Marginalia } from "../components/gallery";
 import { Odometer } from "../motion/fx/Odometer";
-import { flipFrom } from "../motion/flip";
+import { flip, flipFrom } from "../motion/flip";
+import { DrawPath } from "../motion/fx/DrawPath";
+import { governor } from "../motion/quality";
+import { isReducedMotion } from "../motion/features";
 import { getNavDirection, setNavDirection } from "../motion/navigation";
 import { useActiveUser } from "../context/UserContext";
 import { reportsApi, type ComparisonData } from "../api/reports";
@@ -18,6 +21,15 @@ export const ComparePage: React.FC = () => {
   const [followupId, setFollowupId] = useState<string>("");
   const [compData, setCompData] = useState<ComparisonData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const rowsRef = useRef<HTMLTableSectionElement>(null);
+  const prevWidthsRef = useRef<Record<string, number>>({});
+  const segImpRef = useRef<HTMLDivElement>(null);
+  const segDecRef = useRef<HTMLDivElement>(null);
+  const segStbRef = useRef<HTMLDivElement>(null);
+  const segUnkRef = useRef<HTMLDivElement>(null);
+
+  const isT0 = isReducedMotion() || governor.getState().tier === "T0";
 
   // Load user's reports first
   useEffect(() => {
@@ -70,12 +82,53 @@ export const ComparePage: React.FC = () => {
 
   const rows = compData?.rows || [];
 
+  // WAAPI scaleX tween for proportion segments (§M4.1)
+  useEffect(() => {
+    if (!compData || totalCount === 0) return;
+    if (isT0) return;
+
+    const segments: [React.RefObject<HTMLDivElement | null>, string, number][] = [
+      [segImpRef, "improved", summary.improved],
+      [segDecRef, "declined", summary.declined],
+      [segStbRef, "stable", summary.stable],
+      [segUnkRef, "unavailable", summary.unavailable],
+    ];
+
+    segments.forEach(([ref, key, val]) => {
+      const el = ref.current;
+      if (!el) return;
+      const newWidth = (val / totalCount) * 100;
+      const oldWidth = prevWidthsRef.current[key] !== undefined ? prevWidthsRef.current[key] : newWidth;
+      prevWidthsRef.current[key] = newWidth;
+
+      if (oldWidth !== newWidth && newWidth > 0) {
+        const ratio = Math.max(0.01, oldWidth / newWidth);
+        el.animate(
+          [
+            { transform: `scaleX(${ratio})` },
+            { transform: "scaleX(1)" },
+          ],
+          {
+            duration: 360,
+            easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+            fill: "forwards",
+          }
+        );
+      }
+    });
+  }, [compData, totalCount, summary, isT0]);
+
   return (
     <div className="flex flex-col gap-6 w-full">
       {/* Top row with summary and marginalia */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="type-title text-[var(--bone)]">Compare Longitudinal Reports</h2>
+          <h2
+            style={{ viewTransitionName: !isT0 ? "report-title" : undefined }}
+            className="type-title text-[var(--bone)]"
+          >
+            Compare Longitudinal Reports
+          </h2>
           <p className="type-meta text-[var(--dim)] mt-0.5">
             Side-by-side comparative analysis of {user?.display_label || "Arjun R"} ({effectiveUserId}) across panels.
           </p>
@@ -86,7 +139,7 @@ export const ComparePage: React.FC = () => {
         />
       </div>
 
-      {/* Selectors for Baseline and Follow-up panels with FLIP-swap (§M7.7) */}
+      {/* Selectors for Baseline and Follow-up panels with FLIP-swap (§M7.7, M4.1) */}
       <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4">
           <div id="baseline-chip-container" className="flex items-center gap-2">
@@ -96,7 +149,14 @@ export const ComparePage: React.FC = () => {
             <select
               id="baseline-select"
               value={baselineId}
-              onChange={(e) => setBaselineId(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (rowsRef.current && !isT0) {
+                  flip(rowsRef.current, () => setBaselineId(val), { spring: "weighted", capMs: 240 });
+                } else {
+                  setBaselineId(val);
+                }
+              }}
               className="h-8 px-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)]"
             >
               {reports.map((r) => (
@@ -139,7 +199,14 @@ export const ComparePage: React.FC = () => {
             <select
               id="followup-select"
               value={followupId}
-              onChange={(e) => setFollowupId(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (rowsRef.current && !isT0) {
+                  flip(rowsRef.current, () => setFollowupId(val), { spring: "weighted", capMs: 240 });
+                } else {
+                  setFollowupId(val);
+                }
+              }}
               className="h-8 px-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)]"
             >
               {reports.map((r) => (
@@ -196,34 +263,38 @@ export const ComparePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Proportional summary segments scaleX to real proportions (§M7.7) */}
+        {/* Proportional summary segments scaleX to real proportions (§M7.7, M4.1 WAAPI) */}
         {totalCount > 0 && (
           <div className="w-full h-1.5 rounded-full bg-[var(--ink-900)] flex overflow-hidden gap-0.5">
             {summary.improved > 0 && (
               <div
-                style={{ width: `${(summary.improved / totalCount) * 100}%` }}
-                className="h-full bg-[var(--verdigris)] rounded-full animate-scale-x"
+                ref={segImpRef}
+                style={{ width: `${(summary.improved / totalCount) * 100}%`, transformOrigin: "left" }}
+                className="h-full bg-[var(--verdigris)] rounded-full"
                 data-testid="summary-segment-improved"
               />
             )}
             {summary.declined > 0 && (
               <div
-                style={{ width: `${(summary.declined / totalCount) * 100}%` }}
-                className="h-full bg-[var(--madder)] rounded-full animate-scale-x"
+                ref={segDecRef}
+                style={{ width: `${(summary.declined / totalCount) * 100}%`, transformOrigin: "left" }}
+                className="h-full bg-[var(--madder)] rounded-full"
                 data-testid="summary-segment-declined"
               />
             )}
             {summary.stable > 0 && (
               <div
-                style={{ width: `${(summary.stable / totalCount) * 100}%` }}
-                className="h-full bg-[var(--dim)] rounded-full animate-scale-x"
+                ref={segStbRef}
+                style={{ width: `${(summary.stable / totalCount) * 100}%`, transformOrigin: "left" }}
+                className="h-full bg-[var(--dim)] rounded-full"
                 data-testid="summary-segment-stable"
               />
             )}
             {summary.unavailable > 0 && (
               <div
-                style={{ width: `${(summary.unavailable / totalCount) * 100}%` }}
-                className="h-full bg-[var(--ochre)] rounded-full animate-scale-x"
+                ref={segUnkRef}
+                style={{ width: `${(summary.unavailable / totalCount) * 100}%`, transformOrigin: "left" }}
+                className="h-full bg-[var(--ochre)] rounded-full"
                 data-testid="summary-segment-unavailable"
               />
             )}
@@ -267,15 +338,44 @@ export const ComparePage: React.FC = () => {
                 <th className="type-label text-[var(--dim)] py-3 px-4 text-right">Provenance</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--line-faint)]">
+            <tbody ref={rowsRef} data-testid="compare-rows" className="divide-y divide-[var(--line-faint)]">
               {rows.map((row, i) => {
                 const staggerMs = Math.min(i * 24, 240);
+                const bVal = typeof row.baseline === "number" ? row.baseline : parseFloat(String(row.baseline));
+                const fVal = typeof row.followup === "number" ? row.followup : parseFloat(String(row.followup));
+                const hasNums = !isNaN(bVal) && !isNaN(fVal);
+                let y1 = 8;
+                let y2 = 8;
+                if (hasNums) {
+                  if (fVal > bVal) {
+                    y1 = 12;
+                    y2 = 4;
+                  } else if (fVal < bVal) {
+                    y1 = 4;
+                    y2 = 12;
+                  }
+                }
+                const sparkD = `M 2 ${y1} L 38 ${y2}`;
+                const sparkColor =
+                  row.delta_type === "improving"
+                    ? "var(--verdigris)"
+                    : row.delta_type === "decrease"
+                    ? "var(--ochre)"
+                    : row.delta_type === "increase"
+                    ? "var(--madder)"
+                    : "var(--cornflower)";
+
+                const rowSlug = (row as any).id || row.test.toLowerCase().replace(/[^a-z0-9]/g, "-");
+
                 return (
                   <tr
                     key={i}
                     data-testid={`diff-row-${i}`}
                     className="hover:bg-[var(--ink-700)]/40 transition-colors duration-[120ms] ease-out m-enter"
-                    style={{ animationDelay: `${staggerMs}ms` }}
+                    style={{
+                      animationDelay: `${staggerMs}ms`,
+                      viewTransitionName: i === 0 && !isT0 ? "compare-row-timeline" : undefined,
+                    }}
                   >
                     <td className="py-3 px-4">
                       <span className="type-body font-medium text-[var(--bone)] block">
@@ -310,7 +410,24 @@ export const ComparePage: React.FC = () => {
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      <DeltaChip type={row.delta_type} label={row.delta_label} pop />
+                      <div className="flex items-center gap-2">
+                        <DeltaChip type={row.delta_type} label={row.delta_label} pop />
+                        <svg
+                          data-testid={`delta-spark-${rowSlug}`}
+                          className="w-10 h-4 overflow-visible inline-block flex-shrink-0"
+                          viewBox="0 0 40 16"
+                        >
+                          <DrawPath
+                            d={sparkD}
+                            durationMs={480}
+                            stroke={sparkColor}
+                            strokeWidth={1.5}
+                            strokeLinecap="round"
+                          />
+                          <circle cx="2" cy={y1} r="1.5" fill={sparkColor} />
+                          <circle cx="38" cy={y2} r="1.5" fill={sparkColor} />
+                        </svg>
+                      </div>
                     </td>
                     <td className="py-3 px-4 text-right type-mono-sm text-[var(--faint)]">
                       Ref: {row.citation}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useLocation } from "react-router";
 import {
   GraphStage,
   AskBar,
@@ -15,8 +16,10 @@ import { isReducedMotion } from "../motion/features";
 import { ticker } from "../motion/ticker";
 
 export const KnowledgeGraphPage: React.FC = () => {
+  const location = useLocation();
   const { user } = useActiveUser();
   const { addToast } = useToast();
+  const isT0 = isReducedMotion() || governor.getState().tier === "T0";
 
   const [graphData, setGraphData] = useState<GraphResponse | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
@@ -144,42 +147,74 @@ export const KnowledgeGraphPage: React.FC = () => {
     };
   }, []);
 
-  // Expose test hook for question activation testing (§M8.3)
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      (window as any).__VG_TEST_ACTIVATE_QUESTION__ = (
-        concepts: string[] = ["Hemoglobin", "Ferritin"],
-        nodeIds: string[] = []
-      ) => {
-        if (concepts.length === 0) {
-          setActiveConcepts([]);
-          setActiveNodeIds([]);
-          setSubgraphMetrics(null);
-          return;
-        }
-        setActiveConcepts(concepts);
-        if (nodeIds.length > 0) {
-          setActiveNodeIds(nodeIds);
-        } else if (graphData?.nodes && graphData.nodes.length > 0) {
-          const matching = graphData.nodes
-            .filter((n) =>
-              concepts.some(
-                (c) =>
-                  (n.label && n.label.toLowerCase().includes(c.toLowerCase())) ||
-                  (n.id && n.id.toLowerCase().includes(c.toLowerCase()))
-              )
-            )
-            .map((n) => n.id);
-          const finalIds = matching.length > 0 ? matching : [graphData.nodes[0].id];
-          setActiveNodeIds(finalIds);
-          setSubgraphMetrics({
-            total_nodes: finalIds.length,
-            total_edges: Math.min(finalIds.length * 2, 8),
-          });
-        }
-      };
+  // Expose test hook for question/community activation testing (§M8.3, M4.2)
+  const activateConceptsOrCommunity = useCallback((
+    conceptsOrCommunity: string[] | string | number = ["Hemoglobin", "Ferritin"],
+    nodeIds: string[] = []
+  ) => {
+    if (!graphData?.nodes || graphData.nodes.length === 0) return;
+
+    if (Array.isArray(conceptsOrCommunity) && conceptsOrCommunity.length === 0) {
+      setActiveConcepts([]);
+      setActiveNodeIds([]);
+      setSubgraphMetrics(null);
+      return;
+    }
+
+    const isCommunity = typeof conceptsOrCommunity === "number" || 
+      (typeof conceptsOrCommunity === "string" && !isNaN(Number(conceptsOrCommunity)) && conceptsOrCommunity.trim() !== "");
+
+    if (isCommunity) {
+      const cId = Number(conceptsOrCommunity);
+      const communityNodes = graphData.nodes.filter((n) => (n.community ?? 0) === cId);
+      const finalNodes = communityNodes.length > 0 ? communityNodes : [graphData.nodes[0]];
+      const finalIds = finalNodes.map((n) => n.id);
+      setActiveConcepts([`Community ${cId}`]);
+      setActiveNodeIds(finalIds);
+      setSubgraphMetrics({
+        total_nodes: finalIds.length,
+        total_edges: Math.min(finalIds.length * 2, 8),
+      });
+      return;
+    }
+
+    const concepts = Array.isArray(conceptsOrCommunity) ? conceptsOrCommunity : [conceptsOrCommunity];
+    setActiveConcepts(concepts);
+    if (nodeIds.length > 0) {
+      setActiveNodeIds(nodeIds);
+    } else {
+      const matching = graphData.nodes
+        .filter((n) =>
+          concepts.some(
+            (c) =>
+              (n.label && n.label.toLowerCase().includes(c.toLowerCase())) ||
+              (n.id && n.id.toLowerCase().includes(c.toLowerCase()))
+          )
+        )
+        .map((n) => n.id);
+      const finalIds = matching.length > 0 ? matching : [graphData.nodes[0].id];
+      setActiveNodeIds(finalIds);
+      setSubgraphMetrics({
+        total_nodes: finalIds.length,
+        total_edges: Math.min(finalIds.length * 2, 8),
+      });
     }
   }, [graphData]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).__VG_TEST_ACTIVATE_QUESTION__ = activateConceptsOrCommunity;
+    }
+  }, [activateConceptsOrCommunity]);
+
+  // Handle incoming community inspection from /insights (§M4.2)
+  useEffect(() => {
+    if (!graphData?.nodes || graphData.nodes.length === 0) return;
+    const commState = (location.state as any)?.community;
+    if (commState !== undefined) {
+      activateConceptsOrCommunity(commState);
+    }
+  }, [graphData, location.state, activateConceptsOrCommunity]);
 
   const handleApplyAnswer = async (answer: any, query: string = "") => {
     const chunkIds = (answer.evidence || []).map((e: any) => e.chunk_id);
@@ -317,7 +352,10 @@ export const KnowledgeGraphPage: React.FC = () => {
   return (
     <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
       {/* Main Column (1fr) */}
-      <div className="flex-1 flex flex-col gap-6 min-w-0 w-full">
+      <div
+        style={{ viewTransitionName: !isT0 ? "report-title" : undefined }}
+        className="flex-1 flex flex-col gap-6 min-w-0 w-full"
+      >
         {/* Real NetworkX Graph Stage (§7.16) */}
         <GraphStage
           graphData={graphData}

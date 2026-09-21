@@ -15,14 +15,22 @@ import { usersApi } from "../api/users";
 import type { TimelineEvent, Report, EvidenceCard } from "../types";
 import { governor } from "../motion/quality";
 import { isReducedMotion } from "../motion/features";
-import { flipFrom } from "../motion/flip";
-import { Odometer } from "../motion/fx/Odometer";
+import { flip, flipFrom } from "../motion/flip";
+import { Odometer, type OdometerHandle } from "../motion/fx/Odometer";
 import { EvidenceSpanViewer } from "../components/gallery/EvidenceSpanViewer";
 
 export const TimelinePage: React.FC = () => {
   const { user, users, setUser, refreshUsers } = useActiveUser();
   const { addToast } = useToast();
   const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
+
+  const isT0 = isReducedMotion() || governor.getState().tier === "T0";
+  const [activeMorphReportId, setActiveMorphReportId] = useState<string | null>(null);
+
+  const hemoOdoRef = useRef<OdometerHandle>(null);
+  const egfrOdoRef = useRef<OdometerHandle>(null);
+  const hba1cOdoRef = useRef<OdometerHandle>(null);
+  const vitdOdoRef = useRef<OdometerHandle>(null);
 
   const [filter, setFilter] = useState("all");
   const [copiedId, setCopiedId] = useState(false);
@@ -97,25 +105,45 @@ export const TimelinePage: React.FC = () => {
       const tier = governor.getState().tier;
       if (tier === "T0" || isReducedMotion()) {
         setSpineProgress(1.0);
+        hemoOdoRef.current?.setValueDirect(14.1);
+        egfrOdoRef.current?.setValueDirect(82);
+        hba1cOdoRef.current?.setValueDirect(6.2);
+        vitdOdoRef.current?.setValueDirect(32);
         return;
       }
+      let progress = 1.0;
       const scrollEl = getScrollEl();
       if (scrollEl && scrollEl instanceof HTMLElement) {
         const scrolled = scrollEl.scrollTop;
         const maxScroll = scrollEl.scrollHeight - scrollEl.clientHeight;
         if (maxScroll > 0) {
-          const progress = Math.min(1.0, Math.max(0.12, 0.12 + (scrolled / maxScroll) * 0.88));
-          setSpineProgress(progress);
-          return;
+          progress = Math.min(1.0, Math.max(0.12, 0.12 + (scrolled / maxScroll) * 0.88));
+        }
+      } else if (spineContainerRef.current) {
+        const rect = spineContainerRef.current.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const totalScrollable = rect.height;
+        if (totalScrollable > 0) {
+          progress = Math.min(1.0, Math.max(0.12, (vh * 0.82 - rect.top) / totalScrollable));
         }
       }
-      if (!spineContainerRef.current) return;
-      const rect = spineContainerRef.current.getBoundingClientRect();
-      const vh = window.innerHeight;
-      const totalScrollable = rect.height;
-      if (totalScrollable <= 0) return;
-      const progress = Math.min(1.0, Math.max(0.12, (vh * 0.82 - rect.top) / totalScrollable));
       setSpineProgress(progress);
+
+      // Scrub-linked measurement morph (§M4.3):
+      // Tween VALUES directly via imperative Odometer handle, zero 60Hz React re-renders.
+      const p = Math.max(0, Math.min(1, (progress - 0.12) / (0.75 - 0.12)));
+
+      const vHemo = 13.8 + (14.1 - 13.8) * p;
+      hemoOdoRef.current?.setValueDirect(Number(vHemo.toFixed(1)));
+
+      const vEgfr = Math.round(88 + (82 - 88) * p);
+      egfrOdoRef.current?.setValueDirect(vEgfr);
+
+      const vHba1c = 5.9 + (6.2 - 5.9) * p;
+      hba1cOdoRef.current?.setValueDirect(Number(vHba1c.toFixed(1)));
+
+      const vVitd = Math.round(24 + (32 - 24) * p);
+      vitdOdoRef.current?.setValueDirect(vVitd);
     };
 
     updateProgress();
@@ -311,20 +339,36 @@ export const TimelinePage: React.FC = () => {
     return () => window.removeEventListener("vitagraph:job-done", handleJobDone);
   }, [loadData]);
 
-  // View Report -> opens EvidenceSpanViewer (§M7.6)
+  // View Report -> opens EvidenceSpanViewer (§M7.6, §M4.3)
   const handleViewReport = (report: Report) => {
-    setSelectedEvidence({
-      chunk_id: `ev-${report.id}-chunk-1`,
-      report_id: report.id,
-      report_filename: report.original_filename,
-      report_date: report.report_date || report.upload_time.split("T")[0],
-      page_number: 1,
-      snippet: "Clinical laboratory examination panel. Hemoglobin 14.1 g/dL, HbA1c 6.2%, Vitamin D 32 ng/mL.",
-      score: 0.96,
-      char_start: 38,
-      char_end: 112,
+    setActiveMorphReportId(report.id);
+
+    const openViewer = () => {
+      setSelectedEvidence({
+        chunk_id: `ev-${report.id}-chunk-1`,
+        report_id: report.id,
+        report_filename: report.original_filename,
+        report_date: report.report_date || report.upload_time.split("T")[0],
+        page_number: 1,
+        snippet: "Clinical laboratory examination panel. Hemoglobin 14.1 g/dL, HbA1c 6.2%, Vitamin D 32 ng/mL.",
+        score: 0.96,
+        char_start: 38,
+        char_end: 112,
+      });
+      setIsEvidenceViewerOpen(true);
+    };
+
+    if (isT0 || typeof document === "undefined" || !("startViewTransition" in document)) {
+      openViewer();
+      return;
+    }
+
+    const transition = (document as any).startViewTransition(() => {
+      openViewer();
     });
-    setIsEvidenceViewerOpen(true);
+    transition.finished?.finally(() => {
+      setActiveMorphReportId(null);
+    });
   };
 
   // Filtered events count
@@ -342,7 +386,14 @@ export const TimelinePage: React.FC = () => {
           <select
             id="event-filter"
             value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (spineContainerRef.current && !isT0) {
+                flip(spineContainerRef.current, () => setFilter(val), { spring: "weighted", capMs: 240 });
+              } else {
+                setFilter(val);
+              }
+            }}
             className="h-9 px-3 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] text-[var(--bone)] type-label focus:outline-none focus:border-[var(--verdigris)] transition-colors duration-[120ms] ease-out"
           >
             <option value="all">All events</option>
@@ -378,6 +429,7 @@ export const TimelinePage: React.FC = () => {
         {/* Timeline Spine Column */}
         <div
           ref={spineContainerRef}
+          data-testid="timeline-block-container"
           className="flex-1 flex flex-col min-w-0 w-full relative pl-8 space-y-10"
         >
           {/* Background track spine */}
@@ -437,7 +489,7 @@ export const TimelinePage: React.FC = () => {
                   data-testid={`timeline-block-${report.id}`}
                   data-entered={isEntered ? "true" : "false"}
                   className={`relative ${
-                    isEntered ? "m-enter-card" : "opacity-0"
+                    isEntered ? "m-enter-card m-scroll-reveal" : "opacity-0"
                   }`}
                 >
                   {/* Spine Node Dot */}
@@ -454,7 +506,13 @@ export const TimelinePage: React.FC = () => {
                   )}
 
                   {/* Block Header */}
-                  <div className="flex items-center justify-between mb-3">
+                  <div
+                    id={isLatest ? "timeline-block-header-latest" : undefined}
+                    style={{
+                      viewTransitionName: isLatest && !isT0 ? "compare-row-timeline" : undefined,
+                    }}
+                    className="flex items-center justify-between mb-3"
+                  >
                     <div className="flex items-center gap-3">
                       <span className="type-mono text-[var(--bone)] font-medium text-base">
                         {dateStr}
@@ -478,6 +536,12 @@ export const TimelinePage: React.FC = () => {
                       } else {
                         cardRefs.current.delete(report.id);
                       }
+                    }}
+                    style={{
+                      viewTransitionName:
+                        activeMorphReportId === report.id && !isT0
+                          ? "timeline-report"
+                          : undefined,
                     }}
                     className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-5 mb-4"
                   >
@@ -564,6 +628,7 @@ export const TimelinePage: React.FC = () => {
                               <span className="text-[var(--bone)] font-semibold">
                                 {isLatest ? (
                                   <Odometer
+                                    ref={hemoOdoRef}
                                     value={14.1}
                                     initialValue={13.8}
                                     decimals={1}
@@ -603,6 +668,7 @@ export const TimelinePage: React.FC = () => {
                               <span className="text-[var(--bone)] font-semibold">
                                 {isLatest ? (
                                   <Odometer
+                                    ref={egfrOdoRef}
                                     value={82}
                                     initialValue={88}
                                     duration={480}
@@ -641,6 +707,7 @@ export const TimelinePage: React.FC = () => {
                               <span className="text-[var(--bone)] font-semibold">
                                 {isLatest ? (
                                   <Odometer
+                                    ref={hba1cOdoRef}
                                     value={6.2}
                                     initialValue={5.9}
                                     decimals={1}
@@ -679,6 +746,7 @@ export const TimelinePage: React.FC = () => {
                               <span className="type-mono-sm text-[var(--dim)]">
                                 <span className="text-[var(--bone)] font-semibold">
                                   <Odometer
+                                    ref={vitdOdoRef}
                                     value={32}
                                     initialValue={0}
                                     duration={480}

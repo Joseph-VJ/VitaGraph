@@ -1,7 +1,12 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, forwardRef, useImperativeHandle } from "react";
 import { governor } from "../quality";
 import { isReducedMotion } from "../features";
 import { ticker } from "../ticker";
+
+export interface OdometerHandle {
+  setValueDirect: (val: number) => void;
+  getSpan: () => HTMLSpanElement | null;
+}
 
 interface OdometerProps {
   value: number | string;
@@ -19,15 +24,18 @@ interface OdometerProps {
  * Uses --m-settle (480ms) with needle curve.
  * Tabular nums, dev assertion on exact endpoint, T0/reduced-motion instant set.
  */
-export const Odometer: React.FC<OdometerProps> = ({
-  value,
-  initialValue,
-  decimals,
-  duration = 480, // --m-settle (§M2.1)
-  className = "",
-  format,
-  testId,
-}) => {
+export const Odometer = forwardRef<OdometerHandle, OdometerProps>(function Odometer(
+  {
+    value,
+    initialValue,
+    decimals,
+    duration = 480, // --m-settle (§M2.1)
+    className = "",
+    format,
+    testId,
+  },
+  ref
+) {
   // Parse numeric target
   const numTarget = typeof value === "number" ? value : parseFloat(String(value).replace(/,/g, "")) || 0;
   const isNumeric = !isNaN(numTarget);
@@ -117,6 +125,25 @@ export const Odometer: React.FC<OdometerProps> = ({
     };
   }, [numTarget, initialValue, decimals, duration, isNumeric]);
 
+  const spanRef = useRef<HTMLSpanElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    setValueDirect: (val: number) => {
+      if (spanRef.current) {
+        currentValRef.current = val;
+        const text = format
+          ? format(val)
+          : decimals !== undefined
+          ? val.toFixed(decimals)
+          : Number.isInteger(numTarget)
+          ? Math.round(val).toLocaleString()
+          : val.toFixed(1);
+        spanRef.current.textContent = text;
+      }
+    },
+    getSpan: () => spanRef.current,
+  }));
+
   const formatted = format
     ? format(displayValue)
     : decimals !== undefined
@@ -127,6 +154,7 @@ export const Odometer: React.FC<OdometerProps> = ({
 
   return (
     <span
+      ref={spanRef}
       className={`tabular-nums font-mono ${className}`}
       data-testid={testId}
       data-odo-final={numTarget} // Gate 27 test hook
@@ -134,4 +162,4 @@ export const Odometer: React.FC<OdometerProps> = ({
       {isNumeric ? formatted : value}
     </span>
   );
-};
+});

@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Badge, Button, Marginalia } from "../components/gallery";
 import { Odometer } from "../motion/fx/Odometer";
 import { flipFrom } from "../motion/flip";
+import { Sequence } from "../motion/sequence";
+import { governor } from "../motion/quality";
+import { isReducedMotion } from "../motion/features";
+import { ticker } from "../motion/ticker";
 import { setNavDirection, getNavDirection } from "../motion/navigation";
 import { useActiveUser } from "../context/UserContext";
 import { graphApi, type GraphResponse } from "../api/graph";
@@ -16,29 +20,105 @@ export const InsightsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [centralityMetric, setCentralityMetric] = useState<"betweenness" | "degree">("betweenness");
   const [showFootnote, setShowFootnote] = useState(false);
+  const [isRefreshed, setIsRefreshed] = useState(false);
   const hubRowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const gaugeRingRef = useRef<SVGCircleElement>(null);
+  const rankBarRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const donutRefs = useRef<Map<string, SVGCircleElement>>(new Map());
 
-  useEffect(() => {
-    let isMounted = true;
-    graphApi.getGraph(effectiveUserId)
-      .then((data) => {
-        if (isMounted) setGraphData(data);
-      })
-      .catch((err) => console.warn("Failed to load graph analytics:", err))
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
-    return () => {
-      isMounted = false;
-    };
+  const isT0 = isReducedMotion() || governor.getState().tier === "T0";
+
+  // Data fetching extracted to loadGraphData (§M4.2)
+  const loadGraphData = useCallback(async () => {
+    try {
+      const data = await graphApi.getGraph(effectiveUserId);
+      setGraphData(data);
+      return data;
+    } catch (err) {
+      console.warn("Failed to load graph analytics:", err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
   }, [effectiveUserId]);
 
   useEffect(() => {
+    loadGraphData();
+  }, [loadGraphData]);
+
+  // Footnote sequencing: Gate 18 Sequence (§M4.2)
+  useEffect(() => {
     if (!loading) {
-      const t = setTimeout(() => setShowFootnote(true), 240);
-      return () => clearTimeout(t);
+      const seq = new Sequence()
+        .wait(240)
+        .addAction(() => setShowFootnote(true));
+      seq.play();
+      return () => seq.cancel();
     }
   }, [loading]);
+
+  const handleRefresh = async () => {
+    setIsRefreshed(true);
+    
+    // Read current strokeDashoffset from DOM element
+    const currentOffset = gaugeRingRef.current
+      ? parseFloat(window.getComputedStyle(gaugeRingRef.current).strokeDashoffset) || 0
+      : 0;
+
+    const data = await loadGraphData();
+    if (!data || isT0) return;
+
+    const newMod = data.metrics?.modularity > 0 ? data.metrics.modularity : 0.48;
+    const targetOffset = 251.3 * (1 - Math.min(1, Math.max(0, newMod)));
+
+    // 1. Gauge ring: WAAPI tween of strokeDashoffset old->new, 480ms, ease-out-expo
+    if (gaugeRingRef.current) {
+      gaugeRingRef.current.animate(
+        [
+          { strokeDashoffset: `${currentOffset}` },
+          { strokeDashoffset: `${targetOffset}` }
+        ],
+        {
+          duration: 480,
+          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+          fill: "forwards"
+        }
+      );
+    }
+
+    // 2. Rank bars: WAAPI scaleX tween per bar
+    rankBarRefs.current.forEach((el) => {
+      if (!el) return;
+      el.animate(
+        [
+          { transform: "scaleX(0.7)" },
+          { transform: "scaleX(1.0)" }
+        ],
+        {
+          duration: 480,
+          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+          fill: "forwards"
+        }
+      );
+    });
+
+    // 3. Donut segments: WAAPI strokeDashoffset tween per segment
+    donutRefs.current.forEach((el) => {
+      if (!el) return;
+      const cur = parseFloat(window.getComputedStyle(el).strokeDashoffset) || 0;
+      el.animate(
+        [
+          { strokeDashoffset: `${cur - 20}` },
+          { strokeDashoffset: `${cur}` }
+        ],
+        {
+          duration: 480,
+          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+          fill: "forwards"
+        }
+      );
+    });
+  };
 
   const metrics = graphData?.metrics || {
     total_nodes: 0,
@@ -140,15 +220,16 @@ export const InsightsPage: React.FC = () => {
 
     setCentralityMetric(newMetric);
 
-    // Play FLIP animation on next frame with weighted spring
-    setTimeout(() => {
+    // Play FLIP animation on next frame with weighted spring (Gate 18: no timer, Gate 29: ticker)
+    ticker.subscribe("L0", () => {
       hubRowRefs.current.forEach((el, key) => {
         const firstRect = firstRects.get(key);
         if (el && firstRect) {
           flipFrom(el, firstRect, { spring: "weighted", capMs: 360 });
         }
       });
-    }, 0);
+      return false;
+    });
   };
 
   // 3. Predicate distribution from real edges (Clockwise sweep §M7.8)
@@ -189,6 +270,9 @@ export const InsightsPage: React.FC = () => {
     })
     .sort((a, b) => b.count - a.count);
 
+  rankBarRefs.current.clear();
+  donutRefs.current.clear();
+
   return (
     <div className="flex flex-col gap-6 w-full">
       <div className="flex items-center justify-between">
@@ -198,10 +282,25 @@ export const InsightsPage: React.FC = () => {
             Network topology, community modularity, and cross-report evidence synthesis for {user?.display_label || "Arjun R"} ({effectiveUserId}).
           </p>
         </div>
-        <Marginalia
-          text="Better data. Healthier decisions."
-          sketch="leaf"
-        />
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            data-testid="insights-refresh"
+            onClick={handleRefresh}
+            className="h-8 text-xs flex items-center gap-1.5"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M23 4v6h-6" />
+              <path d="M1 20v-6h6" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+            <span>Refresh Analytics</span>
+          </Button>
+          <Marginalia
+            text="Better data. Healthier decisions."
+            sketch="leaf"
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -226,8 +325,8 @@ export const InsightsPage: React.FC = () => {
       ) : (
         /* Grid of 4 Insight Cards (§9.7) */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* 1. Louvain Community Card with Circular Modularity Gauge (§M7.8) */}
-          <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between">
+          {/* 1. Louvain Community Card with Circular Modularity Gauge (§M7.8, M4.2) */}
+          <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between m-scroll-reveal">
             <div>
               <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--line-faint)]">
                 <h3 className="type-title text-[var(--bone)] text-base">
@@ -238,7 +337,7 @@ export const InsightsPage: React.FC = () => {
                 </Badge>
               </div>
 
-              {/* Modularity Gauge: ring sweep 0->Q synced with Q odometer (§M7.8) */}
+              {/* Modularity Gauge: ring sweep 0->Q synced with Q odometer (§M7.8, M4.2 WAAPI) */}
               <div className="flex items-center gap-5 my-3 p-3 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
                 <div className="relative w-20 h-20 flex-shrink-0 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -252,10 +351,11 @@ export const InsightsPage: React.FC = () => {
                       fill="transparent"
                     />
                     <circle
+                      ref={gaugeRingRef}
                       cx="50"
                       cy="50"
                       r="40"
-                      className="text-[var(--verdigris)] animate-ring-sweep origin-center"
+                      className={`text-[var(--verdigris)] origin-center ${isRefreshed ? "" : "animate-ring-sweep"}`}
                       strokeWidth="8"
                       strokeDasharray={251.3}
                       strokeDashoffset={251.3 * (1 - Math.min(1, Math.max(0, modularityVal)))}
@@ -263,6 +363,7 @@ export const InsightsPage: React.FC = () => {
                       stroke="currentColor"
                       fill="transparent"
                       style={{
+                        animation: isRefreshed ? "none" : undefined,
                         ["--ring-circumference" as any]: "251.3",
                         ["--ring-target-offset" as any]: `${251.3 * (1 - Math.min(1, Math.max(0, modularityVal)))}`,
                       }}
@@ -316,6 +417,7 @@ export const InsightsPage: React.FC = () => {
               <Link
                 to="/graph"
                 viewTransition
+                style={{ viewTransitionName: !isT0 ? "cluster-hull" : undefined }}
                 onClick={() => setNavDirection(getNavDirection(location.pathname, "/graph"))}
               >
                 <Button variant="ghost" className="h-7 text-xs">
@@ -326,7 +428,7 @@ export const InsightsPage: React.FC = () => {
           </div>
 
           {/* 2. Degree & Betweenness Centrality (Race-Sort, §M7.8) */}
-          <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between">
+          <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between m-scroll-reveal">
             <div>
               <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--line-faint)]">
                 <div>
@@ -391,9 +493,13 @@ export const InsightsPage: React.FC = () => {
                         {hub.displayScore}
                       </span>
                     </div>
-                    {/* Horizontal rank bar length scaleX (--m-settle, §M7.8) */}
+                    {/* Horizontal rank bar length scaleX (--m-settle, §M7.8, M4.2 WAAPI) */}
                     <div className="w-full h-1.5 rounded-full bg-[var(--ink-700)] overflow-hidden">
                       <div
+                        ref={(el) => {
+                          if (el) rankBarRefs.current.set(hub.id, el);
+                          else rankBarRefs.current.delete(hub.id);
+                        }}
                         style={{ width: `${Math.min(100, Math.max(12, hub.relativeScore * 100))}%` }}
                         className="h-full bg-[var(--verdigris)] rounded-full animate-bar-settle origin-left"
                       />
@@ -420,7 +526,7 @@ export const InsightsPage: React.FC = () => {
           </div>
 
           {/* 3. Predicate Distribution (§M7.8: clockwise sweep from 12 o'clock, 60ms stagger; odometer percentages) */}
-          <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between">
+          <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between m-scroll-reveal">
             <div>
               <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--line-faint)]">
                 <h3 className="type-title text-[var(--bone)] text-base">
@@ -449,6 +555,10 @@ export const InsightsPage: React.FC = () => {
                       return (
                         <circle
                           key={p.name}
+                          ref={(el) => {
+                            if (el) donutRefs.current.set(p.name, el);
+                            else donutRefs.current.delete(p.name);
+                          }}
                           cx="50"
                           cy="50"
                           r={radius}
@@ -510,7 +620,7 @@ export const InsightsPage: React.FC = () => {
           </div>
 
           {/* 4. Cross-Study Synthesis */}
-          <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between">
+          <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col justify-between m-scroll-reveal">
             <div>
               <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--line-faint)]">
                 <h3 className="type-title text-[var(--bone)] text-base">
