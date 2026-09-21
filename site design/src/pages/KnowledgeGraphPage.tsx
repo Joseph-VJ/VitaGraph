@@ -12,6 +12,7 @@ import { graphApi, type GraphResponse, type GraphNode } from "../api/graph";
 import { questionsApi } from "../api/questions";
 import { governor } from "../motion/quality";
 import { isReducedMotion } from "../motion/features";
+import { ticker } from "../motion/ticker";
 
 export const KnowledgeGraphPage: React.FC = () => {
   const { user } = useActiveUser();
@@ -54,15 +55,71 @@ export const KnowledgeGraphPage: React.FC = () => {
     loadGraph();
   }, [loadGraph]);
 
-  // Node -> detail shared-element morph (§7.3, §M5.15)
-  const handleSelectNode = useCallback((node: GraphNode | null) => {
+  const [morphChip, setMorphChip] = useState<{
+    rect: DOMRect;
+    color: string;
+    label: string;
+  } | null>(null);
+
+  // Node -> detail shared-element morph (§7.3, F0-A)
+  const handleSelectNode = useCallback((node: GraphNode | null, screenRect?: DOMRect) => {
     const isT0 = isReducedMotion() || governor.getState().tier === "T0";
-    if (isT0 || typeof document === "undefined" || !("startViewTransition" in document)) {
+    const hasVT = typeof document !== "undefined" && "startViewTransition" in document;
+
+    if (!node) {
+      // Deselect (Escape or Close button)
+      if (isT0 || !hasVT) {
+        setSelectedNode(null);
+        return;
+      }
+      (document as any).startViewTransition(() => {
+        setSelectedNode(null);
+      });
+      return;
+    }
+
+    if (isT0 || !hasVT || !screenRect) {
       setSelectedNode(node);
       return;
     }
-    (document as any).startViewTransition(() => {
-      setSelectedNode(node);
+
+    // Motion-safe ViewTransition path: mount transient chip at node screen rect
+    setMorphChip({
+      rect: screenRect,
+      color: node.color || "#79B8A6",
+      label: node.label || node.id,
+    });
+    if (typeof window !== "undefined") {
+      (window as any).__VG_MORPH_CHIP__ = true;
+    }
+
+    ticker.subscribe("L0", () => {
+      try {
+        const transition = (document as any).startViewTransition(() => {
+          setMorphChip(null);
+          setSelectedNode(node);
+        });
+
+        const cleanUp = () => {
+          if (typeof window !== "undefined") {
+            (window as any).__VG_MORPH_CHIP__ = false;
+          }
+          setMorphChip(null);
+        };
+
+        if (transition && transition.finished) {
+          transition.finished.then(cleanUp).catch(cleanUp);
+        } else {
+          setTimeout(cleanUp, 320);
+        }
+      } catch {
+        setSelectedNode(node);
+        setMorphChip(null);
+        if (typeof window !== "undefined") {
+          (window as any).__VG_MORPH_CHIP__ = false;
+        }
+      }
+      return false;
     });
   }, []);
 
@@ -294,6 +351,28 @@ export const KnowledgeGraphPage: React.FC = () => {
           onClose={() => handleSelectNode(null)}
         />
       </div>
+
+      {/* Transient Morph Chip for canvas node -> detail header transition (§7.3, F0-A) */}
+      {morphChip && (
+        <div
+          data-testid="node-fly-chip"
+          className="node-fly-chip fixed pointer-events-none z-50 rounded-[var(--r-6)] border border-[var(--line-strong)] bg-[var(--ink-800)] px-3 py-1.5 shadow-lg flex items-center gap-2"
+          style={{
+            left: `${morphChip.rect.left}px`,
+            top: `${morphChip.rect.top}px`,
+            width: `${Math.max(120, morphChip.rect.width)}px`,
+            viewTransitionName: "node-detail-header",
+          }}
+        >
+          <span
+            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+            style={{ backgroundColor: morphChip.color }}
+          />
+          <span className="type-mono-sm text-xs text-[var(--bone)] truncate">
+            {morphChip.label}
+          </span>
+        </div>
+      )}
     </div>
   );
 };

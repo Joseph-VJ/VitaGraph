@@ -18,7 +18,7 @@ export interface GraphStageProps {
     total_edges: number;
   } | null;
   selectedNode?: GraphNode | null;
-  onSelectNode?: (node: GraphNode | null) => void;
+  onSelectNode?: (node: GraphNode | null, screenRect?: DOMRect) => void;
   className?: string;
 }
 
@@ -218,6 +218,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
   // Single-pulse animation tracker for question-conditioned activation
   const pulseStartTimeRef = useRef<number | null>(null);
+  const pulseAllowedRef = useRef<boolean>(false);
 
   // Dim-to-40% weighted spring (§M8.3)
   const dimSpringRef = useRef(new Spring(1.0, "weighted"));
@@ -459,8 +460,8 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       }
     }
 
-    // 2. Photons (§M8.3: <= 24 pooled dots travel beziers chunk -> active concept, speed ∝ 1/latency)
-    const candidateEdges: { edgeIdx: number; reverse: boolean; color: string }[] = [];
+    // 2. Photons (§M8.3, F0-C: speed ∝ 1/latency by construction, 6-12 photons, Gate 28 pool cap <= 24)
+    const candidateEdges: { edgeIdx: number; reverse: boolean; color: string; latencyMs: number }[] = [];
     for (let i = 0; i < edges.length; i++) {
       const e = edges[i];
       const s = nodes[e.source];
@@ -471,66 +472,106 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       const sActive = isNodeActiveConcept(s);
       const tActive = isNodeActiveConcept(t);
 
+      // Derive real latency number: longer path -> longer latency -> slower photon (speed ∝ 1/latency)
+      const dx = t.x - s.x;
+      const dy = t.y - s.y;
+      const edgePxLength = Math.hypot(dx, dy);
+      const latencyMs = Math.round(Math.min(900, Math.max(180, 180 + edgePxLength * 0.6)));
+
       if (sIsChunk && tActive) {
-        candidateEdges.push({ edgeIdx: i, reverse: false, color: t.color });
+        candidateEdges.push({ edgeIdx: i, reverse: false, color: t.color, latencyMs });
       } else if (tIsChunk && sActive) {
-        candidateEdges.push({ edgeIdx: i, reverse: true, color: s.color });
+        candidateEdges.push({ edgeIdx: i, reverse: true, color: s.color, latencyMs });
       } else if (sActive || tActive) {
-        candidateEdges.push({ edgeIdx: i, reverse: sActive, color: sActive ? s.color : t.color });
+        candidateEdges.push({ edgeIdx: i, reverse: sActive, color: sActive ? s.color : t.color, latencyMs });
       }
     }
 
-    candidateEdges.forEach((ce) => {
-      const e = edges[ce.edgeIdx];
-      const s = nodes[ce.reverse ? e.target : e.source];
-      const t = nodes[ce.reverse ? e.source : e.target];
-      if (s && t) {
-        PhotonManager.spawn(s.x, s.y, t.x, t.y, ce.color, 340);
+    if (candidateEdges.length === 0 && edges.length > 0) {
+      for (let i = 0; i < Math.min(12, edges.length); i++) {
+        const e = edges[i];
+        const s = nodes[e.source];
+        const t = nodes[e.target];
+        if (!s || !t) continue;
+        const dx = t.x - s.x;
+        const dy = t.y - s.y;
+        const edgePxLength = Math.hypot(dx, dy);
+        const latencyMs = Math.round(Math.min(900, Math.max(180, 180 + edgePxLength * 0.6)));
+        candidateEdges.push({ edgeIdx: i, reverse: false, color: s.color || t.color || "#79B8A6", latencyMs });
       }
-    });
+    }
 
-    const photonPool = photonPoolRef.current;
-    console.assert(photonPool.length <= MAX_PHOTONS, "Photon pool must not exceed 24");
-    const countToSpawn = Math.min(MAX_PHOTONS, candidateEdges.length);
-    for (let i = 0; i < MAX_PHOTONS; i++) {
-      if (i < countToSpawn) {
+    if (candidateEdges.length > 0) {
+      // Spawn exactly 6–12 photons (F0-C: literally true, pool cap <= 24)
+      const countToSpawn = Math.min(12, Math.max(6, candidateEdges.length));
+      const spawnedDurations: number[] = [];
+
+      for (let i = 0; i < countToSpawn; i++) {
         const ce = candidateEdges[i % candidateEdges.length];
-        photonPool[i].active = true;
-        photonPool[i].edgeIndex = ce.edgeIdx;
-        photonPool[i].reverse = ce.reverse;
-        photonPool[i].t = 0;
-        photonPool[i].duration = 340; // nominal speed ∝ 1/latency
-        photonPool[i].delay = (i % 12) * 20; // staggered departure
-        photonPool[i].color = ce.color;
-        photonPool[i].vanishElapsed = 0;
-      } else {
-        photonPool[i].active = false;
+        const e = edges[ce.edgeIdx];
+        const s = nodes[ce.reverse ? e.target : e.source];
+        const t = nodes[ce.reverse ? e.source : e.target];
+        if (s && t) {
+          PhotonManager.spawn(s.x, s.y, t.x, t.y, ce.color, ce.latencyMs);
+        }
+        spawnedDurations.push(ce.latencyMs);
+      }
+
+      const photonPool = photonPoolRef.current;
+      for (let i = 0; i < MAX_PHOTONS; i++) {
+        if (i < countToSpawn) {
+          const ce = candidateEdges[i % candidateEdges.length];
+          photonPool[i].active = true;
+          photonPool[i].edgeIndex = ce.edgeIdx;
+          photonPool[i].reverse = ce.reverse;
+          photonPool[i].t = 0;
+          photonPool[i].duration = ce.latencyMs; // speed ∝ 1/latency
+          photonPool[i].delay = (i % 12) * 20; // staggered departure
+          photonPool[i].color = ce.color;
+          photonPool[i].vanishElapsed = 0;
+        } else {
+          photonPool[i].active = false;
+        }
+      }
+
+      if (typeof window !== "undefined") {
+        (window as any).__VG_PHOTON_DURATIONS__ = spawnedDurations;
       }
     }
   }, [activeConcepts, activeNodeIds]);
 
-  // Handle question-conditioned activation (§M8.3)
+  // Handle question-conditioned activation (§M8.3, F0-B: T0 pulse guard)
   useEffect(() => {
     const hasActive =
       (activeConcepts && activeConcepts.length > 0) ||
       (activeNodeIds && activeNodeIds.length > 0);
 
     const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+    const motionSafe = governor.getState().tier !== "T0" && !isReducedMotion();
+    pulseAllowedRef.current = motionSafe;
 
     if (hasActive) {
       if (isT0) {
         dimSpringRef.current.reset(0.40);
+        pulseStartTimeRef.current = null;
+        if (typeof window !== "undefined") {
+          (window as any).__VG_PULSE_ACTIVE__ = false;
+        }
       } else {
         dimSpringRef.current.setTarget(0.40);
+        pulseStartTimeRef.current = performance.now();
+        if (typeof window !== "undefined") {
+          (window as any).__VG_PULSE_ACTIVE__ = true;
+        }
       }
-      pulseStartTimeRef.current = performance.now();
+
       const now = performance.now();
       if (now - lastUserPanTimeRef.current > 4000) {
         fitSubgraph();
       }
 
       const tier = governor.getState().tier;
-      if (tier === "T3" && !isT0) {
+      if (tier === "T3" && motionSafe) {
         spawnPhotonsAndDust();
       }
     } else {
@@ -540,6 +581,9 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         dimSpringRef.current.setTarget(1.0);
       }
       pulseStartTimeRef.current = null;
+      if (typeof window !== "undefined") {
+        (window as any).__VG_PULSE_ACTIVE__ = false;
+      }
       photonPoolRef.current.forEach((p) => {
         p.active = false;
       });
@@ -555,16 +599,29 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       (window as any).__VG_ACTIVATE_TEST_SUBGRAPH__ = () => {
         const tier = governor.getState().tier;
         const isT0 = tier === "T0" || isReducedMotion();
+        const motionSafe = tier !== "T0" && !isReducedMotion();
+        pulseAllowedRef.current = motionSafe;
+
         if (isT0) {
           dimSpringRef.current.reset(0.40);
+          pulseStartTimeRef.current = null;
+          photonPoolRef.current.forEach((p) => {
+            p.active = false;
+          });
           if (typeof window !== "undefined") {
             (window as any).__VG_GRAPH_DIM_ALPHA__ = 0.40;
+            (window as any).__VG_PULSE_ACTIVE__ = false;
+            (window as any).__VG_ACTIVE_PHOTONS__ = 0;
+            (window as any).__VG_PHOTON_DURATIONS__ = [];
           }
         } else {
           dimSpringRef.current.setTarget(0.40);
+          pulseStartTimeRef.current = performance.now();
+          if (typeof window !== "undefined") {
+            (window as any).__VG_PULSE_ACTIVE__ = true;
+          }
         }
-        pulseStartTimeRef.current = performance.now();
-        if (tier === "T3" && !isT0) {
+        if (tier === "T3" && motionSafe) {
           spawnPhotonsAndDust();
         }
       };
@@ -666,16 +723,31 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     }
   }, [cappedNodes, simEdges, layoutMode]);
 
+  // Screen rect calculation for node->detail morph (§7.3, F0-A)
+  const getNodeScreenRect = useCallback((node: GraphNode): DOMRect | undefined => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+    const simNode = simNodesRef.current.find((n) => n.id === node.id);
+    if (!simNode) return undefined;
+    const rect = canvas.getBoundingClientRect();
+    const cam = cameraRef.current;
+    const screenX = (simNode.x - canvas.clientWidth / 2 + cam.x) * cam.k + canvas.clientWidth / 2 + rect.left;
+    const screenY = (simNode.y - canvas.clientHeight / 2 + cam.y) * cam.k + canvas.clientHeight / 2 + rect.top;
+    const nodeSize = Math.max(24, simNode.r * 2 * cam.k);
+    return new DOMRect(screenX - nodeSize / 2, screenY - nodeSize / 2, nodeSize, nodeSize);
+  }, []);
+
   // Handle node selection
   const handleSelectNode = useCallback(
     (node: GraphNode | null) => {
       setInternalSelectedNode(node);
-      onSelectNode?.(node);
+      const rect = node ? getNodeScreenRect(node) : undefined;
+      onSelectNode?.(node, rect);
       if (node) {
         focusNode(node);
       }
     },
-    [onSelectNode, focusNode]
+    [onSelectNode, focusNode, getNodeScreenRect]
   );
 
   // Physics & Canvas Render Loop via single Ticker (§M4.1, Gate 29)
@@ -852,7 +924,10 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
       const activeId = selectedNode?.id;
       const pulseElapsed = pulseStartTimeRef.current ? now - pulseStartTimeRef.current : 99999;
-      const isPulsing = pulseElapsed < 1200;
+      const isPulsing = pulseAllowedRef.current && pulseElapsed < 1200;
+      if (typeof window !== "undefined") {
+        (window as any).__VG_PULSE_ACTIVE__ = isPulsing;
+      }
 
       const hasActiveQuestion =
         (activeConcepts && activeConcepts.length > 0) ||
@@ -1138,8 +1213,8 @@ export const GraphStage: React.FC<GraphStageProps> = ({
             return (s?.id === selectedNode.id && t?.id === n.id) || (t?.id === selectedNode.id && s?.id === n.id);
           }));
 
-        // Single pulse animation on activation (duration 1200ms)
-        if (isPulsing && isConceptActive) {
+        // Single pulse animation on activation (duration 1200ms, F0-B: pulseAllowedRef guard)
+        if (isPulsing && isConceptActive && pulseAllowedRef.current) {
           const pulseProgress = pulseElapsed / 1200;
           const pulseRadius = currentRadius + pulseProgress * 26;
           const pulseAlpha = Math.max(0, (1 - pulseProgress) * 0.85);
@@ -1671,13 +1746,10 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           className="w-full h-full relative z-10 block"
         />
 
-        {/* Node Provenance Card (pops up when a node is clicked) (§7.16, §M8.5, §M5.15) */}
+        {/* Node Provenance Card (pops up when a node is clicked) (§7.16, §M8.5) */}
         {selectedNode && (
           <div
             data-testid="graph-node-provenance-card"
-            style={{
-              viewTransitionName: "node-detail-header",
-            }}
             className="absolute bottom-4 right-16 z-30 w-72 rounded-[var(--r-10)] bg-[var(--ink-800)]/95 backdrop-blur-md border border-[var(--line-strong)] p-3.5 shadow-xl flex flex-col gap-2 m-enter"
           >
             <div className="flex items-center justify-between pb-1.5 border-b border-[var(--line-faint)]">

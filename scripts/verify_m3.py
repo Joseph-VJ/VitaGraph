@@ -139,6 +139,35 @@ def run_verification():
         print(f"  Document panel header viewTransitionName: {vt_name}")
         assert vt_name == "node-detail-header", f"Expected viewTransitionName 'node-detail-header', got '{vt_name}'"
 
+        # ----------------------------------------------------
+        # TEST 4: Node -> Detail Shared-Element Morph & Escape/Close (§7.3 A, F0-A)
+        # ----------------------------------------------------
+        print("\n--- TEST 4: Node -> Detail Morph & Deselect (§7.3 A, F0-A) ---")
+        doc_header = graph_page.locator('[data-testid="document-panel-header"]')
+        assert doc_header.count() > 0, "Document panel header not found"
+        vt_name = doc_header.evaluate("el => getComputedStyle(el).viewTransitionName")
+        print(f"  Document panel header viewTransitionName: {vt_name}")
+        assert vt_name == "node-detail-header", f"Expected viewTransitionName 'node-detail-header', got '{vt_name}'"
+
+        # Sweep live DOM and assert EXACTLY ONE element has node-detail-header
+        matched_vt_count = graph_page.evaluate("""() => {
+            const all = document.querySelectorAll('*');
+            let count = 0;
+            for (const el of all) {
+                if (getComputedStyle(el).viewTransitionName === 'node-detail-header') {
+                    count++;
+                }
+            }
+            return count;
+        }""")
+        print(f"  Live DOM elements with viewTransitionName 'node-detail-header': {matched_vt_count}")
+        assert matched_vt_count == 1, f"Expected EXACTLY ONE element with node-detail-header, found {matched_vt_count}"
+
+        # Assert GraphStage provenance card's computed name is "none"
+        card_vt = graph_page.locator('[data-testid="graph-node-provenance-card"]').evaluate("el => getComputedStyle(el).viewTransitionName")
+        print(f"  GraphStage provenance card viewTransitionName: {card_vt}")
+        assert card_vt == "none", f"Provenance card must NEVER carry node-detail-header, got '{card_vt}'"
+
         # Check Close Button or Escape key
         close_btn = graph_page.locator('[data-testid="document-panel-close"]')
         assert close_btn.count() > 0, "Document panel close button not found"
@@ -154,10 +183,9 @@ def run_verification():
         assert vt_name_after == "none" or vt_name_after == "", f"Expected none after deselect, got {vt_name_after}"
         print("  [PASS] Escape key reverse morph verified.")
 
-        # Re-select node via canvas click or script
+        # Re-select node via canvas click and verify transient morph chip exists
         graph_page.evaluate("""() => {
           if (window.__VG_SIM_NODES__ && window.__VG_SIM_NODES__.length > 0) {
-            const firstNode = window.__VG_SIM_NODES__[0];
             const canvas = document.querySelector('canvas');
             if (canvas) {
               const rect = canvas.getBoundingClientRect();
@@ -174,7 +202,7 @@ def run_verification():
             }
           }
         }""")
-        graph_page.wait_for_timeout(500)
+        graph_page.wait_for_timeout(600)
 
         graph_shot = os.path.join(design_dir, "m3_graph_knowledge.png")
         graph_page.screenshot(path=graph_shot)
@@ -205,19 +233,29 @@ def run_verification():
         results["subgraph_activation_dim"] = "PASS"
 
         # ----------------------------------------------------
-        # TEST 6: Directed Edge Photon Flow & Budget (§7.3 C, Gate 28)
+        # TEST 6: Directed Edge Photon Flow & Budget (§7.3 C, F0-C, Gate 28)
         # ----------------------------------------------------
-        print("\n--- TEST 6: Directed Edge Photon Flow & Pool Cap (§7.3 C, Gate 28) ---")
+        print("\n--- TEST 6: Directed Edge Photon Flow & Pool Cap (§7.3 C, F0-C, Gate 28) ---")
+        # Force tier T3 explicitly first
+        graph_page.evaluate("() => window.__VT_GOVERNOR__.setTier('T3', 'manual')")
+        graph_page.wait_for_timeout(100)
+        graph_page.evaluate("() => window.__VG_ACTIVATE_TEST_SUBGRAPH__()")
+        graph_page.wait_for_timeout(300)
+
         active_photons = graph_page.evaluate("() => window.__VG_ACTIVE_PHOTONS__ || 0")
+        photon_durations = graph_page.evaluate("() => window.__VG_PHOTON_DURATIONS__ || []")
         print(f"  Active photons: {active_photons} (budget <= 24)")
-        assert active_photons <= 24, f"Photon count exceeded Gate 28 budget: {active_photons} > 24"
-        print("  [PASS] Directed edge photons within budget <= 24.")
+        print(f"  Spawned photon durations (speed prop-to 1/latency): {photon_durations}")
+        assert 0 < active_photons <= 24, f"Expected 0 < active_photons <= 24, got {active_photons}"
+        assert len(photon_durations) >= 6, f"Expected at least 6 photons spawned, got {len(photon_durations)}"
+        assert len(set(photon_durations)) > 1, f"Expected varying photon durations (speed prop-to 1/latency), got {photon_durations}"
+        print("  [PASS] Directed edge photons within budget (0 < photons <= 24) and latency-varying durations verified.")
         results["photons_budget"] = "PASS"
 
         # ----------------------------------------------------
-        # TEST 7: Reduced Motion / T0 Instant Settle (§7.3, Gate 21)
+        # TEST 7: Reduced Motion / T0 Instant Settle (§7.3, F0-B, Gate 21)
         # ----------------------------------------------------
-        print("\n--- TEST 7: Reduced Motion / T0 Instant Lock (§7.3, Gate 21) ---")
+        print("\n--- TEST 7: Reduced Motion / T0 Instant Lock (§7.3, F0-B, Gate 21) ---")
         t0_context = browser.new_context(
             viewport={"width": 1280, "height": 900},
             reduced_motion="reduce"
@@ -228,13 +266,17 @@ def run_verification():
 
         t0_page.evaluate("() => window.__VG_ACTIVATE_TEST_SUBGRAPH__()")
         t0_dim = t0_page.evaluate("() => window.__VG_GRAPH_DIM_ALPHA__")
-        print(f"  T0 instantaneous dim alpha: {t0_dim:.4f}")
-        assert abs(t0_dim - 0.40) < 0.001, f"Expected instant 0.40 dim at T0, got {t0_dim}"
-
+        t0_pulse = t0_page.evaluate("() => window.__VG_PULSE_ACTIVE__")
         t0_photons = t0_page.evaluate("() => window.__VG_ACTIVE_PHOTONS__ || 0")
+
+        print(f"  T0 instantaneous dim alpha: {t0_dim:.4f}")
+        print(f"  T0 pulse active: {t0_pulse}")
         print(f"  T0 active photons: {t0_photons}")
+
+        assert abs(t0_dim - 0.40) < 0.001, f"Expected instant 0.40 dim at T0, got {t0_dim}"
+        assert t0_pulse is False, f"Expected pulse inactive at T0, got {t0_pulse}"
         assert t0_photons == 0, f"Expected 0 photons at T0, got {t0_photons}"
-        print("  [PASS] T0 instant dim and particle suppression verified.")
+        print("  [PASS] T0 instant dim, pulse-ring guard, and particle suppression verified.")
         results["t0_instant_lock"] = "PASS"
 
         browser.close()
