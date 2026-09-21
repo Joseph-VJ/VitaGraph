@@ -13,12 +13,15 @@ import { timelineApi } from "../api/timeline";
 import { reportsApi, type TrendData } from "../api/reports";
 import { usersApi } from "../api/users";
 import type { TimelineEvent, Report, EvidenceCard } from "../types";
+import { useNavigate } from "react-router-dom";
 import { governor } from "../motion/quality";
 import { isReducedMotion } from "../motion/features";
 import { flip, flipFrom } from "../motion/flip";
 import { Odometer, type OdometerHandle } from "../motion/fx/Odometer";
 import { EvidenceSpanViewer } from "../components/gallery/EvidenceSpanViewer";
 import { Sequence, scheduleFor } from "../motion/sequence";
+import { DetentPress } from "../motion/fx/DetentPress";
+import { transitionNavigate, setNavDirection } from "../motion/navigation";
 
 export const TimelinePage: React.FC = () => {
   const { user, users, setUser, refreshUsers } = useActiveUser();
@@ -26,7 +29,23 @@ export const TimelinePage: React.FC = () => {
   const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
 
   const isT0 = isReducedMotion() || governor.getState().tier === "T0";
+  const navigate = useNavigate();
   const [activeMorphReportId, setActiveMorphReportId] = useState<string | null>(null);
+  const [expandedAnswerReportIds, setExpandedAnswerReportIds] = useState<Set<string>>(new Set());
+
+  const handleToggleAnswer = (reportId: string) => {
+    setExpandedAnswerReportIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(reportId)) next.delete(reportId);
+      else next.add(reportId);
+      return next;
+    });
+  };
+
+  const handleViewInGraph = () => {
+    setNavDirection("forward");
+    transitionNavigate(navigate, "/graph", { direction: "forward" });
+  };
 
   const hemoOdoRef = useRef<OdometerHandle>(null);
   const egfrOdoRef = useRef<OdometerHandle>(null);
@@ -613,20 +632,54 @@ export const TimelinePage: React.FC = () => {
                         <span>Extracted entities & relations linked to knowledge graph topology</span>
                       </div>
 
-                      <div className="p-3 bg-[var(--ink-900)] rounded-[var(--r-6)] border border-[var(--line-faint)] flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <span className="type-label text-[var(--dim)] text-[11px] block mb-0.5">
-                            Clinical inquiry
-                          </span>
-                          <p className="type-reading italic text-[var(--bone)] text-sm">
-                            {isLatest
-                              ? "“What is my hemoglobin level and how does it compare to previous readings?”"
-                              : "“What does elevated creatinine indicate in this panel?”"}
-                          </p>
+                      <div className="p-3 bg-[var(--ink-900)] rounded-[var(--r-6)] border border-[var(--line-faint)] flex flex-col gap-2.5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <span className="type-label text-[var(--dim)] text-[11px] block mb-0.5">
+                              Clinical inquiry
+                            </span>
+                            <p className="type-reading italic text-[var(--bone)] text-sm">
+                              {isLatest
+                                ? "“What is my hemoglobin level and how does it compare to previous readings?”"
+                                : "“What does elevated creatinine indicate in this panel?”"}
+                            </p>
+                          </div>
+                          <DetentPress>
+                            <Button
+                              variant="ghost"
+                              onClick={() => handleToggleAnswer(report.id)}
+                              data-testid={`show-answer-btn-${report.id}`}
+                              className="text-[11px] h-7 px-2.5 flex-shrink-0 flex items-center gap-1.5"
+                            >
+                              <span>{expandedAnswerReportIds.has(report.id) ? "Hide answer" : "Show answer"}</span>
+                              <span
+                                className={`text-[10px] inline-block transition-transform duration-[120ms] ${
+                                  expandedAnswerReportIds.has(report.id) && !isT0 ? "rotate-180" : ""
+                                }`}
+                              >
+                                ▾
+                              </span>
+                            </Button>
+                          </DetentPress>
                         </div>
-                        <Button variant="ghost" className="text-[11px] h-7 px-2.5 flex-shrink-0">
-                          Show answer
-                        </Button>
+                        {expandedAnswerReportIds.has(report.id) && (
+                          <div
+                            data-testid={`timeline-answer-${report.id}`}
+                            className={`p-3 rounded-[var(--r-4)] bg-[var(--ink-800)]/80 border border-[var(--line-faint)] text-xs text-[var(--bone)] ${
+                              !isT0 ? "m-enter-card" : ""
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 text-[var(--verdigris)] type-meta mb-1 font-mono text-[10px]">
+                              <span>●</span>
+                              <span>SYNTHESIZED GROUNDED FINDING</span>
+                            </div>
+                            <p className="type-body text-[12px] leading-relaxed text-[var(--bone)]">
+                              {isLatest
+                                ? "Your latest hemoglobin reading is 14.1 g/dL, which represents a +0.3 g/dL improvement from the 13.8 g/dL baseline measured in the previous panel. Both values remain safely within the reference range of 13.5–17.5 g/dL."
+                                : "Creatinine levels reflect baseline kidney filtration efficiency. When paired with eGFR (88 mL/min/1.73m²), this measurement indicates stable baseline renal function within standard diagnostic parameters."}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1038,9 +1091,16 @@ export const TimelinePage: React.FC = () => {
             </div>
 
             <div className="mt-4 pt-3 border-t border-[var(--line-faint)]">
-              <Button variant="ghost" className="w-full justify-center text-xs h-8">
-                View in graph
-              </Button>
+              <DetentPress>
+                <Button
+                  variant="ghost"
+                  onClick={handleViewInGraph}
+                  data-testid="timeline-view-in-graph-btn"
+                  className="w-full justify-center text-xs h-8"
+                >
+                  View in graph
+                </Button>
+              </DetentPress>
             </div>
           </div>
         </div>

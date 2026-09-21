@@ -15,7 +15,7 @@ import {
 import { useUser } from "../context/UserContext";
 import { questionsApi } from "../api/questions";
 import type { Answer, EvidenceCard } from "../types";
-import { playChime, playThud, governor, isReducedMotion } from "../motion";
+import { playChime, playThud, playDetent, governor, isReducedMotion } from "../motion";
 
 interface ThreadItem {
   id: string;
@@ -40,6 +40,13 @@ export const AskPage: React.FC = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(true);
   const [questionInput, setQuestionInput] = useState("");
   const [mode, setMode] = useState("Paper");
+  const [modeKey, setModeKey] = useState<number>(0);
+
+  const handleModeChange = (newMode: string) => {
+    setMode(newMode);
+    setModeKey(Date.now());
+    playDetent();
+  };
   const [threads, setThreads] = useState<ThreadItem[]>([]);
   const [isAsking, setIsAsking] = useState(false);
   const [streamTraces, setStreamTraces] = useState<TraceRowData[]>([]);
@@ -231,7 +238,7 @@ export const AskPage: React.FC = () => {
     };
 
     try {
-      const response = await questionsApi.ask(effectiveUserId, trimmed, jobId, true);
+      const response = await questionsApi.ask(effectiveUserId, trimmed, jobId, true, mode);
       if (response && (response as any).summary_text) {
         finishAnswer(response);
       }
@@ -442,7 +449,7 @@ export const AskPage: React.FC = () => {
           <Select
             compactPaper
             value={mode}
-            onChange={(e) => setMode(e.target.value)}
+            onChange={(e) => handleModeChange(e.target.value)}
             options={[
               { value: "Paper", label: "Paper" },
               { value: "Graph", label: "Graph" },
@@ -478,6 +485,15 @@ export const AskPage: React.FC = () => {
                 <span className={`w-2 h-2 rounded-full ${isAsking ? "bg-[var(--lilac)] animate-pulse" : "bg-[var(--verdigris)]"}`} />
                 <span className="type-card-title text-[15px] text-[var(--bone)]">
                   {isAsking ? "Streaming pipeline..." : "Clinical Context"}
+                </span>
+                <span
+                  key={modeKey}
+                  data-testid="ask-mode-chip"
+                  className={`px-2 py-0.5 text-[10px] font-mono rounded-[var(--r-4)] border border-[var(--line-strong)] bg-[var(--ink-700)] text-[var(--bone)] ${
+                    !isT0 ? "animate-chip-pop" : ""
+                  }`}
+                >
+                  {mode}
                 </span>
               </div>
               <IconButton

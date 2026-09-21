@@ -20,6 +20,8 @@ import { governor, isReducedMotion, Odometer, ticker } from "../motion";
 import { transitionNavigate } from "../motion/navigation";
 import { PhotonManager } from "../motion/fx/Photon";
 import { DustManager } from "../motion/fx/DustField";
+import { flip } from "../motion/flip";
+import { DetentPress } from "../motion/fx/DetentPress";
 
 export const UploadPage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,6 +36,27 @@ export const UploadPage: React.FC = () => {
   const [isLoadingCohort, setIsLoadingCohort] = useState(false);
   const [showSuccessMoment, setShowSuccessMoment] = useState(false);
   const successCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const [expandedHelpIdx, setExpandedHelpIdx] = useState<number | null>(null);
+  const helpListRef = useRef<HTMLUListElement | null>(null);
+
+  const handleToggleHelp = (idx: number) => {
+    if (isT0) {
+      setExpandedHelpIdx((prev) => (prev === idx ? null : idx));
+      return;
+    }
+    if (helpListRef.current) {
+      flip(
+        helpListRef.current,
+        () => {
+          setExpandedHelpIdx((prev) => (prev === idx ? null : idx));
+        },
+        { spring: "weighted", capMs: 240 }
+      );
+    } else {
+      setExpandedHelpIdx((prev) => (prev === idx ? null : idx));
+    }
+  };
 
   useEffect(() => {
     if (!showSuccessMoment || !isT3) return;
@@ -800,26 +823,64 @@ export const UploadPage: React.FC = () => {
             <h3 className="type-title text-[var(--bone)] mb-3 pb-2 border-b border-[var(--line-faint)]">
               Need help?
             </h3>
-            <ul className="space-y-2">
+            <ul ref={helpListRef} className="space-y-2">
               {[
-                { title: "Supported document formats", desc: "PDF 1.4+, scanned images, clinical panels" },
-                { title: "OCR accuracy & extraction", desc: "Dual engine with layout detection" },
-                { title: "Knowledge graph extraction", desc: "Entity resolution and ontology linking" },
-                { title: "Data privacy & local storage", desc: "Zero telemetry leaves local workstation" },
-              ].map((item, idx) => (
-                <li
-                  key={idx}
-                  className="p-2.5 rounded-[var(--r-6)] border border-transparent hover:border-[var(--line-strong)] hover:bg-[var(--ink-700)]/30 transition-all duration-[120ms] ease-out cursor-pointer"
-                >
-                  <div className="type-body font-medium text-[var(--bone)] text-xs flex items-center justify-between">
-                    <span>{item.title}</span>
-                    <span className="text-[var(--dim)]">›</span>
-                  </div>
-                  <div className="type-meta text-[var(--dim)] text-[11px] mt-0.5">
-                    {item.desc}
-                  </div>
-                </li>
-              ))}
+                {
+                  title: "Supported document formats",
+                  desc: "PDF 1.4+, scanned images, clinical panels",
+                  detail: "Ingests standard digital clinical PDFs and scanned image panels directly into local processing pipeline.",
+                },
+                {
+                  title: "OCR accuracy & extraction",
+                  desc: "Dual engine with layout detection",
+                  detail: "Uses dual-pass layout analysis to detect multi-column diagnostic tables and preserve biomarker bounding boxes.",
+                },
+                {
+                  title: "Knowledge graph extraction",
+                  desc: "Entity resolution and ontology linking",
+                  detail: "Resolves extracted biomarkers and clinical entities against LOINC and SNOMED CT terminology ontologies.",
+                },
+                {
+                  title: "Data privacy & local storage",
+                  desc: "Zero telemetry leaves local workstation",
+                  detail: "All embeddings, vector indices, and SQLite records remain strictly contained on localhost.",
+                },
+              ].map((item, idx) => {
+                const isExpanded = expandedHelpIdx === idx;
+                return (
+                  <DetentPress key={idx}>
+                    <li
+                      onClick={() => handleToggleHelp(idx)}
+                      data-testid={`upload-help-item-${idx}`}
+                      className="p-2.5 rounded-[var(--r-6)] border border-transparent hover:border-[var(--line-strong)] hover:bg-[var(--ink-700)]/30 transition-all duration-[120ms] ease-out cursor-pointer"
+                    >
+                      <div className="type-body font-medium text-[var(--bone)] text-xs flex items-center justify-between">
+                        <span>{item.title}</span>
+                        <span
+                          className={`text-[var(--dim)] inline-block transition-transform duration-[120ms] ${
+                            isExpanded && !isT0 ? "rotate-90" : ""
+                          }`}
+                        >
+                          ›
+                        </span>
+                      </div>
+                      <div className="type-meta text-[var(--dim)] text-[11px] mt-0.5">
+                        {item.desc}
+                      </div>
+                      {isExpanded && (
+                        <div
+                          data-testid={`upload-help-detail-${idx}`}
+                          className={`mt-2 pt-2 border-t border-[var(--line-faint)] text-[11px] text-[var(--bone)] leading-relaxed ${
+                            !isT0 ? "m-enter-card" : ""
+                          }`}
+                        >
+                          {item.detail}
+                        </div>
+                      )}
+                    </li>
+                  </DetentPress>
+                );
+              })}
             </ul>
           </div>
         </div>

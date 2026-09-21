@@ -413,6 +413,33 @@ export const MotionSpecimensSection: React.FC = () => {
     setEmpty33Key((k) => k + 1);
   };
 
+  // Specimen MG.1: Inline Expand Drawer (§G1, Dead Controls)
+  const [mg1Expanded, setMg1Expanded] = useState<boolean>(false);
+  const mg1ContainerRef = useRef<HTMLDivElement>(null);
+  const handleToggleMg1 = () => {
+    playDetent();
+    if (isT0) {
+      setMg1Expanded((v) => !v);
+      return;
+    }
+    if (mg1ContainerRef.current) {
+      flip(mg1ContainerRef.current, () => {
+        setMg1Expanded((v) => !v);
+      }, { spring: "weighted", capMs: 240 });
+    } else {
+      setMg1Expanded((v) => !v);
+    }
+  };
+
+  // Specimen MG.2: Chip-Pop on Select Change (§G1, Dead Controls)
+  const [mg2Mode, setMg2Mode] = useState<string>("Paper");
+  const [mg2Key, setMg2Key] = useState<number>(0);
+  const handleMg2Select = (val: string) => {
+    setMg2Mode(val);
+    setMg2Key(Date.now());
+    playDetent();
+  };
+
   // M9 Audio states
   const [soundOn, setSoundOn] = useState(() => isAudioEnabled());
   const [audioFeedbackText, setAudioFeedbackText] = useState("Ready");
@@ -2856,6 +2883,123 @@ export const MotionSpecimensSection: React.FC = () => {
             </span>
             <span className="type-meta text-[11px] text-[var(--verdigris)] font-mono">
               view() / IO
+            </span>
+          </div>
+        </div>
+
+        {/* Specimen MG.1: Inline Expand Drawer (§G1, Dead Controls) */}
+        <div
+          data-testid="specimen-mg1-drawer"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                MG.1 Inline Expand Drawer
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                .m-enter-card + FLIP
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Click toggles inline detail drawer with DetentPress, rotating chevron, and sibling FLIP shift.
+            </p>
+
+            <div ref={mg1ContainerRef} className="bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3">
+              <DetentPress>
+                <div
+                  onClick={handleToggleMg1}
+                  data-testid="specimen-mg1-trigger"
+                  className="flex items-center justify-between cursor-pointer select-none"
+                >
+                  <span className="type-body text-xs font-semibold text-[var(--bone)]">
+                    Supported document formats
+                  </span>
+                  <span className={`text-[var(--dim)] text-xs transition-transform duration-[120ms] ${mg1Expanded && !isT0 ? "rotate-90 text-[var(--verdigris)]" : ""}`}>
+                    ›
+                  </span>
+                </div>
+              </DetentPress>
+              {mg1Expanded && (
+                <div
+                  data-testid="specimen-mg1-body"
+                  className={`mt-2.5 pt-2 border-t border-[var(--line-faint)] text-xs text-[var(--dim)] ${!isT0 ? "m-enter-card" : ""}`}
+                >
+                  Accepts multi-page clinical lab panels and PDF reports up to 50 MB, parsed chunk-by-chunk with SHA-256 integrity verification.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              State: {mg1Expanded ? "Expanded" : "Collapsed"}
+            </span>
+            <span className="type-meta text-[11px] text-[var(--verdigris)] font-mono">
+              DetentPress + 120ms
+            </span>
+          </div>
+        </div>
+
+        {/* Specimen MG.2: Chip-Pop on Select Change (§G1, Dead Controls) */}
+        <div
+          data-testid="specimen-mg2-chippop"
+          className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)] flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--line-faint)]">
+              <span className="type-mono-sm text-[var(--bone)] font-medium">
+                MG.2 Chip-Pop on Select
+              </span>
+              <span className="type-mono-sm text-[var(--verdigris)]">
+                .animate-chip-pop + detent
+              </span>
+            </div>
+            <p className="type-meta text-xs text-[var(--dim)] mb-3">
+              Selecting a mode triggers an immediate key-remount .animate-chip-pop and synthesized audio detent.
+            </p>
+
+            <div className="bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="type-label text-xs text-[var(--dim)]">Active mode:</span>
+                <span
+                  key={mg2Key}
+                  data-testid="specimen-mg2-chip"
+                  className={`px-2 py-0.5 rounded-[var(--r-4)] type-mono text-[10px] font-semibold border ${
+                    mg2Mode === "Paper"
+                      ? "bg-[var(--verdigris)]/10 text-[var(--verdigris)] border-[var(--verdigris)]/30"
+                      : "bg-[var(--cornflower)]/10 text-[var(--cornflower)] border-[var(--cornflower)]/30"
+                  } ${!isT0 ? "animate-chip-pop" : ""}`}
+                >
+                  mode: {mg2Mode.toLowerCase()}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                {["Paper", "Graph"].map((m) => (
+                  <DetentPress key={m}>
+                    <button
+                      onClick={() => handleMg2Select(m)}
+                      data-testid={`specimen-mg2-btn-${m.toLowerCase()}`}
+                      className={`px-2 py-1 text-xs rounded-[var(--r-4)] border font-mono transition-colors ${
+                        mg2Mode === m
+                          ? "bg-[var(--ink-700)] border-[var(--verdigris)] text-[var(--bone)]"
+                          : "border-transparent text-[var(--dim)] hover:text-[var(--bone)]"
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  </DetentPress>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
+            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+              Selected: {mg2Mode}
+            </span>
+            <span className="type-meta text-[11px] text-[var(--bone)] font-mono">
+              Key remount
             </span>
           </div>
         </div>
