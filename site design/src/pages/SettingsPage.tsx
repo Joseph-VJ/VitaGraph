@@ -65,7 +65,11 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* 1. Model & Inference Engine */}
-      <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)]">
+      <div
+        data-testid="settings-card-0"
+        className={`p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] ${!isT0 ? "m-enter" : ""}`}
+        style={!isT0 ? { animationDelay: "0ms" } : undefined}
+      >
         <div className="flex items-center justify-between pb-3 mb-4 border-b border-[var(--line-faint)]">
           <div>
             <h3 className="type-title text-[var(--bone)] text-base">
@@ -109,7 +113,11 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* 2. Privacy & Diagnostic Boundaries */}
-      <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)]">
+      <div
+        data-testid="settings-card-1"
+        className={`p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] ${!isT0 ? "m-enter" : ""}`}
+        style={!isT0 ? { animationDelay: "60ms" } : undefined}
+      >
         <h3 className="type-title text-[var(--bone)] text-base mb-1">
           Safety & Clinical Boundaries
         </h3>
@@ -199,7 +207,11 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* 3. Visual Language */}
-      <div className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)]">
+      <div
+        data-testid="settings-card-2"
+        className={`p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] ${!isT0 ? "m-enter" : ""}`}
+        style={!isT0 ? { animationDelay: "120ms" } : undefined}
+      >
         <h3 className="type-title text-[var(--bone)] text-base mb-1">
           Visual Language & Theme
         </h3>
@@ -243,7 +255,8 @@ export const SettingsPage: React.FC = () => {
       {/* 4. Motion & Adaptive Governor (§M4.4, §M5.5) */}
       <div
         data-testid="settings-motion-card"
-        className="p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] relative overflow-hidden"
+        className={`p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] relative overflow-hidden ${!isT0 ? "m-enter" : ""}`}
+        style={!isT0 ? { animationDelay: "180ms" } : undefined}
       >
         {tierWash && (
           <WashSweep

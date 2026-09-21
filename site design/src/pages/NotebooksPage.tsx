@@ -174,18 +174,19 @@ export const NotebooksPage: React.FC = () => {
           <span className="type-label text-[var(--dim)] block mb-1">
             Available notebooks ({notebooksList.length})
           </span>
-          {notebooksList.map((nb) => {
+          {notebooksList.map((nb, idx) => {
             const isSelected = selectedNb.id === nb.id;
             return (
               <DetentPress key={nb.id} className="block w-full">
                 <div
                   onClick={() => handleSelectNotebook(nb)}
                   data-testid={`notebook-card-${nb.id}`}
-                  className={`p-4 rounded-[var(--r-10)] border cursor-pointer transition-all duration-[120ms] ease-out ${
+                  className={`p-4 rounded-[var(--r-10)] border cursor-pointer transition-all duration-[120ms] ease-out ${!isT0 ? "m-enter" : ""} ${
                     isSelected
                       ? "bg-[var(--ink-800)] border-[var(--verdigris)] shadow-sm"
                       : "bg-[var(--ink-800)]/60 border-[var(--line-strong)] hover:border-[var(--dim)]"
                   }`}
+                  style={!isT0 ? { animationDelay: `${Math.min(idx * 60, 240)}ms` } : undefined}
                 >
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="type-mono-sm text-[var(--dim)] text-xs">
@@ -219,7 +220,11 @@ export const NotebooksPage: React.FC = () => {
             />
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-[var(--line-faint)]">
+          <div
+            data-testid="notebook-preview-header"
+            className={`flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-[var(--line-faint)] ${!isT0 ? "m-enter" : ""}`}
+            style={!isT0 ? { animationDelay: `${Math.min(notebooksList.length * 60, 240)}ms` } : undefined}
+          >
             <div>
               <span className="type-mono-sm text-[var(--verdigris)] text-xs block mb-1">
                 {selectedNb.filename}

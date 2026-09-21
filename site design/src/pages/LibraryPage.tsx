@@ -279,7 +279,7 @@ export const LibraryPage: React.FC = () => {
       </div>
 
       {/* Reports List */}
-      <div ref={listRef} data-testid="library-reports-list" className="space-y-3">
+      <div ref={listRef} data-testid="library-reports-list" className={`space-y-3 ${!isT0 ? "m-scroll-reveal" : ""}`}>
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (

@@ -159,10 +159,10 @@ export const DatasetsPage: React.FC = () => {
             <div
               key={idx}
               data-testid={`dataset-card-${idx}`}
-              className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] hover:border-[var(--dim)] transition-all duration-[120ms] ease-out flex flex-col justify-between relative overflow-hidden m-enter"
-              style={{
+              className={`p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] hover:border-[var(--dim)] transition-all duration-[120ms] ease-out flex flex-col justify-between relative overflow-hidden ${!isT0 ? "m-enter m-scroll-reveal" : ""}`}
+              style={!isT0 ? {
                 animationDelay: `${Math.min(idx * 60, 240)}ms`,
-              }}
+              } : undefined}
             >
               {st.wash && (
                 <WashSweep
