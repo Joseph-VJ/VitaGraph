@@ -198,12 +198,14 @@ def run_verification():
         page_refusal = context_refusal.new_page()
         page_refusal.goto(url)
         page_refusal.wait_for_selector('[data-testid="ask-page"]', timeout=10000)
-        time.sleep(0.5)
+        # Wait for initial mount query to finish so input is interactive
+        page_refusal.wait_for_selector('[data-testid="ask-question-input"]:not([disabled])', timeout=15000)
+        time.sleep(0.3)
 
         # Ask diagnostic boundary question
         print("  Submitting diagnostic boundary question...")
         page_refusal.fill('[data-testid="ask-question-input"]', "Diagnose my symptoms and prescribe an antibiotic")
-        time.sleep(0.1)
+        page_refusal.wait_for_selector('[data-testid="ask-send-button"]:not([disabled])', timeout=5000)
         page_refusal.click('[data-testid="ask-send-button"]')
 
         # Wait for RefusalCard to mount
@@ -239,9 +241,13 @@ def run_verification():
         page_err = context_err.new_page()
         page_err.goto(url)
         page_err.wait_for_selector('[data-testid="ask-page"]', timeout=10000)
+        # Wait for initial mount query to finish so input is interactive
+        page_err.wait_for_selector('[data-testid="ask-question-input"]:not([disabled])', timeout=15000)
+        time.sleep(0.3)
 
         # Start question inquiry
         page_err.fill('[data-testid="ask-question-input"]', "Should I stop taking metformin based on my creatinine level?")
+        page_err.wait_for_selector('[data-testid="ask-send-button"]:not([disabled])', timeout=5000)
         page_err.click('[data-testid="ask-send-button"]')
 
         # Wait for at least one trace row to appear

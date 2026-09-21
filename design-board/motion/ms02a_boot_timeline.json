@@ -1,5 +1,5 @@
 {
-  "totalDurationMs": 872,
+  "totalDurationMs": 870,
   "specExpectedTotalMs": "~920ms (budget <= 1600ms)",
   "stages": [
     {
@@ -49,7 +49,7 @@
     {
       "t": 920,
       "element": "all animations settled",
-      "totalElapsedMs": 872
+      "totalElapsedMs": 870
     }
   ]
 }

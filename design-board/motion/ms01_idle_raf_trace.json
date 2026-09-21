@@ -3,18 +3,18 @@
   "idleTimeWaitMs": 700,
   "isIdle": true,
   "metricsBefore": {
-    "fps": 144,
+    "fps": 84,
     "mainThreadMs": 0,
     "isIdle": true,
     "activeCount": 0,
-    "totalFrames": 86
+    "totalFrames": 371
   },
   "metricsAfter": {
-    "fps": 144,
+    "fps": 84,
     "mainThreadMs": 0,
     "isIdle": true,
     "activeCount": 0,
-    "totalFrames": 86
+    "totalFrames": 371
   },
   "framesDuringIdle": 0,
   "verified": true

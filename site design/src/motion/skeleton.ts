@@ -29,10 +29,11 @@ export function useSkeletonCrossfade(
   loading: boolean,
   options?: CrossfadeOptions
 ): SkeletonCrossfadeState {
+  const durationMs = options?.durationMs ?? 180;
   const [renderContent, setRenderContent] = useState(!loading);
   const [isExitingSkeleton, setIsExitingSkeleton] = useState(false);
-  const durationMs = options?.durationMs ?? 180;
-  const seqId = options?.id ?? "skeleton-crossfade";
+  const fallbackIdRef = useRef(`crossfade-${Math.random().toString(36).slice(2, 8)}`);
+  const seqId = options?.id || fallbackIdRef.current;
   const prevLoadingRef = useRef(loading);
 
   useEffect(() => {
@@ -93,7 +94,7 @@ export const CrossfadeContainer: React.FC<CrossfadeContainerProps> = ({
   testId,
 }) => {
   const { showSkeleton, showContent, skeletonClassName, contentClassName } =
-    useSkeletonCrossfade(loading, { id });
+    useSkeletonCrossfade(loading, { id: id || testId });
 
   return React.createElement(
     "div",

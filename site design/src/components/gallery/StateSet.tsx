@@ -30,6 +30,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             strokeWidth={1.5}
             stroke="currentColor"
             durationMs={720}
+            className="animate-sketch-draw"
             data-testid="empty-state-sketch"
           />
           <circle cx="20" cy="18" r="3" className="animate-sketch-draw" />

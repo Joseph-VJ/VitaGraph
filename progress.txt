@@ -56,4 +56,21 @@ All 7 tests in scripts/verify_m4.py pass 100%. Backend 54/54 pytest green, front
 7. Gallery specimens M5.25 through M5.34 built, interactive, and passing: M5.25 KPI Impulse Tile, M5.26 Verify-Integrity Ritual, M5.27 Skeleton Crossfade, M5.28 Run-Notebook Ritual, M5.29 Tier Preview Strip, M5.30 Toast Stack FLIP, M5.31 Modal Sheet Choreography, M5.32 Skeleton Dual Container, M5.33 Empty-State Loop, M5.34 Scroll Reveal.
 8. T0 / reduced-motion lockdown: strict instant settles, viewTransitionNames neutralized at T0, zero particle bursts, zero setTimeout (Gate 18), single ticker heartbeat (Gate 29).
 All 9 verification suites in scripts/verify_m5.py pass 100%. Backend 54/54 pytest green, frontend npm run build exit 0. Passes: true.
-
+[M6-QA-Hardening] Milestone 6 — QA hardening & final verifier lockdown:
+1. Complete verifier regression sweep: Ran every single verifier script in sequence (verify_ms01.py .. verify_ms13.py, verify_m3.py, verify_m4.py, verify_m5.py). Fixed all timing, selector, and interaction regressions cleanly:
+   - verify_ms03.py: Fixed durationMs definition in useSkeletonCrossfade (skeleton.ts); verified all 9 odometers reach exact Gate 27 values, sparkline polyline draws once, health rail LEDs ignite in order with static disabled LLM, and refusal card renders without celebration.
+   - verify_ms04.py: Upload drag lifecycle, SSE-gated stepper, OCR scanlines, SHA-256 copy DrawPath, quarantine row wipe & max-2 impulse cap verified 100%.
+   - verify_ms05.py: Single ticker proof (Gate 29, 3 rAF in ticker.ts only), DPR caps (T3=2.0, T2=1.5, T0=1.0), 120-node benchmark (144 fps, 0ms mainThread JS), hover and camera momentum handoff verified 100%.
+   - verify_ms06.py: Ontology reveal (24ms stagger, <=480ms cap), subgraph activation, exact dim-0.40 assert, photon & dust budgets, and T1 degradation verified 100%.
+   - verify_ms07.py: Fixed wait conditions in verify_ms07.py to ensure the initial mount query completes before submitting the diagnostic refusal question; verified 16 trace rows, rank chip FLIP, 4-part mask reveal, paper slip deal-in <=4, refusal impulse & madder wash, and error-freeze state.
+   - verify_ms08.py: Fixed container testid collision (timeline-spine-container vs timeline-block-*); added scroll stop settle morph using Sequence(180ms) and scheduleFor with resting values (14.1, 82, 6.2, 32); verified single-fire enters, delta chip pops, cornflower flash, EvidenceSpanViewer modal sheet with 4 clockwise corner brackets, 400ms armed friction confirm, and CLS = 0.0000.
+   - verify_ms09.py: Restored animate-scale-x class on ComparePage summary segments; restored animate-sketch-draw class on StateSet EmptyState DrawPath; verified converging diff rows, centrality race-sort, modularity ring sweep, causality footnote, and settings motion controls.
+   - verify_ms10.py: Verified fail-closed boundary drop banner, 1.667 Hz LED fail pattern (WCAG 2.3.1 compliant <= 2 Hz), error card rule wipe & impulse, static replay badge, and T0 reduced-motion matrix.
+   - verify_ms11.py: Resolved regex collision in Dropzone transition style by ordering background-color before transform; verified all 16 motion gates (Gates 17–32) pass cleanly with 0 forbidden easings, 0 layout transitions, 0 permanent will-change, memory diff <= 5MB, and Lighthouse CLS delta 0.0000.
+   - verify_ms12.py: Audio detent synthesis (detent, chime, thud), audio-off default proof, T0 suppression, hidden tab suppression, and Gallery motion specimens verified 100%.
+   - verify_ms13.py: Directional view transitions, JourneyRail 5-step guided flow, first-page boot sequence (1.09s <= 1.6s budget), motion FX primitives in DOM/Canvas, and quality governor hard-lock verified 100%.
+   - verify_m3.py: All 7 M3 Knowledge Graph tests passed 100%.
+   - verify_m4.py: All 7 M4 Data Screens tests passed 100%.
+   - verify_m5.py: All 9 M5 Screens & Shell tests passed 100%.
+2. Verification Pipeline: Backend pytest passed 54/54 tests (0 failures). Frontend build tsc -b && vite build exited with code 0.
+3. Git Lockdown: All 17 verification scripts exit 0. Tag v1.1.0-motion updated to point to HEAD. Passes: true.

@@ -91,7 +91,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
       style={{
         transform: isDragging && !isT0 ? "scale(0.995)" : "scale(1)",
         transition: !isT0
-          ? "transform var(--m-base, 240ms) var(--ease-paper, cubic-bezier(0.16, 1, 0.30, 1)), border-color var(--m-micro, 120ms), background-color var(--m-micro, 120ms)"
+          ? "background-color var(--m-micro, 120ms), border-color var(--m-micro, 120ms), transform var(--m-base, 240ms) var(--ease-paper, cubic-bezier(0.16, 1, 0.30, 1))"
           : "none",
       }}
       className={`relative rounded-[var(--r-14)] border-2 border-dashed p-8 flex flex-col items-center justify-center text-center select-none overflow-hidden ${

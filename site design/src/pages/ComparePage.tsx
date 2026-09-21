@@ -270,7 +270,7 @@ export const ComparePage: React.FC = () => {
               <div
                 ref={segImpRef}
                 style={{ width: `${(summary.improved / totalCount) * 100}%`, transformOrigin: "left" }}
-                className="h-full bg-[var(--verdigris)] rounded-full"
+                className="h-full bg-[var(--verdigris)] rounded-full animate-scale-x"
                 data-testid="summary-segment-improved"
               />
             )}
@@ -278,7 +278,7 @@ export const ComparePage: React.FC = () => {
               <div
                 ref={segDecRef}
                 style={{ width: `${(summary.declined / totalCount) * 100}%`, transformOrigin: "left" }}
-                className="h-full bg-[var(--madder)] rounded-full"
+                className="h-full bg-[var(--madder)] rounded-full animate-scale-x"
                 data-testid="summary-segment-declined"
               />
             )}
@@ -286,7 +286,7 @@ export const ComparePage: React.FC = () => {
               <div
                 ref={segStbRef}
                 style={{ width: `${(summary.stable / totalCount) * 100}%`, transformOrigin: "left" }}
-                className="h-full bg-[var(--dim)] rounded-full"
+                className="h-full bg-[var(--dim)] rounded-full animate-scale-x"
                 data-testid="summary-segment-stable"
               />
             )}
@@ -294,7 +294,7 @@ export const ComparePage: React.FC = () => {
               <div
                 ref={segUnkRef}
                 style={{ width: `${(summary.unavailable / totalCount) * 100}%`, transformOrigin: "left" }}
-                className="h-full bg-[var(--ochre)] rounded-full"
+                className="h-full bg-[var(--ochre)] rounded-full animate-scale-x"
                 data-testid="summary-segment-unavailable"
               />
             )}

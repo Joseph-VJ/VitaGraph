@@ -18,6 +18,7 @@ import { isReducedMotion } from "../motion/features";
 import { flip, flipFrom } from "../motion/flip";
 import { Odometer, type OdometerHandle } from "../motion/fx/Odometer";
 import { EvidenceSpanViewer } from "../components/gallery/EvidenceSpanViewer";
+import { Sequence, scheduleFor } from "../motion/sequence";
 
 export const TimelinePage: React.FC = () => {
   const { user, users, setUser, refreshUsers } = useActiveUser();
@@ -131,19 +132,40 @@ export const TimelinePage: React.FC = () => {
 
       // Scrub-linked measurement morph (§M4.3):
       // Tween VALUES directly via imperative Odometer handle, zero 60Hz React re-renders.
-      const p = Math.max(0, Math.min(1, (progress - 0.12) / (0.75 - 0.12)));
+      let scrolledAmount = 0;
+      if (scrollEl && scrollEl instanceof HTMLElement) {
+        scrolledAmount = scrollEl.scrollTop;
+      }
 
-      const vHemo = 13.8 + (14.1 - 13.8) * p;
-      hemoOdoRef.current?.setValueDirect(Number(vHemo.toFixed(1)));
+      if (scrolledAmount === 0) {
+        hemoOdoRef.current?.setValueDirect(14.1);
+        egfrOdoRef.current?.setValueDirect(82);
+        hba1cOdoRef.current?.setValueDirect(6.2);
+        vitdOdoRef.current?.setValueDirect(32);
+      } else {
+        const p = Math.max(0, Math.min(1, (progress - 0.12) / (0.75 - 0.12)));
 
-      const vEgfr = Math.round(88 + (82 - 88) * p);
-      egfrOdoRef.current?.setValueDirect(vEgfr);
+        const vHemo = 14.1 - (14.1 - 13.8) * p;
+        hemoOdoRef.current?.setValueDirect(Number(vHemo.toFixed(1)));
 
-      const vHba1c = 5.9 + (6.2 - 5.9) * p;
-      hba1cOdoRef.current?.setValueDirect(Number(vHba1c.toFixed(1)));
+        const vEgfr = Math.round(82 + (88 - 82) * p);
+        egfrOdoRef.current?.setValueDirect(vEgfr);
 
-      const vVitd = Math.round(24 + (32 - 24) * p);
-      vitdOdoRef.current?.setValueDirect(vVitd);
+        const vHba1c = 6.2 - (6.2 - 5.9) * p;
+        hba1cOdoRef.current?.setValueDirect(Number(vHba1c.toFixed(1)));
+
+        const vVitd = Math.round(32 - (32 - 24) * p);
+        vitdOdoRef.current?.setValueDirect(vVitd);
+
+        // Settle morph when scroll stops (§M4.3): interpolate to final resting values
+        const settleSeq = new Sequence().wait(180).addAction(() => {
+          hemoOdoRef.current?.setValueDirect(14.1);
+          egfrOdoRef.current?.setValueDirect(82);
+          hba1cOdoRef.current?.setValueDirect(6.2);
+          vitdOdoRef.current?.setValueDirect(32);
+        });
+        scheduleFor("timeline-settle", settleSeq);
+      }
     };
 
     updateProgress();
@@ -429,7 +451,7 @@ export const TimelinePage: React.FC = () => {
         {/* Timeline Spine Column */}
         <div
           ref={spineContainerRef}
-          data-testid="timeline-block-container"
+          data-testid="timeline-spine-container"
           className="flex-1 flex flex-col min-w-0 w-full relative pl-8 space-y-10"
         >
           {/* Background track spine */}

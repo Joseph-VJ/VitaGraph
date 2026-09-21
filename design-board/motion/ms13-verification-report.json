@@ -1,7 +1,7 @@
 {
   "story": "MS-13",
   "title": "Motion Flow Pass v2",
-  "timestamp": "2026-09-21T14:11:45Z",
+  "timestamp": "2026-09-21T15:56:23Z",
   "ws1_directional_view_transitions": {
     "pass": true,
     "chrome_planted_no_anim": true,
@@ -21,7 +21,7 @@
   },
   "ws3_boot_orchestration": {
     "pass": true,
-    "boot_duration_seconds": 1.11,
+    "boot_duration_seconds": 1.09,
     "budget_seconds": 1.6,
     "replay_from_settings": true
   },
