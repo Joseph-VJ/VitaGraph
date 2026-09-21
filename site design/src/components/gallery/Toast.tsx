@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from "react";
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 import { Sequence } from "../../motion/sequence";
 import { flip } from "../../motion/flip";
 import { governor } from "../../motion/quality";
@@ -65,6 +65,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       })
       .play();
   }, [removeToast]);
+
+  useEffect(() => {
+    (window as any).__VG_ADD_TOAST__ = addToast;
+    return () => {
+      delete (window as any).__VG_ADD_TOAST__;
+    };
+  }, [addToast]);
 
   return (
     <ToastContext.Provider value={{ toasts, addToast, removeToast }}>

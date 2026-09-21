@@ -778,8 +778,17 @@ button:not(:disabled):active,
   }
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fadeIn 180ms ease-out both;
+}
+
 /* ─── Reduced motion support (§8.1, §M11) ─── */
 @media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
   .animate-breathe,
   .animate-pulse-once,
   .animate-dash-march,
