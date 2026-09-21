@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { Badge, Button, Marginalia } from "../components/gallery";
+import { Badge, Button, Marginalia, ErrorState } from "../components/gallery";
 import { Sequence, governor, isReducedMotion } from "../motion";
 import { DetentPress } from "../motion/fx/DetentPress";
 import { WashSweep } from "../motion/fx/WashSweep";
-import { playDetent, playChime } from "../motion/audio";
+import { playDetent, playChime, playThud } from "../motion/audio";
 
 interface NotebookItem {
   id: string;
@@ -80,11 +80,15 @@ export const NotebooksPage: React.FC = () => {
   const [running, setRunning] = useState<boolean>(false);
   const [step, setStep] = useState<number>(0);
   const [wash, setWash] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [failedStep, setFailedStep] = useState<number | null>(null);
 
   const isT0 = governor.getState().tier === "T0" || isReducedMotion();
 
   const handleSelectNotebook = (nb: NotebookItem) => {
     playDetent();
+    setError(null);
+    setFailedStep(null);
     if (!isT0 && (document as any).startViewTransition) {
       (document as any).startViewTransition(() => {
         setSelectedNb(nb);
@@ -100,13 +104,24 @@ export const NotebooksPage: React.FC = () => {
 
   const handleRunNotebook = () => {
     playDetent();
+    setError(null);
+    setFailedStep(null);
+
     if (isT0) {
+      if ((window as any).__VG_STUB_NOTEBOOK_FAIL__) {
+        setStep(2);
+        setFailedStep(2);
+        setError("Kernel execution failed at step 2/3: ZeroDivisionError in cell 14: community modularity matrix singular");
+        return;
+      }
       setStep(3);
       return;
     }
+
     setRunning(true);
     setStep(0);
     setWash(true);
+
     new Sequence()
       .wait(80)
       .addAction(() => {
@@ -115,11 +130,21 @@ export const NotebooksPage: React.FC = () => {
       })
       .wait(80)
       .addAction(() => {
+        if ((window as any).__VG_STUB_NOTEBOOK_FAIL__) {
+          setStep(2);
+          setFailedStep(2);
+          setRunning(false);
+          setWash(false);
+          setError("Kernel execution failed at step 2/3: ZeroDivisionError in cell 14: community modularity matrix singular");
+          playThud();
+          return;
+        }
         setStep(2);
         playDetent();
       })
       .wait(80)
       .addAction(() => {
+        if ((window as any).__VG_STUB_NOTEBOOK_FAIL__) return;
         setStep(3);
         setRunning(false);
         setWash(false);
@@ -213,9 +238,20 @@ export const NotebooksPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              {step > 0 && (
+              {step > 0 && !error && (
                 <span className="type-mono text-[11px] text-[var(--verdigris)]">
                   {step === 3 ? "Execution complete (0.24s)" : `Executing step ${step}/3...`}
+                </span>
+              )}
+              {error && (
+                <span
+                  data-testid="notebook-step-failed"
+                  className={`type-mono text-[11px] text-[var(--madder)] flex items-center gap-1.5 ${
+                    !isT0 ? "animate-led-fail" : ""
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full bg-[var(--madder)] ${!isT0 ? "animate-led-fail" : ""}`} />
+                  <span>Step {failedStep}/3 failed</span>
                 </span>
               )}
               <DetentPress>
@@ -229,11 +265,19 @@ export const NotebooksPage: React.FC = () => {
                   <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polygon points="5 3 19 12 5 21 5 3" />
                   </svg>
-                  <span>{running ? "Running…" : "Run notebook"}</span>
+                  <span>{running ? "Running…" : error ? "Retry notebook" : "Run notebook"}</span>
                 </Button>
               </DetentPress>
             </div>
           </div>
+
+          {error && (
+            <ErrorState
+              message={error}
+              onRetry={handleRunNotebook}
+              className="mb-4"
+            />
+          )}
 
           <div className="mb-4">
             <span className="type-label text-[var(--dim)] text-xs block mb-1">

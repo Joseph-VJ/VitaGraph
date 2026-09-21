@@ -6,6 +6,7 @@ import {
   ThinkingDetailsPanel,
   DocumentPanel,
   useToast,
+  ErrorState,
   type TraceRowData,
 } from "../components/gallery";
 import { useActiveUser } from "../context/UserContext";
@@ -37,11 +38,14 @@ export const KnowledgeGraphPage: React.FC = () => {
   const eventQueueRef = useRef<any[]>([]);
   const isProcessingQueueRef = useRef<boolean>(false);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   // Load graph data for current active persona
   const loadGraph = useCallback(async () => {
-    if (!user?.id) return;
+    const uid = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
+    setLoadError(null);
     try {
-      const data = await graphApi.getGraph(user.id);
+      const data = await graphApi.getGraph(uid);
       setGraphData(data);
       setActiveConcepts([]);
       setActiveNodeIds([]);
@@ -49,8 +53,9 @@ export const KnowledgeGraphPage: React.FC = () => {
       if (data.nodes && data.nodes.length > 0) {
         setSelectedNode(data.nodes[0]);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn("Could not load knowledge graph:", err);
+      setLoadError("Could not load knowledge graph: " + (err.message || "Network error"));
     }
   }, [user?.id]);
 
@@ -357,14 +362,22 @@ export const KnowledgeGraphPage: React.FC = () => {
         className="flex-1 flex flex-col gap-6 min-w-0 w-full"
       >
         {/* Real NetworkX Graph Stage (§7.16) */}
-        <GraphStage
-          graphData={graphData}
-          activeConcepts={activeConcepts}
-          activeNodeIds={activeNodeIds}
-          subgraphMetrics={subgraphMetrics}
-          selectedNode={selectedNode}
-          onSelectNode={handleSelectNode}
-        />
+        {loadError ? (
+          <ErrorState
+            message={loadError}
+            onRetry={loadGraph}
+            className="w-full min-h-[400px] flex items-center justify-between"
+          />
+        ) : (
+          <GraphStage
+            graphData={graphData}
+            activeConcepts={activeConcepts}
+            activeNodeIds={activeNodeIds}
+            subgraphMetrics={subgraphMetrics}
+            selectedNode={selectedNode}
+            onSelectNode={handleSelectNode}
+          />
+        )}
 
         {/* Ask Bar (§7.17) */}
         <AskBar onSend={handleAsk} defaultValue="" />

@@ -6,7 +6,7 @@ import { Sequence, isReducedMotion, governor } from "../motion";
 import { DetentPress } from "../motion/fx/DetentPress";
 import { WashSweep } from "../motion/fx/WashSweep";
 import { DrawPath } from "../motion/fx/DrawPath";
-import { playDetent, playChime } from "../motion/audio";
+import { playDetent, playChime, playThud } from "../motion/audio";
 
 interface DatasetItem {
   name: string;
@@ -21,6 +21,7 @@ interface DatasetItem {
 
 export const DatasetsPage: React.FC = () => {
   const location = useLocation();
+  const isT0 = governor.getState().tier === "T0" || isReducedMotion();
   const [datasets, setDatasets] = useState<DatasetItem[]>([
     {
       name: "ChromaDB Vector Collection",
@@ -65,38 +66,22 @@ export const DatasetsPage: React.FC = () => {
   ]);
 
   const [verifyState, setVerifyState] = useState<
-    Record<number, { running: boolean; verified: boolean; wash: boolean }>
+    Record<number, { running: boolean; verified: boolean; wash: boolean; error?: string | null }>
   >({});
 
   const handleVerifyIntegrity = (idx: number) => {
     playDetent();
     const isT0 = governor.getState().tier === "T0" || isReducedMotion();
-    if (isT0) {
-      setVerifyState((prev) => ({
-        ...prev,
-        [idx]: { running: false, verified: true, wash: false },
-      }));
-      setDatasets((prev) =>
-        prev.map((d, i) =>
-          i === idx
-            ? { ...d, statusLabel: "Verified (SHA-256 confirmed)", lastSync: "Just now" }
-            : d
-        )
-      );
-      return;
-    }
 
-    setVerifyState((prev) => ({
-      ...prev,
-      [idx]: { running: true, verified: false, wash: true },
-    }));
+    try {
+      if ((window as any).__VG_STUB_VERIFY_ERROR__) {
+        throw new Error("Integrity check failed: checksum mismatch (SHA-256 hash corrupted)");
+      }
 
-    new Sequence()
-      .wait(480)
-      .addAction(() => {
+      if (isT0) {
         setVerifyState((prev) => ({
           ...prev,
-          [idx]: { running: false, verified: true, wash: false },
+          [idx]: { running: false, verified: true, wash: false, error: null },
         }));
         setDatasets((prev) =>
           prev.map((d, i) =>
@@ -105,9 +90,49 @@ export const DatasetsPage: React.FC = () => {
               : d
           )
         );
-        playChime();
-      })
-      .play();
+        return;
+      }
+
+      setVerifyState((prev) => ({
+        ...prev,
+        [idx]: { running: true, verified: false, wash: true, error: null },
+      }));
+
+      new Sequence()
+        .wait(480)
+        .addAction(() => {
+          try {
+            if ((window as any).__VG_STUB_VERIFY_ERROR__) {
+              throw new Error("Integrity check failed: checksum mismatch (SHA-256 hash corrupted)");
+            }
+            setVerifyState((prev) => ({
+              ...prev,
+              [idx]: { running: false, verified: true, wash: false, error: null },
+            }));
+            setDatasets((prev) =>
+              prev.map((d, i) =>
+                i === idx
+                  ? { ...d, statusLabel: "Verified (SHA-256 confirmed)", lastSync: "Just now" }
+                  : d
+              )
+            );
+            playChime();
+          } catch (err: any) {
+            playThud();
+            setVerifyState((prev) => ({
+              ...prev,
+              [idx]: { running: false, verified: false, wash: false, error: err.message || "Verification failed" },
+            }));
+          }
+        })
+        .play();
+    } catch (err: any) {
+      playThud();
+      setVerifyState((prev) => ({
+        ...prev,
+        [idx]: { running: false, verified: false, wash: false, error: err.message || "Verification failed" },
+      }));
+    }
   };
 
   return (
@@ -199,6 +224,32 @@ export const DatasetsPage: React.FC = () => {
                     <span className="type-meta text-[11px] text-[var(--verdigris)] font-mono">
                       SHA-256 matched canonical registry
                     </span>
+                  </div>
+                )}
+
+                {st.error && (
+                  <div
+                    data-testid="dataset-verify-error"
+                    className={`mt-3 flex items-center justify-between gap-2 p-2 rounded-[var(--r-4)] bg-[var(--madder)]/15 border border-[var(--madder)]/40 ${
+                      !isT0 ? "animate-detent-impulse" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-[var(--madder)] flex-shrink-0" />
+                      <span className="type-meta text-[11px] text-[var(--madder)] font-mono truncate">
+                        {st.error}
+                      </span>
+                    </div>
+                    <DetentPress>
+                      <Button
+                        variant="solid-danger"
+                        onClick={() => handleVerifyIntegrity(idx)}
+                        className="h-6 px-2 text-[10px] flex-shrink-0"
+                        data-testid="dataset-verify-retry-btn"
+                      >
+                        Retry
+                      </Button>
+                    </DetentPress>
                   </div>
                 )}
               </div>

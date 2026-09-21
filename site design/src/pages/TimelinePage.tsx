@@ -6,6 +6,7 @@ import {
   Button,
   IconButton,
   Marginalia,
+  ErrorState,
 } from "../components/gallery";
 import { useActiveUser } from "../context/UserContext";
 import { useToast } from "../components/gallery/Toast";
@@ -61,6 +62,8 @@ export const TimelinePage: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSimulatingUpload, setIsSimulatingUpload] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Spine & Scroll tracking (§M7.5)
   const spineContainerRef = useRef<HTMLDivElement | null>(null);
@@ -85,6 +88,7 @@ export const TimelinePage: React.FC = () => {
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [evts, repList] = await Promise.all([
         timelineApi.events(effectiveUserId),
@@ -99,8 +103,9 @@ export const TimelinePage: React.FC = () => {
       } catch {
         // Trend query best effort
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn("Error loading timeline data:", err);
+      setLoadError("Failed to load timeline data: " + (err.message || "Network error"));
     } finally {
       setLoading(false);
     }
@@ -315,6 +320,7 @@ export const TimelinePage: React.FC = () => {
   // Existing blocks FLIP down (weighted spring), new block enters, spine draws to new block
   const handleUploadSecondReport = async () => {
     setIsSimulatingUpload(true);
+    setUploadError(null);
     try {
       // 1. Measure existing report cards (FLIP First, Gate 19 single forced reflow)
       const firstRects = new Map<string, DOMRect>();
@@ -348,8 +354,11 @@ export const TimelinePage: React.FC = () => {
           }
         });
       }, 0);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Simulation upload failed:", err);
+      const msg = err.message || "Failed to upload follow-up report";
+      setUploadError(msg);
+      addToast("failed", "Upload Failed", msg);
     } finally {
       setIsSimulatingUpload(false);
     }
@@ -464,6 +473,37 @@ export const TimelinePage: React.FC = () => {
           />
         </div>
       </div>
+
+      {uploadError && (
+        <div
+          data-testid="timeline-upload-error"
+          className={`p-3 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--madder)] flex items-center justify-between text-xs text-[var(--bone)] relative overflow-hidden ${
+            !isT0 ? "animate-detent-impulse" : ""
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-[var(--madder)] font-bold">●</span>
+            <span>{uploadError}</span>
+          </div>
+          <DetentPress>
+            <Button
+              variant="ghost"
+              onClick={handleUploadSecondReport}
+              className="text-xs h-7 text-[var(--madder)] hover:bg-[var(--madder)]/20"
+            >
+              Retry upload
+            </Button>
+          </DetentPress>
+        </div>
+      )}
+
+      {loadError && (
+        <ErrorState
+          message={loadError}
+          onRetry={loadData}
+          className="mb-2"
+        />
+      )}
 
       {/* Main Grid: Spine Timeline (flex-1) + Patient Rail (360px) */}
       <div className="flex flex-col lg:flex-row gap-8 items-start w-full">

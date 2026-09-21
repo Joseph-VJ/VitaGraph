@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Badge, Button, Marginalia } from "../components/gallery";
+import { Badge, Button, Marginalia, ErrorState } from "../components/gallery";
 import { Odometer } from "../motion/fx/Odometer";
 import { flipFrom } from "../motion/flip";
 import { Sequence } from "../motion/sequence";
@@ -28,14 +28,19 @@ export const InsightsPage: React.FC = () => {
 
   const isT0 = isReducedMotion() || governor.getState().tier === "T0";
 
+  const [error, setError] = useState<string | null>(null);
+
   // Data fetching extracted to loadGraphData (§M4.2)
   const loadGraphData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
       const data = await graphApi.getGraph(effectiveUserId);
       setGraphData(data);
       return data;
-    } catch (err) {
+    } catch (err: any) {
       console.warn("Failed to load graph analytics:", err);
+      setError("Failed to load graph analytics: " + (err.message || "Network error"));
       return null;
     } finally {
       setLoading(false);
@@ -302,6 +307,14 @@ export const InsightsPage: React.FC = () => {
           />
         </div>
       </div>
+
+      {error && (
+        <ErrorState
+          message={error}
+          onRetry={loadGraphData}
+          className="mb-2"
+        />
+      )}
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">

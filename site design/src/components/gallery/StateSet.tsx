@@ -2,6 +2,8 @@ import React from "react";
 import { Button } from "./Buttons";
 import { WashSweep } from "../../motion/fx/WashSweep";
 import { DrawPath } from "../../motion/fx/DrawPath";
+import { governor, isReducedMotion } from "../../motion";
+import { DetentPress } from "../../motion/fx/DetentPress";
 
 // 1. Empty State
 interface EmptyStateProps {
@@ -82,15 +84,21 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   onRetry,
   className = "",
 }) => {
+  const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+
   return (
     <div
       data-testid="error-card"
-      className={`rounded-[var(--r-6)] border border-[var(--line-strong)] bg-[var(--ink-800)] p-4 flex items-center justify-between gap-4 relative overflow-hidden animate-detent-impulse ${className}`}
+      className={`rounded-[var(--r-6)] border border-[var(--line-strong)] bg-[var(--ink-800)] p-4 flex items-center justify-between gap-4 relative overflow-hidden ${
+        !isT0 ? "animate-detent-impulse" : ""
+      } ${className}`}
     >
       {/* 2px madder rule scaleY wipe in (§M7.10) */}
       <div
         data-testid="error-madder-rule"
-        className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--madder)] origin-top animate-rule-wipe-y"
+        className={`absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--madder)] origin-top ${
+          !isT0 ? "animate-rule-wipe-y" : ""
+        }`}
       />
       {/* WashSweep 8% once (§M7.10) */}
       <WashSweep color="var(--madder)" testId="error-card-wash" />
@@ -104,9 +112,13 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
         <span className="type-body text-[var(--bone)]">{message}</span>
       </div>
 
-      <Button variant="solid-danger" onClick={onRetry} className="h-8 px-3 text-[12px] z-10">
-        Retry
-      </Button>
+      {onRetry && (
+        <DetentPress>
+          <Button variant="solid-danger" onClick={onRetry} data-testid="error-retry-btn" className="h-8 px-3 text-[12px] z-10">
+            Retry
+          </Button>
+        </DetentPress>
+      )}
     </div>
   );
 };

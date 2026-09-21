@@ -6,6 +6,7 @@ import {
   IconButton,
   Marginalia,
   EmptyState,
+  ErrorState,
 } from "../components/gallery";
 import { useActiveUser } from "../context/UserContext";
 import { reportsApi } from "../api/reports";
@@ -35,15 +36,19 @@ export const LibraryPage: React.FC = () => {
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [navigatingRowId, setNavigatingRowId] = useState<string | null>(null);
 
+  const [error, setError] = useState<string | null>(null);
+
   const listRef = useRef<HTMLDivElement>(null);
 
   const loadReports = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await reportsApi.list(effectiveUserId);
       setReports(data);
-    } catch (err) {
+    } catch (err: any) {
       console.warn("Failed to load reports from backend:", err);
+      setError("Failed to load reports: " + (err.message || "Network error"));
     } finally {
       setLoading(false);
     }
@@ -180,6 +185,14 @@ export const LibraryPage: React.FC = () => {
           sketch="compass"
         />
       </div>
+
+      {error && (
+        <ErrorState
+          message={error}
+          onRetry={loadReports}
+          className="mb-2"
+        />
+      )}
 
       {/* Overview Stat Strip (§9.4, §M4.4 Odometers) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

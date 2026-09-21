@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { DeltaChip, Button, Marginalia } from "../components/gallery";
+import { DeltaChip, Button, Marginalia, ErrorState } from "../components/gallery";
 import { Odometer } from "../motion/fx/Odometer";
 import { flip, flipFrom } from "../motion/flip";
 import { DrawPath } from "../motion/fx/DrawPath";
@@ -31,12 +31,13 @@ export const ComparePage: React.FC = () => {
 
   const isT0 = isReducedMotion() || governor.getState().tier === "T0";
 
+  const [error, setError] = useState<string | null>(null);
+
   // Load user's reports first
-  useEffect(() => {
-    let isMounted = true;
+  const loadReports = useCallback(() => {
+    setError(null);
     reportsApi.list(effectiveUserId)
       .then((reps) => {
-        if (!isMounted) return;
         setReports(reps);
         if (reps.length > 0) {
           // Earliest as baseline, latest as followup
@@ -45,21 +46,27 @@ export const ComparePage: React.FC = () => {
           setFollowupId(sorted[sorted.length - 1].id);
         }
       })
-      .catch((err) => console.warn("Failed to load reports:", err));
-    return () => {
-      isMounted = false;
-    };
+      .catch((err: any) => {
+        console.warn("Failed to load reports:", err);
+        setError("Failed to load reports: " + (err.message || "Network error"));
+      });
   }, [effectiveUserId]);
+
+  useEffect(() => {
+    loadReports();
+  }, [loadReports]);
 
   // Load comparison data when baselineId or followupId is ready
   const loadComparison = useCallback(async () => {
     if (!baselineId && !followupId && reports.length === 0) return;
     setLoading(true);
+    setError(null);
     try {
       const data = await reportsApi.compare(effectiveUserId, baselineId, followupId);
       setCompData(data);
-    } catch (err) {
+    } catch (err: any) {
       console.warn("Failed to load report comparison:", err);
+      setError("Failed to load report comparison: " + (err.message || "Network error"));
     } finally {
       setLoading(false);
     }
@@ -138,6 +145,18 @@ export const ComparePage: React.FC = () => {
           sketch="leaf"
         />
       </div>
+
+      {error && (
+        <ErrorState
+          message={error}
+          onRetry={() => {
+            setError(null);
+            loadReports();
+            loadComparison();
+          }}
+          className="mb-2"
+        />
+      )}
 
       {/* Selectors for Baseline and Follow-up panels with FLIP-swap (§M7.7, M4.1) */}
       <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-wrap items-center justify-between gap-4">
