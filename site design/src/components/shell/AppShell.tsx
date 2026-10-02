@@ -3,7 +3,6 @@ import { useLocation, Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { StatusStrip } from "./StatusStrip";
-import { JourneyRail } from "./JourneyRail";
 import { LED } from "../gallery/LED";
 import {
   runBoot,
@@ -168,8 +167,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         <StatusStrip backendOnline={backendOnline} />
       </div>
 
-      {/* Guided Journey Flow Rail (§WS-2) */}
-      <JourneyRail />
     </div>
   );
 };
