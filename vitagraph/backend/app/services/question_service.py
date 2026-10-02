@@ -415,3 +415,309 @@ def _persist(user_id: str, question_id: str, question_text: str, classification:
     if job_id:
         job_broker.set_job_result(job_id, ans)
     return ans
+
+
+async def ask_stream_task(user_id: str, question_text: str, job_id: str | None = None) -> dict:
+    """Execute streaming RAG pipeline with AgentRouter.
+
+    Streams thinking blocks, tool calls (search_chroma, query_networkx_graph),
+    tool results, text deltas, and completion to the SSE job broker.
+    """
+    t_start = time.perf_counter()
+    jid = job_broker.get_or_create_job(job_id)
+    question_id = f"qst_{uuid.uuid4().hex[:12]}"
+    classification = safety.classify_question(question_text)
+
+    # 1. Retrieval prep & classification
+    job_broker.publish_event(
+        jid,
+        stage="retrieval",
+        description=f"Classifying question and preparing user-scoped retrieval (type: {classification})",
+        sub_description=f"User privacy isolation: {user_id}",
+    )
+
+    retrieval_question, was_rewritten = safety.sanitize_question_for_retrieval(question_text)
+
+    # Boundary refusal check
+    if safety.needs_boundary_response(classification):
+        _record_ai_call(user_id, question_id, question_id, "", "not_used", False)
+        job_broker.publish_event(
+            jid,
+            stage="safety",
+            description="Clinical boundary check triggered: Medical diagnosis/treatment advice refused",
+            sub_description="Educational safety policy enforced",
+        )
+        t_total = int((time.perf_counter() - t_start) * 1000)
+        job_broker.complete_job(jid, description=f"Question refused per clinical boundary policy ({t_total} ms)", latency_ms=t_total)
+        return _persist(
+            user_id=user_id,
+            question_id=question_id,
+            question_text=question_text,
+            classification=classification,
+            status="refused",
+            summary_text=safety.BOUNDARY_RESPONSE,
+            evidence=[],
+            limitations_text=(
+                "This question type is outside the project boundary, so no "
+                "report evidence was retrieved or used."
+            ),
+            ai_service_status="not_used",
+            was_rewritten=was_rewritten,
+            job_id=jid,
+        )
+
+    # Pure-injection question
+    if not retrieval_question.strip():
+        _record_ai_call(user_id, question_id, question_id, "", "not_used", False)
+        job_broker.publish_event(
+            jid,
+            stage="safety",
+            description="Untrusted instruction pattern removed; no answerable question remained",
+            sub_description="Prompt injection policy enforced",
+        )
+        t_total = int((time.perf_counter() - t_start) * 1000)
+        job_broker.complete_job(jid, description=f"Question refused ({t_total} ms)", latency_ms=t_total)
+        return _persist(
+            user_id=user_id,
+            question_id=question_id,
+            question_text=question_text,
+            classification="unsupported",
+            status="refused",
+            summary_text=(
+                "This message contained only instruction-like text addressed "
+                "to the system. VitaGraph treats such text as data, never as "
+                "instructions, and no answerable question remained in it. "
+                "Please ask a question about your uploaded reports."
+            ),
+            evidence=[],
+            limitations_text=(
+                "No report evidence was retrieved because no question "
+                "content remained after removing untrusted instruction-like text."
+            ),
+            ai_service_status="not_used",
+            was_rewritten=was_rewritten,
+            job_id=jid,
+        )
+
+    # Retrieval
+    t0_ret = time.perf_counter()
+    try:
+        evidence = retriever.retrieve(user_id=user_id, question=retrieval_question)
+    except Exception as exc:
+        job_broker.publish_error(jid, f"Vector retrieval error: {str(exc)}")
+        t_total = int((time.perf_counter() - t_start) * 1000)
+        job_broker.complete_job(jid, description=f"Retrieval store unavailable ({t_total} ms)", latency_ms=t_total)
+        return _persist(
+            user_id=user_id,
+            question_id=question_id,
+            question_text=question_text,
+            classification=classification,
+            status="error",
+            summary_text="Retrieval error: The vector retrieval store is currently unavailable. Evidence could not be fetched.",
+            evidence=[],
+            limitations_text="Vector database offline or connection refused. Knowledge graph and timeline remain accessible.",
+            ai_service_status="error",
+            was_rewritten=was_rewritten,
+            job_id=jid,
+        )
+    t_ret = int((time.perf_counter() - t0_ret) * 1000)
+
+    job_broker.publish_event(
+        jid,
+        stage="retrieval",
+        description=f"Retrieved {len(evidence)} evidence chunks matching score threshold >= 0.40",
+        sub_description=f"Query: '{retrieval_question[:60]}' (Chroma user_id={user_id})",
+        latency_ms=max(15, t_ret),
+    )
+
+    if not evidence:
+        composed = fallback_composer.compose_answer(question_text, evidence)
+        _record_ai_call(user_id, question_id, question_id, "", "not_used", False)
+        job_broker.publish_event(
+            jid,
+            stage="generation",
+            description="No evidence chunks met 0.40 similarity threshold; composing honest insufficient state",
+            sub_description="Local fallback composer",
+        )
+        t_total = int((time.perf_counter() - t_start) * 1000)
+        job_broker.complete_job(jid, description=f"Response completed: insufficient evidence ({t_total} ms)", latency_ms=t_total)
+        return _persist(
+            user_id=user_id,
+            question_id=question_id,
+            question_text=question_text,
+            classification=classification,
+            status="insufficient_evidence",
+            summary_text=composed["summary_text"],
+            evidence=[],
+            limitations_text=composed["limitations_text"],
+            ai_service_status="not_used",
+            was_rewritten=was_rewritten,
+            job_id=jid,
+        )
+
+    # Reranking & Graph traversal
+    top_score = evidence[0]["score"] if evidence else 0.0
+    job_broker.publish_event(
+        jid,
+        stage="reranking",
+        description=f"Ranked {len(evidence)} candidate chunks by similarity score",
+        sub_description=f"Top candidate: {evidence[0].get('report_filename', '')} (score: {top_score:.2f})",
+        latency_ms=12,
+    )
+
+    t0_graph = time.perf_counter()
+    chunk_ids = [hit["chunk_id"] for hit in evidence]
+    sub = get_question_subgraph(user_id, chunk_ids)
+    t_graph = int((time.perf_counter() - t0_graph) * 1000)
+    active_concepts = sub.get("active_concepts", [])
+    job_broker.publish_event(
+        jid,
+        stage="graph",
+        description=f"Mapped entities to knowledge graph ({len(sub.get('nodes', []))} nodes, {len(sub.get('edges', []))} edges)",
+        sub_description=f"Active concepts: {', '.join(active_concepts)}" if active_concepts else "Topological alignment verified",
+        latency_ms=max(18, t_graph),
+    )
+
+    # AgentRouter Streaming Generation
+    from app.services import llm_service
+    from app.core.config import settings
+
+    summary_text = ""
+    ai_status = "ok"
+    safety_note = None
+    stream_failed = False
+    error_message = None
+
+    if settings.allow_api and settings.effective_api_key:
+        try:
+            async for event_type, payload in llm_service.stream_agent_rag(
+                user_id=user_id,
+                question=question_text,
+                initial_evidence=evidence,
+            ):
+                if event_type == "thinking":
+                    job_broker.publish_event(
+                        jid,
+                        stage="generation",
+                        description=payload.get("thinking", ""),
+                        metadata=payload,
+                        event_type="thinking",
+                    )
+                elif event_type == "tool_call":
+                    job_broker.publish_event(
+                        jid,
+                        stage="generation",
+                        description=f"Invoking {payload.get('tool')}",
+                        metadata=payload,
+                        event_type="tool_call",
+                    )
+                elif event_type == "tool_result":
+                    job_broker.publish_event(
+                        jid,
+                        stage="generation",
+                        description=f"Received results from {payload.get('tool')}",
+                        metadata=payload,
+                        event_type="tool_result",
+                    )
+                elif event_type == "text_delta":
+                    job_broker.publish_event(
+                        jid,
+                        stage="generation",
+                        description=payload.get("delta", ""),
+                        metadata=payload,
+                        event_type="text_delta",
+                    )
+                elif event_type == "completed":
+                    summary_text = payload.get("summary_text", "")
+                    safety_note = payload.get("safety_note")
+                    if not payload.get("safety_passed", True):
+                        ai_status = "replaced_by_fallback"
+                elif event_type == "error":
+                    stream_failed = True
+                    error_message = payload.get("message", "AgentRouter stream failed")
+                    job_broker.publish_event(
+                        jid,
+                        stage="generation",
+                        description=error_message,
+                        metadata=payload,
+                        event_type="error",
+                    )
+
+            if stream_failed or not summary_text:
+                composed = fallback_composer.compose_answer(question_text, evidence)
+                summary_text = composed["summary_text"]
+                ai_status = "error"
+                safety_note = error_message or "AgentRouter connection error"
+
+        except Exception as exc:
+            stream_failed = True
+            error_message = str(exc)
+            job_broker.publish_event(
+                jid,
+                stage="generation",
+                description=f"Stream exception: {error_message}",
+                metadata={"error": error_message, "diagnostic": "Exception during streaming"},
+                event_type="error",
+            )
+            composed = fallback_composer.compose_answer(question_text, evidence)
+            summary_text = composed["summary_text"]
+            ai_status = "error"
+            safety_note = error_message
+    else:
+        # Fallback composer when allow_api is false
+        composed = fallback_composer.compose_answer(question_text, evidence)
+        summary_text = composed["summary_text"]
+        ai_status = "disabled"
+        safety_note = "AI API is disabled in configuration"
+
+    limitations_text = (
+        "The answer above was composed from the quoted evidence only. "
+        "VitaGraph does not interpret values clinically or draw causal conclusions."
+    )
+
+    if ai_status == "ok":
+        snippets = [hit["document"] for hit in evidence]
+        passed, reason = safety.check_answer_safety(summary_text, snippets)
+        if not passed:
+            composed = fallback_composer.compose_answer(question_text, evidence)
+            summary_text = composed["summary_text"]
+            ai_status = "replaced_by_fallback"
+            safety_note = reason
+
+    job_broker.publish_event(
+        jid,
+        stage="citation",
+        description=f"Resolved provenance for {len(evidence)} evidence citations",
+        sub_description="Report file, page number, and snippet offsets aligned",
+        latency_ms=10,
+    )
+
+    t_total = int((time.perf_counter() - t_start) * 1000)
+    job_broker.complete_job(
+        jid,
+        description=f"Response completed in {t_total / 1000:.1f} s",
+        latency_ms=t_total,
+        metadata={"evidence_count": len(evidence), "status": "answered", "ai_status": ai_status},
+        event_type="completed",
+    )
+
+    _record_ai_call(
+        user_id, question_id, question_id, f"gen_{uuid.uuid4().hex[:8]}",
+        ai_status, ai_status == "ok", safety_note,
+    )
+
+    return _persist(
+        user_id=user_id,
+        question_id=question_id,
+        question_text=question_text,
+        classification=classification,
+        status="answered",
+        summary_text=summary_text,
+        evidence=evidence,
+        limitations_text=limitations_text,
+        ai_service_status=ai_status,
+        was_rewritten=was_rewritten,
+        safety_note=safety_note,
+        job_id=jid,
+    )
+

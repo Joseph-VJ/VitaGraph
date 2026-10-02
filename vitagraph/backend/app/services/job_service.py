@@ -64,6 +64,7 @@ class JobEventBroker:
         sub_description: str = "",
         latency_ms: int = 0,
         metadata: dict[str, Any] | None = None,
+        event_type: str | None = None,
     ) -> dict[str, Any]:
         """Publish a real processing stage event to the job event stream."""
         jid = self.get_or_create_job(job_id)
@@ -79,6 +80,10 @@ class JobEventBroker:
             "timestamp": time.time(),
             "metadata": metadata or {},
         }
+        if event_type:
+            event["event_type"] = event_type
+            event["event"] = event_type
+
         job["events"].append(event)
 
         # Notify active streaming subscribers
@@ -100,6 +105,7 @@ class JobEventBroker:
         description: str = "Response completed",
         latency_ms: int = 0,
         metadata: dict[str, Any] | None = None,
+        event_type: str = "completed",
     ) -> None:
         """Mark job as completed and publish the terminal 'done' event."""
         if job_id not in self._jobs:
@@ -111,6 +117,7 @@ class JobEventBroker:
             sub_description="Pipeline executed successfully",
             latency_ms=latency_ms,
             metadata=metadata,
+            event_type=event_type,
         )
         self._jobs[job_id]["status"] = "completed"
         if metadata:
@@ -121,6 +128,7 @@ class JobEventBroker:
         job_id: str,
         error_message: str,
         stage: str = "done",
+        event_type: str = "error",
     ) -> None:
         """Mark job as failed and emit termination event."""
         if job_id not in self._jobs:
@@ -131,6 +139,7 @@ class JobEventBroker:
             description=f"Error: {error_message}",
             sub_description="Pipeline failed",
             metadata={"error": error_message},
+            event_type=event_type,
         )
         self._jobs[job_id]["status"] = "error"
         self._jobs[job_id]["error"] = error_message
@@ -160,7 +169,9 @@ class JobEventBroker:
                 if is_replay:
                     event_payload["is_replay"] = True
                 data_str = json.dumps(event_payload)
-                yield f"data: {data_str}\n\n"
+                evt_type = event_payload.get("event_type")
+                prefix = f"event: {evt_type}\n" if evt_type else ""
+                yield f"{prefix}data: {data_str}\n\n"
                 if past_event.get("stage") == "done":
                     return
 
@@ -173,7 +184,9 @@ class JobEventBroker:
                 try:
                     event = await asyncio.wait_for(queue.get(), timeout=15.0)
                     data_str = json.dumps(event)
-                    yield f"data: {data_str}\n\n"
+                    evt_type = event.get("event_type")
+                    prefix = f"event: {evt_type}\n" if evt_type else ""
+                    yield f"{prefix}data: {data_str}\n\n"
                     if event.get("stage") == "done":
                         break
                 except asyncio.TimeoutError:

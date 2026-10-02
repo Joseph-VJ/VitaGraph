@@ -35,6 +35,28 @@ class Settings(BaseSettings):
     ai_service_model: str = "deepseek-v4-flash"
     ai_service_timeout_seconds: int = 30
 
+    # --- AgentRouter AI Gateway ----------------------------------------------
+    agentrouter_api_key: str = ""
+    agentrouter_base_url: str = "https://agentrouter.org/v1"
+    agentrouter_model: str = "claude-3-5-sonnet-latest"
+
+    @property
+    def effective_api_key(self) -> str:
+        return (self.agentrouter_api_key or self.ai_service_api_key or "").strip()
+
+    @property
+    def effective_base_url(self) -> str:
+        url = (self.agentrouter_base_url or "").strip()
+        if not url:
+            url = (self.ai_service_url or "").strip()
+        if url.endswith("/chat/completions"):
+            url = url[:-len("/chat/completions")]
+        return url.rstrip("/")
+
+    @property
+    def effective_model(self) -> str:
+        return (self.agentrouter_model or self.ai_service_model or "claude-3-5-sonnet-latest").strip()
+
     # --- Retrieval -----------------------------------------------------------
     top_k_results: int = 5
     # Calibrated on the synthetic evaluation set (sample_data/questions.json):
@@ -57,7 +79,7 @@ class Settings(BaseSettings):
 
     def get_masked_key(self) -> str:
         """Return masked representation of the active AI API key."""
-        key = (self.ai_service_api_key or "").strip()
+        key = self.effective_api_key
         if not key:
             return ""
         if len(key) <= 8:

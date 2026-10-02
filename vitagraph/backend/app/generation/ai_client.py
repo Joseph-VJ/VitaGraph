@@ -140,7 +140,8 @@ def generate_answer(question: str, evidence_snippets: list[str]) -> GenerationRe
             error="AI generation service is disabled (allow_api=false); using local composer.",
         )
 
-    if not (settings.ai_service_api_key or "").strip():
+    api_key = settings.effective_api_key
+    if not api_key:
         return GenerationResult(
             ok=False,
             status="disabled",
@@ -149,11 +150,12 @@ def generate_answer(question: str, evidence_snippets: list[str]) -> GenerationRe
         )
 
     request_id = f"gen_{uuid.uuid4().hex[:12]}"
+    endpoint_url = f"{settings.effective_base_url}/chat/completions" if not settings.ai_service_url or "agentrouter.org" in settings.effective_base_url else settings.ai_service_url
     target_url, headers = _build_headers_and_url(
-        settings.ai_service_url, settings.ai_service_api_key, request_id
+        endpoint_url, api_key, request_id
     )
     payload = {
-        "model": settings.ai_service_model,
+        "model": settings.effective_model,
         "messages": _instruction_prompt(question, evidence_snippets),
         "temperature": 0.1,
     }
