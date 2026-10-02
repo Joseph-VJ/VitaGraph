@@ -112,7 +112,7 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
           </div>
 
           <div className="overflow-y-auto p-4">
-            <GraphStage graphData={graph} />
+            <GraphStage graphData={graph} height="min(58vh, 540px)" />
           </div>
 
           <div className="p-4 px-6 bg-[var(--ink-800)] flex items-center justify-between gap-3 border-t border-[var(--line-faint)]">

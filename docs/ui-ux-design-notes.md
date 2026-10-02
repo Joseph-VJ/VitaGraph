@@ -63,3 +63,34 @@ paper" language. Dials: ENERGY 1 / RHYTHM 2 / MOTION 1. Direction comes from the
 5. **Breadcrumbs hardcode the persona name** ("Arjun R") on Timeline, Compare and Insights.
 6. **False "backend offline" flash:** the health probe times out at 2s, which a busy backend can exceed.
 7. `/gallery` (component gallery) still shows spec notes with old token values.
+
+## Knowledge graph
+
+The graph is the product's signature view. It is rebuilt as a dark instrument viewport; each decision
+below has its one-line reason (antislop R-31).
+
+| Decision | Reason |
+|---|---|
+| Dark canvas inside the light app | A graph is read as light-on-dark structure; the dark frame makes it a focused viewport and lets luminous edges and orbs carry depth. The rest of the app stays light. |
+| Colour = community, size = centrality | Modularity (13 communities in the demo data) is the story of this graph; type is shown in the node card and groups list instead of colour. The legend says so in one line. |
+| Cluster-aware layout (circle-packed regions, then a degree-aware force simulation, settled before the first frame) | Communities form visible regions at a glance, the graph appears composed instead of unravelling, and camera fit is computed on final positions. |
+| Camera auto-fits and refits on resize or panel toggle until the person moves it; zoom is anchored on the cursor; pinch and drag work on touch | The graph fills the frame at any size without a manual reset, and zoom behaves like a map. |
+| Orbs (lit spheres), luminous curved edges (additive on T2/T3), community mist (T2/T3 only, breathes on T3) | Depth without decoration: size and alpha carry importance, mist makes clusters read as regions. Low tiers and reduced motion fall back to plain nodes and edges. |
+| Glow only on hubs (the top concept of each community), hover and selection | Antislop R-13 dose cap: halos mark the structure, not every node. |
+| Label type: Spectral 600 for hubs, Plex Sans for the rest, Plex Mono for measured values | Concept names are the human voice (Spectral); dense secondary labels need Plex Sans legibility; numbers are machine output (mono). |
+| Labels placed by importance with semantic zoom and collision checks (right, below, left, above) | Overview shows the few labels that matter, zooming in earns more, and a label never covers another label or a node. |
+| Hover spotlights the neighbourhood strongly, selection only leans; value chips only for the focused node, activated nodes or when zoomed in | The page opens with a node already selected, so selection must not blank the graph; 20 stacked chips were unreadable. |
+| Text fragments (chunks, sections, uncertainty markers) are hidden by default behind a labelled switch, with the real hidden count | They are real nodes but not what a person reads (181 of 275 here); the note states what is shown ("Showing all 94 ...") so nothing is hidden silently. |
+| HUD inside the frame: four real counts (Odometer ids kept), the cap note, the selection chip | The counts are backend values; the chip says what is selected without covering the graph (the full detail stays in the panel beside it). |
+| Concepts, connections and groups panel (real centrality, real edge relations, groups named after their most central concept) | A keyboard and screen-reader route into a canvas, and a way to read the graph in words. Group focus dims the rest and fits the camera to the group. |
+| Slider, fit and layout switch on the right edge; the layout switch replaces the reference's "2D" button | There is no 3D here, so a 2D/3D toggle would be a dead control. |
+
+Measured (Chrome, real graph data for the first persona: 275 nodes, 645 edges, 94 drawn):
+axe-core 4.10 WCAG 2.2 A/AA on the full page with the panel open, 0 violations; 32 tab stops inside the frame,
+all with a visible focus ring, none under 24px; no horizontal overflow at 390, 768 and 1440; no looping animation
+under reduced motion; 144 fps idle and 143 fps with the CPU throttled 4x.
+
+Open items: the page selects the first node on load and keeps static placeholder content in the document panel
+(NEJM_2023_HeartFailure.pdf) beside the graph; `GET /api/graph/{user}` costs seconds of CPU for a large persona
+(about 5 s for 1,090 nodes), blocks the health probe and is not cancelled when the request is abandoned;
+touch-action is none on the canvas so one-finger drags pan the graph, not the page.

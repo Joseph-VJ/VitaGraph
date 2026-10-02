@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { Button, IconButton } from "./Buttons";
-import { Select } from "./Input";
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
+import { IconButton } from "./Buttons";
 import type { GraphResponse, GraphNode } from "../../api/graph";
 import { ticker } from "../../motion/ticker";
 import { governor, isReducedMotion } from "../../motion";
@@ -8,6 +7,23 @@ import { Spring } from "../../motion/spring";
 import { Odometer } from "../../motion/fx/Odometer";
 import { PhotonManager } from "../../motion/fx/Photon";
 import { DustManager } from "../../motion/fx/DustField";
+import { communityColor, displayLabel, isFragmentType, isStructuralType, rgba } from "./graphTheme";
+import {
+  buildDegree,
+  communityAnchors,
+  fitView,
+  layoutSpacing,
+  recenter,
+  seedCircular,
+  seedForce,
+  settle,
+  stepForce,
+  type FitPads,
+  type ForceContext,
+} from "./graphLayout";
+import { FONT_HUB, FONT_LABEL, FONT_VALUE, getHaloSprite, getMistSprite, getOrbSprite, roundedRect, textWidth } from "./graphDraw";
+import { GraphConceptsPanel, buildGraphSummary, type PanelTab } from "./GraphConceptsPanel";
+import "./graph.css";
 
 export interface GraphStageProps {
   graphData?: GraphResponse | null;
@@ -20,6 +36,11 @@ export interface GraphStageProps {
   selectedNode?: GraphNode | null;
   onSelectNode?: (node: GraphNode | null, screenRect?: DOMRect) => void;
   className?: string;
+  /**
+   * CSS height of the dark frame. A page can override it with the --graph-h custom property
+   * (set through a class on this component), so the height can change per breakpoint.
+   */
+  height?: string;
 }
 
 interface SimNode extends GraphNode {
@@ -30,69 +51,64 @@ interface SimNode extends GraphNode {
   r: number;
   color: string;
   revealDelay: number;
+  hub?: boolean;
+  /** Centrality relative to the strongest node in view, 0..1. */
+  imp: number;
+  /** 0 = most important node in view. */
+  rank: number;
+  deg: number;
+  display: string;
+  structural: boolean;
+  // Per-frame scratch, so the draw loop allocates nothing
+  a: number;
+  inFocus: boolean;
+  active: boolean;
+  sx: number;
+  sy: number;
+  sr: number;
 }
 
 interface SimEdge {
   source: number;
   target: number;
   relation: string;
+  weight: number;
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  person: "#2E6270",      // cornflower
-  condition: "#2E6270",   // cornflower
-  report: "#2E6270",      // cornflower
-  test: "#47775F",        // verdigris (biomarker)
-  biomarker: "#47775F",   // verdigris
-  date: "#47775F",        // verdigris
-  measurement: "#C58A43", // ochre
-  section: "#6F6192",     // lilac
-  category: "#6F6192",    // lilac
-  treatment: "#6F6192",   // lilac
-  chunk: "#6B7683",       // faint
-  uncertainty: "#B0525E", // madder
-  outcome: "#B0525E",     // madder
+const MAX_NODES = 120;
+const K_MIN = 0.4;
+const K_MAX = 2.8;
+
+// How much each relation should read on screen: meaning first, text structure last
+const RELATION_WEIGHT: Record<string, number> = {
+  BELONGS_TO: 1,
+  HAS_MEASUREMENT: 0.85,
+  OBSERVED_ON: 0.75,
+  MENTIONS: 0.5,
+  CONTAINS: 0.4,
+  IN_SECTION: 0.3,
 };
 
-// Glow sprite cache (§M8.1: one pre-rendered radial-gradient sprite per category color, 5 total, 64x64 offscreen)
-const GLOW_COLORS = ["#2E6270", "#47775F", "#C58A43", "#6F6192", "#B0525E"] as const;
-const glowSpriteMap = new Map<string, HTMLCanvasElement>();
-
-function getGlowSprite(hexColor: string, size = 64): HTMLCanvasElement | null {
-  if (typeof document === "undefined") return null;
-  const key = hexColor.toLowerCase();
-  let sprite = glowSpriteMap.get(key);
-  if (sprite) return sprite;
-
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (ctx) {
-    const half = size / 2;
-    const grad = ctx.createRadialGradient(half, half, 0, half, half, half);
-    grad.addColorStop(0, hexColor);
-    grad.addColorStop(0.35, hexColor + "66"); // 40% alpha
-    grad.addColorStop(0.70, hexColor + "1A"); // 10% alpha
-    grad.addColorStop(1, hexColor + "00");   // 0% alpha
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(half, half, half, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  glowSpriteMap.set(key, canvas);
-  return canvas;
-}
-
-// Pre-warm glow sprites on module load
-if (typeof document !== "undefined") {
-  GLOW_COLORS.forEach((c) => getGlowSprite(c));
-}
+const CATEGORY_COLORS: Record<string, string> = {
+  person: "#6FC3D4",
+  condition: "#6FC3D4",
+  report: "#8FA8F0",
+  test: "#82D3A2",
+  biomarker: "#82D3A2",
+  date: "#E8B067",
+  measurement: "#E8B067",
+  section: "#B79CE8",
+  category: "#B79CE8",
+  treatment: "#B79CE8",
+  chunk: "#7F8C97",
+  uncertainty: "#F08E9A",
+  outcome: "#F08E9A",
+};
 
 function getNodeColor(node: GraphNode): string {
   if (node.color && node.color.startsWith("#")) return node.color;
   const t = (node.type || "").toLowerCase();
-  return CATEGORY_COLORS[t] || "#47775F";
+  return CATEGORY_COLORS[t] || "#82D3A2";
 }
 
 // Ontology rank per §M8.2 (Report -> Category -> Test -> Measurement -> Chunk)
@@ -138,36 +154,16 @@ function servoEase(t: number): number {
   return 3 * oneMinusU * u2 + u3;
 }
 
-// Convex hull computation for community boundaries (§M8.6)
-interface Point {
-  x: number;
-  y: number;
-}
-function crossProduct(o: Point, a: Point, b: Point): number {
-  return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-}
-function computeConvexHull(points: Point[]): Point[] {
-  if (points.length <= 2) return points.slice();
-  const sorted = points.slice().sort((a, b) => (a.x === b.x ? a.y - b.y : a.x - b.x));
-  const lower: Point[] = [];
-  for (let i = 0; i < sorted.length; i++) {
-    const p = sorted[i];
-    while (lower.length >= 2 && crossProduct(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
-      lower.pop();
-    }
-    lower.push(p);
-  }
-  const upper: Point[] = [];
-  for (let i = sorted.length - 1; i >= 0; i--) {
-    const p = sorted[i];
-    while (upper.length >= 2 && crossProduct(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
-      upper.pop();
-    }
-    upper.push(p);
-  }
-  lower.pop();
-  upper.pop();
-  return lower.concat(upper);
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+// Semantic zoom: how many labels earn a place at a given zoom level
+function labelBudget(k: number, total: number): number {
+  if (k < 0.75) return 14;
+  if (k < 0.95) return 22;
+  if (k < 1.2) return 34;
+  if (k < 1.6) return 52;
+  if (k < 2.1) return 80;
+  return total;
 }
 
 // Particle & Photon budgets (§M8.3, Gate 28)
@@ -205,12 +201,19 @@ export const GraphStage: React.FC<GraphStageProps> = ({
   selectedNode: externalSelectedNode,
   onSelectNode,
   className = "",
+  height = "clamp(480px, calc(100vh - 215px), 940px)",
 }) => {
   const [internalSelectedNode, setInternalSelectedNode] = useState<GraphNode | null>(null);
   const selectedNode = externalSelectedNode !== undefined ? externalSelectedNode : internalSelectedNode;
 
   const [layoutMode, setLayoutMode] = useState<string>("force");
+  const [panelOpen, setPanelOpen] = useState<boolean>(false);
+  const [panelTab, setPanelTab] = useState<PanelTab>("concepts");
+  const [focusCommunity, setFocusCommunity] = useState<number | null>(null);
+  const [showFragments, setShowFragments] = useState<boolean>(false);
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const frameRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isT0 = isReducedMotion() || governor.getState().tier === "T0";
 
@@ -236,7 +239,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       t: 0,
       duration: 320,
       delay: 0,
-      color: "#47775F",
+      color: "#82D3A2",
       vanishElapsed: 0,
     }))
   );
@@ -251,7 +254,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       alpha: 0.25,
       age: 0,
       lifetime: 1400,
-      color: "#47775F",
+      color: "#82D3A2",
     }))
   );
 
@@ -273,6 +276,16 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     return () => observer.disconnect();
   }, []);
 
+  // Canvas text can only use fonts that are already loaded, so ask for the ones the labels use
+  useEffect(() => {
+    if (typeof document === "undefined" || !document.fonts) return;
+    ["600 16px Spectral", "italic 500 16px Spectral", '500 13px "IBM Plex Sans"', '600 13px "IBM Plex Sans"', '500 12px "IBM Plex Mono"'].forEach(
+      (f) => {
+        document.fonts.load(f).catch(() => undefined);
+      }
+    );
+  }, []);
+
   // Camera, Momentum, and Hover state (§M8.4, §M8.5)
   interface CameraState {
     x: number;
@@ -286,6 +299,8 @@ export const GraphStage: React.FC<GraphStageProps> = ({
   const targetCamRef = useRef<{ x: number; y: number; k: number; active: boolean }>({ x: 0, y: 0, k: 1, active: false });
   const momentumRef = useRef<{ active: boolean; vx: number; vy: number }>({ active: false, vx: 0, vy: 0 });
   const lastUserPanTimeRef = useRef<number>(0);
+  // True once the person has moved the camera themselves; auto-fit then leaves it alone
+  const userMovedRef = useRef<boolean>(false);
 
   const hoverStateRef = useRef<{
     hoveredNode: SimNode | null;
@@ -301,9 +316,30 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     neighborNodeIds: new Set<string>(),
   });
 
+  // The selected node's neighbourhood, cached so the draw loop does not rebuild it every frame
+  const selCacheRef = useRef<{ id: string | null; neighbors: Set<string>; incident: Set<number> }>({
+    id: null,
+    neighbors: new Set<string>(),
+    incident: new Set<number>(),
+  });
+  const spotRef = useRef<number>(0); // 0..1, eased spotlight for the selected node's neighbourhood
+  const groupSpotRef = useRef<number>(0); // 0..1, eased dimming outside the focused group
+
+  const communityFocusRef = useRef<number | null>(null);
+  const prevFocusRef = useRef<number | null>(null);
+  const lastZoomPctRef = useRef<number>(-1);
+  const zoomLabelRef = useRef<HTMLSpanElement | null>(null);
+  const zoomSliderRef = useRef<HTMLInputElement | null>(null);
+  const panelOpenRef = useRef<boolean>(false);
   const simNodesRef = useRef<SimNode[]>([]);
   const simEdgesRef = useRef<SimEdge[]>([]);
+  const drawOrderRef = useRef<number[]>([]);
+  const forceCtxRef = useRef<ForceContext | null>(null);
+  const alphaRef = useRef<number>(0);
+  const layoutAreaRef = useRef<number>(0);
+  const lastLayoutModeRef = useRef<string>("force");
   const dragRef = useRef<SimNode | null>(null);
+  const dragIndexRef = useRef<number>(-1);
   const panRef = useRef<{
     isPanning: boolean;
     startX: number;
@@ -314,8 +350,69 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     vx: number;
     vy: number;
   } | null>(null);
+  const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchRef = useRef<{ dist: number; cx: number; cy: number } | null>(null);
 
-  // Focus node at 38% viewport height (§M8.4)
+  // ----- Camera helpers -----------------------------------------------------------------
+
+  /** Room to leave around the content: HUD on top, legend below, controls (and panel) on the right. */
+  const getFitPads = useCallback((w: number): FitPads => {
+    const narrow = w < 640;
+    return {
+      left: narrow ? 12 : 28,
+      right: (narrow ? 58 : 78) + (panelOpenRef.current && w >= 900 ? 332 : 0),
+      top: narrow ? 176 : 108,
+      bottom: narrow ? 70 : 52,
+    };
+  }, []);
+
+  /** Fit the graph (or a subset) to the frame. Instant under reduced motion. */
+  const applyFit = useCallback(
+    (animate: boolean, subset?: SimNode[], kMax = 1.6) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      if (!w || !h) return;
+      const nodes = subset && subset.length > 0 ? subset : simNodesRef.current;
+      if (nodes.length === 0) return;
+      const target = fitView(nodes, w, h, getFitPads(w), 0.5, kMax);
+      const instant = !animate || governor.getState().tier === "T0" || isReducedMotion();
+      if (instant) {
+        cameraRef.current = { x: target.x, y: target.y, k: target.k, vx: 0, vy: 0, vk: 0 };
+        targetCamRef.current.active = false;
+      } else {
+        targetCamRef.current = { x: target.x, y: target.y, k: target.k, active: true };
+      }
+      momentumRef.current.active = false;
+    },
+    [getFitPads]
+  );
+
+  /** Zoom keeping the world point under (sx, sy) fixed, so the wheel and pinch feel anchored. */
+  const zoomAt = useCallback((sx: number, sy: number, factor: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    const cam = cameraRef.current;
+    const k0 = cam.k;
+    const k1 = clamp(k0 * factor, K_MIN, K_MAX);
+    if (k1 === k0) return;
+    const wx = (sx - w / 2) / k0 + w / 2 - cam.x;
+    const wy = (sy - h / 2) / k0 + h / 2 - cam.y;
+    cam.k = k1;
+    cam.x = (sx - w / 2) / k1 - wx + w / 2;
+    cam.y = (sy - h / 2) / k1 - wy + h / 2;
+    cam.vx = 0;
+    cam.vy = 0;
+    cam.vk = 0;
+    targetCamRef.current.active = false;
+    momentumRef.current.active = false;
+    userMovedRef.current = true;
+  }, []);
+
+  // Focus node at 38% viewport height (§M8.4); zooms in a little if the overview is small
   const focusNode = useCallback((node: GraphNode | null) => {
     if (!node) return;
     const simNode = simNodesRef.current.find((n) => n.id === node.id);
@@ -326,24 +423,22 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
     const isT0 = governor.getState().tier === "T0" || isReducedMotion();
+    const k = Math.max(cameraRef.current.k, 0.95);
 
     const targetX = width / 2 - simNode.x;
-    const targetY = height / 2 - simNode.y - (0.12 * height) / cameraRef.current.k;
+    const targetY = height / 2 - simNode.y - (0.08 * height) / k;
 
     if (isT0) {
       cameraRef.current.x = targetX;
       cameraRef.current.y = targetY;
+      cameraRef.current.k = k;
       cameraRef.current.vx = 0;
       cameraRef.current.vy = 0;
+      cameraRef.current.vk = 0;
       targetCamRef.current.active = false;
       momentumRef.current.active = false;
     } else {
-      targetCamRef.current = {
-        x: targetX,
-        y: targetY,
-        k: cameraRef.current.k,
-        active: true,
-      };
+      targetCamRef.current = { x: targetX, y: targetY, k, active: true };
       momentumRef.current.active = false;
     }
   }, []);
@@ -401,12 +496,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       targetCamRef.current.active = false;
       momentumRef.current.active = false;
     } else {
-      targetCamRef.current = {
-        x: targetX,
-        y: targetY,
-        k: fitK,
-        active: true,
-      };
+      targetCamRef.current = { x: targetX, y: targetY, k: fitK, active: true };
       momentumRef.current.active = false;
     }
   }, [activeConcepts, activeNodeIds]);
@@ -498,7 +588,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         const dy = t.y - s.y;
         const edgePxLength = Math.hypot(dx, dy);
         const latencyMs = Math.round(Math.min(900, Math.max(180, 180 + edgePxLength * 0.6)));
-        candidateEdges.push({ edgeIdx: i, reverse: false, color: s.color || t.color || "#47775F", latencyMs });
+        candidateEdges.push({ edgeIdx: i, reverse: false, color: s.color || t.color || "#82D3A2", latencyMs });
       }
     }
 
@@ -629,17 +719,23 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     }
   }, [spawnPhotonsAndDust]);
 
-  // 1. Process & cap nodes at ≤ 120 nodes per US-04 specification
-  const { cappedNodes, simEdges } = useMemo(() => {
+  // 1. Choose what to draw: the most central nodes, capped at 120 (US-04). Text fragments are
+  //    real graph nodes but not what a person reads, so by default the view leaves them out and
+  //    says so. Switching them on shows the full graph.
+  const { cappedNodes, simEdges, poolSize, fragmentCount } = useMemo(() => {
     if (!graphData || !graphData.nodes || graphData.nodes.length === 0) {
-      return { cappedNodes: [], simEdges: [] };
+      return { cappedNodes: [] as GraphNode[], simEdges: [] as SimEdge[], poolSize: 0, fragmentCount: 0 };
     }
 
-    // Sort by betweenness or connectivity to keep most salient ≤ 120 nodes
-    const sorted = [...graphData.nodes].sort(
-      (a, b) => (b.betweenness ?? 0) - (a.betweenness ?? 0)
-    );
-    const nodesSlice = sorted.slice(0, 120);
+    const all = graphData.nodes;
+    const fragments = all.filter((n) => isFragmentType(n.type)).length;
+    const meaningful = all.length - fragments;
+    // Only filter when it leaves enough to draw
+    const filtering = !showFragments && fragments > 0 && meaningful >= 5;
+    const pool = filtering ? all.filter((n) => !isFragmentType(n.type)) : all;
+
+    const sorted = [...pool].sort((a, b) => (b.betweenness ?? 0) - (a.betweenness ?? 0));
+    const nodesSlice = sorted.slice(0, MAX_NODES);
 
     const indexMap = new Map<string, number>();
     nodesSlice.forEach((n, i) => indexMap.set(n.id, i));
@@ -649,80 +745,235 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       const sIdx = indexMap.get(e.source);
       const tIdx = indexMap.get(e.target);
       if (sIdx !== undefined && tIdx !== undefined) {
-        edges.push({ source: sIdx, target: tIdx, relation: e.relation || "" });
+        const relation = e.relation || "";
+        edges.push({ source: sIdx, target: tIdx, relation, weight: RELATION_WEIGHT[relation] ?? 0.5 });
       }
     });
 
-    return { cappedNodes: nodesSlice, simEdges: edges };
-  }, [graphData]);
+    return { cappedNodes: nodesSlice, simEdges: edges, poolSize: pool.length, fragmentCount: fragments };
+  }, [graphData, showFragments]);
 
-  // Initial node layout placement & ontology reveal delays (§M8.2)
+  // Concepts, connections and groups shown in the side panel, derived from the same real nodes and edges
+  const summary = useMemo(() => buildGraphSummary(cappedNodes, simEdges), [cappedNodes, simEdges]);
+
+  // Everything the draw loop reads that React owns, kept in one ref so the loop subscribes once
+  const liveRef = useRef({
+    selectedNode,
+    activeConcepts,
+    activeNodeIds,
+    layoutMode,
+    focusCommunity,
+  });
+  liveRef.current = { selectedNode, activeConcepts, activeNodeIds, layoutMode, focusCommunity };
+
+  // The side panel opens by default only where the frame is wide enough to leave the graph room
+  useLayoutEffect(() => {
+    const w = frameRef.current?.clientWidth ?? 0;
+    if (w >= 980) {
+      panelOpenRef.current = true;
+      setPanelOpen(true);
+    }
+  }, []);
+
   useEffect(() => {
-    const width = containerRef.current?.clientWidth || 800;
-    const height = 540;
+    panelOpenRef.current = panelOpen;
+  }, [panelOpen]);
 
-    // Ontology-ordered reveal: Report -> Category -> Test -> Measurement -> Chunk (§M8.2)
-    const sortedIndices = cappedNodes
-      .map((n, i) => ({ i, rank: getOntologyRank(n.type) }))
-      .sort((a, b) => a.rank - b.rank || a.i - b.i);
+  // 2. Build the layout: sizes, colours, community regions, then settle before the first frame
+  const buildLayout = useCallback(
+    (forceRelayout: boolean) => {
+      const canvas = canvasRef.current;
+      const W = canvas?.clientWidth || 900;
+      const H = canvas?.clientHeight || 600;
+      const count = cappedNodes.length;
 
-    const revealDelays = new Float32Array(cappedNodes.length);
-    sortedIndices.forEach((item, orderIndex) => {
-      // 24 ms stagger, capped at 480 ms total (beyond cap, batch by type)
-      const delay = Math.min(480, orderIndex * 24);
-      revealDelays[item.i] = delay;
-    });
+      const previous = new Map(simNodesRef.current.map((sn) => [sn.id, sn]));
+      const modeChanged = lastLayoutModeRef.current !== layoutMode;
+      lastLayoutModeRef.current = layoutMode;
+      const sameSet =
+        !forceRelayout &&
+        !modeChanged &&
+        count > 0 &&
+        previous.size === count &&
+        cappedNodes.every((n) => previous.has(n.id));
 
-    // Preserve unchanged node positions across layout recalculations (stable node IDs §7.3, §M8.2)
-    const existingMap = new Map(simNodesRef.current.map((sn) => [sn.id, sn]));
+      const maxB = Math.max(1e-6, ...cappedNodes.map((n) => n.betweenness ?? 0));
+      const importance = cappedNodes.map((n) => {
+        const b = Math.max(0, n.betweenness ?? 0);
+        return Math.sqrt(b / maxB);
+      });
+      // Meaning first: concepts outrank structural nodes, then by centrality
+      const order = cappedNodes
+        .map((_, i) => i)
+        .sort((a, b) => {
+          const sa = isStructuralType(cappedNodes[a].type) ? 0 : 1;
+          const sb = isStructuralType(cappedNodes[b].type) ? 0 : 1;
+          return sb - sa || importance[b] - importance[a];
+        });
+      const rank = new Array<number>(count).fill(0);
+      order.forEach((idx, pos) => {
+        rank[idx] = pos;
+      });
 
-    const initialSimNodes: SimNode[] = cappedNodes.map((n, i) => {
-      const existing = existingMap.get(n.id);
-      let x = existing ? existing.x : width / 2 + (Math.random() - 0.5) * 360;
-      let y = existing ? existing.y : height / 2 + (Math.random() - 0.5) * 260;
+      const degree = buildDegree(count, simEdges);
+      // Hubs: the most central concept of each community (the cluster's name-giver), plus the top few overall
+      const hubSet = new Set<number>(order.slice(0, 3));
+      const bestInCommunity = new Map<number, number>();
+      cappedNodes.forEach((n, i) => {
+        if (n.community === undefined || isStructuralType(n.type)) return;
+        const cur = bestInCommunity.get(n.community);
+        if (cur === undefined || importance[i] > importance[cur]) bestInCommunity.set(n.community, i);
+      });
+      bestInCommunity.forEach((i) => hubSet.add(i));
 
-      if (layoutMode === "circular" && cappedNodes.length > 0) {
-        const angle = (i / cappedNodes.length) * 2 * Math.PI;
-        const radius = Math.min(width, height) * 0.35;
-        x = width / 2 + Math.cos(angle) * radius;
-        y = height / 2 + Math.sin(angle) * radius;
+      // Ontology-ordered reveal: Report -> Category -> Test -> Measurement -> Chunk (§M8.2)
+      const sortedIndices = cappedNodes
+        .map((n, i) => ({ i, rank: getOntologyRank(n.type) }))
+        .sort((a, b) => a.rank - b.rank || a.i - b.i);
+      const revealDelays = new Float32Array(count);
+      sortedIndices.forEach((item, orderIndex) => {
+        // 24 ms stagger, capped at 480 ms total (beyond cap, batch by type)
+        revealDelays[item.i] = Math.min(480, orderIndex * 24);
+      });
+
+      const nodes: SimNode[] = cappedNodes.map((n, i) => {
+        const structural = isStructuralType(n.type);
+        const raw = 7 + 21 * importance[i];
+        const r = structural ? Math.min(raw, 13) : raw;
+        return {
+          ...n,
+          x: 0,
+          y: 0,
+          vx: 0,
+          vy: 0,
+          r,
+          color: communityColor(n.community, getNodeColor(n)),
+          revealDelay: revealDelays[i],
+          imp: importance[i],
+          rank: rank[i],
+          deg: degree[i],
+          display: displayLabel(n),
+          structural,
+          hub: hubSet.has(i) && r > 9,
+          a: 1,
+          inFocus: true,
+          active: false,
+          sx: 0,
+          sy: 0,
+          sr: 0,
+        };
+      });
+
+      const spacing = layoutSpacing(W, H, count);
+      const anchors = communityAnchors(nodes, W, H, spacing);
+      const hubWeight = nodes.map((n) => (n.deg > 20 ? 0.85 : 0));
+      const forceCtx: ForceContext = { spacing, cx: W / 2, cy: H / 2, degree, hubWeight, anchors };
+
+      if (layoutMode === "circular") {
+        seedCircular(nodes, W, H);
+        alphaRef.current = 0;
+      } else if (sameSet) {
+        seedForce(nodes, anchors, W, H, new Map(simNodesRef.current.map((sn) => [sn.id, { x: sn.x, y: sn.y }])));
+        alphaRef.current = 0;
+      } else {
+        seedForce(nodes, anchors, W, H);
+        settle(nodes, simEdges, forceCtx, 320);
+        recenter(nodes, W, H);
+        alphaRef.current = 0;
       }
 
-      const radius =
-        n.betweenness !== undefined
-          ? Math.max(7, Math.min(18, 8 + n.betweenness * 22))
-          : (n.r || 10);
+      // Edge indices and neighbour sets belong to the previous layout: drop them
+      selCacheRef.current.id = null;
+      hoverStateRef.current.hoveredNode = null;
+      hoverStateRef.current.hoveredId = null;
+      hoverStateRef.current.progress = 0;
+      hoverStateRef.current.incidentEdgeIndices.clear();
+      hoverStateRef.current.neighborNodeIds.clear();
 
-      return {
-        ...n,
-        x,
-        y,
-        vx: existing ? existing.vx : 0,
-        vy: existing ? existing.vy : 0,
-        r: radius,
-        color: getNodeColor(n),
-        revealDelay: revealDelays[i],
-      };
+      simNodesRef.current = nodes;
+      simEdgesRef.current = simEdges;
+      forceCtxRef.current = forceCtx;
+      drawOrderRef.current = nodes.map((_, i) => i).sort((a, b) => nodes[a].r - nodes[b].r);
+      layoutAreaRef.current = W * H;
+      if (typeof window !== "undefined") {
+        (window as any).__VG_SIM_NODES__ = nodes;
+      }
+
+      // Unchanged refetch diff by node ID set (§M8.2)
+      const newIds = new Set(cappedNodes.map((n) => n.id));
+      const isSameSet =
+        prevNodeIdsRef.current.size > 0 &&
+        prevNodeIdsRef.current.size === newIds.size &&
+        [...newIds].every((id) => prevNodeIdsRef.current.has(id));
+
+      if (!isSameSet || forceRelayout) {
+        prevNodeIdsRef.current = newIds;
+        mountTimeRef.current = performance.now();
+      }
+      if (!sameSet) {
+        userMovedRef.current = false;
+        applyFit(false);
+      }
+    },
+    [cappedNodes, simEdges, layoutMode, applyFit]
+  );
+
+  useEffect(() => {
+    buildLayout(false);
+    // A new mode or a new set of nodes starts from a composed layout; later renders do not.
+  }, [buildLayout]);
+
+  // Refit when the frame or the side panel changes size, unless the person has taken the camera
+  useEffect(() => {
+    if (!simNodesRef.current.length || userMovedRef.current) return;
+    applyFit(true);
+  }, [panelOpen, applyFit]);
+
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    let raf = 0;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const w = el.clientWidth;
+        const h = el.clientHeight;
+        if (!w || !h || simNodesRef.current.length === 0) return;
+        const prevArea = layoutAreaRef.current;
+        if (prevArea && Math.abs((w * h) / prevArea - 1) > 0.35 && !userMovedRef.current) {
+          buildLayout(true);
+        } else if (!userMovedRef.current) {
+          applyFit(false);
+        }
+      });
     });
+    ro.observe(el);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [buildLayout, applyFit]);
 
-    simNodesRef.current = initialSimNodes;
-    simEdgesRef.current = simEdges;
-    if (typeof window !== "undefined") {
-      (window as any).__VG_SIM_NODES__ = initialSimNodes;
+  // Group focus from the panel: dim the rest and bring the group into view
+  useEffect(() => {
+    communityFocusRef.current = focusCommunity;
+    if (focusCommunity !== null) {
+      const subset = simNodesRef.current.filter((n) => n.community === focusCommunity);
+      if (subset.length > 0) applyFit(true, subset, 1.5);
+    } else if (prevFocusRef.current !== null) {
+      applyFit(true);
     }
+    prevFocusRef.current = focusCommunity;
+  }, [focusCommunity, applyFit]);
 
-    // Unchanged refetch diff by node ID set (§M8.2)
-    const newIds = new Set(cappedNodes.map((n) => n.id));
-    const isSameSet =
-      prevNodeIdsRef.current.size > 0 &&
-      prevNodeIdsRef.current.size === newIds.size &&
-      [...newIds].every((id) => prevNodeIdsRef.current.has(id));
-
-    if (!isSameSet) {
-      prevNodeIdsRef.current = newIds;
-      mountTimeRef.current = performance.now();
-    }
-  }, [cappedNodes, simEdges, layoutMode]);
+  // Escape clears a group focus (the page clears the node selection itself)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && communityFocusRef.current !== null) setFocusCommunity(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Screen rect calculation for node->detail morph (§7.3, F0-A)
   const getNodeScreenRect = useCallback((node: GraphNode): DOMRect | undefined => {
@@ -751,18 +1002,15 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     [onSelectNode, focusNode, getNodeScreenRect]
   );
 
-  // Physics & Canvas Render Loop via single Ticker (§M4.1, Gate 29)
+  // 3. Physics & canvas render loop via the single ticker (§M4.1, Gate 29)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    let alpha = 1.0; // Cooling factor
-
     const unsub = ticker.subscribe("L0", (dtMs, now) => {
-      if (!canvas || !ctx) return;
-
+      const L = liveRef.current;
       const tier = governor.getState().tier;
       const isT0 = tier === "T0" || isReducedMotion();
       const maxDpr = tier === "T3" ? 2.0 : tier === "T2" ? 1.5 : 1.0;
@@ -828,7 +1076,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         }
       }
 
-      // 2. Hover state interpolation (120ms §M8.5)
+      // 2. Hover state interpolation (120ms §M8.5) and eased spotlights
       const hs = hoverStateRef.current;
       if (hs.hoveredNode) {
         hs.progress = Math.min(1, hs.progress + dtMs / 120);
@@ -836,110 +1084,75 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         hs.progress = Math.max(0, hs.progress - dtMs / 80);
       }
 
-      // 3. Canvas setup
-      ctx.save();
-      ctx.scale(dpr, dpr);
-      ctx.clearRect(0, 0, width, height);
-
-      const cam = cameraRef.current;
-      ctx.translate(width / 2, height / 2);
-      ctx.scale(cam.k, cam.k);
-      ctx.translate(-width / 2 + cam.x, -height / 2 + cam.y);
-
-      // Viewport bounds in world space (+24px margin for culling, §M8.1)
-      const margin = 24 / cam.k;
-      const worldLeft = (0 - width / 2) / cam.k + width / 2 - cam.x - margin;
-      const worldRight = (width - width / 2) / cam.k + width / 2 - cam.x + margin;
-      const worldTop = (0 - height / 2) / cam.k + height / 2 - cam.y - margin;
-      const worldBottom = (height - height / 2) / cam.k + height / 2 - cam.y + margin;
-
-      const minX = Math.min(worldLeft, worldRight);
-      const maxX = Math.max(worldLeft, worldRight);
-      const minY = Math.min(worldTop, worldBottom);
-      const maxY = Math.max(worldTop, worldBottom);
-
       const nodes = simNodesRef.current;
       const edges = simEdgesRef.current;
 
-      // 4. Force physics step
-      if (layoutMode === "force" && alpha > 0.01) {
-        const REPULSION = 1400;
-        const SPRING_K = 0.04;
-        const SPRING_LEN = 85;
-        const DAMPING = 0.82;
-
-        for (let i = 0; i < nodes.length; i++) {
-          const n1 = nodes[i];
-          if (dragRef.current === n1) continue;
-
-          for (let j = i + 1; j < nodes.length; j++) {
-            const n2 = nodes[j];
-            const dx = n2.x - n1.x;
-            const dy = n2.y - n1.y;
-            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-            if (dist < 260) {
-              const f = (REPULSION / (dist * dist)) * alpha;
-              n1.vx -= (dx / dist) * f;
-              n1.vy -= (dy / dist) * f;
-              if (dragRef.current !== n2) {
-                n2.vx += (dx / dist) * f;
-                n2.vy += (dy / dist) * f;
-              }
+      const selId = L.selectedNode?.id ?? null;
+      if (selId !== selCacheRef.current.id) {
+        const cache = selCacheRef.current;
+        cache.id = selId;
+        cache.neighbors.clear();
+        cache.incident.clear();
+        if (selId) {
+          for (let i = 0; i < edges.length; i++) {
+            const s = nodes[edges[i].source];
+            const t = nodes[edges[i].target];
+            if (!s || !t) continue;
+            if (s.id === selId) {
+              cache.incident.add(i);
+              cache.neighbors.add(t.id);
+            } else if (t.id === selId) {
+              cache.incident.add(i);
+              cache.neighbors.add(s.id);
             }
           }
-
-          n1.vx += (width / 2 - n1.x) * 0.002 * alpha;
-          n1.vy += (height / 2 - n1.y) * 0.002 * alpha;
         }
+      }
+      const hovering = hs.hoveredId !== null;
+      const focusActive = hovering || selId !== null;
+      const focusGroup = L.focusCommunity;
+      const ease = isT0 ? 1 : 1 - Math.exp(-dtMs / 110);
+      spotRef.current += ((selId !== null ? 1 : 0) - spotRef.current) * ease;
+      groupSpotRef.current += ((focusGroup !== null ? 1 : 0) - groupSpotRef.current) * ease;
+      if (Math.abs(spotRef.current - (selId !== null ? 1 : 0)) < 0.002) spotRef.current = selId !== null ? 1 : 0;
+      if (Math.abs(groupSpotRef.current - (focusGroup !== null ? 1 : 0)) < 0.002) groupSpotRef.current = focusGroup !== null ? 1 : 0;
+      const selSpot = spotRef.current; // selection: a gentle lean towards the neighbourhood
+      const hovSpot = hs.progress; // hover: a stronger spotlight, because it is momentary
+      const gspot = groupSpotRef.current;
 
-        for (let i = 0; i < edges.length; i++) {
-          const e = edges[i];
-          const s = nodes[e.source];
-          const t = nodes[e.target];
-          if (!s || !t) continue;
-          const dx = t.x - s.x;
-          const dy = t.y - s.y;
-          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-          const force = (dist - SPRING_LEN) * SPRING_K * alpha;
-          if (dragRef.current !== s) {
-            s.vx += (dx / dist) * force;
-            s.vy += (dy / dist) * force;
-          }
-          if (dragRef.current !== t) {
-            t.vx -= (dx / dist) * force;
-            t.vy -= (dy / dist) * force;
-          }
-        }
-
-        for (let i = 0; i < nodes.length; i++) {
-          const n = nodes[i];
-          if (dragRef.current === n) continue;
-          n.x += n.vx;
-          n.y += n.vy;
-          n.vx *= DAMPING;
-          n.vy *= DAMPING;
-        }
-
-        alpha *= 0.992;
+      // 3. Force physics step (the layout is composed before the first frame; this keeps drags alive)
+      if (L.layoutMode === "force" && alphaRef.current > 0.002 && forceCtxRef.current) {
+        stepForce(nodes, edges, forceCtxRef.current, alphaRef.current, dragIndexRef.current);
+        alphaRef.current *= 0.985;
       }
 
-      const activeId = selectedNode?.id;
-      const pulseElapsed = pulseStartTimeRef.current ? now - pulseStartTimeRef.current : 99999;
-      const isPulsing = pulseAllowedRef.current && pulseElapsed < 1200;
-      if (typeof window !== "undefined") {
-        (window as any).__VG_PULSE_ACTIVE__ = isPulsing;
+      const prefersReducedMotion = isReducedMotion() || isT0;
+      const cam = cameraRef.current;
+      const k = cam.k;
+
+      const zoomPct = Math.round(k * 100);
+      if (zoomPct !== lastZoomPctRef.current) {
+        // Mirrored into the DOM directly: React state here would re-render the stage on every
+        // camera frame and fight the page's view transition when a node is selected.
+        lastZoomPctRef.current = zoomPct;
+        if (zoomLabelRef.current) zoomLabelRef.current.textContent = `${zoomPct}%`;
+        if (zoomSliderRef.current) {
+          zoomSliderRef.current.value = String(Math.min(280, Math.max(40, zoomPct)));
+          zoomSliderRef.current.setAttribute("aria-valuetext", `${zoomPct} percent`);
+        }
       }
 
+      // 4. Per-node state for this frame
       const hasActiveQuestion =
-        (activeConcepts && activeConcepts.length > 0) ||
-        (activeNodeIds && activeNodeIds.length > 0);
+        (L.activeConcepts && L.activeConcepts.length > 0) ||
+        (L.activeNodeIds && L.activeNodeIds.length > 0);
 
       const isNodeActive = (n: SimNode) => {
-        if (activeNodeIds && activeNodeIds.length > 0 && activeNodeIds.includes(n.id)) {
+        if (L.activeNodeIds && L.activeNodeIds.length > 0 && L.activeNodeIds.includes(n.id)) {
           return true;
         }
-        if (activeConcepts && activeConcepts.length > 0) {
-          return activeConcepts.some(
+        if (L.activeConcepts && L.activeConcepts.length > 0) {
+          return L.activeConcepts.some(
             (c) =>
               (n.label && n.label.toLowerCase().includes(c.toLowerCase())) ||
               (n.id && n.id.toLowerCase().includes(c.toLowerCase()))
@@ -947,8 +1160,6 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         }
         return false;
       };
-
-      const prefersReducedMotion = isReducedMotion() || isT0;
 
       // Closed-form snappy spring reveal progress solver (§M8.2)
       const getNodeRevealProgress = (n: SimNode): number => {
@@ -958,78 +1169,80 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       };
 
       // Exact dim-to-40% via weighted spring solver (§M8.3)
-      const currentDim = isT0
-        ? dimSpringRef.current.target
-        : dimSpringRef.current.step(dtMs);
+      const currentDim = isT0 ? dimSpringRef.current.target : dimSpringRef.current.step(dtMs);
       const exactDim = dimSpringRef.current.isAtRest ? dimSpringRef.current.target : currentDim;
-
       if (typeof window !== "undefined") {
         (window as any).__VG_GRAPH_DIM_ALPHA__ = exactDim;
       }
 
-      // 4b. Draw Community Hulls (T3: 9s sine breathe 0.05->0.08, T2: static 0.06, T1/T0: none §M8.6)
-      if (!isT0 && tier !== "T1") {
-        const commMap = new Map<number, Point[]>();
-        for (let i = 0; i < nodes.length; i++) {
-          const n = nodes[i];
-          if (n.community !== undefined && n.community >= 0) {
-            let pts = commMap.get(n.community);
-            if (!pts) {
-              pts = [];
-              commMap.set(n.community, pts);
-            }
-            pts.push({ x: n.x, y: n.y });
-          }
-        }
-
-        let hullIdx = 0;
-        commMap.forEach((pts) => {
-          if (pts.length >= 2) {
-            const hull = computeConvexHull(pts);
-            if (hull.length >= 2) {
-              let hullOpacity = 0.06;
-              if (tier === "T3" && !isOffscreenRef.current) {
-                // 9s sine oscillation (0.05 -> 0.08) with phase offset hullIndex / 7 (§M8.6)
-                const phase = hullIdx / 7;
-                hullOpacity = 0.065 + 0.015 * Math.sin((2 * Math.PI * now) / 9000 + phase);
-              }
-
-              let cx = 0;
-              let cy = 0;
-              for (let j = 0; j < hull.length; j++) {
-                cx += hull[j].x;
-                cy += hull[j].y;
-              }
-              cx /= hull.length;
-              cy /= hull.length;
-
-              ctx.save();
-              ctx.beginPath();
-              for (let j = 0; j < hull.length; j++) {
-                const hp = hull[j];
-                const dx = hp.x - cx;
-                const dy = hp.y - cy;
-                const dist = Math.hypot(dx, dy) || 1;
-                const px = hp.x + (dx / dist) * 24;
-                const py = hp.y + (dy / dist) * 24;
-                if (j === 0) ctx.moveTo(px, py);
-                else ctx.lineTo(px, py);
-              }
-              ctx.closePath();
-              ctx.setLineDash([6, 4]);
-              ctx.strokeStyle = `rgba(155, 161, 176, ${hullOpacity})`;
-              ctx.lineWidth = 1.2;
-              ctx.stroke();
-              ctx.restore();
-            }
-          }
-          hullIdx++;
-        });
+      const pulseElapsed = pulseStartTimeRef.current ? now - pulseStartTimeRef.current : 99999;
+      const isPulsing = pulseAllowedRef.current && pulseElapsed < 1200;
+      if (typeof window !== "undefined") {
+        (window as any).__VG_PULSE_ACTIVE__ = isPulsing;
       }
 
-      // 5. Draw Curved Edges with Viewport Culling & Incident Edge Emphasis (§M8.5)
-      const hasHover = hs.hoveredId !== null;
+      const sel = selCacheRef.current;
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        n.active = hasActiveQuestion ? isNodeActive(n) : false;
+        const inHover = hs.hoveredId !== null && (n.id === hs.hoveredId || hs.neighborNodeIds.has(n.id));
+        const inSel = selId !== null && (n.id === selId || sel.neighbors.has(n.id));
+        n.inFocus = !focusActive || inHover || inSel;
+        const hoverFade = hovering && !inHover ? 1 - 0.72 * hovSpot : 1;
+        const selFade = selId !== null && !inSel ? 1 - 0.4 * selSpot : 1;
+        const focusFade = Math.min(hoverFade, selFade);
+        const groupFade = focusGroup !== null && n.community !== focusGroup ? 1 - 0.84 * gspot : 1;
+        const questionFade = hasActiveQuestion && !n.active && n.id !== selId ? exactDim : 1;
+        n.a = Math.min(focusFade, groupFade, questionFade);
+        n.sx = (n.x - width / 2 + cam.x) * k + width / 2;
+        n.sy = (n.y - height / 2 + cam.y) * k + height / 2;
+      }
+
+      // 5. Canvas setup: world transform
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      ctx.translate(width / 2, height / 2);
+      ctx.scale(k, k);
+      ctx.translate(-width / 2 + cam.x, -height / 2 + cam.y);
+
+      // Viewport bounds in world space (+24px margin for culling, §M8.1)
+      const margin = 24 / k;
+      const worldLeft = (0 - width / 2) / k + width / 2 - cam.x - margin;
+      const worldRight = (width - width / 2) / k + width / 2 - cam.x + margin;
+      const worldTop = (0 - height / 2) / k + height / 2 - cam.y - margin;
+      const worldBottom = (height - height / 2) / k + height / 2 - cam.y + margin;
+      const minX = Math.min(worldLeft, worldRight);
+      const maxX = Math.max(worldLeft, worldRight);
+      const minY = Math.min(worldTop, worldBottom);
+      const maxY = Math.max(worldTop, worldBottom);
+
+      const additive = (tier === "T3" || tier === "T2") && !prefersReducedMotion;
+
+      // 6. Community mist (T3 breathes 0.9..1.1 over 9s, T2 static, T1/T0 none, §M8.6)
+      if (!isT0 && tier !== "T1") {
+        const mistFade = prefersReducedMotion ? 1 : clamp((now - mountTimeRef.current - 150) / 700, 0, 1);
+        ctx.globalCompositeOperation = "lighter";
+        for (let i = 0; i < nodes.length; i++) {
+          const n = nodes[i];
+          let breathe = 1;
+          if (tier === "T3" && !isOffscreenRef.current) {
+            breathe = 1 + 0.1 * Math.sin((2 * Math.PI * now) / 9000 + (n.community ?? 0) / 7);
+          }
+          const size = (n.r * 6 + 76) * breathe;
+          if (n.x + size < minX || n.x - size > maxX || n.y + size < minY || n.y - size > maxY) continue;
+          const sprite = getMistSprite(n.color);
+          if (!sprite) continue;
+          ctx.globalAlpha = 0.15 * (0.45 + 0.55 * n.imp) * mistFade * n.a;
+          ctx.drawImage(sprite, n.x - size / 2, n.y - size / 2, size, size);
+        }
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+      }
+
+      // 7. Edges: curved, luminous, weighted by meaning and by how central their ends are
       const hp = hs.progress;
+      ctx.globalCompositeOperation = additive ? "lighter" : "source-over";
+      const edgeScale = 1 / clamp(k, 0.6, 1.6);
 
       for (let i = 0; i < edges.length; i++) {
         const e = edges[i];
@@ -1057,29 +1270,55 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           const edgeStart = Math.max(s.revealDelay, t.revealDelay);
           const edgeElapsed = now - (mountTimeRef.current + edgeStart);
           if (edgeElapsed <= 0) continue;
-          const ep = Math.min(1, edgeElapsed / 240);
-          edgeProgress = servoEase(ep);
+          edgeProgress = servoEase(Math.min(1, edgeElapsed / 240));
         }
 
-        const sActive = isNodeActive(s);
-        const tActive = isNodeActive(t);
-        const isQuestionActiveEdge = hasActiveQuestion && (sActive || tActive);
-        const isSelectedEdge = activeId && (s.id === activeId || t.id === activeId);
-        const isIncident = hs.incidentEdgeIndices.has(i);
+        const hovInc = hs.incidentEdgeIndices.has(i);
+        const selInc = sel.incident.has(i);
 
         const midX = (s.x + t.x) / 2;
         const midY = (s.y + t.y) / 2;
         const dx = t.x - s.x;
         const dy = t.y - s.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-
         const curveOffset = Math.min(24, dist * 0.12);
         const cpx = midX - (dy / dist) * curveOffset;
         const cpy = midY + (dx / dist) * curveOffset;
 
+        // Resting look: importance and relation decide how loudly an edge speaks
+        const impAvg = (s.imp + t.imp) / 2;
+        const spoke = Math.max(s.deg, t.deg) > 26 ? 0.5 : 1;
+        const rest = (0.1 + 0.34 * e.weight * (0.35 + 0.65 * Math.sqrt(impAvg))) * spoke;
+        let alphaEdge = rest;
+        let lineW = 0.8 + 0.9 * e.weight;
+
+        if (hovering) {
+          // Hover: the hovered node's edges light up, the rest recede
+          const target = hovInc ? 0.85 : selInc ? rest : rest * 0.15;
+          alphaEdge = rest + (target - rest) * hovSpot;
+          if (hovInc) lineW += 0.8 * hovSpot;
+        } else if (selId !== null) {
+          // Selection: its edges are brighter, the rest dim only a little
+          const target = selInc ? 0.62 : rest * 0.55;
+          alphaEdge = rest + (target - rest) * selSpot;
+          if (selInc) lineW += 0.5 * selSpot;
+        }
+        if (hasActiveQuestion) {
+          if (s.active || t.active) {
+            alphaEdge = Math.max(alphaEdge, 0.85);
+            lineW = Math.max(lineW, 1.8);
+          } else {
+            alphaEdge *= exactDim;
+          }
+        }
+        if (focusGroup !== null && (s.community !== focusGroup || t.community !== focusGroup)) {
+          alphaEdge *= 1 - 0.84 * gspot;
+        }
+        alphaEdge *= edgeProgress;
+        if (alphaEdge < 0.01) continue;
+
         ctx.beginPath();
         ctx.moveTo(s.x, s.y);
-
         if (edgeProgress >= 0.99) {
           ctx.quadraticCurveTo(cpx, cpy, t.x, t.y);
         } else {
@@ -1091,33 +1330,20 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           ctx.quadraticCurveTo(ctrlX, ctrlY, endX, endY);
         }
 
-        if (isIncident) {
-          // Incident edge emphasis: alpha rises to 0.85, width 1.8px (§M8.5)
-          const edgeAlpha = 0.45 + 0.40 * hp;
-          ctx.strokeStyle = `rgba(71,119,95, ${edgeAlpha * edgeProgress})`;
-          ctx.lineWidth = 1.0 + 0.8 * hp;
-        } else if (hasHover) {
-          // Non-incident edges dim to 0.30 (§M8.5)
-          ctx.strokeStyle = `rgba(154,167,176, ${0.30 * edgeProgress})`;
-          ctx.lineWidth = 0.8;
-        } else if (isQuestionActiveEdge || isSelectedEdge) {
-          ctx.strokeStyle = `rgba(71,119,95, ${0.85 * edgeProgress})`;
-          ctx.lineWidth = 1.8;
-        } else if (hasActiveQuestion) {
-          // Inactive edges dim to exactDim via weighted spring (§M8.3)
-          ctx.strokeStyle = `rgba(154,167,176, ${exactDim * edgeProgress})`;
-          ctx.lineWidth = 0.8;
-        } else if (activeId) {
-          ctx.strokeStyle = `rgba(154,167,176, ${0.35 * edgeProgress})`;
-          ctx.lineWidth = 0.8;
+        if (s.color === t.color) {
+          ctx.strokeStyle = rgba(s.color, alphaEdge);
         } else {
-          ctx.strokeStyle = `rgba(155, 161, 176, ${0.28 * edgeProgress})`;
-          ctx.lineWidth = 1.0;
+          const grad = ctx.createLinearGradient(s.x, s.y, t.x, t.y);
+          grad.addColorStop(0, rgba(s.color, alphaEdge));
+          grad.addColorStop(1, rgba(t.color, alphaEdge));
+          ctx.strokeStyle = grad;
         }
+        ctx.lineWidth = lineW * edgeScale;
         ctx.stroke();
       }
+      ctx.globalCompositeOperation = "source-over";
 
-      // 5b. Draw Photons (T3 only, <= 24 pooled dots travel beziers, vanish 120ms fade, §M8.3)
+      // 7b. Draw Photons (T3 only, <= 24 pooled dots travel beziers, vanish 120ms fade, §M8.3)
       let activePhotonsCount = 0;
       if (tier === "T3" && !prefersReducedMotion) {
         PhotonManager.update(dtMs);
@@ -1162,7 +1388,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           const px = (1 - u) * (1 - u) * sNode.x + 2 * (1 - u) * u * cpx + u * u * tNode.x;
           const py = (1 - u) * (1 - u) * sNode.y + 2 * (1 - u) * u * cpy + u * u * tNode.y;
 
-          const alpha = p.t < 1.0 ? 0.50 : Math.max(0, 0.50 * (1 - p.vanishElapsed / 120));
+          const alpha = p.t < 1.0 ? 0.5 : Math.max(0, 0.5 * (1 - p.vanishElapsed / 120));
 
           ctx.save();
           ctx.beginPath();
@@ -1178,223 +1404,83 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         (window as any).__VG_ACTIVE_PHOTONS__ = activePhotonsCount;
       }
 
-      // Labels are queued while nodes draw, then placed by importance so they never pile up.
-      const labelQueue: Array<{
-        text: string; x: number; y: number; font: string; size: number;
-        fill: string; alpha: number; priority: number; force: boolean;
-      }> = [];
+      // 8. Nodes: lit spheres. Small ones first so hubs sit on top; the focused neighbourhood last.
+      const order = drawOrderRef.current;
+      const passes = focusActive ? 2 : 1;
+      const hoverId = hs.hoveredId;
+      for (let pass = 0; pass < passes; pass++) {
+        for (let q = 0; q < order.length; q++) {
+          const n = nodes[order[q]];
+          if (focusActive && (pass === 0) === n.inFocus) continue;
 
-      // 6. Draw Nodes with Viewport Culling, Glow Sprites, and Hover Scale (§M8.1, §M8.5)
-      for (let idx = 0; idx < nodes.length; idx++) {
-        const n = nodes[idx];
+          if (n.x + n.r < minX || n.x - n.r > maxX || n.y + n.r < minY || n.y - n.r > maxY) continue;
 
-        // Viewport culling for node
-        if (
-          n.x + n.r < minX ||
-          n.x - n.r > maxX ||
-          n.y + n.r < minY ||
-          n.y - n.r > maxY
-        ) {
-          continue;
-        }
+          const reveal = getNodeRevealProgress(n);
+          if (reveal <= 0) continue;
 
-        const revealProgress = getNodeRevealProgress(n);
-        if (revealProgress <= 0) continue;
+          const isSelected = selId === n.id;
+          const isHovered = hoverId === n.id;
 
-        const isSelected = selectedNode?.id === n.id;
-        const isConceptActive = isNodeActive(n);
-        const isHovered = hs.hoveredId === n.id;
-        const isNeighbor = hs.neighborNodeIds.has(n.id);
+          // Hover scale: 1 -> 1.08 (120ms §M8.5); node scale 0.6 -> 1 via snappy spring (§M8.2)
+          const hoverScale = isHovered ? 1.0 + 0.08 * hp : 1.0;
+          const snappyScale = 0.6 + 0.4 * reveal;
+          const cr = n.r * snappyScale * hoverScale;
+          n.sr = cr * k;
 
-        // Hover scale: 1 -> 1.06 (120ms §M8.5)
-        const scaleMultiplier = isHovered ? 1.0 + 0.06 * hp : 1.0;
-        // Node scale: 0.6 -> 1 via snappy spring (§M8.2)
-        const snappyScale = 0.6 + 0.4 * revealProgress;
-        const currentRadius = n.r * snappyScale * scaleMultiplier;
-
-        const isDimmed =
-          (hasActiveQuestion && !isConceptActive && !isSelected) ||
-          (!hasActiveQuestion && selectedNode && !isSelected && !edges.some((e) => {
-            const s = nodes[e.source];
-            const t = nodes[e.target];
-            return (s?.id === selectedNode.id && t?.id === n.id) || (t?.id === selectedNode.id && s?.id === n.id);
-          }));
-
-        // Single pulse animation on activation (duration 1200ms, F0-B: pulseAllowedRef guard)
-        if (isPulsing && isConceptActive && pulseAllowedRef.current) {
-          const pulseProgress = pulseElapsed / 1200;
-          const pulseRadius = currentRadius + pulseProgress * 26;
-          const pulseAlpha = Math.max(0, (1 - pulseProgress) * 0.85);
-
-          ctx.beginPath();
-          ctx.arc(n.x, n.y, pulseRadius, 0, 2 * Math.PI);
-          ctx.strokeStyle = `rgba(71,119,95, ${pulseAlpha})`;
-          ctx.lineWidth = Math.max(1, 2.5 * (1 - pulseProgress));
-          ctx.stroke();
-        }
-
-        // Glow sprite cache (T3 / T2 §M8.1: replaces per-frame gradients)
-        const glowSprite = getGlowSprite(n.color);
-        if (glowSprite && (isSelected || isConceptActive) && tier !== "T1" && tier !== "T0") {
-          ctx.save();
-          ctx.globalAlpha = (isSelected ? 0.35 : 0.30) * revealProgress;
-          const glowD = (currentRadius + 8) * 2;
-          ctx.drawImage(glowSprite, n.x - glowD / 2, n.y - glowD / 2, glowD, glowD);
-          ctx.restore();
-        }
-
-        // Hover glow sprite (alpha 0 -> 0.35 §M8.5)
-        if (glowSprite && isHovered && hp > 0.01 && tier !== "T1" && tier !== "T0") {
-          ctx.save();
-          ctx.globalAlpha = 0.35 * hp * revealProgress;
-          const hoverGlowD = (currentRadius + 10) * 2;
-          ctx.drawImage(glowSprite, n.x - hoverGlowD / 2, n.y - hoverGlowD / 2, hoverGlowD, hoverGlowD);
-          ctx.restore();
-        }
-
-        // Inactive nodes dim to exactly 40% via weighted spring (§M8.3)
-        ctx.globalAlpha = (isDimmed ? exactDim : 1.0) * revealProgress;
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, currentRadius, 0, 2 * Math.PI);
-        ctx.fillStyle = n.color;
-        ctx.fill();
-
-        ctx.lineWidth = isSelected || isConceptActive || isHovered ? 2.5 : 1.2;
-        ctx.strokeStyle = isSelected || isHovered ? "#28323A" : isConceptActive ? "rgba(71,119,95, 0.9)" : "rgba(85,99,110,0.45)";
-        ctx.stroke();
-        ctx.globalAlpha = 1.0;
-
-        // Measurement chips & Flag tags (§M8.7)
-        const isMeasurement = (n.type || "").toLowerCase() === "measurement" || n.value !== undefined;
-        // Value chips are detail: show them for the focused neighbourhood or once zoomed in,
-        // otherwise dozens of chips stack on top of each other.
-        const showValueChip = isSelected || isHovered || isConceptActive || isNeighbor || cameraRef.current.k >= 1.5;
-        if (isMeasurement && showValueChip && revealProgress > 0.4) {
-          const hairlineProgress = prefersReducedMotion ? 1.0 : Math.min(1.0, Math.max(0, (revealProgress - 0.4) / 0.6));
-          const hairlineEase = servoEase(hairlineProgress);
-          const hairlineLen = 12 * hairlineEase;
-
-          ctx.save();
-          ctx.strokeStyle = "rgba(197,138,67, 0.50)";
-          ctx.lineWidth = 1.0;
-          ctx.beginPath();
-          ctx.moveTo(n.x, n.y - currentRadius);
-          ctx.lineTo(n.x, n.y - currentRadius - hairlineLen);
-          ctx.stroke();
-
-          if (hairlineProgress > 0.8) {
-            const chipAlpha = (hairlineProgress - 0.8) / 0.2;
-            const chipX = n.x;
-            const chipY = n.y - currentRadius - 12 - 8;
-            const valText = n.value !== undefined ? `${n.value} ${n.unit || ""}` : (n.label || "");
-            const hasHighFlag = n.flag && n.flag.toUpperCase() === "HIGH";
-
-            ctx.font = "600 10px 'IBM Plex Mono', monospace";
-            const textW = ctx.measureText(valText).width;
-            const flagW = hasHighFlag ? 32 : 0;
-            const chipW = textW + flagW + 12;
-            const chipH = 16;
-            const rectX = chipX - chipW / 2;
-            const rectY = chipY - chipH / 2;
-
-            ctx.globalAlpha = (isDimmed ? exactDim : 1.0) * chipAlpha;
-            ctx.fillStyle = "rgba(223,227,230,0.92)";
+          // Single pulse animation on activation (duration 1200ms, F0-B: pulseAllowedRef guard)
+          if (isPulsing && n.active && pulseAllowedRef.current) {
+            const pulseProgress = pulseElapsed / 1200;
+            const pulseRadius = cr + pulseProgress * 26;
+            const pulseAlpha = Math.max(0, (1 - pulseProgress) * 0.85);
             ctx.beginPath();
-            ctx.roundRect(rectX, rectY, chipW, chipH, 4);
-            ctx.fill();
-
-            ctx.strokeStyle = "rgba(197,138,67, 0.45)";
-            ctx.lineWidth = 1.0;
+            ctx.arc(n.x, n.y, pulseRadius, 0, 2 * Math.PI);
+            ctx.strokeStyle = `rgba(130,211,162, ${pulseAlpha})`;
+            ctx.lineWidth = Math.max(1, 2.5 * (1 - pulseProgress)) / k;
             ctx.stroke();
+          }
 
-            // Value text
-            ctx.fillStyle = "#C58A43";
-            ctx.textAlign = "left";
-            ctx.textBaseline = "middle";
-            ctx.fillText(valText, rectX + 6, chipY);
-
-            // HIGH flag tag with single 240ms madder wash (§M8.7)
-            if (hasHighFlag) {
-              const flagX = rectX + textW + 8;
-              const flagTagW = 26;
-              const flagTagH = 12;
-              const flagTagY = chipY - flagTagH / 2;
-
-              // Check 240ms madder wash on first reveal (once, never looping)
-              const nodeRevealTime = mountTimeRef.current + n.revealDelay;
-              const washElapsed = now - (nodeRevealTime + 180);
-              if (washElapsed >= 0 && washElapsed < 240 && !prefersReducedMotion) {
-                const washAlpha = 0.35 * (1 - washElapsed / 240);
-                ctx.save();
-                ctx.fillStyle = `rgba(176,82,94, ${washAlpha})`;
-                ctx.beginPath();
-                ctx.roundRect(flagX - 2, flagTagY, flagTagW, flagTagH, 2);
-                ctx.fill();
-                ctx.restore();
-              }
-
-              ctx.fillStyle = "#B0525E";
-              ctx.fillText("HIGH", flagX, chipY);
+          // Halo: hubs, the hovered or selected node, activated concepts. Nothing else glows.
+          const wantsHalo = isSelected || isHovered || (n.active && hasActiveQuestion) || n.hub;
+          if (wantsHalo && tier !== "T0") {
+            const halo = getHaloSprite(n.color);
+            if (halo && (tier !== "T1" || isSelected || isHovered)) {
+              const strength = isSelected ? 0.55 : isHovered ? 0.5 * hp + 0.2 : n.active ? 0.42 : 0.26;
+              const d = (cr + (isSelected ? 22 : 17)) * 2;
+              ctx.globalAlpha = strength * reveal * n.a;
+              ctx.drawImage(halo, n.x - d / 2, n.y - d / 2, d, d);
             }
           }
-          ctx.restore();
-        }
 
-        // Proportional labels with neighbor emphasis (§M8.5)
-        if (revealProgress > 0.45 && (!isDimmed || isSelected || isHovered || isNeighbor)) {
-          const fontSize = Math.max(10, Math.min(14, 8 + currentRadius * 0.45));
-          const emphasised = isSelected || isConceptActive || isHovered;
-          let fill = "#28323A";
-          if (emphasised) {
-            fill = "#28323A"; // label alpha -> 1
-          } else if (isNeighbor) {
-            fill = "rgba(40,50,58,0.85)"; // neighbor labels alpha -> 0.85
-          } else if (isDimmed) {
-            fill = "rgba(85,99,110,0.55)";
+          // The sphere itself
+          const orb = getOrbSprite(n.color);
+          ctx.globalAlpha = n.a * reveal;
+          if (orb) {
+            ctx.drawImage(orb, n.x - cr, n.y - cr, cr * 2, cr * 2);
+          } else {
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, cr, 0, 2 * Math.PI);
+            ctx.fillStyle = n.color;
+            ctx.fill();
           }
-          const labelText = n.label || n.id;
-          labelQueue.push({
-            text: labelText.length > 20 ? labelText.slice(0, 18) + "…" : labelText,
-            x: n.x,
-            y: n.y + currentRadius + 4,
-            font: `${emphasised ? "600" : "500"} ${fontSize}px 'IBM Plex Sans', sans-serif`,
-            size: fontSize,
-            fill,
-            alpha: 1,
-            priority: (emphasised ? 1000 : isNeighbor ? 500 : 0) + currentRadius,
-            force: emphasised,
-          });
+
+          // Rim light, and a clear ring on the selected node
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, cr, 0, 2 * Math.PI);
+          ctx.strokeStyle = isSelected || isHovered ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.2)";
+          ctx.lineWidth = (isSelected || isHovered ? 2.2 : 1) / k;
+          ctx.stroke();
+          if (isSelected) {
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, cr + 5 / k + 1, 0, 2 * Math.PI);
+            ctx.strokeStyle = "rgba(255,255,255,0.4)";
+            ctx.lineWidth = 1 / k;
+            ctx.stroke();
+          }
+          ctx.globalAlpha = 1;
         }
       }
 
-      // Place labels, most important first. A label that would overlap one already placed is
-      // skipped (it appears when zoomed in, hovered or selected). Forced labels always draw.
-      labelQueue.sort((l1, l2) => l2.priority - l1.priority);
-      const placedLabels: Array<{ x0: number; y0: number; x1: number; y1: number }> = [];
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      ctx.lineJoin = "round";
-      for (const item of labelQueue) {
-        ctx.font = item.font;
-        const w = ctx.measureText(item.text).width;
-        const box = { x0: item.x - w / 2 - 3, x1: item.x + w / 2 + 3, y0: item.y - 1, y1: item.y + item.size + 3 };
-        if (
-          !item.force &&
-          placedLabels.some((r) => box.x0 < r.x1 && box.x1 > r.x0 && box.y0 < r.y1 && box.y1 > r.y0)
-        ) {
-          continue;
-        }
-        placedLabels.push(box);
-        ctx.globalAlpha = item.alpha;
-        ctx.strokeStyle = "rgba(223,227,230,0.9)"; // halo keeps text legible over edges
-        ctx.lineWidth = 3;
-        ctx.strokeText(item.text, item.x, item.y);
-        ctx.fillStyle = item.fill;
-        ctx.fillText(item.text, item.x, item.y);
-      }
-      ctx.globalAlpha = 1.0;
-
-      // 7. Draw Evidence Dust Particles (T3 only, <= 40 pooled, drift <= 12px, §M8.3)
+      // 9. Evidence Dust Particles (T3 only, <= 40 pooled, drift <= 12px, §M8.3)
       let activeDustCount = 0;
       if (tier === "T3" && !prefersReducedMotion) {
         DustManager.update(dtMs);
@@ -1434,50 +1520,240 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         (window as any).__VG_ACTIVE_DUST__ = activeDustCount;
       }
 
-      ctx.restore();
+      // 10. Screen-space pass: group captions, labels and value chips keep one size at every zoom
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.lineJoin = "round";
+      const revealAll = prefersReducedMotion ? 1 : clamp((now - mountTimeRef.current - 350) / 500, 0, 1);
+
+
+      // Which measurement nodes carry a value chip this frame
+      const showsChip = (n: SimNode) => {
+        const isMeasurement = (n.type || "").toLowerCase() === "measurement" || n.value !== undefined;
+        if (!isMeasurement) return false;
+        return selId === n.id || hoverId === n.id || (n.active && hasActiveQuestion) || k >= 1.5;
+      };
+
+      // 10b. Labels: importance decides who gets a place; a label never covers another or a node
+      const budget = labelBudget(k, nodes.length);
+      const placed: Array<{ x0: number; y0: number; x1: number; y1: number }> = [];
+      const labelOrder = order;
+      const candidates: number[] = [];
+      for (let q = labelOrder.length - 1; q >= 0; q--) candidates.push(labelOrder[q]);
+      candidates.sort((ia, ib) => {
+        const a = nodes[ia];
+        const b = nodes[ib];
+        const ea = (selId === a.id || hoverId === a.id ? 2 : 0) + (a.inFocus && focusActive ? 1 : 0);
+        const eb = (selId === b.id || hoverId === b.id ? 2 : 0) + (b.inFocus && focusActive ? 1 : 0);
+        return eb - ea || a.rank - b.rank;
+      });
+
+      for (let c = 0; c < candidates.length; c++) {
+        const n = nodes[candidates[c]];
+        const reveal = getNodeRevealProgress(n);
+        if (reveal < 0.5 || revealAll <= 0) continue;
+        if (showsChip(n)) continue;
+        const isSelected = selId === n.id;
+        const isHovered = hoverId === n.id;
+        const emphasised = isSelected || isHovered || (n.active && hasActiveQuestion);
+        const spotlit = focusActive && n.inFocus;
+        // Outside the budget a label only appears when it is the focus of attention
+        if (n.rank >= budget && !emphasised && !spotlit) continue;
+        if (n.a < 0.3 && !emphasised) continue;
+        if (n.sx < -40 || n.sx > width + 40 || n.sy < -40 || n.sy > height + 40) continue;
+
+        const tierIdx = n.hub ? 0 : n.rank < 14 ? 1 : 2;
+        let font: string;
+        let size: number;
+        if (tierIdx === 0) {
+          size = clamp(14 + n.r * 0.3, 15, 21);
+          font = FONT_HUB(size);
+        } else if (tierIdx === 1) {
+          size = 13.5;
+          font = FONT_LABEL(size, 600);
+        } else {
+          size = 12;
+          font = FONT_LABEL(size, 500);
+        }
+        if (emphasised && tierIdx > 0) {
+          size = 14;
+          font = FONT_LABEL(size, 600);
+        }
+        const text = n.display.length > 26 ? n.display.slice(0, 24) + "…" : n.display;
+        const w = textWidth(ctx, font, text);
+        const sr = n.sr || n.r * k;
+        const gap = 5;
+        const h = size * 1.2;
+
+        // Try right, below, left, above
+        const spots: Array<[number, number, CanvasTextAlign]> = [
+          [n.sx + sr + gap, n.sy, "left"],
+          [n.sx, n.sy + sr + gap + h / 2, "center"],
+          [n.sx - sr - gap, n.sy, "right"],
+          [n.sx, n.sy - sr - gap - h / 2, "center"],
+        ];
+        let chosen = -1;
+        let box = { x0: 0, y0: 0, x1: 0, y1: 0 };
+        for (let si = 0; si < spots.length; si++) {
+          const [px, py, align] = spots[si];
+          const x0 = align === "left" ? px : align === "right" ? px - w : px - w / 2;
+          const b = { x0: x0 - 3, x1: x0 + w + 3, y0: py - h / 2 - 1, y1: py + h / 2 + 1 };
+          let clash = false;
+          for (let pi = 0; pi < placed.length && !clash; pi++) {
+            const r = placed[pi];
+            if (b.x0 < r.x1 && b.x1 > r.x0 && b.y0 < r.y1 && b.y1 > r.y0) clash = true;
+          }
+          for (let ni = 0; ni < nodes.length && !clash; ni++) {
+            const o = nodes[ni];
+            if (o === n || o.a < 0.3) continue;
+            const orad = (o.sr || o.r * k) + 1;
+            const nx = clamp(o.sx, b.x0, b.x1);
+            const ny = clamp(o.sy, b.y0, b.y1);
+            if ((nx - o.sx) * (nx - o.sx) + (ny - o.sy) * (ny - o.sy) < orad * orad) clash = true;
+          }
+          if (b.x0 < 6 || b.x1 > width - 6 || b.y0 < 6 || b.y1 > height - 6) clash = true;
+          if (!clash) {
+            chosen = si;
+            box = b;
+            break;
+          }
+        }
+        if (chosen < 0) {
+          if (!emphasised) continue;
+          chosen = 0; // the focus of attention always gets its label
+          const [px, py, align] = spots[0];
+          const x0 = align === "left" ? px : px - w;
+          box = { x0: x0 - 3, x1: x0 + w + 3, y0: py - h / 2 - 1, y1: py + h / 2 + 1 };
+        }
+        placed.push(box);
+        const [lx, ly, lalign] = spots[chosen];
+
+        const baseAlpha = tierIdx === 0 ? 0.97 : tierIdx === 1 ? 0.9 : 0.72;
+        const alphaLabel = (emphasised ? 1 : spotlit && focusActive ? 0.97 : baseAlpha) * n.a * revealAll;
+        ctx.font = font;
+        ctx.textAlign = lalign;
+        ctx.globalAlpha = alphaLabel;
+        ctx.strokeStyle = "rgba(8,12,15,0.88)"; // halo keeps text legible over edges
+        ctx.lineWidth = 3.5;
+        ctx.strokeText(text, lx, ly);
+        ctx.fillStyle = emphasised ? "#FFFFFF" : "#F3F6F6";
+        ctx.fillText(text, lx, ly);
+      }
+      ctx.globalAlpha = 1;
+      ctx.textAlign = "center";
+
+      // 10c. Measured values, in mono because they are machine output
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        if (!showsChip(n) || n.a < 0.4) continue;
+        const reveal = getNodeRevealProgress(n);
+        if (reveal < 0.8) continue;
+        if (n.sx < 0 || n.sx > width || n.sy < 0 || n.sy > height) continue;
+        const valText = n.value !== undefined ? `${n.value} ${n.unit || ""}`.trim() : n.display;
+        const high = !!n.flag && n.flag.toUpperCase() === "HIGH";
+        const font = FONT_VALUE(11);
+        const tw = textWidth(ctx, font, valText) + (high ? 34 : 0);
+        const cw = tw + 14;
+        const ch = 18;
+        const cx = n.sx - cw / 2;
+        const cy = n.sy - (n.sr || n.r * k) - ch - 5;
+        const must = selId === n.id || hoverId === n.id;
+        const box = { x0: cx - 2, x1: cx + cw + 2, y0: cy - 2, y1: cy + ch + 2 };
+        if (!must && placed.some((r) => box.x0 < r.x1 && box.x1 > r.x0 && box.y0 < r.y1 && box.y1 > r.y0)) continue;
+        placed.push(box);
+        ctx.globalAlpha = n.a * reveal;
+        ctx.fillStyle = "rgba(14,20,24,0.94)";
+        roundedRect(ctx, cx, cy, cw, ch, 5);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(240,200,138,0.55)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.font = font;
+        ctx.textAlign = "left";
+        ctx.fillStyle = "#F0C88A";
+        ctx.fillText(valText, cx + 7, cy + ch / 2 + 0.5);
+        if (high) {
+          ctx.fillStyle = "#F08E9A";
+          ctx.fillText("HIGH", cx + 7 + tw - 30, cy + ch / 2 + 0.5);
+        }
+        ctx.textAlign = "center";
+      }
+      ctx.globalAlpha = 1;
     });
 
     return () => {
       unsub();
     };
-  }, [layoutMode, selectedNode, activeConcepts, activeNodeIds]);
+  }, []);
 
-  // Pointer event handlers on canvas (Hit testing, dragging, and momentum §M8.4, §M8.5)
-  const getCanvasPoint = (e: React.PointerEvent<HTMLCanvasElement>) => {
+  // ----- Pointer interaction -------------------------------------------------------------
+
+  const getCanvasPoint = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
     const cam = cameraRef.current;
-    const clientX = e.clientX - rect.left;
-    const clientY = e.clientY - rect.top;
+    const px = clientX - rect.left;
+    const py = clientY - rect.top;
+    return {
+      x: (px - canvas.clientWidth / 2) / cam.k + canvas.clientWidth / 2 - cam.x,
+      y: (py - canvas.clientHeight / 2) / cam.k + canvas.clientHeight / 2 - cam.y,
+    };
+  };
 
-    const worldX = (clientX - canvas.clientWidth / 2) / cam.k + canvas.clientWidth / 2 - cam.x;
-    const worldY = (clientY - canvas.clientHeight / 2) / cam.k + canvas.clientHeight / 2 - cam.y;
-    return { x: worldX, y: worldY };
+  /** Topmost node under a world point (hubs are drawn last, so they win). */
+  const hitTest = (wx: number, wy: number): { node: SimNode; index: number } | null => {
+    const nodes = simNodesRef.current;
+    const order = drawOrderRef.current;
+    const slack = 5 / Math.max(cameraRef.current.k, 0.6);
+    for (let q = order.length - 1; q >= 0; q--) {
+      const n = nodes[order[q]];
+      if (n.a < 0.25) continue;
+      const dx = wx - n.x;
+      const dy = wy - n.y;
+      if (Math.sqrt(dx * dx + dy * dy) <= n.r + slack) return { node: n, index: order[q] };
+    }
+    return null;
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
     // User interaction interrupts running camera spring (§M8.4)
     targetCamRef.current.active = false;
     momentumRef.current.active = false;
+    userMovedRef.current = true;
 
-    const pt = getCanvasPoint(e);
-    const nodes = simNodesRef.current;
-
-    let hitNode: SimNode | null = null;
-    for (let i = nodes.length - 1; i >= 0; i--) {
-      const n = nodes[i];
-      const dx = pt.x - n.x;
-      const dy = pt.y - n.y;
-      if (Math.sqrt(dx * dx + dy * dy) <= n.r + 4) {
-        hitNode = n;
-        break;
-      }
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try {
+      canvas?.setPointerCapture(e.pointerId);
+    } catch {
+      /* pointer already gone */
     }
 
-    if (hitNode) {
-      dragRef.current = hitNode;
-      handleSelectNode(hitNode);
+    // Second finger: switch from drag or pan to pinch zoom
+    if (pointersRef.current.size === 2) {
+      const [p1, p2] = [...pointersRef.current.values()];
+      pinchRef.current = {
+        dist: Math.hypot(p2.x - p1.x, p2.y - p1.y) || 1,
+        cx: (p1.x + p2.x) / 2,
+        cy: (p1.y + p2.y) / 2,
+      };
+      dragRef.current = null;
+      dragIndexRef.current = -1;
+      panRef.current = null;
+      return;
+    }
+
+    const pt = getCanvasPoint(e.clientX, e.clientY);
+    const hit = hitTest(pt.x, pt.y);
+
+    if (hit) {
+      dragRef.current = hit.node;
+      dragIndexRef.current = hit.index;
+      alphaRef.current = Math.max(alphaRef.current, 0.3); // wake the layout so neighbours follow
+      handleSelectNode(hit.node);
     } else {
       panRef.current = {
         isPanning: true,
@@ -1490,18 +1766,40 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         vy: 0,
       };
       lastUserPanTimeRef.current = performance.now();
+      if (canvas) canvas.style.cursor = "grabbing";
     }
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const now = performance.now();
+    if (pointersRef.current.has(e.pointerId)) {
+      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+
+    // Pinch: zoom around the midpoint and follow it
+    if (pinchRef.current && pointersRef.current.size >= 2) {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const [p1, p2] = [...pointersRef.current.values()];
+      const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 1;
+      const cx = (p1.x + p2.x) / 2;
+      const cy = (p1.y + p2.y) / 2;
+      const rect = canvas.getBoundingClientRect();
+      zoomAt(cx - rect.left, cy - rect.top, dist / pinchRef.current.dist);
+      const cam = cameraRef.current;
+      cam.x += (cx - pinchRef.current.cx) / cam.k;
+      cam.y += (cy - pinchRef.current.cy) / cam.k;
+      pinchRef.current = { dist, cx, cy };
+      return;
+    }
 
     if (dragRef.current) {
-      const pt = getCanvasPoint(e);
+      const pt = getCanvasPoint(e.clientX, e.clientY);
       dragRef.current.x = pt.x;
       dragRef.current.y = pt.y;
       dragRef.current.vx = 0;
       dragRef.current.vy = 0;
+      alphaRef.current = Math.max(alphaRef.current, 0.18);
       return;
     }
 
@@ -1526,39 +1824,31 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     }
 
     // Fast spatial hit-test for hover (< 1-frame response §M8.5)
-    const pt = getCanvasPoint(e);
+    const pt = getCanvasPoint(e.clientX, e.clientY);
+    const hit = hitTest(pt.x, pt.y);
+    const hitNode = hit ? hit.node : null;
     const nodes = simNodesRef.current;
-    let hit: SimNode | null = null;
-    for (let i = nodes.length - 1; i >= 0; i--) {
-      const n = nodes[i];
-      const dx = pt.x - n.x;
-      const dy = pt.y - n.y;
-      if (Math.sqrt(dx * dx + dy * dy) <= n.r + 4) {
-        hit = n;
-        break;
-      }
-    }
 
     if (canvasRef.current) {
-      canvasRef.current.style.cursor = hit ? "pointer" : "grab";
+      canvasRef.current.style.cursor = hitNode ? "pointer" : "grab";
     }
 
-    if (hit !== hoverStateRef.current.hoveredNode) {
-      hoverStateRef.current.hoveredNode = hit;
-      hoverStateRef.current.hoveredId = hit ? hit.id : null;
+    if (hitNode !== hoverStateRef.current.hoveredNode) {
+      hoverStateRef.current.hoveredNode = hitNode;
+      hoverStateRef.current.hoveredId = hitNode ? hitNode.id : null;
       hoverStateRef.current.incidentEdgeIndices.clear();
       hoverStateRef.current.neighborNodeIds.clear();
 
-      if (hit) {
+      if (hitNode) {
         const edges = simEdgesRef.current;
         for (let i = 0; i < edges.length; i++) {
-          const e = edges[i];
-          const s = nodes[e.source];
-          const t = nodes[e.target];
-          if (s?.id === hit.id) {
+          const ed = edges[i];
+          const s = nodes[ed.source];
+          const t = nodes[ed.target];
+          if (s?.id === hitNode.id) {
             hoverStateRef.current.incidentEdgeIndices.add(i);
             if (t) hoverStateRef.current.neighborNodeIds.add(t.id);
-          } else if (t?.id === hit.id) {
+          } else if (t?.id === hitNode.id) {
             hoverStateRef.current.incidentEdgeIndices.add(i);
             if (s) hoverStateRef.current.neighborNodeIds.add(s.id);
           }
@@ -1567,24 +1857,52 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     }
   };
 
-  const handlePointerUp = () => {
+  const releasePointer = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    pointersRef.current.delete(e.pointerId);
+    try {
+      canvasRef.current?.releasePointerCapture(e.pointerId);
+    } catch {
+      /* not captured */
+    }
+    if (pinchRef.current && pointersRef.current.size < 2) {
+      pinchRef.current = null;
+      const rest = [...pointersRef.current.values()][0];
+      if (rest) {
+        // Carry on as a pan with the finger that is left, without a jump
+        panRef.current = {
+          isPanning: true,
+          startX: rest.x,
+          startY: rest.y,
+          lastX: rest.x,
+          lastY: rest.y,
+          lastTime: performance.now(),
+          vx: 0,
+          vy: 0,
+        };
+      }
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    releasePointer(e);
     dragRef.current = null;
+    dragIndexRef.current = -1;
+    if (canvasRef.current) canvasRef.current.style.cursor = "grab";
     if (panRef.current?.isPanning) {
       // Momentum hand-off on release (§M8.4)
       const speed = Math.hypot(panRef.current.vx, panRef.current.vy);
-      if (speed > 0.4) {
+      if (speed > 0.4 && pointersRef.current.size === 0) {
         momentumRef.current = {
           active: true,
           vx: panRef.current.vx,
           vy: panRef.current.vy,
         };
       }
-      panRef.current = null;
+      if (pointersRef.current.size === 0) panRef.current = null;
     }
   };
 
   const handlePointerLeave = () => {
-    handlePointerUp();
     // Hover cancelled immediately on leave (§M8.5)
     hoverStateRef.current.hoveredNode = null;
     hoverStateRef.current.hoveredId = null;
@@ -1593,18 +1911,26 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     hoverStateRef.current.neighborNodeIds.clear();
   };
 
-  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    targetCamRef.current.active = false; // user wheel interrupts camera spring (§M8.4)
-    momentumRef.current.active = false;
-    const zoomFactor = e.deltaY < 0 ? 1.12 : 0.88;
-    cameraRef.current.k = Math.max(0.4, Math.min(2.8, cameraRef.current.k * zoomFactor));
-  };
+  // The wheel listener is native and non-passive so it can stop the page from scrolling
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1;
+      const factor = Math.exp(-e.deltaY * unit * (e.ctrlKey ? 0.01 : 0.0016));
+      zoomAt(e.clientX - rect.left, e.clientY - rect.top, factor);
+    };
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", onWheel);
+  }, [zoomAt]);
 
   // View controls
   const handleZoom = (factor: number) => {
     const isT0 = governor.getState().tier === "T0" || isReducedMotion();
-    const nextK = Math.max(0.4, Math.min(2.8, cameraRef.current.k * factor));
+    const nextK = clamp(cameraRef.current.k * factor, K_MIN, K_MAX);
+    userMovedRef.current = true;
     if (isT0) {
       cameraRef.current.k = nextK;
       targetCamRef.current.active = false;
@@ -1619,17 +1945,18 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     }
   };
 
-  const handleResetView = () => {
-    const isT0 = governor.getState().tier === "T0" || isReducedMotion();
-    if (isT0) {
-      cameraRef.current = { x: 0, y: 0, k: 1.0, vx: 0, vy: 0, vk: 0 };
-      targetCamRef.current.active = false;
-      momentumRef.current.active = false;
-    } else {
-      targetCamRef.current = { x: 0, y: 0, k: 1.0, active: true };
-      momentumRef.current.active = false;
-    }
-    handleSelectNode(null);
+  const handleZoomTo = (k: number) => {
+    cameraRef.current.k = clamp(k, K_MIN, K_MAX);
+    targetCamRef.current.active = false;
+    momentumRef.current.active = false;
+    userMovedRef.current = true;
+  };
+
+  const handleFit = () => {
+    userMovedRef.current = false;
+    setFocusCommunity(null);
+    applyFit(true);
+    if (selectedNode) handleSelectNode(null);
   };
 
   // Metrics from live graphData
@@ -1638,143 +1965,60 @@ export const GraphStage: React.FC<GraphStageProps> = ({
   const liveCommunitiesCount = graphData?.metrics?.communities_count ?? 0;
   const liveModularity = graphData?.metrics?.modularity ?? 0;
 
+  const totalNodes = graphData?.nodes?.length ?? 0;
+  const filtering = !showFragments && fragmentCount > 0 && totalNodes - fragmentCount >= 5;
+  const hiddenCount = filtering ? fragmentCount : 0;
+  const showingText =
+    cappedNodes.length === 0
+      ? ""
+      : poolSize > cappedNodes.length
+      ? `Showing the ${cappedNodes.length} most central of ${poolSize.toLocaleString()} ${filtering ? "concepts, documents and values" : "nodes"}.`
+      : `Showing all ${cappedNodes.length} ${filtering ? "concepts, documents and values" : "nodes"}.`;
+
+  const groupCount = summary.groups.length;
+
   return (
     <div ref={containerRef} className={`w-full flex flex-col ${className}`}>
-      {/* Stats row & Controls above frame (§7.16) */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-        {/* Live Metrics */}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-[var(--cornflower)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="18" cy="5" r="3" />
-              <circle cx="6" cy="12" r="3" />
-              <circle cx="18" cy="19" r="3" />
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-            </svg>
-            <div>
-              <span className="type-mono font-medium text-[var(--bone)]">
-                <Odometer value={liveNodesCount} duration={480} testId="graph-odo-nodes" />
-              </span>
-              <span className="type-meta text-[var(--dim)] ml-1.5">nodes</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-[var(--ochre-ink)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
-            </svg>
-            <div>
-              <span className="type-mono font-medium text-[var(--bone)]">
-                <Odometer value={liveEdgesCount} duration={480} testId="graph-odo-edges" />
-              </span>
-              <span className="type-meta text-[var(--dim)] ml-1.5">edges</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-[var(--lilac)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M8 12a4 4 0 018 0" />
-            </svg>
-            <div>
-              <span className="type-mono font-medium text-[var(--bone)]">
-                <Odometer value={liveCommunitiesCount} duration={480} testId="graph-odo-comm" />
-              </span>
-              <span className="type-meta text-[var(--dim)] ml-1.5">communities</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-[var(--verdigris)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2L2 22h20L12 2z" />
-            </svg>
-            <div>
-              <span className="type-mono font-medium text-[var(--bone)]">
-                <Odometer
-                  value={liveModularity}
-                  decimals={2}
-                  format={(v) => v.toFixed(2)}
-                  duration={480}
-                  testId="graph-odo-mod"
-                />
-              </span>
-              <span className="type-meta text-[var(--dim)] ml-1.5">modularity</span>
-            </div>
-          </div>
-
-          {/* Activated Subgraph Chip (§20.1) */}
-          {activeConcepts.length > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-[var(--r-6)] bg-[var(--verdigris)]/10 border border-[var(--verdigris)]/30 text-[var(--verdigris)] text-[12px] type-mono">
-              <span className="w-2 h-2 rounded-full bg-[var(--verdigris)] animate-pulse" />
-              <span>Activated concepts: {activeConcepts.join(", ")}</span>
-              {subgraphMetrics && (
-                <span className="text-[var(--bone)] text-[12px] font-medium ml-1">
-                  ({subgraphMetrics.total_nodes} nodes • {subgraphMetrics.total_edges} edges)
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Controls */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Select
-            aria-label="Graph layout"
-            value={layoutMode}
-            onChange={(e) => setLayoutMode(e.target.value)}
-            options={[
-              { value: "force", label: "Force-directed" },
-              { value: "circular", label: "Circular" },
-            ]}
-          />
-          <Button variant="ghost" onClick={handleResetView}>
-            <svg className="w-3.5 h-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M23 4v6h-6M1 20v-6h6" />
-              <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
-            </svg>
-            <span>Reset view</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Frame: radius 14, line-strong, canvas-grid (§7.16) */}
-      <div className="relative w-full h-[540px] rounded-[var(--r-14)] border border-[var(--line-strong)] bg-[var(--ink-900)] overflow-hidden canvas-grid select-none">
-        {/* Radial vignette overlay */}
-        <div
-          className="absolute inset-0 pointer-events-none z-0"
-          style={{
-            background: "radial-gradient(circle at center, transparent 40%, rgba(186,195,202,0.75) 100%)",
-          }}
+      {/* Frame: dark viewport. Local tokens (.graph-dark) re-skin everything inside it. */}
+      <div
+        ref={frameRef}
+        data-testid="graph-frame"
+        className="graph-dark graph-frame relative w-full rounded-[var(--r-14)] overflow-hidden select-none"
+        style={{ height: `var(--graph-h, ${height})` }}
+      >
+        {/* Interactive Canvas */}
+        <canvas
+          ref={canvasRef}
+          role="img"
+          aria-label={`Knowledge graph showing ${cappedNodes.length} nodes in ${groupCount} groups. Use the concepts panel to browse and select nodes with the keyboard.`}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onPointerLeave={handlePointerLeave}
+          style={{ touchAction: "none", cursor: "grab" }}
+          className="w-full h-full relative z-10 block"
         />
 
-        {/* Legend chips top-right (§7.16) */}
-        <div className="absolute top-4 right-4 z-20 flex items-center gap-3 bg-[var(--ink-800)]/85 px-3 py-1.5 rounded-[var(--r-6)] border border-[var(--line-strong)]">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[var(--cornflower)]" />
-            <span className="type-label text-[var(--dim)]">Condition</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[var(--verdigris)]" />
-            <span className="type-label text-[var(--dim)]">Biomarker</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[var(--ochre)]" />
-            <span className="type-label text-[var(--dim)]">Measurement</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[var(--lilac)]" />
-            <span className="type-label text-[var(--dim)]">Category</span>
-          </div>
-        </div>
+        <div className="graph-vignette" aria-hidden="true" />
 
         {/* Skeleton shimmer before first graph data arrives (§US-18) */}
         {!graphData && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-[var(--ink-900)]/80 pointer-events-none">
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 pointer-events-none">
             <div className="w-16 h-16 rounded-full skeleton-shimmer" />
             <div className="h-4 w-48 rounded-[var(--r-4)] skeleton-shimmer" />
             <div className="h-3 w-32 rounded-[var(--r-4)] skeleton-shimmer opacity-75" />
+          </div>
+        )}
+
+        {graphData && cappedNodes.length === 0 && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center p-8 text-center pointer-events-none">
+            <div>
+              <p className="type-card-title m-0">Nothing to draw yet</p>
+              <p className="type-body text-[var(--dim)] mt-2 mb-0 max-w-[40ch]">
+                Upload a report and VitaGraph will map its tests, dates and values here.
+              </p>
+            </div>
           </div>
         )}
 
@@ -1785,101 +2029,209 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           className="pointer-events-none absolute inset-0"
         />
 
-        {/* Interactive Canvas */}
-        <canvas
-          ref={canvasRef}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerLeave}
-          onWheel={handleWheel}
-          className="w-full h-full relative z-10 block"
-        />
-
-        {/* Node Provenance Card (pops up when a node is clicked) (§7.16, §M8.5) */}
-        {selectedNode && (
-          <div
-            data-testid="graph-node-provenance-card"
-            className="absolute bottom-4 right-16 z-30 w-72 rounded-[var(--r-10)] bg-[var(--ink-800)]/95 border border-[var(--line-strong)] p-3.5 shadow-xl flex flex-col gap-2 m-enter"
-          >
-            <div className="flex items-center justify-between pb-1.5 border-b border-[var(--line-faint)]">
-              <span className="type-card-title text-[var(--bone)] truncate max-w-[200px]">
-                {selectedNode.label || selectedNode.id}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleSelectNode(null)}
-                aria-label="Close node details"
-                className="text-[var(--dim)] hover:text-[var(--bone)] p-1 cursor-pointer"
-              >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex justify-between type-body text-[12px]">
-                <span className="text-[var(--dim)]">Type</span>
-                <span className="type-mono-sm text-[var(--bone)] capitalize">
-                  {selectedNode.type || "Concept"}
-                </span>
+        {/* HUD: four real counts from the backend, the selected node, and an honest note about what is on screen */}
+        <div className="graph-scrim-top absolute top-0 left-0 right-0 z-20 px-4 pt-3 pb-9 pointer-events-none">
+          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2.5">
+            <dl className="flex flex-wrap items-end gap-x-6 gap-y-2 m-0">
+              <div className="graph-stat">
+                <dt>nodes</dt>
+                <dd>
+                  <Odometer value={liveNodesCount} duration={480} testId="graph-odo-nodes" />
+                </dd>
               </div>
-              {selectedNode.report_id && (
-                <div className="flex justify-between type-body text-[12px]">
-                  <span className="text-[var(--dim)]">Source report</span>
-                  <span className="type-mono-sm text-[var(--bone)] truncate max-w-[140px]">
-                    {selectedNode.report_id}
-                  </span>
-                </div>
-              )}
-              {selectedNode.page !== undefined && (
-                <div className="flex justify-between type-body text-[12px]">
-                  <span className="text-[var(--dim)]">Location</span>
-                  <span className="type-mono-sm text-[var(--bone)]">
-                    Page {selectedNode.page}
-                  </span>
-                </div>
-              )}
-              {selectedNode.value !== undefined && (
-                <div className="flex justify-between type-body text-[12px]">
-                  <span className="text-[var(--dim)]">Value</span>
-                  <span className="type-mono-sm text-[var(--verdigris)]">
+              <div className="graph-stat">
+                <dt>links</dt>
+                <dd>
+                  <Odometer value={liveEdgesCount} duration={480} testId="graph-odo-edges" />
+                </dd>
+              </div>
+              <div className="graph-stat">
+                <dt>groups</dt>
+                <dd>
+                  <Odometer value={liveCommunitiesCount} duration={480} testId="graph-odo-comm" />
+                </dd>
+              </div>
+              <div className="graph-stat" title="How clearly the graph separates into groups, from 0 to 1">
+                <dt>modularity</dt>
+                <dd>
+                  <Odometer
+                    value={liveModularity}
+                    decimals={2}
+                    format={(v) => v.toFixed(2)}
+                    duration={480}
+                    testId="graph-odo-mod"
+                  />
+                </dd>
+              </div>
+            </dl>
+
+            {/* Node card (appears when a node is selected) (§7.16, §M8.5). The full detail lives in the
+                panel beside the graph; this chip says what is selected without covering the graph. */}
+            {selectedNode && (
+              <div
+                data-testid="graph-node-provenance-card"
+                className="pointer-events-auto flex items-center gap-2.5 min-w-0 max-w-full rounded-[var(--r-10)] bg-[var(--ink-800)]/90 border border-[var(--line-strong)] pl-3 pr-1 py-1 m-enter"
+              >
+                <span
+                  aria-hidden="true"
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: communityColor(selectedNode.community, "#9BA1B0") }}
+                />
+                <span className="font-['Spectral'] font-semibold text-[15px] leading-5 truncate min-w-[5ch] flex-1">
+                  {selectedNode.label || selectedNode.id}
+                </span>
+                <span className="type-meta whitespace-nowrap flex-shrink-0 hidden min-[420px]:inline">
+                  <span className="capitalize">{selectedNode.type || "Concept"}</span>
+                  {selectedNode.community !== undefined && summary.groupNames.has(selectedNode.community)
+                    ? `, ${summary.groupNames.get(selectedNode.community)}`
+                    : ""}
+                </span>
+                {selectedNode.value !== undefined && (
+                  <span className="type-mono-sm text-[var(--ochre-ink)] whitespace-nowrap flex-shrink-0">
                     {selectedNode.value} {selectedNode.unit || ""}
                   </span>
-                </div>
-              )}
-              {selectedNode.betweenness !== undefined && (
-                <div className="flex justify-between type-body text-[12px]">
-                  <span className="text-[var(--dim)]">Centrality</span>
-                  <span className="type-mono-sm text-[var(--ochre-ink)]">
+                )}
+                {selectedNode.page !== undefined && (
+                  <span className="type-meta whitespace-nowrap flex-shrink-0">Page {selectedNode.page}</span>
+                )}
+                {selectedNode.betweenness !== undefined && (
+                  <span className="type-mono-sm text-[var(--dim)] whitespace-nowrap flex-shrink-0 hidden sm:inline" title="Centrality">
                     {selectedNode.betweenness.toFixed(3)}
                   </span>
-                </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleSelectNode(null)}
+                  aria-label="Clear selection"
+                  className="text-[var(--dim)] hover:text-[var(--bone)] w-7 h-7 inline-flex items-center justify-center rounded-[var(--r-6)] cursor-pointer flex-shrink-0"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {showingText && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 pointer-events-auto">
+              <p className="m-0 type-meta text-[var(--dim)]" data-testid="graph-cap-note">
+                {showingText}
+              </p>
+              {fragmentCount > 0 && totalNodes - fragmentCount >= 5 && (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={showFragments}
+                  data-testid="graph-fragments-toggle"
+                  onClick={() => setShowFragments((v) => !v)}
+                  className="graph-switch"
+                >
+                  <span className="graph-switch-track" aria-hidden="true">
+                    <span className="graph-switch-thumb" />
+                  </span>
+                  <span>
+                    Text fragments
+                    <span className="text-[var(--dim)]"> ({fragmentCount.toLocaleString()}{hiddenCount > 0 ? " hidden" : " shown"})</span>
+                  </span>
+                </button>
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Zoom cluster (§7.16) */}
-        <div className="absolute bottom-4 right-4 z-20 flex flex-col gap-1">
-          <IconButton size={28} title="Zoom in" onClick={() => handleZoom(1.2)}>
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          {/* Activated Subgraph Chip (§20.1) */}
+          {activeConcepts.length > 0 && (
+            <div className="mt-2 inline-flex flex-wrap items-center gap-2 px-3 py-1 rounded-[var(--r-6)] bg-[var(--verdigris)]/12 border border-[var(--verdigris)]/40 text-[var(--verdigris)] text-[13px] pointer-events-auto">
+              <span className="w-2 h-2 rounded-full bg-[var(--verdigris)]" aria-hidden="true" />
+              <span>Activated concepts: {activeConcepts.join(", ")}</span>
+              {subgraphMetrics && (
+                <span className="text-[var(--bone)] font-medium">
+                  ({subgraphMetrics.total_nodes} nodes, {subgraphMetrics.total_edges} edges)
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Concepts, connections and groups (bottom right) */}
+        <GraphConceptsPanel
+          open={panelOpen}
+          onToggle={setPanelOpen}
+          tab={panelTab}
+          onTab={setPanelTab}
+          summary={summary}
+          selectedId={selectedNode?.id}
+          onSelectNode={handleSelectNode}
+          focusCommunity={focusCommunity}
+          onFocusCommunity={setFocusCommunity}
+        />
+
+        {/* Controls (right edge): zoom slider, fit to screen, layout switch */}
+        <div data-testid="graph-controls" className="absolute right-3 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-2">
+          <IconButton size={32} title="Zoom in" aria-label="Zoom in" onClick={() => handleZoom(1.2)}>
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
           </IconButton>
-          <IconButton size={28} title="Zoom out" onClick={() => handleZoom(0.8)}>
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <input
+            type="range"
+            aria-label="Zoom"
+            data-testid="graph-zoom-slider"
+            className="graph-zoom-slider"
+            min={40}
+            max={280}
+            step={1}
+            defaultValue={100}
+            ref={zoomSliderRef}
+            onChange={(e) => handleZoomTo(Number(e.target.value) / 100)}
+          />
+          <span ref={zoomLabelRef} className="type-meta tabular-nums text-[var(--dim)]" data-testid="graph-zoom-percent">
+            100%
+          </span>
+          <IconButton size={32} title="Zoom out" aria-label="Zoom out" onClick={() => handleZoom(0.8)}>
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
           </IconButton>
-          <IconButton size={28} title="Reset view" onClick={handleResetView}>
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <circle cx="12" cy="12" r="3" />
+          <IconButton size={32} title="Fit to screen" aria-label="Fit to screen" data-testid="graph-fit" onClick={handleFit}>
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
             </svg>
           </IconButton>
+          <IconButton
+            size={32}
+            data-testid="graph-layout-toggle"
+            title={layoutMode === "force" ? "Switch to circular layout" : "Switch to force layout"}
+            aria-label={layoutMode === "force" ? "Switch to circular layout" : "Switch to force layout"}
+            aria-pressed={layoutMode === "circular"}
+            onClick={() => setLayoutMode((m) => (m === "force" ? "circular" : "force"))}
+          >
+            {layoutMode === "force" ? (
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="8" />
+                <circle cx="12" cy="4" r="1.5" fill="currentColor" />
+                <circle cx="19" cy="14" r="1.5" fill="currentColor" />
+                <circle cx="6" cy="17" r="1.5" fill="currentColor" />
+              </svg>
+            ) : (
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <circle cx="6" cy="7" r="2" />
+                <circle cx="17" cy="6" r="2" />
+                <circle cx="12" cy="17" r="2" />
+                <line x1="7.6" y1="8.2" x2="10.6" y2="15.4" />
+                <line x1="15.8" y1="7.8" x2="13.2" y2="15.2" />
+              </svg>
+            )}
+          </IconButton>
+        </div>
+
+        {/* Legend: what size and colour mean, in one honest line */}
+        <div className="graph-scrim-bottom absolute bottom-0 left-0 right-0 z-[19] px-4 pt-8 pb-2.5 pointer-events-none">
+          <p className="m-0 type-meta text-[var(--dim)] max-w-[calc(100%-10rem)] sm:max-w-none" data-testid="graph-legend">
+            Size shows how central a node is. Colour shows its group.
+          </p>
         </div>
       </div>
     </div>
