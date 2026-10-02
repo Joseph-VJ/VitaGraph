@@ -43,7 +43,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
       const startTime = performance.now();
       try {
         const res = await fetch(`${BASE_URL}/api/health`, {
-          signal: AbortSignal.timeout(2000),
+          signal: AbortSignal.timeout(8000),
         });
         const duration = Math.round(performance.now() - startTime);
         if (res.ok && mounted) {

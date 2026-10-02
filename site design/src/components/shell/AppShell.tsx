@@ -94,7 +94,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     const probeBackend = async () => {
       try {
         const res = await fetch(`${BASE_URL}/api/health`, {
-          signal: AbortSignal.timeout(2000),
+          signal: AbortSignal.timeout(8000),
         });
         if (isMounted) {
           setBackendOnline(res.ok);
