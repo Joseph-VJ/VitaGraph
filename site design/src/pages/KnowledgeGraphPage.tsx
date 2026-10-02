@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { flushSync } from "react-dom";
 import { useLocation } from "react-router";
 import {
   GraphStage,
@@ -71,25 +72,71 @@ export const KnowledgeGraphPage: React.FC = () => {
     label: string;
   } | null>(null);
 
-  // Node -> detail shared-element morph (§7.3, F0-A)
+  // Node -> detail shared-element morph (§7.3, F0-A).
+  //
+  // A view transition needs exactly ONE element per transition name in every captured state. The
+  // morph chip holds "node-detail-header" in the old state and the DocumentPanel header holds it in
+  // the new state, so the header stays unnamed while the chip is mounted (`morphing` prop). Chip and
+  // header both derive from React state that is committed together, so two holders can never
+  // coexist, whatever the timing. (The header used to be named whenever a node was selected, and
+  // the graph auto-selects its first node on load, so the first click always produced two holders:
+  // Chrome logged "Unexpected duplicate view-transition-name" and aborted the transition.)
+  const morphSeqRef = useRef(0);
   const handleSelectNode = useCallback((node: GraphNode | null, screenRect?: DOMRect) => {
     const isT0 = isReducedMotion() || governor.getState().tier === "T0";
     const hasVT = typeof document !== "undefined" && "startViewTransition" in document;
+    const setMorphFlag = (on: boolean) => {
+      if (typeof window !== "undefined") {
+        (window as any).__VG_MORPH_CHIP__ = on;
+      }
+    };
+
+    // Every call supersedes any morph still in flight: its callbacks check this before touching state.
+    const seq = ++morphSeqRef.current;
+    const isLatest = () => morphSeqRef.current === seq;
+
+    // Apply a selection and drop the chip in ONE commit. Inside a transition callback flushSync makes
+    // the browser capture the real "after" DOM instead of racing React's scheduler.
+    const settleNow = (next: GraphNode | null) => {
+      setMorphChip(null);
+      setMorphFlag(false);
+      setSelectedNode(next);
+    };
+    const settleInTransition = (next: GraphNode | null) => {
+      if (!isLatest()) return;
+      flushSync(() => {
+        setMorphChip(null);
+        setSelectedNode(next);
+      });
+    };
+
+    // A skipped or aborted transition is harmless (its update callback still runs), so its rejected
+    // `ready` promise must never surface as an uncaught error.
+    const runTransition = (next: GraphNode | null) => {
+      const transition = (document as any).startViewTransition(() => settleInTransition(next));
+      transition?.ready?.catch?.(() => {});
+      const done = () => {
+        if (isLatest()) setMorphFlag(false);
+      };
+      if (transition && transition.finished) {
+        transition.finished.then(done, done);
+      } else {
+        setTimeout(done, 320);
+      }
+    };
 
     if (!node) {
       // Deselect (Escape or Close button)
       if (isT0 || !hasVT) {
-        setSelectedNode(null);
+        settleNow(null);
         return;
       }
-      (document as any).startViewTransition(() => {
-        setSelectedNode(null);
-      });
+      runTransition(null);
       return;
     }
 
     if (isT0 || !hasVT || !screenRect) {
-      setSelectedNode(node);
+      settleNow(node);
       return;
     }
 
@@ -99,35 +146,14 @@ export const KnowledgeGraphPage: React.FC = () => {
       color: node.color || "#47775F",
       label: node.label || node.id,
     });
-    if (typeof window !== "undefined") {
-      (window as any).__VG_MORPH_CHIP__ = true;
-    }
+    setMorphFlag(true);
 
     ticker.subscribe("L0", () => {
+      if (!isLatest()) return false; // superseded before it began: the newer call owns the UI
       try {
-        const transition = (document as any).startViewTransition(() => {
-          setMorphChip(null);
-          setSelectedNode(node);
-        });
-
-        const cleanUp = () => {
-          if (typeof window !== "undefined") {
-            (window as any).__VG_MORPH_CHIP__ = false;
-          }
-          setMorphChip(null);
-        };
-
-        if (transition && transition.finished) {
-          transition.finished.then(cleanUp).catch(cleanUp);
-        } else {
-          setTimeout(cleanUp, 320);
-        }
+        runTransition(node);
       } catch {
-        setSelectedNode(node);
-        setMorphChip(null);
-        if (typeof window !== "undefined") {
-          (window as any).__VG_MORPH_CHIP__ = false;
-        }
+        settleNow(node);
       }
       return false;
     });
@@ -420,6 +446,7 @@ export const KnowledgeGraphPage: React.FC = () => {
         <DocumentPanel
           selectedNode={selectedNode}
           onClose={() => handleSelectNode(null)}
+          morphing={morphChip !== null}
         />
       </div>
 

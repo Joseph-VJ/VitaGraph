@@ -10,6 +10,8 @@ interface DocumentPanelProps {
   selectedNode?: GraphNode | null;
   reportFilename?: string | null;
   onClose?: () => void;
+  /** True while the node-to-header morph chip is mounted. The chip holds the transition name then. */
+  morphing?: boolean;
 }
 
 export const DocumentPanel: React.FC<DocumentPanelProps> = ({
@@ -17,6 +19,7 @@ export const DocumentPanel: React.FC<DocumentPanelProps> = ({
   selectedNode,
   reportFilename = "NEJM_2023_HeartFailure.pdf",
   onClose,
+  morphing = false,
 }) => {
   const [activeTab, setActiveTab] = useState("Overview");
 
@@ -36,7 +39,8 @@ export const DocumentPanel: React.FC<DocumentPanelProps> = ({
         <div
           data-testid="document-panel-header"
           style={{
-            viewTransitionName: selectedNode ? "node-detail-header" : undefined,
+            // One holder per name per captured state: while the chip is mounted it owns the name.
+            viewTransitionName: selectedNode && !morphing ? "node-detail-header" : undefined,
           }}
           className="flex items-start justify-between gap-3 pb-3 border-b border-[var(--line-faint)] mb-3"
         >
