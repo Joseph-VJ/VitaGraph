@@ -16,7 +16,16 @@ import time
 from typing import Any, AsyncGenerator
 
 import httpx
-from openai import AsyncOpenAI, RateLimitError, APIConnectionError, InternalServerError, APITimeoutError
+from openai import (
+    AsyncOpenAI,
+    RateLimitError,
+    APIConnectionError,
+    InternalServerError,
+    APITimeoutError,
+    PermissionDeniedError,
+    NotFoundError,
+    APIStatusError,
+)
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
@@ -163,14 +172,14 @@ def execute_tool(name: str, arguments: dict[str, Any], user_id: str) -> dict[str
     return {"error": f"Unknown tool '{name}'"}
 
 
-# Retry policy on transient gateway/API errors (429, 5xx, timeouts)
+# Retry policy on transient gateway/API errors (5xx, timeouts, connection drops)
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=1, max=6),
-    retry=retry_if_exception_type((RateLimitError, APIConnectionError, InternalServerError, APITimeoutError, httpx.RequestError)),
+    retry=retry_if_exception_type((APIConnectionError, InternalServerError, APITimeoutError, httpx.RequestError)),
     reraise=True,
 )
-async def _call_agentrouter_stream(
+async def create_chat_completion_stream(
     client: AsyncOpenAI,
     messages: list[dict[str, Any]],
     model: str,
@@ -190,18 +199,23 @@ async def _call_agentrouter_stream(
     return await client.chat.completions.create(**kwargs)
 
 
+# Alias for backward compatibility
+_call_agentrouter_stream = create_chat_completion_stream
+
+
 async def stream_agent_rag(
     user_id: str,
     question: str,
     initial_evidence: list[dict[str, Any]] | None = None,
 ) -> AsyncGenerator[tuple[str, dict[str, Any]], None]:
-    """Execute streaming RAG agent pipeline over AgentRouter.
+    """Execute streaming RAG agent pipeline over AgentRouter with model fallback.
 
     Yields (event_type, payload) tuples for:
       - thinking: model reasoning tokens
       - tool_call: tool invocation intent
       - tool_result: tool execution outcome
       - text_delta: synthesized 4-part answer text
+      - model_fallback: notification when switching to a fallback model
       - completed: terminal answer payload
       - error: structured failure reason
     """
@@ -229,7 +243,7 @@ async def stream_agent_rag(
         return
 
     client = get_client()
-    model = settings.effective_model
+    active_model = settings.effective_model
 
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": RAG_SYSTEM_PROMPT},
@@ -252,14 +266,61 @@ async def stream_agent_rag(
 
     collected_evidence = list(initial_evidence or [])
 
+    async def stream_with_model_fallback(
+        msgs: list[dict[str, Any]],
+        tools_list: list[dict[str, Any]] | None,
+        starting_model: str,
+    ) -> AsyncGenerator[tuple[str, Any], None]:
+        """Stream chunks from starting_model; on 402/403/404/429 fallback to next model in chain."""
+        nonlocal active_model
+        chain = settings.model_chain
+        candidates = [starting_model] + [m for m in chain if m != starting_model]
+
+        for idx, model_cand in enumerate(candidates):
+            try:
+                active_model = model_cand
+                stream = await _call_agentrouter_stream(
+                    client, msgs, model=model_cand, tools=tools_list
+                )
+                async for chunk in stream:
+                    yield ("chunk", chunk)
+                return  # Stream completed cleanly
+            except (PermissionDeniedError, NotFoundError, RateLimitError, APIStatusError) as exc:
+                status_code = getattr(exc, "status_code", None)
+                is_fallback_candidate = (
+                    isinstance(exc, (PermissionDeniedError, NotFoundError, RateLimitError))
+                    or status_code in (402, 403, 404, 429)
+                )
+                if is_fallback_candidate and (idx + 1 < len(candidates)):
+                    next_model = candidates[idx + 1]
+                    logger.warning(
+                        "Model '%s' failed (%s). Triggering fallback to '%s'.",
+                        model_cand,
+                        str(exc),
+                        next_model,
+                    )
+                    yield (
+                        "model_fallback",
+                        {
+                            "from": model_cand,
+                            "to": next_model,
+                            "reason": str(exc),
+                        },
+                    )
+                    continue
+                raise
+
     try:
         # Phase 1: Request with tools enabled
-        stream = await _call_agentrouter_stream(client, messages, model=model, tools=TOOL_DEFINITIONS)
-
         current_tool_calls: dict[int, dict[str, Any]] = {}
         content_accumulator = []
 
-        async for chunk in stream:
+        async for item_type, data in stream_with_model_fallback(messages, TOOL_DEFINITIONS, active_model):
+            if item_type == "model_fallback":
+                yield ("model_fallback", data)
+                continue
+
+            chunk = data
             if not chunk.choices:
                 continue
 
@@ -369,10 +430,14 @@ async def stream_agent_rag(
                 )
 
             # Phase 2: Final synthesis stream following tool execution
-            final_stream = await _call_agentrouter_stream(client, messages, model=model, tools=None)
             final_content = []
 
-            async for chunk in final_stream:
+            async for item_type, data in stream_with_model_fallback(messages, None, active_model):
+                if item_type == "model_fallback":
+                    yield ("model_fallback", data)
+                    continue
+
+                chunk = data
                 if not chunk.choices:
                     continue
                 delta = chunk.choices[0].delta
@@ -399,6 +464,18 @@ async def stream_agent_rag(
                 "safety_passed": passed,
                 "safety_note": safety_reason,
                 "evidence_count": len(collected_evidence),
+                "model": active_model,
+            },
+        )
+
+    except Exception as exc:
+        logger.exception("AgentRouter RAG stream encountered failure")
+        yield (
+            "error",
+            {
+                "status": "error",
+                "message": f"AgentRouter generation failed: {str(exc)}",
+                "diagnostic": "Gateway communication or model inference error.",
             },
         )
 

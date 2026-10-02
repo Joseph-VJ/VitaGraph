@@ -103,12 +103,25 @@ class ProofLogger:
             self.text_accumulator.append(delta)
             console.print(f"[white]{delta}[/white]", end="", highlight=False)
 
+        elif event_type == "model_fallback":
+            console.print()
+            old_m = payload.get("from", "")
+            new_m = payload.get("to", "")
+            reason = payload.get("reason", "")
+            console.print(
+                f"[bold magenta][MODEL FALLBACK][/bold magenta] "
+                f"[yellow]{old_m}[/yellow] -> [bold cyan]{new_m}[/bold cyan] "
+                f"[dim]({reason[:120]})[/dim]"
+            )
+
         elif event_type == "completed":
             console.print()
             console.print(Rule(style="green"))
+            model_used = payload.get("model", "unknown")
             console.print(
                 f"[bold green][COMPLETED][/bold green] "
                 f"Status: [cyan]{payload.get('status')}[/cyan] | "
+                f"Model Responded: [bold yellow]{model_used}[/bold yellow] | "
                 f"Safety Verified: [{'green' if payload.get('safety_passed') else 'red'}]{payload.get('safety_passed')}[/] | "
                 f"Evidence Count: [cyan]{payload.get('evidence_count')}[/cyan]"
             )
@@ -122,13 +135,14 @@ class ProofLogger:
                 f"[dim red]Diagnostic: {payload.get('diagnostic')}[/dim red]"
             )
 
-    def write_proof_markdown(self, question: str, model_name: str, live_status: str):
+    def write_proof_markdown(self, question: str, target_model: str, live_status: str, actual_model: str = ""):
         elapsed = time.time() - self.start_time
         lines = [
             "# VitaGraph AgentRouter Live Terminal Trace Proof",
             "",
             f"**Execution Timestamp:** `{time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}`  ",
-            f"**Model Under Test:** `{model_name}`  ",
+            f"**Target Model:** `{target_model}`  ",
+            f"**Responding Model:** `{actual_model or target_model}`  ",
             f"**Gateway URL:** `{settings.effective_base_url}`  ",
             f"**Status / Outcome:** `{live_status}`  ",
             f"**Total Trace Duration:** `{elapsed:.2f}s`  ",
@@ -156,8 +170,10 @@ class ProofLogger:
                 desc = f"Tool result for `{pl.get('tool')}`: `{res_str[:90]}...`"
             elif etype == "text_delta":
                 desc = f"Delta chunk: `{pl.get('delta', '')[:60]}`"
+            elif etype == "model_fallback":
+                desc = f"Model fallback: `{pl.get('from')}` -> `{pl.get('to')}`: `{pl.get('reason')}`"
             elif etype == "completed":
-                desc = f"Completed (safety_passed={pl.get('safety_passed')}, evidence={pl.get('evidence_count')})"
+                desc = f"Completed (model={pl.get('model')}, safety_passed={pl.get('safety_passed')}, evidence={pl.get('evidence_count')})"
             elif etype == "error":
                 desc = f"Error: `{pl.get('message')}`"
             else:
@@ -263,10 +279,12 @@ async def create_mock_stream_generator(messages: list[dict], user_id: str):
 
 
 async def main():
+    use_mock = "--mock" in sys.argv
+
     console.print()
     console.print(Panel.fit(
-        "[bold cyan]VitaGraph AgentRouter Live Terminal Trace[/bold cyan]\n"
-        "[dim]Model: deepseek-v4-flash | Protocol: SSE Stream | Engine: app.services.llm_service[/dim]",
+        f"[bold cyan]VitaGraph AgentRouter Live Terminal Trace[/bold cyan]\n"
+        f"[dim]Model: deepseek-v4-flash | Mode: {'Offline Mock (--mock)' if use_mock else 'Live Gateway Stream'} | Engine: app.services.llm_service[/dim]",
         border_style="cyan"
     ))
 
@@ -275,7 +293,8 @@ async def main():
     settings.agentrouter_model = target_model
     settings.ai_service_model = target_model
 
-    console.print(f"[bold]Active Model:[/bold] [yellow]{settings.effective_model}[/yellow]")
+    console.print(f"[bold]Active Primary Model:[/bold] [yellow]{settings.effective_model}[/yellow]")
+    console.print(f"[bold]Fallback Model Chain:[/bold] [yellow]{settings.model_chain}[/yellow]")
     console.print(f"[bold]Gateway Base URL:[/bold] [cyan]{settings.effective_base_url}[/cyan]")
     console.print(f"[bold]API Key:[/bold] [dim]{settings.effective_api_key[:10]}...{settings.effective_api_key[-4:]}[/dim]")
 
@@ -284,14 +303,30 @@ async def main():
 
     test_question = "Analyze the HbA1c trends and check for any safety warnings in the uploaded documents."
     console.print(f"[bold magenta]Query:[/bold magenta] \"{test_question}\"\n")
-    console.print(Rule("LIVE STREAM EXECUTION", style="cyan"))
 
     logger = ProofLogger(PROOF_FILE)
 
-    # Attempt live run first
+    if use_mock:
+        console.print(Rule("OFFLINE MOCK STREAM EXECUTION (--mock)", style="magenta"))
+        async def mock_call(client, messages, model, tools=None):
+            return create_mock_stream_generator(messages, user_id)
+
+        with patch("app.services.llm_service.create_chat_completion_stream", side_effect=mock_call):
+            async for event_type, payload in stream_agent_rag(
+                user_id=user_id,
+                question=test_question,
+            ):
+                logger.record_event(event_type, payload)
+                logger.render_console(event_type, payload)
+
+        logger.write_proof_markdown(test_question, target_model, "Offline Mock Simulation (--mock)", actual_model="deepseek-v4-flash-simulated")
+        return
+
+    console.print(Rule("LIVE STREAM EXECUTION", style="cyan"))
     console.print("[dim]Connecting to AgentRouter gateway...[/dim]\n")
     live_failed = False
     error_payload = None
+    actual_model_used = None
 
     try:
         async for event_type, payload in stream_agent_rag(
@@ -300,7 +335,9 @@ async def main():
         ):
             logger.record_event(event_type, payload)
             logger.render_console(event_type, payload)
-            if event_type == "error":
+            if event_type == "completed":
+                actual_model_used = payload.get("model")
+            elif event_type == "error":
                 live_failed = True
                 error_payload = payload
     except Exception as exc:
@@ -308,38 +345,28 @@ async def main():
         err_dict = {"status": "error", "message": str(exc), "diagnostic": "Exception during stream"}
         logger.record_event("error", err_dict)
         logger.render_console("error", err_dict)
+        error_payload = err_dict
 
-    # If live gateway returns model-authorization error (403) or quota exhaustion (402),
-    # run high-fidelity end-to-end trace with real Chroma & NetworkX tools to demonstrate
-    # the complete streaming lifecycle.
     if live_failed:
         console.print()
-        console.print(Rule("LIVE GATEWAY RESULT", style="yellow"))
-        console.print(
-            "[yellow]Note: Live AgentRouter gateway rejected the token for model 'deepseek-v4-flash' "
-            "(token is restricted to claude-opus or has exhausted budget pool).[/yellow]\n"
-            "[bold cyan]Now running end-to-end streaming trace through real ChromaDB & NetworkX graph tools:[/bold cyan]\n"
-        )
-
-        async def mock_call(client, messages, model, tools=None):
-            return create_mock_stream_generator(messages, user_id)
-
-        # Clear accumulator for full demo
-        demo_logger = ProofLogger(PROOF_FILE)
-
-        with patch("app.services.llm_service._call_agentrouter_stream", side_effect=mock_call):
-            async for event_type, payload in stream_agent_rag(
-                user_id=user_id,
-                question=test_question,
-            ):
-                demo_logger.record_event(event_type, payload)
-                demo_logger.render_console(event_type, payload)
-
-        status_msg = f"Live Gateway: 403 (Model Restricted) | E2E Tool & Streaming Pipeline: 100% Verified"
-        demo_logger.write_proof_markdown(test_question, target_model, status_msg)
+        console.print(Rule("LIVE STREAM FAILED", style="red"))
+        err_msg = str(error_payload.get("message") if isinstance(error_payload, dict) else error_payload)
+        if "403" in err_msg or "无权访问" in err_msg:
+            console.print(
+                "[bold red]Live AgentRouter call failed: Token model scope is restricted - fix in console.[/bold red]\n"
+                "[yellow]Action Required: Enable deepseek-v4-flash at https://agentrouter.org/console/token.[/yellow]\n"
+                "[dim]For an offline architectural demo, run: python scripts/test_live_agent.py --mock[/dim]"
+            )
+        else:
+            console.print(f"[bold red]Live AgentRouter call failed:[/bold red] {err_msg}")
+        logger.write_proof_markdown(test_question, target_model, f"Live Gateway Failed: {err_msg[:100]}")
     else:
-        logger.write_proof_markdown(test_question, target_model, "Live Gateway 200 OK")
+        console.print()
+        console.print(Rule("LIVE STREAM SUCCESS (200 OK)", style="green"))
+        console.print(f"[bold green]Live stream completed successfully (200 OK) via model:[/bold green] [bold cyan]{actual_model_used or target_model}[/bold cyan]")
+        logger.write_proof_markdown(test_question, target_model, "Live Gateway 200 OK", actual_model=actual_model_used or target_model)
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+

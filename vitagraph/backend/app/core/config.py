@@ -9,8 +9,18 @@ plan forbids naming a provider or model in the project definition.
 from __future__ import annotations
 
 from pathlib import Path
+import logging
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
+
+ALLOWED_AGENTROUTER_MODELS: frozenset[str] = frozenset({
+    "deepseek-v4-flash",
+    "gpt-6-astra",
+    "claude-opus-5",
+    "claude-opus-4-8",
+})
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -38,7 +48,8 @@ class Settings(BaseSettings):
     # --- AgentRouter AI Gateway ----------------------------------------------
     agentrouter_api_key: str = ""
     agentrouter_base_url: str = "https://agentrouter.org/v1"
-    agentrouter_model: str = "claude-3-5-sonnet-latest"
+    agentrouter_model: str = "deepseek-v4-flash"
+    agentrouter_fallback_models: str = "gpt-6-astra,claude-opus-5"
 
     @property
     def effective_api_key(self) -> str:
@@ -55,7 +66,17 @@ class Settings(BaseSettings):
 
     @property
     def effective_model(self) -> str:
-        return (self.agentrouter_model or self.ai_service_model or "claude-3-5-sonnet-latest").strip()
+        return (self.agentrouter_model or self.ai_service_model or "deepseek-v4-flash").strip()
+
+    @property
+    def model_chain(self) -> list[str]:
+        """Ordered chain of models to try: [effective_model] + fallbacks."""
+        chain = [self.effective_model]
+        for item in self.agentrouter_fallback_models.split(","):
+            m = item.strip()
+            if m and m not in chain:
+                chain.append(m)
+        return chain
 
     # --- Retrieval -----------------------------------------------------------
     top_k_results: int = 5
@@ -132,9 +153,19 @@ class Settings(BaseSettings):
                 if k not in handled_keys:
                     new_lines.append(f"{k}={v}")
 
-            env_file.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+    def validate_models(self) -> None:
+        """Log warning if effective_model is not in the allowed AgentRouter set."""
+        if self.effective_model not in ALLOWED_AGENTROUTER_MODELS:
+            logger.warning(
+                "Configured effective model '%s' is not in verified AgentRouter whitelist %s. "
+                "Allowed models: %s",
+                self.effective_model,
+                sorted(ALLOWED_AGENTROUTER_MODELS),
+                ", ".join(sorted(ALLOWED_AGENTROUTER_MODELS)),
+            )
 
 
 settings = Settings()
 settings.ensure_dirs()
+settings.validate_models()
 

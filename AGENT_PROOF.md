@@ -1,10 +1,11 @@
 # VitaGraph AgentRouter Live Terminal Trace Proof
 
-**Execution Timestamp:** `2026-10-02 07:56:11 UTC`  
-**Model Under Test:** `deepseek-v4-flash`  
+**Execution Timestamp:** `2026-10-02 08:15:00 UTC`  
+**Target Model:** `deepseek-v4-flash`  
+**Responding Model:** `deepseek-v4-flash-simulated`  
 **Gateway URL:** `https://agentrouter.org/v1`  
-**Status / Outcome:** `Live Gateway: 403 (Model Restricted) | E2E Tool & Streaming Pipeline: 100% Verified`  
-**Total Trace Duration:** `19.70s`  
+**Status / Outcome:** `Offline Mock Simulation (--mock)`  
+**Total Trace Duration:** `19.28s`  
 
 ## 1. Test Medical Query
 > **Question:** "Analyze the HbA1c trends and check for any safety warnings in the uploaded documents."
@@ -21,7 +22,7 @@
 | 4 | `tool_call` | Invoke tool `search_chroma` with `{"query": "HbA1c glycated hemoglobin diabetes", "top_k": 3}` |
 | 5 | `tool_result` | Tool result for `search_chroma`: `{"evidence": [{"chunk_id": "chk_deeae90d5f50", "snippet": "Comprehensive Health Panel (Fol...` |
 | 6 | `tool_call` | Invoke tool `query_networkx_graph` with `{"concept": "Glucose"}` |
-| 7 | `tool_result` | Tool result for `query_networkx_graph`: `{"matched_nodes": 3, "nodes": [{"id": "test_Fasting_Glucose", "type": "test"}, {"id": "sec...` |
+| 7 | `tool_result` | Tool result for `query_networkx_graph`: `{"matched_nodes": 3, "nodes": [{"id": "cat_Metabolic_Panel", "type": "category"}, {"id": "...` |
 | 8 | `thinking` | Thinking token: `[Synthesis] Synthesizing longitudinal measurements from ChromaDB and NetworkX gr` |
 | 9 | `thinking` | Thinking token: `[Structure] Structuring into strict 4-part format: 1. Summary, 2. Evidence, 3. L` |
 | 10 | `text_delta` | Delta chunk: `1. ` |
@@ -146,7 +147,7 @@ Review ` |
 | 116 | `text_delta` | Delta chunk: `dedicated ` |
 | 117 | `text_delta` | Delta chunk: `HbA1c ` |
 | 118 | `text_delta` | Delta chunk: `testing. ` |
-| 119 | `completed` | Completed (safety_passed=False, evidence=3) |
+| 119 | `completed` | Completed (model=deepseek-v4-flash, safety_passed=False, evidence=3) |
 
 ---
 
@@ -175,28 +176,28 @@ Review of the patient's retrieved laboratory documents confirms Hemoglobin is me
 ```json
 [
   {
-    "timestamp": "13:25:51",
+    "timestamp": "13:44:41",
     "type": "thinking",
     "payload": {
       "thinking": "[Analyzing query] Patient inquiry regards HbA1c trajectory and clinical safety warnings.\n"
     }
   },
   {
-    "timestamp": "13:25:51",
+    "timestamp": "13:44:41",
     "type": "thinking",
     "payload": {
       "thinking": "[Reasoning] Need to query ChromaDB for laboratory report text chunks discussing HbA1c and glycation.\n"
     }
   },
   {
-    "timestamp": "13:25:51",
+    "timestamp": "13:44:41",
     "type": "thinking",
     "payload": {
       "thinking": "[Reasoning] Need to query NetworkX graph to trace Fasting Glucose and HbA1c relationships across reports.\n"
     }
   },
   {
-    "timestamp": "13:25:51",
+    "timestamp": "13:44:41",
     "type": "tool_call",
     "payload": {
       "id": "call_chroma_01",
@@ -208,7 +209,7 @@ Review of the patient's retrieved laboratory documents confirms Hemoglobin is me
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:56",
     "type": "tool_result",
     "payload": {
       "id": "call_chroma_01",
@@ -244,7 +245,7 @@ Review of the patient's retrieved laboratory documents confirms Hemoglobin is me
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:56",
     "type": "tool_call",
     "payload": {
       "id": "call_graph_02",
@@ -255,7 +256,7 @@ Review of the patient's retrieved laboratory documents confirms Hemoglobin is me
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:56",
     "type": "tool_result",
     "payload": {
       "id": "call_graph_02",
@@ -264,50 +265,74 @@ Review of the patient's retrieved laboratory documents confirms Hemoglobin is me
         "matched_nodes": 3,
         "nodes": [
           {
-            "id": "test_Fasting_Glucose",
-            "type": "test"
-          },
-          {
-            "id": "sec_rpt_8067f576e9ed_Metabolic_Panel",
-            "type": "section"
-          },
-          {
-            "id": "chunk_chk_7c3a9c51bdfe",
-            "type": "chunk"
-          },
-          {
-            "id": "chunk_chk_7b8e60f2af41",
-            "type": "chunk"
-          },
-          {
-            "id": "meas_Fasting_Glucose_20_June_2025_92.0",
-            "type": "measurement"
+            "id": "cat_Metabolic_Panel",
+            "type": "category"
           },
           {
             "id": "meas_Fasting_Glucose_15_January_2025_96.0",
             "type": "measurement"
           },
           {
+            "id": "sec_rpt_8067f576e9ed_Metabolic_Panel",
+            "type": "section"
+          },
+          {
+            "id": "meas_Fasting_Glucose_20_June_2025_92.0",
+            "type": "measurement"
+          },
+          {
+            "id": "test_Fasting_Glucose",
+            "type": "test"
+          },
+          {
             "id": "date_15_January_2025",
             "type": "date"
           },
           {
-            "id": "cat_Metabolic_Panel",
-            "type": "category"
+            "id": "chunk_chk_7b8e60f2af41",
+            "type": "chunk"
           },
           {
-            "id": "date_20_June_2025",
-            "type": "date"
+            "id": "chunk_chk_7c3a9c51bdfe",
+            "type": "chunk"
           },
           {
             "id": "sec_rpt_59a689498398_Metabolic_Panel",
             "type": "section"
+          },
+          {
+            "id": "date_20_June_2025",
+            "type": "date"
           }
         ],
         "edges": [
           {
-            "source": "test_Fasting_Glucose",
-            "target": "cat_Metabolic_Panel"
+            "source": "cat_Metabolic_Panel",
+            "target": "test_Fasting_Glucose"
+          },
+          {
+            "source": "meas_Fasting_Glucose_15_January_2025_96.0",
+            "target": "test_Fasting_Glucose"
+          },
+          {
+            "source": "meas_Fasting_Glucose_15_January_2025_96.0",
+            "target": "date_15_January_2025"
+          },
+          {
+            "source": "sec_rpt_8067f576e9ed_Metabolic_Panel",
+            "target": "chunk_chk_7c3a9c51bdfe"
+          },
+          {
+            "source": "sec_rpt_8067f576e9ed_Metabolic_Panel",
+            "target": "test_Fasting_Glucose"
+          },
+          {
+            "source": "meas_Fasting_Glucose_20_June_2025_92.0",
+            "target": "test_Fasting_Glucose"
+          },
+          {
+            "source": "meas_Fasting_Glucose_20_June_2025_92.0",
+            "target": "date_20_June_2025"
           },
           {
             "source": "test_Fasting_Glucose",
@@ -315,830 +340,807 @@ Review of the patient's retrieved laboratory documents confirms Hemoglobin is me
           },
           {
             "source": "test_Fasting_Glucose",
-            "target": "meas_Fasting_Glucose_15_January_2025_96.0"
-          },
-          {
-            "source": "test_Fasting_Glucose",
             "target": "sec_rpt_59a689498398_Metabolic_Panel"
           },
           {
             "source": "test_Fasting_Glucose",
-            "target": "chunk_chk_7c3a9c51bdfe"
-          },
-          {
-            "source": "test_Fasting_Glucose",
-            "target": "meas_Fasting_Glucose_20_June_2025_92.0"
-          },
-          {
-            "source": "test_Fasting_Glucose",
-            "target": "sec_rpt_8067f576e9ed_Metabolic_Panel"
-          },
-          {
-            "source": "sec_rpt_8067f576e9ed_Metabolic_Panel",
             "target": "chunk_chk_7c3a9c51bdfe"
           },
           {
             "source": "chunk_chk_7b8e60f2af41",
             "target": "sec_rpt_59a689498398_Metabolic_Panel"
-          },
-          {
-            "source": "meas_Fasting_Glucose_20_June_2025_92.0",
-            "target": "date_20_June_2025"
-          },
-          {
-            "source": "meas_Fasting_Glucose_15_January_2025_96.0",
-            "target": "date_15_January_2025"
           }
         ]
       }
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:56",
     "type": "thinking",
     "payload": {
       "thinking": "[Synthesis] Synthesizing longitudinal measurements from ChromaDB and NetworkX graph.\n"
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:56",
     "type": "thinking",
     "payload": {
       "thinking": "[Structure] Structuring into strict 4-part format: 1. Summary, 2. Evidence, 3. Limitations, 4. Safety.\n"
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:56",
     "type": "text_delta",
     "payload": {
       "delta": "1. "
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:56",
     "type": "text_delta",
     "payload": {
       "delta": "Summary:\nReview "
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:56",
     "type": "text_delta",
     "payload": {
       "delta": "of "
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:56",
     "type": "text_delta",
     "payload": {
       "delta": "the "
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:56",
     "type": "text_delta",
     "payload": {
       "delta": "patient's "
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "retrieved "
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "laboratory "
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "documents "
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "confirms "
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "Hemoglobin "
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "is "
     }
   },
   {
-    "timestamp": "13:26:07",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "measured "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "at "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "14.1 "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "g/dL "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "in "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "the "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "June "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "2025 "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "panel. "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "Fasting "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "Glucose "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "was "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "previously "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "recorded "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "at "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "96.0 "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "mg/dL "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "in "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "January "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "2025. "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "A "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "specific "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "glycated "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "hemoglobin "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:57",
     "type": "text_delta",
     "payload": {
       "delta": "(HbA1c "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "%) "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "assay "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "was "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "not "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "detected "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "in "
     }
   },
   {
-    "timestamp": "13:26:08",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "the "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "current "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "panel.\n\n2. "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "Evidence:\n- "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "Report "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "'synthetic_panel_2025-06-20.pdf' "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "(20 "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "June "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "2025): "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "Hemoglobin "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "Result "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "= "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "14.1 "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "g/dL.\n- "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "NetworkX "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "Graph "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "Node: "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "'meas_Fasting_Glucose_20_June_2025_92.0' "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "connected "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "to "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "'sec_Metabolic_Panel'.\n\n3. "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "Limitations:\n- "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "Standard "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "HbA1c "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "testing "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:58",
     "type": "text_delta",
     "payload": {
       "delta": "is "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "absent "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "from "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "the "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "uploaded "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "metabolic "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "panels.\n- "
     }
   },
   {
-    "timestamp": "13:26:09",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "Findings "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "reflect "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "only "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "the "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "two "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "available "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "documentation "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "dates.\n\n4. "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "Safety:\n- "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "Hemoglobin "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "concentration "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "remains "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "at "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "14.1 "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "g/dL.\n- "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "For "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "diabetes "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "screening, "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "prediabetes "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "evaluation, "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "or "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "comprehensive "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "glycemic "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "control "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:44:59",
     "type": "text_delta",
     "payload": {
       "delta": "assessment, "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:45:00",
     "type": "text_delta",
     "payload": {
       "delta": "please "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:45:00",
     "type": "text_delta",
     "payload": {
       "delta": "consult "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:45:00",
     "type": "text_delta",
     "payload": {
       "delta": "a "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:45:00",
     "type": "text_delta",
     "payload": {
       "delta": "licensed "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:45:00",
     "type": "text_delta",
     "payload": {
       "delta": "healthcare "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:45:00",
     "type": "text_delta",
     "payload": {
       "delta": "professional "
     }
   },
   {
-    "timestamp": "13:26:10",
+    "timestamp": "13:45:00",
     "type": "text_delta",
     "payload": {
       "delta": "for "
     }
   },
   {
-    "timestamp": "13:26:11",
+    "timestamp": "13:45:00",
     "type": "text_delta",
     "payload": {
       "delta": "dedicated "
     }
   },
   {
-    "timestamp": "13:26:11",
+    "timestamp": "13:45:00",
     "type": "text_delta",
     "payload": {
       "delta": "HbA1c "
     }
   },
   {
-    "timestamp": "13:26:11",
+    "timestamp": "13:45:00",
     "type": "text_delta",
     "payload": {
       "delta": "testing. "
     }
   },
   {
-    "timestamp": "13:26:11",
+    "timestamp": "13:45:00",
     "type": "completed",
     "payload": {
       "status": "answered",
       "summary_text": "1. Summary:\nReview of the patient's retrieved laboratory documents confirms Hemoglobin is measured at 14.1 g/dL in the June 2025 panel. Fasting Glucose was previously recorded at 96.0 mg/dL in January 2025. A specific glycated hemoglobin (HbA1c %) assay was not detected in the current panel.\n\n2. Evidence:\n- Report 'synthetic_panel_2025-06-20.pdf' (20 June 2025): Hemoglobin Result = 14.1 g/dL.\n- NetworkX Graph Node: 'meas_Fasting_Glucose_20_June_2025_92.0' connected to 'sec_Metabolic_Panel'.\n\n3. Limitations:\n- Standard HbA1c testing is absent from the uploaded metabolic panels.\n- Findings reflect only the two available documentation dates.\n\n4. Safety:\n- Hemoglobin concentration remains at 14.1 g/dL.\n- For diabetes screening, prediabetes evaluation, or comprehensive glycemic control assessment, please consult a licensed healthcare professional for dedicated HbA1c testing.",
       "safety_passed": false,
-      "safety_note": "Safety check: measurement '1c' does not appear in any evidence snippet.",
-      "evidence_count": 3
+      "safety_note": "Safety check: measurement '2025panel' does not appear in any evidence snippet.",
+      "evidence_count": 3,
+      "model": "deepseek-v4-flash"
     }
   }
 ]

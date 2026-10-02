@@ -206,3 +206,68 @@ def test_agentrouter_error_resilience_emits_error_event(monkeypatch):
     assert events[0][0] == "error"
     assert "504" in events[0][1]["message"]
     assert events[0][1]["status"] == "error"
+
+
+def test_agentrouter_model_fallback_chain(monkeypatch):
+    """Test 6: Verify 403 on primary model emits model_fallback event and recovers on fallback model."""
+    import httpx
+    from openai import PermissionDeniedError
+
+    monkeypatch.setattr(settings, "allow_api", True)
+    monkeypatch.setattr(settings, "agentrouter_api_key", "sk-valid-test-key")
+    monkeypatch.setattr(settings, "agentrouter_model", "deepseek-v4-flash")
+    monkeypatch.setattr(settings, "agentrouter_fallback_models", "gpt-6-astra,claude-opus-5")
+
+    assert settings.model_chain == ["deepseek-v4-flash", "gpt-6-astra", "claude-opus-5"]
+
+    class MockDelta:
+        def __init__(self, content):
+            self.content = content
+            self.reasoning_content = None
+            self.tool_calls = None
+
+    class MockChoice:
+        def __init__(self, delta):
+            self.delta = delta
+
+    class MockChunk:
+        def __init__(self, content):
+            self.choices = [MockChoice(MockDelta(content))]
+
+    async def mock_stream_success():
+        yield MockChunk("1. Summary:\nAll parameters normal.\n\n2. Evidence:\nNormal.\n\n3. Limitations:\nNone.\n\n4. Safety:\nNone.")
+
+    models_attempted = []
+
+    async def mock_call(client, messages, model, tools=None):
+        models_attempted.append(model)
+        if model == "deepseek-v4-flash":
+            resp = httpx.Response(403, request=httpx.Request("POST", "https://agentrouter.org/v1"))
+            raise PermissionDeniedError("Token unauthorized for deepseek-v4-flash", response=resp, body=None)
+        return mock_stream_success()
+
+    monkeypatch.setattr(llm_service, "_call_agentrouter_stream", mock_call)
+
+    async def _collect():
+        events = []
+        async for event_type, payload in llm_service.stream_agent_rag(
+            user_id="any_user",
+            question="Analyze my report",
+        ):
+            events.append((event_type, payload))
+        return events
+
+    events = asyncio.run(_collect())
+    event_types = [e[0] for e in events]
+
+    assert "model_fallback" in event_types
+    assert "completed" in event_types
+
+    fb_event = next(e[1] for e in events if e[0] == "model_fallback")
+    assert fb_event["from"] == "deepseek-v4-flash"
+    assert fb_event["to"] == "gpt-6-astra"
+
+    comp_event = next(e[1] for e in events if e[0] == "completed")
+    assert comp_event["model"] == "gpt-6-astra"
+    assert models_attempted == ["deepseek-v4-flash", "gpt-6-astra"]
+
