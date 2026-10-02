@@ -1,7 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppShell } from "./components/shell/AppShell";
-import { HomePage } from "./pages/HomePage";
 import { UploadPage } from "./pages/UploadPage";
 import { KnowledgeGraphPage } from "./pages/KnowledgeGraphPage";
 import { AskPage } from "./pages/AskPage";
@@ -28,7 +27,7 @@ export const App: React.FC = () => {
 
             {/* Persistent AppShell with Shared Chrome (§WS-1) */}
             <Route element={<AppShell />}>
-              <Route path="/" element={<HomePage />} />
+              <Route path="/" element={<Navigate to="/upload" replace />} />
               <Route path="/upload" element={<UploadPage />} />
               <Route path="/graph" element={<KnowledgeGraphPage />} />
               <Route path="/ask" element={<AskPage />} />

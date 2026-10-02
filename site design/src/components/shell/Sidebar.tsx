@@ -64,18 +64,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
 
   const navItems: NavItem[] = [
     {
-      id: "home",
-      path: "/",
-      label: "Home",
-      icon: (
-        <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-          <polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
-      ),
-      live: true,
-    },
-    {
       id: "upload",
       path: "/upload",
       label: "Upload & Ingest",
@@ -341,9 +329,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
         {/* Brand Block (§5.1) */}
         <div className="p-5 pb-4 border-b border-[var(--line-faint)]">
           <Link
-            to="/"
+            to="/upload"
             viewTransition={supportsViewTransitions() && governor.getState().tier !== "T0"}
-            onClick={() => setNavDirection(getNavDirection(currentPath, "/"))}
+            onClick={() => setNavDirection(getNavDirection(currentPath, "/upload"))}
             className="flex items-center gap-2.5 focus:outline-none"
           >
             {/* Leaf glyph (verdigris hand-drawn SVG) */}

@@ -2,28 +2,25 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Dropzone,
-  PipelineStepper,
-  QualityBar,
-  ManifestRow,
   QuarantineRow,
   Badge,
   Marginalia,
   Button,
   useToast,
   UncertainState,
+  CinematicPipelinePopup,
 } from "../components/gallery";
-import type { PipelineStep } from "../components/gallery/PipelineStepper";
-import { reportsApi, type ReportStatus } from "../api/reports";
+import { reportsApi } from "../api/reports";
 import { useActiveUser } from "../context/UserContext";
 import type { ReportPage, Report } from "../types";
 import { governor, isReducedMotion, Odometer, ticker } from "../motion";
 import { transitionNavigate } from "../motion/navigation";
 import { PhotonManager } from "../motion/fx/Photon";
 import { DustManager } from "../motion/fx/DustField";
-import { flip } from "../motion/flip";
 import { DetentPress } from "../motion/fx/DetentPress";
 import { DrawPath } from "../motion/fx/DrawPath";
 import { playDetent } from "../motion/audio";
+import { useJobStream } from "../hooks/useJobStream";
 
 export const UploadPage: React.FC = () => {
   const navigate = useNavigate();
@@ -37,28 +34,14 @@ export const UploadPage: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingCohort, setIsLoadingCohort] = useState(false);
   const [showSuccessMoment, setShowSuccessMoment] = useState(false);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
   const successCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const [expandedHelpIdx, setExpandedHelpIdx] = useState<number | null>(null);
-  const helpListRef = useRef<HTMLUListElement | null>(null);
+  const [pages, setPages] = useState<ReportPage[]>([]);
+  const [activeReport, setActiveReport] = useState<Report | null>(null);
+  const [quarantinedFiles, setQuarantinedFiles] = useState<Array<{ filename: string; reason: string }>>([]);
 
-  const handleToggleHelp = (idx: number) => {
-    if (isT0) {
-      setExpandedHelpIdx((prev) => (prev === idx ? null : idx));
-      return;
-    }
-    if (helpListRef.current) {
-      flip(
-        helpListRef.current,
-        () => {
-          setExpandedHelpIdx((prev) => (prev === idx ? null : idx));
-        },
-        { spring: "weighted", capMs: 240 }
-      );
-    } else {
-      setExpandedHelpIdx((prev) => (prev === idx ? null : idx));
-    }
-  };
+  const jobStream = useJobStream();
 
   useEffect(() => {
     if (!showSuccessMoment || !isT3) return;
@@ -86,6 +69,59 @@ export const UploadPage: React.FC = () => {
     };
   }, [showSuccessMoment, isT3]);
 
+  // When job completes, trigger success moment and refresh report pages
+  useEffect(() => {
+    if (jobStream.status === "completed") {
+      setIsUploading(false);
+      setShowSuccessMoment(true);
+      if (isT3) {
+        for (let i = 0; i < 6; i++) {
+          PhotonManager.spawn(50 + i * 80, 30, 480, 30, "#79B8A6", 240);
+        }
+        DustManager.spawn(280, 40, "#79B8A6", 16);
+        DustManager.spawn(160, 40, "#86A9D9", 12);
+      }
+
+      const reportId = jobStream.finalMetadata?.reportId;
+      if (reportId) {
+        reportsApi
+          .pages(reportId)
+          .then((pgs) => setPages(pgs))
+          .catch(() => {});
+        setActiveReport({
+          id: reportId,
+          user_id: effectiveUserId,
+          original_filename: file?.name || "Clinical_Report.pdf",
+          file_hash: jobStream.finalMetadata?.report?.file_hash || "verified_digest",
+          report_date: new Date().toISOString().split("T")[0],
+          upload_time: new Date().toISOString(),
+          version: 1,
+          status: "ready",
+          page_count: jobStream.finalMetadata?.pages || 1,
+          error_message: null,
+        });
+      }
+      addToast(
+        "done",
+        "Report Ingestion Complete",
+        `${jobStream.finalMetadata?.pages || 1} pages, ${jobStream.finalMetadata?.chunks || 1} chunks indexed`
+      );
+    } else if (jobStream.status === "error") {
+      setIsUploading(false);
+      if (file) {
+        const errMsg = jobStream.error || "Corrupted document structure or unreadable text layers.";
+        setQuarantinedFiles((prev) => [
+          ...prev,
+          {
+            filename: file.name,
+            reason: errMsg,
+          },
+        ]);
+        addToast("failed", "Document Quarantined", errMsg);
+      }
+    }
+  }, [jobStream.status, jobStream.finalMetadata, jobStream.error, isT3, file, effectiveUserId, addToast]);
+
   const handleLoadDemoCohort = async () => {
     if (isLoadingCohort) return;
     setIsLoadingCohort(true);
@@ -111,41 +147,8 @@ export const UploadPage: React.FC = () => {
       setIsLoadingCohort(false);
     }
   };
-  const [uploadStatus, setUploadStatus] = useState<ReportStatus | null>(null);
-  const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const [pages, setPages] = useState<ReportPage[]>([]);
-  const [activeReport, setActiveReport] = useState<Report | null>(null);
-  const [quarantinedFiles, setQuarantinedFiles] = useState<Array<{ filename: string; reason: string }>>([]);
-  const [eventCount, setEventCount] = useState(0);
-  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const eventQueueRef = useRef<any[]>([]);
-  const isProcessingQueueRef = useRef<boolean>(false);
-  const isDoneRef = useRef<boolean>(false);
-
-  // Stepper state
-  const initialSteps: PipelineStep[] = [
-    { name: "Received", value: "pending", status: "pending" },
-    { name: "Extracted", value: "pending", status: "pending" },
-    { name: "Chunked", value: "pending", status: "pending" },
-    { name: "Embedded", value: "pending", status: "pending" },
-    { name: "Indexed", value: "pending", status: "pending" },
-    { name: "Graphed", value: "pending", status: "pending" },
-  ];
-  const [steps, setSteps] = useState<PipelineStep[]>(initialSteps);
-
-  // Clean up EventSource on unmount
-  useEffect(() => {
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-    };
-  }, []);
-
-  // On initial mount, load existing report pages and manifest for the persona
+  // On initial mount, load existing report pages for the persona
   useEffect(() => {
     const loadInitialData = async () => {
       try {
@@ -155,14 +158,6 @@ export const UploadPage: React.FC = () => {
           setActiveReport(first);
           const pageData = await reportsApi.pages(first.id);
           setPages(pageData);
-          setSteps([
-            { name: "Received", value: "verified", status: "done" },
-            { name: "Extracted", value: `${first.page_count || pageData.length} pages`, status: "done" },
-            { name: "Chunked", value: "semantic blocks", status: "done" },
-            { name: "Embedded", value: "all-MiniLM-L6-v2", status: "done" },
-            { name: "Indexed", value: "ChromaDB ready", status: "done" },
-            { name: "Graphed", value: "NetworkX aligned", status: "done" },
-          ]);
         }
       } catch (err) {
         console.warn("Could not load initial report pages:", err);
@@ -174,184 +169,18 @@ export const UploadPage: React.FC = () => {
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
     setIsUploading(true);
-    setUploadError(null);
-    setEventCount(0);
     const jobId = `job_upload_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    setActiveJobId(jobId);
 
-    // Initial uploading stepper
-    setSteps([
-      { name: "Received", value: "uploading…", status: "active" },
-      { name: "Extracted", value: "pending", status: "pending" },
-      { name: "Chunked", value: "pending", status: "pending" },
-      { name: "Embedded", value: "pending", status: "pending" },
-      { name: "Indexed", value: "pending", status: "pending" },
-      { name: "Graphed", value: "pending", status: "pending" },
-    ]);
+    // 1. Connect to SSE stream
+    jobStream.connect(jobId);
 
-    // Connect to SSE stream BEFORE POST per US-15 reality contract
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-    eventQueueRef.current = [];
-    isProcessingQueueRef.current = false;
+    // 2. Open cinematic storytelling popup immediately
+    setIsPopupOpen(true);
 
-    const backendUrl = "http://127.0.0.1:8000";
-    const es = new EventSource(`${backendUrl}/api/jobs/${jobId}/events`);
-    eventSourceRef.current = es;
-
-    const processQueue = () => {
-      if (eventQueueRef.current.length === 0) {
-        isProcessingQueueRef.current = false;
-        return;
-      }
-      isProcessingQueueRef.current = true;
-      const evt = eventQueueRef.current.shift();
-      setEventCount((prev) => prev + 1);
-
-      if (evt && evt.stage) {
-        setSteps((prev) => {
-          const next = [...prev];
-          if (evt.stage === "received") {
-            next[0] = { name: "Received", value: evt.latency || "verified", status: "done" };
-            next[1] = { name: "Extracted", value: "parsing layout…", status: "active" };
-          } else if (evt.stage === "extracted") {
-            next[0] = { name: "Received", value: "verified", status: "done" };
-            next[1] = { name: "Extracted", value: evt.description.match(/\d+ pages?/)?.[0] || "extracted", status: "done" };
-            next[2] = { name: "Chunked", value: "chunking…", status: "active" };
-          } else if (evt.stage === "chunked") {
-            next[1] = { name: "Extracted", value: "text ready", status: "done" };
-            next[2] = { name: "Chunked", value: evt.description.match(/\d+ semantic sections|\d+ chunks/)?.[0] || "chunked", status: "done" };
-            next[3] = { name: "Embedded", value: "embedding…", status: "active" };
-          } else if (evt.stage === "embedded") {
-            next[2] = { name: "Chunked", value: "sections ready", status: "done" };
-            next[3] = { name: "Embedded", value: "384-dim", status: "done" };
-            next[4] = { name: "Indexed", value: "indexing…", status: "active" };
-          } else if (evt.stage === "indexed") {
-            next[3] = { name: "Embedded", value: "384-dim", status: "done" };
-            next[4] = { name: "Indexed", value: "ChromaDB ok", status: "done" };
-            next[5] = { name: "Graphed", value: "aligning graph…", status: "active" };
-          } else if (evt.stage === "graphed") {
-            next[4] = { name: "Indexed", value: "ChromaDB ok", status: "done" };
-            next[5] = { name: "Graphed", value: "NetworkX mapped", status: "done" };
-          } else if (evt.stage === "done") {
-            if (evt.metadata?.error || evt.description?.startsWith("Error:") || evt.status === "error") {
-              const errMsg = evt.metadata?.error || evt.description || "Corrupted document structure or unreadable text layers.";
-              setUploadError(errMsg);
-              setQuarantinedFiles((prev) => [
-                ...prev,
-                {
-                  filename: selectedFile.name,
-                  reason: errMsg,
-                },
-              ]);
-              addToast("failed", "Document Quarantined", errMsg);
-              setIsUploading(false);
-              es.close();
-              return next.map((s) => s.status === "active" ? { ...s, value: "quarantined", status: "pending" } : s);
-            }
-            const pageCount = evt.metadata?.pages || evt.metadata?.report?.page_count || 1;
-            const chunkCount = evt.metadata?.chunks || evt.metadata?.report?.chunk_count || 1;
-            const reportId = evt.metadata?.report_id || evt.metadata?.report?.id;
-            addToast("done", "Report Ingestion Complete", `${pageCount} pages, ${chunkCount} chunks indexed`);
-            window.dispatchEvent(new CustomEvent("vitagraph:job-done", { detail: evt }));
-
-            // Ingestion success moment (§7.2-B): Photon burst + Dust puff
-            setShowSuccessMoment(true);
-            if (isT3) {
-              for (let i = 0; i < 6; i++) {
-                PhotonManager.spawn(50 + i * 80, 30, 480, 30, "#79B8A6", 240);
-              }
-              DustManager.spawn(280, 40, "#79B8A6", 16);
-              DustManager.spawn(160, 40, "#86A9D9", 12);
-            }
-
-            try {
-              localStorage.setItem("vitagraph:last_job_done", JSON.stringify({ time: Date.now(), stage: "done", reportId }));
-            } catch {}
-            setIsUploading(false);
-            if (reportId) {
-              reportsApi.pages(reportId).then((pgs) => setPages(pgs)).catch(() => {});
-              setActiveReport({
-                id: reportId,
-                user_id: effectiveUserId,
-                original_filename: selectedFile.name,
-                file_hash: evt.metadata?.report?.file_hash || "verified_digest",
-                report_date: new Date().toISOString().split("T")[0],
-                upload_time: new Date().toISOString(),
-                version: 1,
-                status: "ready",
-                page_count: pageCount,
-                error_message: null,
-              });
-            }
-            return [
-              { name: "Received", value: "verified", status: "done" },
-              { name: "Extracted", value: `${pageCount} pages`, status: "done" },
-              { name: "Chunked", value: `${chunkCount} chunks`, status: "done" },
-              { name: "Embedded", value: "384-dim", status: "done" },
-              { name: "Indexed", value: "ChromaDB ok", status: "done" },
-              { name: "Graphed", value: "NetworkX mapped", status: "done" },
-            ];
-          }
-          return next;
-        });
-
-        if (evt.stage === "done") {
-          es.close();
-          return;
-        }
-      }
-
-      // Check prefers-reduced-motion per DESIGN.md §8.1
-      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const dwellMs = prefersReducedMotion ? 0 : 280; // presentation dwell (US-15)
-
-      setTimeout(() => {
-        processQueue();
-      }, dwellMs);
-    };
-
-    isDoneRef.current = false;
-
-    es.onmessage = (e) => {
-      try {
-        const evt = JSON.parse(e.data);
-        if (evt && evt.stage) {
-          if (evt.stage === "done") {
-            isDoneRef.current = true;
-          }
-          eventQueueRef.current.push(evt);
-          if (!isProcessingQueueRef.current) {
-            processQueue();
-          }
-        }
-      } catch {
-        // SSE comment or keep-alive
-      }
-    };
-
-    es.onerror = () => {
-      if (isDoneRef.current) {
-        es.close();
-        return;
-      }
-      es.close();
-      setUploadError("Backend connection lost. Pipeline interrupted mid-upload.");
-      addToast("failed", "Connection Interrupted", "Backend stream disconnected mid-upload.");
-      setIsUploading(false);
-      setSteps((prev) =>
-        prev.map((s) => (s.status === "active" ? { ...s, value: "interrupted", status: "pending" } : s))
-      );
-    };
-
-    // Subscribed EventSource first, now dispatch POST to start background pipeline
+    // 3. Dispatch file upload to background pipeline
     try {
       const isPdf = selectedFile.name.toLowerCase().endsWith(".pdf");
-      console.log("[Test] dispatching upload for:", selectedFile.name, "isPdf:", isPdf);
       const res = await reportsApi.upload(effectiveUserId, selectedFile, jobId, isPdf);
-      console.log("[Test] upload response:", res);
-      setUploadStatus(res);
       if (res.status === "failed") {
         setQuarantinedFiles((prev) => [
           ...prev,
@@ -365,15 +194,11 @@ export const UploadPage: React.FC = () => {
       }
     } catch (err: any) {
       const errMsg = err?.message || String(err);
-      console.log("[Test] upload caught exception:", errMsg);
-      setUploadError(`Upload failed: ${errMsg}`);
       setQuarantinedFiles((prev) => [
         ...prev,
         {
           filename: selectedFile.name,
-          reason: errMsg.includes("400")
-            ? `Security validation rejected file: ${errMsg}`
-            : errMsg,
+          reason: errMsg.includes("400") ? `Security validation rejected file: ${errMsg}` : errMsg,
         },
       ]);
       addToast("failed", "Upload Rejected", errMsg);
@@ -386,8 +211,8 @@ export const UploadPage: React.FC = () => {
     try {
       const resp = await fetch("/synthetic_panel_2025-01-15.pdf");
       if (!resp.ok) {
-        // Create a simulated PDF blob if public file is not served directly
-        const pdfContent = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 4 0 R>>endobj\n4 0 obj<</Length 100>>stream\nBT /F1 12 Tf 100 700 Td (Hemoglobin 14.1 g/dL Normal range 13.5-17.5. Arjun Lab Report Jan 2025.) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000010 00000 n \n0000000057 00000 n \n0000000114 00000 n \n0000000203 00000 n \ntrailer<</Size 5/Root 1 0 R>>\nstartxref\n356\n%%EOF";
+        const pdfContent =
+          "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 4 0 R>>endobj\n4 0 obj<</Length 100>>stream\nBT /F1 12 Tf 100 700 Td (Hemoglobin 14.1 g/dL Normal range 13.5-17.5. Arjun Lab Report Jan 2025.) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000010 00000 n \n0000000057 00000 n \n0000000114 00000 n \n0000000203 00000 n \ntrailer<</Size 5/Root 1 0 R>>\nstartxref\n356\n%%EOF";
         const blob = new Blob([pdfContent], { type: "application/pdf" });
         const testFile = new File([blob], "synthetic_panel_2025-01-15.pdf", { type: "application/pdf" });
         await handleFileSelect(testFile);
@@ -407,7 +232,6 @@ export const UploadPage: React.FC = () => {
 
   // Helper to test uploading invalid/corrupted file to trigger quarantine
   const handleTestUploadCorruptedFile = async () => {
-    console.log("[Test] handleTestUploadCorruptedFile triggered");
     const invalidContent = "This is a plain text file, not a valid clinical PDF.";
     const blob = new Blob([invalidContent], { type: "text/plain" });
     const invalidFile = new File([blob], "corrupted_report_2025-06-18.txt", { type: "text/plain" });
@@ -422,7 +246,9 @@ export const UploadPage: React.FC = () => {
         throw new Error(`Failed to fetch scanned PDF: ${resp.status}`);
       }
       const blob = await resp.blob();
-      const testFile = new File([blob], "VitaGraph-Report4-Scanned-OCR-Test-2024-12-01.pdf", { type: "application/pdf" });
+      const testFile = new File([blob], "VitaGraph-Report4-Scanned-OCR-Test-2024-12-01.pdf", {
+        type: "application/pdf",
+      });
       await handleFileSelect(testFile);
     } catch (err) {
       console.error("Scanned PDF fetch failed:", err);
@@ -430,26 +256,26 @@ export const UploadPage: React.FC = () => {
   };
 
   const nativePagesCount = pages.filter((p) => p.extraction_method === "native").length;
-  const ocrPagesCount = pages.filter((p) => p.extraction_method.startsWith("ocr")).length;
+  const ocrPagesCount = pages.filter((p) => p.extraction_method.toLowerCase().includes("ocr")).length;
   const uncertainPages = pages.filter((p) => p.quality === "uncertain");
+  const totalChars = pages.reduce((acc, p) => acc + p.text_length, 0);
+  const totalChunks =
+    activeReport?.chunk_count ||
+    jobStream.finalMetadata?.chunks ||
+    (pages.length > 0 ? pages.length * 3 : 0);
 
   return (
     <div className="flex flex-col gap-6 w-full">
       {/* Screen-level Marginalia top-right (§9.2) */}
       <div className="flex justify-end -mt-2 -mb-2">
-        <Marginalia
-          text="Same documents. Deeper insights."
-          sketch="compass"
-        />
+        <Marginalia text="Same documents. Deeper insights." sketch="compass" />
       </div>
 
       {/* Quick Test Bar for Autonomous & Browser Verification */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-[var(--r-8)] bg-[var(--ink-800)] border border-[var(--line-strong)]">
         <div className="flex items-center gap-2">
           <span className="type-label text-[var(--bone)] text-[12px]">Direct Pipeline Ingestion:</span>
-          <span className="type-meta text-[var(--dim)] text-[11.5px]">
-            Targeting persona {effectiveUserId}
-          </span>
+          <span className="type-meta text-[var(--dim)] text-[11.5px]">Targeting persona {effectiveUserId}</span>
         </div>
         <div className="flex items-center gap-2">
           <DetentPress>
@@ -515,7 +341,7 @@ export const UploadPage: React.FC = () => {
           {/* Dropzone (§7.11) */}
           <Dropzone file={file} onFileSelect={handleFileSelect} />
 
-          {/* Ingestion Pipeline Stepper Card (§7.12, §9.2) */}
+          {/* Simplified Page Quality Summary Card (§4 Redesign) */}
           <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-6 relative overflow-hidden">
             {/* Success Moment Canvas Overlay (§7.2-B) */}
             {showSuccessMoment && isT3 && (
@@ -524,330 +350,130 @@ export const UploadPage: React.FC = () => {
                 className="absolute inset-0 pointer-events-none z-30 w-full h-full"
               />
             )}
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-[var(--line-faint)]">
+
+            <div className="flex items-center justify-between mb-5 pb-3 border-b border-[var(--line-faint)]">
               <div>
-                <h3 className="type-title text-[var(--bone)]">
-                  Processing your document step by step
-                </h3>
+                <h3 className="type-title text-[var(--bone)]">Page quality summary</h3>
                 <p className="type-meta text-[var(--dim)] mt-0.5">
-                  Full text extraction, vector embedding, and entity linking
+                  Resolution and OCR confidence metrics for ingested document
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                {activeJobId && (
-                  <span className="type-mono-sm text-[var(--dim)] text-[11px]">
-                    {activeJobId}
-                  </span>
-                )}
-                <Badge variant={isUploading ? "ochre" : uploadStatus?.status === "failed" ? "madder" : "verdigris"}>
-                  {isUploading ? "Ingesting live…" : uploadStatus?.status === "failed" ? "Quarantined" : "Ready"}
-                </Badge>
-              </div>
-            </div>
-
-            {/* Visible honest error banner on failure/interruption per US-15 */}
-            {uploadError && (
-              <div className="mb-5 p-3.5 rounded-[var(--r-6)] bg-[var(--madder)]/10 border-2 border-[var(--madder)] text-[var(--bone)] flex items-center justify-between animate-fade-in">
-                <div className="flex items-center gap-3">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[var(--madder)] flex-shrink-0 animate-pulse" />
-                  <div>
-                    <div className="font-semibold text-[var(--madder)] text-[13px]">{uploadError}</div>
-                    <div className="type-meta text-[var(--dim)] text-[11px] mt-0.5">
-                      Pipeline interrupted. Partial state cleaned up per fail-closed policy.
-                    </div>
-                  </div>
-                </div>
-                <DetentPress>
-                  <Button
-                    variant="ghost"
-                    className="h-7 text-[11px] px-2.5 text-[var(--madder)]"
-                    onClick={() => {
-                      playDetent();
-                      setUploadError(null);
-                    }}
-                  >
-                    Dismiss
-                  </Button>
-                </DetentPress>
-              </div>
-            )}
-
-            {/* Stepper (§7.12) */}
-            <PipelineStepper steps={steps} />
-
-            {/* Forward navigation hint button on completion (§7.2-B) */}
-            {steps.every((s) => s.status === "done") && !isUploading && (
-              <div className="mt-5 pt-4 border-t border-[var(--line-faint)] flex items-center justify-between animate-fade-in">
-                <span className="type-meta text-[var(--verdigris)] flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[var(--verdigris)] animate-pulse" />
-                  All 6 pipeline stages verified and indexed
-                </span>
-                <DetentPress>
-                  <Button
-                    variant="primary"
-                    className="flex items-center gap-2 text-xs font-semibold px-4 py-2"
-                    onClick={() => {
-                      playDetent();
-                      transitionNavigate(navigate, "/graph", { direction: "forward" });
-                    }}
-                  >
-                    View graph →
-                  </Button>
-                </DetentPress>
-              </div>
-            )}
-          </div>
-
-          {/* Page Quality Assessment Table (§9.2) */}
-          <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="type-title text-[var(--bone)]">
-                  Page quality assessment
-                </h3>
-                <p className="type-meta text-[var(--dim)] mt-0.5">
-                  Resolution and OCR confidence per ingested sheet
-                </p>
-              </div>
-              <Badge variant="dim">
+              <Badge variant={pages.length > 0 ? "verdigris" : "dim"}>
                 {pages.length > 0 ? `${pages.length} pages analyzed` : "No pages loaded"}
               </Badge>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-[var(--line-faint)]">
-                    <th className="type-label text-[var(--dim)] py-2.5 px-3">Page</th>
-                    <th className="type-label text-[var(--dim)] py-2.5 px-3">Characters</th>
-                    <th className="type-label text-[var(--dim)] py-2.5 px-3">Method</th>
-                    <th className="type-label text-[var(--dim)] py-2.5 px-3">Quality</th>
-                    <th className="type-label text-[var(--dim)] py-2.5 px-3">Notes</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--line-faint)]">
-                  {isUploading && eventCount === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-6 px-3">
-                        <div className="space-y-3 animate-pulse">
-                          <div className="flex items-center gap-4">
-                            <div className="w-16 h-3 bg-[var(--ink-700)] rounded" />
-                            <div className="w-24 h-3 bg-[var(--ink-700)] rounded" />
-                            <div className="w-20 h-3 bg-[var(--ink-700)] rounded" />
-                            <div className="flex-1 h-3 bg-[var(--ink-700)] rounded" />
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="w-16 h-3 bg-[var(--ink-700)] rounded" />
-                            <div className="w-24 h-3 bg-[var(--ink-700)] rounded" />
-                            <div className="w-20 h-3 bg-[var(--ink-700)] rounded" />
-                            <div className="flex-1 h-3 bg-[var(--ink-700)] rounded" />
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : pages.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-8 text-center">
-                        <div
-                          data-testid="upload-quality-empty"
-                          className={`flex items-center justify-center gap-2.5 text-[var(--dim)] type-meta ${
-                            !isT0 ? "m-enter" : ""
-                          }`}
-                        >
-                          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 text-[var(--dim)]">
-                            <DrawPath
-                              d="M12 48L24 24L36 40L44 30L52 48H12Z"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1.5}
-                              stroke="currentColor"
-                              durationMs={720}
-                              className="animate-sketch-draw"
-                              data-testid="empty-state-sketch"
-                            />
-                          </svg>
-                          <span>Upload a report PDF to view page-level extraction confidence.</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    pages.map((row, idx) => {
-                      const isNative = row.extraction_method === "native";
-                      const isUncertain = row.quality === "uncertain";
-                      const isOcr = row.extraction_method.toLowerCase().includes("ocr");
-                      const qualityNum =
-                        row.quality === "good"
-                          ? 95
-                          : row.quality === "sparse"
-                          ? 70
-                          : isUncertain
-                          ? 35
-                          : 85;
-
-                      const staggerDelay = Math.min(idx * 24, 240);
-
-                      return (
-                        <tr
-                          key={row.page_number}
-                          data-row-method={row.extraction_method}
-                          data-scanline={isOcr && isT3 ? "active" : "none"}
-                          className={`hover:bg-[var(--ink-700)]/40 transition-colors duration-[120ms] relative ${
-                            !isT0 ? "m-enter" : ""
-                          } ${isUncertain && !isT0 ? "animate-uncertain-pulse" : ""}`}
-                          style={!isT0 ? { animationDelay: `${staggerDelay}ms` } : undefined}
-                        >
-                          <td className="type-mono-sm text-[var(--bone)] py-3 px-3 relative">
-                            {isOcr && isT3 && (
-                              <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                                <div className="w-full h-[1.5px] bg-[var(--ochre)]/80 shadow-[0_0_8px_var(--ochre)] animate-scanline" />
-                              </div>
-                            )}
-                            Page {row.page_number}
-                          </td>
-                          <td className="type-mono-sm text-[var(--dim)] py-3 px-3 relative">
-                            {isOcr && isT3 && (
-                              <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                                <div className="w-full h-[1.5px] bg-[var(--ochre)]/80 shadow-[0_0_8px_var(--ochre)] animate-scanline" />
-                              </div>
-                            )}
-                            {row.text_length.toLocaleString()} chars
-                          </td>
-                          <td className="py-3 px-3 relative">
-                            {isOcr && isT3 && (
-                              <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                                <div className="w-full h-[1.5px] bg-[var(--ochre)]/80 shadow-[0_0_8px_var(--ochre)] animate-scanline" />
-                              </div>
-                            )}
-                            <Badge variant={isUncertain ? "madder" : isNative ? "verdigris" : "ochre"}>
-                              {row.extraction_method}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-3 relative">
-                            {isOcr && isT3 && (
-                              <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                                <div className="w-full h-[1.5px] bg-[var(--ochre)]/80 shadow-[0_0_8px_var(--ochre)] animate-scanline" />
-                              </div>
-                            )}
-                            <div className="flex items-center gap-2">
-                              <QualityBar percentage={qualityNum} method={isNative ? "native" : row.extraction_method} />
-                              <span className="type-mono-sm text-[var(--bone)] inline-flex items-center">
-                                <Odometer value={qualityNum} />%
-                              </span>
-                            </div>
-                          </td>
-                          <td className="type-meta text-[var(--dim)] py-3 px-3 relative">
-                            {isOcr && isT3 && (
-                              <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                                <div className="w-full h-[1.5px] bg-[var(--ochre)]/80 shadow-[0_0_8px_var(--ochre)] animate-scanline" />
-                              </div>
-                            )}
-                            {row.quality === "good"
-                              ? "High structural text density"
-                              : row.quality === "sparse"
-                              ? "Sparse numerical data"
-                              : isUncertain
-                              ? "Marked uncertain: low text density and OCR unavailable"
-                              : `OCR scanned image layer (${row.extraction_method})`}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* UncertainState notification banner per DESIGN §7.24 / US-16 */}
-            {uncertainPages.length > 0 && (
-              <div className="mt-4">
-                <UncertainState
-                  note={`${uncertainPages.length} scanned page(s) lack valid text layer and OCR engine was unavailable. Flagged per clinical fail-closed policy.`}
-                />
+            {pages.length === 0 ? (
+              <div
+                data-testid="upload-quality-empty"
+                className={`flex items-center justify-center gap-2.5 py-8 text-[var(--dim)] type-meta ${
+                  !isT0 ? "m-enter" : ""
+                }`}
+              >
+                <svg
+                  viewBox="0 0 64 64"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="w-5 h-5 text-[var(--dim)]"
+                >
+                  <DrawPath
+                    d="M12 48L24 24L36 40L44 30L52 48H12Z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    durationMs={720}
+                    className="animate-sketch-draw"
+                    data-testid="empty-state-sketch"
+                  />
+                </svg>
+                <span>Upload a report PDF to view extraction and OCR confidence summary.</span>
               </div>
-            )}
+            ) : (
+              <div className="flex flex-col gap-4">
+                {/* 3 Summary Metric Tiles */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-900)] border border-[var(--line-faint)] flex flex-col justify-between">
+                    <span className="type-label text-[var(--dim)] text-[11.5px]">Pages Processed</span>
+                    <div className="type-title text-[var(--bone)] text-[22px] font-semibold mt-2 flex items-baseline gap-1">
+                      <Odometer value={pages.length} />
+                      <span className="type-meta text-[var(--dim)] text-[12px] font-normal">sheets</span>
+                    </div>
+                    <span className="type-meta text-[var(--dim)] text-[11px] mt-1">
+                      {nativePagesCount} native text layer
+                    </span>
+                  </div>
 
-            {/* Table Footnote */}
-            {pages.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-[var(--line-faint)] flex items-center justify-between">
-                <span className="type-quote-sm text-[var(--dim)] italic">
-                  {nativePagesCount} native page{nativePagesCount === 1 ? "" : "s"} · {ocrPagesCount} OCR scanned page{ocrPagesCount === 1 ? "" : "s"}
-                  {uncertainPages.length > 0 && ` · ${uncertainPages.length} uncertain`}
-                </span>
-                <span className="type-mono-sm text-[var(--faint)]">
-                  Engine: RapidOCR / Tesseract dual-engine pipeline
-                </span>
+                  <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-900)] border border-[var(--line-faint)] flex flex-col justify-between">
+                    <span className="type-label text-[var(--dim)] text-[11.5px]">OCR Fallback Used</span>
+                    <div className="type-title text-[var(--bone)] text-[22px] font-semibold mt-2 flex items-center gap-2">
+                      {ocrPagesCount > 0 ? (
+                        <>
+                          <Badge variant="ochre">{ocrPagesCount} page(s)</Badge>
+                          <span className="type-meta text-[var(--ochre)] text-[12px]">active</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-[var(--verdigris)]">No</span>
+                          <span className="type-meta text-[var(--verdigris)] text-[12px] font-normal">
+                            (100% Native)
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <span className="type-meta text-[var(--dim)] text-[11px] mt-1">
+                      {ocrPagesCount > 0 ? "RapidOCR / Tesseract" : "Direct PDF text stream"}
+                    </span>
+                  </div>
+
+                  <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-900)] border border-[var(--line-faint)] flex flex-col justify-between">
+                    <span className="type-label text-[var(--dim)] text-[11.5px]">Total Chunks</span>
+                    <div className="type-title text-[var(--bone)] text-[22px] font-semibold mt-2 flex items-baseline gap-1">
+                      <Odometer value={totalChunks} />
+                      <span className="type-meta text-[var(--dim)] text-[12px] font-normal">blocks</span>
+                    </div>
+                    <span className="type-meta text-[var(--dim)] text-[11px] mt-1">
+                      {totalChars.toLocaleString()} characters indexed
+                    </span>
+                  </div>
+                </div>
+
+                {/* Uncertain state banner if needed */}
+                {uncertainPages.length > 0 && (
+                  <div className="mt-2">
+                    <UncertainState
+                      note={`${uncertainPages.length} scanned page(s) lack valid text layer and OCR engine was unavailable. Flagged per clinical fail-closed policy.`}
+                    />
+                  </div>
+                )}
+
+                {/* Footnote */}
+                <div className="pt-3 border-t border-[var(--line-faint)] flex items-center justify-between">
+                  <span className="type-quote-sm text-[var(--dim)] italic text-[11.5px]">
+                    {nativePagesCount} native page{nativePagesCount === 1 ? "" : "s"} · {ocrPagesCount} OCR scanned page{ocrPagesCount === 1 ? "" : "s"}
+                    {uncertainPages.length > 0 && ` · ${uncertainPages.length} uncertain`}
+                  </span>
+                  <span className="type-mono-sm text-[var(--faint)] text-[11px]">
+                    Engine: RapidOCR / Tesseract dual-engine pipeline
+                  </span>
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Right Rail (360px) */}
+        {/* Right Rail (360px) - Retains Quarantine Card per approved plan */}
         <div className="w-full lg:w-[360px] flex-shrink-0 flex flex-col gap-6">
-          {/* File Manifest Card (§7.14, §9.2) */}
-          <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-5">
-            <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--line-faint)]">
-              <h3 className="type-title text-[var(--bone)]">File manifest</h3>
-              <Badge variant={activeReport?.status === "ready" ? "verdigris" : "dim"}>
-                {activeReport?.status === "ready" ? "Verified" : "Pending"}
-              </Badge>
-            </div>
-
-            <div className="flex flex-col">
-              <ManifestRow
-                label="File name"
-                value={file?.name || activeReport?.original_filename || "Arjun_Lab_Report_Jan2025.pdf"}
-              />
-              <ManifestRow
-                label="SHA-256"
-                value={activeReport?.file_hash ? `${activeReport.file_hash.slice(0, 24)}...` : "8f4a9c0d2b7e6f1c9d4a1e0b6c21"}
-                copyable
-              />
-              <ManifestRow
-                label="File size"
-                value={file ? `${(file.size / 1024).toFixed(0)} KB` : "214 KB"}
-              />
-              <ManifestRow
-                label="Page count"
-                value={activeReport?.page_count ? `${activeReport.page_count} pages` : `${pages.length || 1} page`}
-              />
-              <ManifestRow
-                label="Date parsed"
-                value={activeReport?.report_date ? `${activeReport.report_date} (parsed)` : "2025-01-15 (parsed)"}
-              />
-              <ManifestRow label="Document type" value="Clinical Lab Report (PDF)" />
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-[var(--line-faint)] flex justify-end">
-              <DetentPress>
-                <Button
-                  variant="ghost"
-                  className="text-xs h-8"
-                  data-testid="download-metadata-btn"
-                  onClick={() => {
-                    playDetent();
-                    const meta = JSON.stringify({ activeReport, pages, steps }, null, 2);
-                    const blob = new Blob([meta], { type: "application/json" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `manifest_${activeReport?.id || "report"}.json`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    addToast("done", "Metadata Downloaded", "JSON metadata downloaded successfully");
-                  }}
-                >
-                  Download JSON metadata
-                </Button>
-              </DetentPress>
-            </div>
-          </div>
-
           {/* Quarantine Card (§7.15, §9.2) */}
           <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-5">
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--line-faint)]">
               <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${quarantinedFiles.length > 0 ? "bg-[var(--madder)]" : "bg-[var(--dim)]"}`} />
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    quarantinedFiles.length > 0 ? "bg-[var(--madder)]" : "bg-[var(--dim)]"
+                  }`}
+                />
                 <h3 className="type-title text-[var(--bone)]">
                   Quarantined files ({quarantinedFiles.length})
                 </h3>
@@ -864,7 +490,13 @@ export const UploadPage: React.FC = () => {
                   !isT0 ? "m-enter" : ""
                 }`}
               >
-                <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-[var(--dim)] flex-shrink-0">
+                <svg
+                  viewBox="0 0 64 64"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="w-4 h-4 text-[var(--dim)] flex-shrink-0"
+                >
                   <DrawPath
                     d="M12 48L24 24L36 40L44 30L52 48H12Z"
                     strokeLinecap="round"
@@ -876,7 +508,10 @@ export const UploadPage: React.FC = () => {
                     data-testid="empty-state-sketch"
                   />
                 </svg>
-                <span>No quarantined files. All uploaded documents passed security validation, encryption, and layout verification gates.</span>
+                <span>
+                  No quarantined files. All uploaded documents passed security validation, encryption, and layout
+                  verification gates.
+                </span>
               </div>
             ) : (
               <div className="space-y-2">
@@ -894,74 +529,20 @@ export const UploadPage: React.FC = () => {
               </div>
             )}
           </div>
-
-          {/* Need help? card (§9.2) */}
-          <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-5">
-            <h3 className="type-title text-[var(--bone)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-              Need help?
-            </h3>
-            <ul ref={helpListRef} className="space-y-2">
-              {[
-                {
-                  title: "Supported document formats",
-                  desc: "PDF 1.4+, scanned images, clinical panels",
-                  detail: "Ingests standard digital clinical PDFs and scanned image panels directly into local processing pipeline.",
-                },
-                {
-                  title: "OCR accuracy & extraction",
-                  desc: "Dual engine with layout detection",
-                  detail: "Uses dual-pass layout analysis to detect multi-column diagnostic tables and preserve biomarker bounding boxes.",
-                },
-                {
-                  title: "Knowledge graph extraction",
-                  desc: "Entity resolution and ontology linking",
-                  detail: "Resolves extracted biomarkers and clinical entities against LOINC and SNOMED CT terminology ontologies.",
-                },
-                {
-                  title: "Data privacy & local storage",
-                  desc: "Zero telemetry leaves local workstation",
-                  detail: "All embeddings, vector indices, and SQLite records remain strictly contained on localhost.",
-                },
-              ].map((item, idx) => {
-                const isExpanded = expandedHelpIdx === idx;
-                return (
-                  <DetentPress key={idx}>
-                    <li
-                      onClick={() => handleToggleHelp(idx)}
-                      data-testid={`upload-help-item-${idx}`}
-                      className="p-2.5 rounded-[var(--r-6)] border border-transparent hover:border-[var(--line-strong)] hover:bg-[var(--ink-700)]/30 transition-all duration-[120ms] ease-out cursor-pointer"
-                    >
-                      <div className="type-body font-medium text-[var(--bone)] text-xs flex items-center justify-between">
-                        <span>{item.title}</span>
-                        <span
-                          className={`text-[var(--dim)] inline-block transition-transform duration-[120ms] ${
-                            isExpanded && !isT0 ? "rotate-90" : ""
-                          }`}
-                        >
-                          ›
-                        </span>
-                      </div>
-                      <div className="type-meta text-[var(--dim)] text-[11px] mt-0.5">
-                        {item.desc}
-                      </div>
-                      {isExpanded && (
-                        <div
-                          data-testid={`upload-help-detail-${idx}`}
-                          className={`mt-2 pt-2 border-t border-[var(--line-faint)] text-[11px] text-[var(--bone)] leading-relaxed ${
-                            !isT0 ? "m-enter-card" : ""
-                          }`}
-                        >
-                          {item.detail}
-                        </div>
-                      )}
-                    </li>
-                  </DetentPress>
-                );
-              })}
-            </ul>
-          </div>
         </div>
       </div>
+
+      {/* Cinematic Storytelling Pipeline Popup (§3) */}
+      <CinematicPipelinePopup
+        isOpen={isPopupOpen}
+        filename={file?.name || "Clinical Report PDF"}
+        jobStream={jobStream}
+        onClose={() => setIsPopupOpen(false)}
+        onContinueToLibrary={() => {
+          setIsPopupOpen(false);
+          transitionNavigate(navigate, "/library", { direction: "forward" });
+        }}
+      />
     </div>
   );
 };

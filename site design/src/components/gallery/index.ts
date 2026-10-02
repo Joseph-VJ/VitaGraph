@@ -27,3 +27,4 @@ export * from "./Breadcrumb";
 export * from "./EvidenceSpanViewer";
 export * from "./Toast";
 export * from "./MotionSpecimensSection";
+export * from "./CinematicPipelinePopup";
