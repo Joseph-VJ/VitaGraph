@@ -52,8 +52,15 @@ export function useJobStream(): UseJobStreamReturn {
   const eventQueueRef = useRef<JobStreamEvent[]>([]);
   const isProcessingQueueRef = useRef<boolean>(false);
   const isDoneRef = useRef<boolean>(false);
+  const dwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef<boolean>(true);
 
+  // Strict cleanup of EventSource connection and dwell timers
   const disconnect = useCallback(() => {
+    if (dwellTimerRef.current) {
+      clearTimeout(dwellTimerRef.current);
+      dwellTimerRef.current = null;
+    }
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
@@ -64,6 +71,7 @@ export function useJobStream(): UseJobStreamReturn {
 
   const reset = useCallback(() => {
     disconnect();
+    if (!isMountedRef.current) return;
     setStatus("idle");
     setSteps(INITIAL_STEPS);
     setCurrentStage(null);
@@ -75,13 +83,18 @@ export function useJobStream(): UseJobStreamReturn {
     setActiveJobId(null);
   }, [disconnect]);
 
+  // Lifecycle memory-leak prevention
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       disconnect();
     };
   }, [disconnect]);
 
   const processQueue = useCallback(() => {
+    if (!isMountedRef.current) return;
+
     if (eventQueueRef.current.length === 0) {
       isProcessingQueueRef.current = false;
       return;
@@ -98,6 +111,29 @@ export function useJobStream(): UseJobStreamReturn {
     setEvents((prev) => [...prev, evt]);
     if (evt.stage) {
       setCurrentStage(evt.stage);
+    }
+
+    // Check for explicit error/failed status in any event
+    const isEventFailure =
+      evt.status === "failed" ||
+      evt.status === "error" ||
+      evt.metadata?.error ||
+      evt.description?.startsWith("Error:");
+
+    if (isEventFailure) {
+      const errMsg =
+        evt.metadata?.error ||
+        evt.description ||
+        "Corrupted document structure or unreadable text layers.";
+      setError(errMsg);
+      setStatus("error");
+      setSteps((prev) =>
+        prev.map((s) =>
+          s.status === "active" ? { ...s, value: "quarantined", status: "pending" } : s
+        )
+      );
+      disconnect();
+      return;
     }
 
     if (evt.stage) {
@@ -134,23 +170,6 @@ export function useJobStream(): UseJobStreamReturn {
           next[4] = { name: "Indexed", value: "ChromaDB ok", status: "done" };
           next[5] = { name: "Graphed", value: "NetworkX mapped", status: "done" };
         } else if (evt.stage === "done") {
-          if (
-            evt.metadata?.error ||
-            evt.description?.startsWith("Error:") ||
-            evt.status === "error"
-          ) {
-            const errMsg =
-              evt.metadata?.error ||
-              evt.description ||
-              "Corrupted document structure or unreadable text layers.";
-            setError(errMsg);
-            setStatus("error");
-            disconnect();
-            return next.map((s) =>
-              s.status === "active" ? { ...s, value: "quarantined", status: "pending" } : s
-            );
-          }
-
           const pageCount = evt.metadata?.pages || evt.metadata?.report?.page_count || 1;
           const chunkCount = evt.metadata?.chunks || evt.metadata?.report?.chunk_count || 1;
           const reportId = evt.metadata?.report_id || evt.metadata?.report?.id;
@@ -196,8 +215,16 @@ export function useJobStream(): UseJobStreamReturn {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const dwellMs = prefersReducedMotion ? 0 : 280;
 
-    setTimeout(() => {
-      processQueue();
+    if (dwellTimerRef.current) {
+      clearTimeout(dwellTimerRef.current);
+      dwellTimerRef.current = null;
+    }
+
+    dwellTimerRef.current = setTimeout(() => {
+      dwellTimerRef.current = null;
+      if (isMountedRef.current) {
+        processQueue();
+      }
     }, dwellMs);
   }, [disconnect]);
 
@@ -228,14 +255,16 @@ export function useJobStream(): UseJobStreamReturn {
       eventSourceRef.current = es;
 
       es.onopen = () => {
+        if (!isMountedRef.current) return;
         setStatus("streaming");
       };
 
       es.onmessage = (e) => {
+        if (!isMountedRef.current) return;
         try {
           const evt: JobStreamEvent = JSON.parse(e.data);
-          if (evt && evt.stage) {
-            if (evt.stage === "done") {
+          if (evt && (evt.stage || evt.status)) {
+            if (evt.stage === "done" || evt.status === "completed" || evt.status === "error" || evt.status === "failed") {
               isDoneRef.current = true;
             }
             eventQueueRef.current.push(evt);
@@ -250,10 +279,11 @@ export function useJobStream(): UseJobStreamReturn {
 
       es.onerror = () => {
         if (isDoneRef.current) {
-          es.close();
+          disconnect();
           return;
         }
-        es.close();
+        disconnect();
+        if (!isMountedRef.current) return;
         const errMessage = "Backend connection lost. Pipeline interrupted mid-upload.";
         setError(errMessage);
         setStatus("error");

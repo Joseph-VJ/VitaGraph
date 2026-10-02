@@ -341,7 +341,7 @@ export const UploadPage: React.FC = () => {
           {/* Dropzone (§7.11) */}
           <Dropzone file={file} onFileSelect={handleFileSelect} />
 
-          {/* Simplified Page Quality Summary Card (§4 Redesign) */}
+          {/* Simplified Page Quality Summary Card (§4 Redesign & Staff Polish) */}
           <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-6 relative overflow-hidden">
             {/* Success Moment Canvas Overlay (§7.2-B) */}
             {showSuccessMoment && isT3 && (
@@ -353,102 +353,146 @@ export const UploadPage: React.FC = () => {
 
             <div className="flex items-center justify-between mb-5 pb-3 border-b border-[var(--line-faint)]">
               <div>
-                <h3 className="type-title text-[var(--bone)]">Page quality summary</h3>
+                <h3 className="type-card-title text-[var(--bone)]">Page quality summary</h3>
                 <p className="type-meta text-[var(--dim)] mt-0.5">
                   Resolution and OCR confidence metrics for ingested document
                 </p>
               </div>
               <Badge variant={pages.length > 0 ? "verdigris" : "dim"}>
-                {pages.length > 0 ? `${pages.length} pages analyzed` : "No pages loaded"}
+                {pages.length > 0 ? `${pages.length} pages analyzed` : "Standby"}
               </Badge>
             </div>
 
-            {pages.length === 0 ? (
-              <div
-                data-testid="upload-quality-empty"
-                className={`flex items-center justify-center gap-2.5 py-8 text-[var(--dim)] type-meta ${
-                  !isT0 ? "m-enter" : ""
-                }`}
-              >
-                <svg
-                  viewBox="0 0 64 64"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="w-5 h-5 text-[var(--dim)]"
-                >
-                  <DrawPath
-                    d="M12 48L24 24L36 40L44 30L52 48H12Z"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    durationMs={720}
-                    className="animate-sketch-draw"
-                    data-testid="empty-state-sketch"
-                  />
-                </svg>
-                <span>Upload a report PDF to view extraction and OCR confidence summary.</span>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {/* 3 Summary Metric Tiles */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-900)] border border-[var(--line-faint)] flex flex-col justify-between">
-                    <span className="type-label text-[var(--dim)] text-[11.5px]">Pages Processed</span>
-                    <div className="type-title text-[var(--bone)] text-[22px] font-semibold mt-2 flex items-baseline gap-1">
-                      <Odometer value={pages.length} />
-                      <span className="type-meta text-[var(--dim)] text-[12px] font-normal">sheets</span>
-                    </div>
-                    <span className="type-meta text-[var(--dim)] text-[11px] mt-1">
-                      {nativePagesCount} native text layer
-                    </span>
+            <div className="flex flex-col gap-4">
+              {/* 3 Summary Metric Tiles with Instrument Mono values & Paper Serif labels */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Metric 1: Pages Processed */}
+                <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-900)] border border-[var(--line-faint)] flex flex-col justify-between min-h-[96px]">
+                  <span className="font-['Spectral'] font-medium text-[var(--bone)] text-[13.5px]">
+                    Pages Processed
+                  </span>
+                  <div className="mt-2">
+                    {pages.length > 0 ? (
+                      <div className="type-stat text-[var(--bone)] font-mono tabular-nums text-[24px] font-medium flex items-baseline gap-1.5">
+                        <Odometer value={pages.length} />
+                        <span className="type-mono-sm text-[var(--dim)] text-[12px] font-normal">sheets</span>
+                      </div>
+                    ) : (
+                      <span className="type-stat text-[var(--faint)] font-mono tabular-nums text-[24px] font-medium">
+                        —
+                      </span>
+                    )}
                   </div>
-
-                  <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-900)] border border-[var(--line-faint)] flex flex-col justify-between">
-                    <span className="type-label text-[var(--dim)] text-[11.5px]">OCR Fallback Used</span>
-                    <div className="type-title text-[var(--bone)] text-[22px] font-semibold mt-2 flex items-center gap-2">
-                      {ocrPagesCount > 0 ? (
-                        <>
-                          <Badge variant="ochre">{ocrPagesCount} page(s)</Badge>
-                          <span className="type-meta text-[var(--ochre)] text-[12px]">active</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-[var(--verdigris)]">No</span>
-                          <span className="type-meta text-[var(--verdigris)] text-[12px] font-normal">
-                            (100% Native)
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    <span className="type-meta text-[var(--dim)] text-[11px] mt-1">
-                      {ocrPagesCount > 0 ? "RapidOCR / Tesseract" : "Direct PDF text stream"}
-                    </span>
-                  </div>
-
-                  <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-900)] border border-[var(--line-faint)] flex flex-col justify-between">
-                    <span className="type-label text-[var(--dim)] text-[11.5px]">Total Chunks</span>
-                    <div className="type-title text-[var(--bone)] text-[22px] font-semibold mt-2 flex items-baseline gap-1">
-                      <Odometer value={totalChunks} />
-                      <span className="type-meta text-[var(--dim)] text-[12px] font-normal">blocks</span>
-                    </div>
-                    <span className="type-meta text-[var(--dim)] text-[11px] mt-1">
-                      {totalChars.toLocaleString()} characters indexed
-                    </span>
-                  </div>
+                  <span className="type-meta text-[var(--dim)] text-[11px] mt-1">
+                    {pages.length > 0 ? `${nativePagesCount} native text layer` : "Awaiting document upload"}
+                  </span>
                 </div>
 
-                {/* Uncertain state banner if needed */}
-                {uncertainPages.length > 0 && (
-                  <div className="mt-2">
-                    <UncertainState
-                      note={`${uncertainPages.length} scanned page(s) lack valid text layer and OCR engine was unavailable. Flagged per clinical fail-closed policy.`}
-                    />
+                {/* Metric 2: OCR Fallback Used */}
+                <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-900)] border border-[var(--line-faint)] flex flex-col justify-between min-h-[96px]">
+                  <span className="font-['Spectral'] font-medium text-[var(--bone)] text-[13.5px]">
+                    OCR Fallback Used
+                  </span>
+                  <div className="mt-2 flex items-center">
+                    {pages.length > 0 ? (
+                      ocrPagesCount > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="ochre">{ocrPagesCount} page(s)</Badge>
+                          <span className="type-meta text-[var(--ochre)] text-[11.5px] font-medium">active</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="type-stat text-[var(--verdigris)] font-mono text-[20px] font-medium">
+                            No
+                          </span>
+                          <span className="type-mono-sm text-[var(--dim)] text-[11.5px] font-normal">
+                            (100% Native)
+                          </span>
+                        </div>
+                      )
+                    ) : (
+                      <span className="type-stat text-[var(--faint)] font-mono tabular-nums text-[24px] font-medium">
+                        —
+                      </span>
+                    )}
                   </div>
-                )}
+                  <span className="type-meta text-[var(--dim)] text-[11px] mt-1">
+                    {pages.length > 0
+                      ? ocrPagesCount > 0
+                        ? "RapidOCR / Tesseract"
+                        : "Direct PDF text stream"
+                      : "Dual-engine standby"}
+                  </span>
+                </div>
 
-                {/* Footnote */}
+                {/* Metric 3: Total Chunks */}
+                <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-900)] border border-[var(--line-faint)] flex flex-col justify-between min-h-[96px]">
+                  <span className="font-['Spectral'] font-medium text-[var(--bone)] text-[13.5px]">
+                    Total Chunks
+                  </span>
+                  <div className="mt-2">
+                    {pages.length > 0 ? (
+                      <div className="type-stat text-[var(--bone)] font-mono tabular-nums text-[24px] font-medium flex items-baseline gap-1.5">
+                        <Odometer value={totalChunks} />
+                        <span className="type-mono-sm text-[var(--dim)] text-[12px] font-normal">blocks</span>
+                      </div>
+                    ) : (
+                      <span className="type-stat text-[var(--faint)] font-mono tabular-nums text-[24px] font-medium">
+                        —
+                      </span>
+                    )}
+                  </div>
+                  <span className="type-meta text-[var(--dim)] text-[11px] mt-1">
+                    {pages.length > 0
+                      ? `${totalChars.toLocaleString()} characters indexed`
+                      : "ChromaDB vector partition"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Empty state guidance when no document ingested yet */}
+              {pages.length === 0 && (
+                <div
+                  data-testid="upload-quality-empty"
+                  className={`flex items-center gap-2.5 p-3 rounded-[var(--r-6)] bg-[var(--ink-900)]/60 border border-[var(--line-faint)] text-[var(--dim)] type-meta text-[11.5px] ${
+                    !isT0 ? "m-enter" : ""
+                  }`}
+                >
+                  <svg
+                    viewBox="0 0 64 64"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="w-4 h-4 text-[var(--dim)] flex-shrink-0"
+                  >
+                    <DrawPath
+                      d="M12 48L24 24L36 40L44 30L52 48H12Z"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      durationMs={720}
+                      className="animate-sketch-draw"
+                      data-testid="empty-state-sketch"
+                    />
+                  </svg>
+                  <span>
+                    Drop a clinical report PDF above to inspect resolution, extraction confidence, and OCR fallback metrics.
+                  </span>
+                </div>
+              )}
+
+              {/* Uncertain state banner if needed */}
+              {uncertainPages.length > 0 && (
+                <div className="mt-2">
+                  <UncertainState
+                    note={`${uncertainPages.length} scanned page(s) lack valid text layer and OCR engine was unavailable. Flagged per clinical fail-closed policy.`}
+                  />
+                </div>
+              )}
+
+              {/* Footnote when pages present */}
+              {pages.length > 0 && (
                 <div className="pt-3 border-t border-[var(--line-faint)] flex items-center justify-between">
                   <span className="type-quote-sm text-[var(--dim)] italic text-[11.5px]">
                     {nativePagesCount} native page{nativePagesCount === 1 ? "" : "s"} · {ocrPagesCount} OCR scanned page{ocrPagesCount === 1 ? "" : "s"}
@@ -458,8 +502,8 @@ export const UploadPage: React.FC = () => {
                     Engine: RapidOCR / Tesseract dual-engine pipeline
                   </span>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
