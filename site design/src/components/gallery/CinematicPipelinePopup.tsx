@@ -1,4 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { GraphStage } from "./GraphStage";
+import { graphApi } from "../../api/graph";
+import type { GraphResponse } from "../../api/graph";
 import { PipelineStepper } from "./PipelineStepper";
 import { Badge } from "./Badge";
 import { Button } from "./Buttons";
@@ -12,6 +15,10 @@ export interface CinematicPipelinePopupProps {
   isOpen: boolean;
   onClose: () => void;
   onContinueToLibrary?: () => void;
+  /** User whose knowledge graph is shown after processing completes. */
+  userId?: string;
+  /** Next step after the graph: open Ask scoped to the uploaded PDF. */
+  onContinueToAsk?: () => void;
   filename: string;
   jobStream: UseJobStreamReturn;
 }
@@ -20,6 +27,8 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
   isOpen,
   onClose,
   onContinueToLibrary,
+  userId,
+  onContinueToAsk,
   filename,
   jobStream,
 }) => {
@@ -37,11 +46,107 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
+  const [view, setView] = useState<"pipeline" | "graph">("pipeline");
+  const [graph, setGraph] = useState<GraphResponse | null>(null);
+  const [graphError, setGraphError] = useState<string | null>(null);
+  const completed = jobStream.status === "completed";
+
+  // Reset to the pipeline view for every new job.
+  useEffect(() => {
+    setView("pipeline");
+    setGraph(null);
+    setGraphError(null);
+  }, [jobStream.activeJobId]);
+
+  // When processing finishes, load the real graph (it now includes this report) and show it.
+  useEffect(() => {
+    if (!isOpen || !completed || !userId) return;
+    let cancelled = false;
+    setGraphError(null);
+    graphApi
+      .getGraph(userId)
+      .then((g) => {
+        if (cancelled) return;
+        setGraph(g);
+        setView("graph");
+      })
+      .catch((err) => {
+        if (!cancelled) setGraphError(err instanceof Error ? err.message : "Could not load the knowledge graph.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, completed, userId]);
+
   if (!isOpen) return null;
 
   const isCompleted = jobStream.status === "completed";
   const isError = jobStream.status === "error" || Boolean(jobStream.error);
   const stage = jobStream.currentStage || "received";
+
+  if (view === "graph" && graph) {
+    const m = graph.metrics;
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cinematic-popup-title"
+        className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[rgba(40,50,58,0.55)] backdrop-blur-md ${
+          !isT0 ? "animate-fade-in" : ""
+        }`}
+      >
+        <div className="relative w-full max-w-4xl rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] shadow-[0_24px_64px_rgba(40,50,58,0.35)] overflow-hidden flex flex-col max-h-[92vh]">
+          <div className="flex items-center justify-between gap-3 p-5 border-b border-[var(--line-faint)]">
+            <div className="min-w-0">
+              <h2 id="cinematic-popup-title" className="font-['Spectral'] font-semibold text-[var(--bone)] text-[17px] leading-tight">
+                Your knowledge graph is ready
+              </h2>
+              <div className="type-mono-sm text-[var(--dim)] text-[11.5px] truncate mt-0.5">
+                Built from {filename || "your report"} and your earlier reports ·{" "}
+                <span data-testid="graph-metrics">
+                  {m.total_nodes} nodes · {m.total_edges} edges · {m.communities_count} communities
+                </span>
+              </div>
+            </div>
+            <Badge variant="verdigris">Verified</Badge>
+          </div>
+
+          <div className="overflow-y-auto p-4">
+            <GraphStage graphData={graph} />
+          </div>
+
+          <div className="p-4 px-6 bg-[var(--ink-800)] flex items-center justify-between gap-3 border-t border-[var(--line-faint)]">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" className="text-xs h-8 px-3" onClick={() => { playDetent(); onClose(); }}>
+                Close
+              </Button>
+              <Button variant="ghost" className="text-xs h-8 px-3" onClick={() => setView("pipeline")}>
+                Back to pipeline
+              </Button>
+              {onContinueToLibrary && (
+                <Button variant="ghost" className="text-xs h-8 px-3" onClick={() => { playDetent(); onContinueToLibrary(); }}>
+                  Go to Library
+                </Button>
+              )}
+            </div>
+            <DetentPress>
+              <Button
+                variant="primary"
+                className="text-xs h-9 px-5 font-semibold flex items-center gap-2"
+                onClick={() => { playDetent(); (onContinueToAsk ?? onClose)(); }}
+                data-testid="next-to-ask"
+              >
+                <span>Next: Ask your document</span>
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </Button>
+            </DetentPress>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -49,12 +154,12 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
       aria-modal="true"
       aria-labelledby="cinematic-popup-title"
       aria-live="polite"
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[var(--ink-950)]/75 backdrop-blur-md ${
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[rgba(40,50,58,0.55)] backdrop-blur-md ${
         !isT0 ? "animate-fade-in" : ""
       }`}
     >
       {/* 3D Glass Frame */}
-      <div className="relative w-full max-w-2xl rounded-[var(--r-14)] bg-[var(--ink-800)]/95 backdrop-blur-xl border border-[var(--line-strong)] shadow-[0_24px_64px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.06)_inset] overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl rounded-[var(--r-14)] bg-[var(--ink-800)]/95 backdrop-blur-xl border border-[var(--line-strong)] shadow-[0_24px_64px_rgba(40,50,58,0.35),0_0_0_1px_rgba(255,255,255,0.4)_inset] overflow-hidden flex flex-col max-h-[90vh]">
         {/* Subtle bevel line at the top */}
         <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-[var(--bone)]/20 to-transparent pointer-events-none" />
 
@@ -113,15 +218,15 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
         </div>
 
         {/* Cinematic Visual Stage: Storytelling simulating paper extraction */}
-        <div className="relative p-6 bg-gradient-to-b from-[var(--ink-900)]/60 to-[var(--ink-850)] flex flex-col items-center justify-center min-h-[220px] overflow-hidden border-b border-[var(--line-faint)]">
+        <div className="relative p-6 bg-gradient-to-b from-[var(--ink-900)]/60 to-[var(--ink-800)] flex flex-col items-center justify-center min-h-[220px] overflow-hidden border-b border-[var(--line-faint)]">
           {/* Subtle Grid Accent */}
-          <div className="absolute inset-0 bg-[radial-gradient(#79b8a6_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.06] pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(#47775F_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.06] pointer-events-none" />
 
           {/* Central Animated Story Canvas */}
           <div className="relative z-10 w-full max-w-md flex flex-col items-center">
             {/* 3D Paper Simulation Box */}
             <div
-              className={`relative w-72 h-40 rounded-[var(--r-10)] bg-[var(--ink-900)] border p-4 shadow-[inset_0_2px_12px_rgba(0,0,0,0.6),0_4px_16px_rgba(0,0,0,0.3)] flex flex-col justify-between overflow-hidden transition-colors duration-300 ${
+              className={`relative w-72 h-40 rounded-[var(--r-10)] bg-[var(--ink-900)] border p-4 shadow-[inset_0_2px_12px_rgba(40,50,58,0.18),0_4px_16px_rgba(40,50,58,0.15)] flex flex-col justify-between overflow-hidden transition-colors duration-300 ${
                 isError
                   ? "border-[var(--madder)]/60 bg-[var(--madder)]/[0.04]"
                   : "border-[var(--line-strong)]"
@@ -321,6 +426,15 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
             </div>
           )}
         </div>
+
+        {isCompleted && userId && !graphError && !graph && (
+          <div className="px-6 py-2 text-[12px] text-[var(--dim)] border-t border-[var(--line-faint)]">Building your knowledge graph view…</div>
+        )}
+        {graphError && (
+          <div role="alert" className="px-6 py-2 text-[12px] text-[var(--madder)] border-t border-[var(--line-faint)]">
+            Knowledge graph unavailable: {graphError}
+          </div>
+        )}
 
         {/* Action Footer */}
         <div className="p-4 px-6 bg-[var(--ink-800)]/90 flex items-center justify-between border-t border-[var(--line-faint)]">

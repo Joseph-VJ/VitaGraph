@@ -183,7 +183,7 @@ export const ComparePage: React.FC = () => {
                   setBaselineId(val);
                 }
               }}
-              className="h-8 px-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)] focus:ring-1 focus:ring-[var(--verdigris)]/50 focus:shadow-[0_0_8px_rgba(121,184,166,0.25)] transition-all duration-[120ms] ease-out cursor-pointer"
+              className="h-8 px-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)] focus:ring-1 focus:ring-[var(--verdigris)]/50 focus:shadow-[0_0_8px_rgba(71,119,95,0.25)] transition-all duration-[120ms] ease-out cursor-pointer"
             >
               {reports.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -237,7 +237,7 @@ export const ComparePage: React.FC = () => {
                   setFollowupId(val);
                 }
               }}
-              className="h-8 px-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)] focus:ring-1 focus:ring-[var(--verdigris)]/50 focus:shadow-[0_0_8px_rgba(121,184,166,0.25)] transition-all duration-[120ms] ease-out cursor-pointer"
+              className="h-8 px-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)] focus:ring-1 focus:ring-[var(--verdigris)]/50 focus:shadow-[0_0_8px_rgba(71,119,95,0.25)] transition-all duration-[120ms] ease-out cursor-pointer"
             >
               {reports.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -267,16 +267,16 @@ export const ComparePage: React.FC = () => {
           <div className="flex items-center gap-3">
             <span className="type-label text-[var(--bone)]">Longitudinal shifts:</span>
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(121,184,166,0.12)] text-[var(--verdigris)] border border-[rgba(121,184,166,0.25)] type-mono-sm flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(71,119,95,0.12)] text-[var(--verdigris)] border border-[rgba(71,119,95,0.25)] type-mono-sm flex items-center gap-1">
                 <Odometer value={summary.improved} duration={480} testId="odo-improved" /> improved
               </span>
-              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(217,128,141,0.12)] text-[var(--madder)] border border-[rgba(217,128,141,0.25)] type-mono-sm flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(176,82,94,0.12)] text-[var(--madder)] border border-[rgba(176,82,94,0.25)] type-mono-sm flex items-center gap-1">
                 <Odometer value={summary.declined} duration={480} testId="odo-declined" /> declined
               </span>
               <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] text-[var(--dim)] border border-[var(--line-strong)] type-mono-sm flex items-center gap-1">
                 <Odometer value={summary.stable} duration={480} testId="odo-stable" /> stable
               </span>
-              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(217,164,65,0.12)] text-[var(--ochre)] border border-[rgba(217,164,65,0.25)] type-mono-sm flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(197,138,67,0.12)] text-[var(--ochre)] border border-[rgba(197,138,67,0.25)] type-mono-sm flex items-center gap-1">
                 <Odometer value={summary.unavailable} duration={480} testId="odo-unavailable" /> unavailable
               </span>
             </div>

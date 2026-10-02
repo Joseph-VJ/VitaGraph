@@ -4,6 +4,7 @@ import { Breadcrumb } from "../gallery/Breadcrumb";
 import { Badge } from "../gallery/Badge";
 import { useActiveUser } from "../../context/UserContext";
 import { supportsViewTransitions, governor } from "../../motion";
+import { BASE_URL } from "../../api/client";
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
@@ -36,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
       setAllowApi(false);
       return;
     }
-    fetch("http://127.0.0.1:8000/api/health")
+    fetch(`${BASE_URL}/api/health`)
       .then((res) => res.json())
       .then((data) => {
         if (isMounted && typeof data.allow_api === "boolean") {

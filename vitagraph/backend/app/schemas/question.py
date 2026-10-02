@@ -7,6 +7,8 @@ guidance (plan Section 10).
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -15,6 +17,11 @@ class QuestionCreate(BaseModel):
     text: str = Field(min_length=3, max_length=500)
     job_id: str | None = None
     background: bool = False
+    # Optional: restrict retrieval to a single report ("chat with this PDF").
+    report_id: str | None = None
+    # "rag_ai" = retrieve evidence then let the AI compose from it (default);
+    # "rag_only" = retrieve and show the evidence without calling the AI.
+    mode: Literal["rag_ai", "rag_only"] = "rag_ai"
 
 
 class EvidenceCard(BaseModel):

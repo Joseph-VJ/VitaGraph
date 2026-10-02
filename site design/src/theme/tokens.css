@@ -1,27 +1,43 @@
 /* DESIGN.md Appendix A & §4 — Frozen Tokens */
 :root {
-  /* Instrument theme (default, dark) */
-  --ink-900: #0E1116;
-  --ink-800: #141920;
-  --ink-700: #1A2028;
-  --ink-600: #232B35;
+  /* Titanium Lagoon (Phase 3): legacy token names remapped so every screen re-themes */
+  --ink-900: #DFE3E6;
+  --ink-800: #CED5DA;
+  --ink-700: #BAC3CA;
+  --ink-600: #AAB5BD;
 
-  --line-strong: #2B3440;
-  --line-faint: #1E2530;
+  --line-strong: #9AA7B0;
+  --line-faint: #B0BBC2;
 
-  --bone: #E6E4DE;
-  --dim: #98A2AD;
-  --faint: #6B7683;
+  --bone: #28323A;
+  --dim: #55636E;
+  --faint: #6C7983;
 
-  --verdigris: #79B8A6;
-  --ochre: #D9A441;
-  --cornflower: #86A9D9;
-  --lilac: #A992D0;
-  --madder: #D9808D;
+  --verdigris: #47775F;
+  --ochre: #C58A43;
+  --cornflower: #2E6270;
+  --lilac: #6F6192;
+  --madder: #B0525E;
 
-  --paper: #EDE7DA;
-  --paper-ink: #2A2620;
-  --paper-fold: #D8CFBC;
+  --paper: #E8ECEE;
+  --paper-ink: #28323A;
+  --paper-fold: #BAC3CA;
+
+  --text-main: #28323A;
+  --text-muted: #55636E;
+  --text-on-primary: #F3F6F6;
+
+  /* 3D layered shadows */
+  --shadow-3d: 0 1px 0 rgba(255,255,255,.55) inset, 0 1px 2px rgba(40,50,58,.14), 0 4px 10px rgba(40,50,58,.10), 0 12px 28px rgba(46,98,112,.12);
+  --shadow-3d-sm: 0 1px 0 rgba(255,255,255,.5) inset, 0 1px 2px rgba(40,50,58,.12), 0 3px 8px rgba(40,50,58,.08);
+
+  /* Titanium Lagoon Palette */
+  --titanium-mist: #DFE3E6;
+  --alloy-surface: #CED5DA;
+  --steel-fog: #BAC3CA;
+  --deep-petrol: #2E6270;
+  --jade-slate: #47775F;
+  --solar-bronze: #C58A43;
 
   --r-4: 4px;
   --r-6: 6px;
@@ -54,7 +70,7 @@
   --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-ink: cubic-bezier(0, 0, 0.2, 1);
 
-  --shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.40);
+  --shadow-floating: 0 8px 24px rgba(40, 50, 58, 0.22);
 }
 
 /* Paper theme (§4.2) */

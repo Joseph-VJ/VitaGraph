@@ -15,6 +15,8 @@ evidence can survive a mid-report crash.
 
 from __future__ import annotations
 
+import re
+
 from fastapi import HTTPException
 
 from app.core.database import get_db
@@ -62,6 +64,13 @@ def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None 
             description=f"Stored raw immutable upload and verified SHA-256 digest ({len(data):,} bytes)",
             sub_description=f"Hash: {record['file_hash'][:16]}... (version {record['version']})",
             latency_ms=lat_rec,
+            metadata={
+                "filename": filename,
+                "file_hash": record["file_hash"],
+                "size_bytes": len(data),
+                "version": record["version"],
+                "duplicate_of_previous": bool(record["duplicate_of_previous"]),
+            },
         )
 
     timeline_service.add_event(user_id, "report_uploaded", {
@@ -77,7 +86,29 @@ def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None 
         t_ext_start = time.perf_counter()
 
         report = uploader.get_report(report_id)
-        pages = extractor.extract_report(report)
+
+        def _on_page(page: dict, total: int) -> None:
+            if not jid:
+                return
+            job_broker.publish_event(
+                jid,
+                stage="extracting",
+                description=f"Page {page['page_number']}/{total} extracted ({page['method']})",
+                sub_description=page.get("note") or "",
+                metadata={
+                    "page_number": page["page_number"],
+                    "total_pages": total,
+                    "method": page["method"],
+                    "quality": page["quality"],
+                    "chars": page["text_length"],
+                    "note": page.get("note"),
+                    "ocr_boxes": page.get("ocr_boxes") or [],
+                    "text_preview": page["text"][:240],
+                },
+                event_type="page_extracted",
+            )
+
+        pages = extractor.extract_report(report, on_page=_on_page)
 
         # --- Report date capture (plan Section 6 req 4) ----------------------
         report_date = extractor.parse_report_date(pages)
@@ -94,6 +125,16 @@ def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None 
                 description=f"Extracted {len(pages)} page{'s' if len(pages) != 1 else ''} and layout text layers",
                 sub_description=f"Report date: {report_date or 'Undated'}",
                 latency_ms=lat_ext,
+                metadata={
+                    "page_count": len(pages),
+                    "total_chars": sum(p["text_length"] for p in pages),
+                    "report_date": report_date,
+                    "pages": [
+                        {"page_number": p["page_number"], "method": p["method"],
+                         "quality": p["quality"], "chars": p["text_length"]}
+                        for p in pages
+                    ],
+                },
             )
 
         # --- Stage: chunking + single-transaction persistence ----------------
@@ -120,6 +161,7 @@ def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None 
                 description=f"Chunked into {total_chunks} semantic sections (target 200, max 800 chars)",
                 sub_description="Preserved character spans and section headings",
                 latency_ms=lat_chunk,
+                metadata=_chunk_payload(report_id, total_chunks),
             )
 
         t_idx_start = time.perf_counter()
@@ -127,7 +169,8 @@ def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None 
             rows = db.execute(
                 "SELECT * FROM report_chunks WHERE report_id = ?", (report_id,)
             ).fetchall()
-        indexed = vector_store.index_chunks([dict(row) for row in rows])
+        chunk_rows = [dict(row) for row in rows]
+        indexed = vector_store.index_chunks(chunk_rows)
         t_idx_end = time.perf_counter()
         lat_idx = max(5, int((t_idx_end - t_idx_start) * 1000))
 
@@ -138,6 +181,7 @@ def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None 
                 description=f"Generated {indexed} dense vector embeddings via all-MiniLM-L6-v2",
                 sub_description="384-dimensional dense vectors, batch_size=32",
                 latency_ms=max(10, lat_idx // 2),
+                metadata=_embedded_payload(chunk_rows, indexed),
             )
             job_broker.publish_event(
                 jid,
@@ -145,6 +189,13 @@ def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None 
                 description="Indexed chunks in persistent ChromaDB collection and SQLite",
                 sub_description=f"User privacy namespace: {user_id}",
                 latency_ms=max(10, lat_idx // 2),
+                metadata={
+                    "indexed": indexed,
+                    "collection_total": _safe_collection_count(),
+                    "metric": "cosine",
+                    "index": "hnsw",
+                    "ready_for_search": True,
+                },
             )
 
         # --- Stage: graphed & ready --------------------------------------------
@@ -163,6 +214,7 @@ def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None 
                 description="Integrated report topology into personal knowledge graph",
                 sub_description="Nodes and provenance relations mapped",
                 latency_ms=10,
+                metadata=_graph_payload(user_id, report_id),
             )
 
         t_total = int((time.perf_counter() - t_start) * 1000)
@@ -188,26 +240,115 @@ def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None 
         return res_payload
 
     except Exception as exc:
+        public_error = _public_error(exc)
         _cleanup_failed_report(report_id)
-        uploader.set_status(report_id, "failed", error_message=str(exc))
+        uploader.set_status(report_id, "failed", error_message=public_error)
         timeline_service.add_event(user_id, "processing_failed", {
             "report_id": report_id,
             "stage": "ingestion",
-            "error": str(exc)[:300],
+            "error": public_error[:300],
         })
         fail_payload = {
             "id": report_id,
             "status": "failed",
             "page_count": 0,
             "chunk_count": 0,
-            "error_message": str(exc),
+            "error_message": public_error,
             "file_hash": record["file_hash"] if "record" in locals() else None,
             "job_id": jid,
         }
         if jid:
-            job_broker.fail_job(jid, f"Ingestion failed: {str(exc)}")
+            job_broker.fail_job(jid, f"Ingestion failed: {public_error}")
             job_broker.set_job_result(jid, fail_payload)
         return fail_payload
+
+
+_ABS_PATH_RE = re.compile(r"""(?:[A-Za-z]:[\\/]|/)(?:[^\s'"]+[\\/])+[^\s'"]*""")
+
+
+def _public_error(exc: Exception) -> str:
+    """Client-safe failure reason: never leaks server filesystem paths."""
+    msg = str(exc)
+    low = msg.lower()
+    if "failed to open file" in low or "filedataerror" in low or "cannot open broken document" in low:
+        return "The file could not be read as a PDF (it may be corrupted or not a PDF)."
+    return _ABS_PATH_RE.sub("<file>", msg)
+
+
+def _chunk_payload(report_id: str, total_chunks: int, limit: int = 12) -> dict:
+    with get_db() as db:
+        rows = db.execute(
+            "SELECT id, page_number, sequence, text, char_start, char_end, section "
+            "FROM report_chunks WHERE report_id = ? ORDER BY page_number, sequence LIMIT ?",
+            (report_id, limit),
+        ).fetchall()
+    return {
+        "total_chunks": total_chunks,
+        "shown": len(rows),
+        "chunks": [
+            {
+                "chunk_id": r["id"],
+                "page_number": r["page_number"],
+                "char_start": r["char_start"],
+                "char_end": r["char_end"],
+                "section": r["section"],
+                "chars": len(r["text"]),
+                "preview": r["text"][:160],
+            }
+            for r in rows
+        ],
+    }
+
+
+def _embedded_payload(chunk_rows: list[dict], indexed: int) -> dict:
+    from app.rag import embedder
+
+    ids = [r["id"] for r in chunk_rows[:3]]
+    try:
+        samples = vector_store.sample_embeddings(ids, n_values=8)
+    except Exception:
+        samples = []
+    return {
+        "count": indexed,
+        "model": "all-MiniLM-L6-v2",
+        "model_version": embedder.model_version(),
+        "dim": samples[0]["dim"] if samples else 384,
+        "samples": samples,
+    }
+
+
+def _safe_collection_count() -> int | None:
+    try:
+        return vector_store.collection_count()
+    except Exception:
+        return None
+
+
+def _graph_payload(user_id: str, report_id: str, label_limit: int = 40) -> dict:
+    """Real counts and labels from the user's graph after this report was integrated."""
+    try:
+        from app.graph import builder
+
+        graph, _ = builder.build_user_graph(user_id)
+        metrics = builder.serialize_graph(graph)["metrics"]
+        labels = []
+        for node_id, data in graph.nodes(data=True):
+            if len(labels) >= label_limit:
+                break
+            labels.append({
+                "id": node_id,
+                "label": data.get("label") or data.get("name") or str(node_id),
+                "type": data.get("type") or data.get("category") or "node",
+                "report_id": data.get("report_id"),
+            })
+        return {
+            "total_nodes": metrics["total_nodes"],
+            "total_edges": metrics["total_edges"],
+            "communities": metrics["communities_count"],
+            "nodes": labels,
+        }
+    except Exception as exc:  # real failure is reported, never faked
+        return {"error": f"Graph build failed: {exc}"}
 
 
 def _cleanup_failed_report(report_id: str) -> None:
@@ -219,6 +360,23 @@ def _cleanup_failed_report(report_id: str) -> None:
             db.execute("DELETE FROM report_pages WHERE report_id = ?", (report_id,))
     except Exception:
         pass  # cleanup is best-effort; the failed status is already recorded
+
+
+def render_page_png(report_id: str, page_number: int, dpi: int = 110) -> bytes:
+    """Render a page of the stored PDF to PNG bytes (404 when the report/page does not exist)."""
+    import pymupdf
+
+    report = uploader.get_report(report_id)
+    try:
+        doc = pymupdf.open(report["stored_path"])
+    except Exception:
+        raise HTTPException(status_code=404, detail="Stored file is not available.")
+    try:
+        if page_number < 1 or page_number > len(doc):
+            raise HTTPException(status_code=404, detail="Page not found.")
+        return doc[page_number - 1].get_pixmap(dpi=dpi).tobytes("png")
+    finally:
+        doc.close()
 
 
 def list_reports(user_id: str) -> list[dict]:

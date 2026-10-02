@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { PipelineStep } from "../components/gallery/PipelineStepper";
+import { BASE_URL } from "../api/client";
 
 export interface JobStreamEvent {
   stage: string;
@@ -54,9 +55,14 @@ export function useJobStream(): UseJobStreamReturn {
   const isDoneRef = useRef<boolean>(false);
   const dwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef<boolean>(true);
+  const recoveryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Strict cleanup of EventSource connection and dwell timers
   const disconnect = useCallback(() => {
+    if (recoveryTimerRef.current) {
+      clearTimeout(recoveryTimerRef.current);
+      recoveryTimerRef.current = null;
+    }
     if (dwellTimerRef.current) {
       clearTimeout(dwellTimerRef.current);
       dwellTimerRef.current = null;
@@ -250,7 +256,7 @@ export function useJobStream(): UseJobStreamReturn {
         { name: "Graphed", value: "pending", status: "pending" },
       ]);
 
-      const backendUrl = "http://127.0.0.1:8000";
+      const backendUrl = BASE_URL;
       const es = new EventSource(`${backendUrl}/api/jobs/${jobId}/events`);
       eventSourceRef.current = es;
 
@@ -277,21 +283,76 @@ export function useJobStream(): UseJobStreamReturn {
         }
       };
 
-      es.onerror = () => {
-        if (isDoneRef.current) {
-          disconnect();
-          return;
-        }
+      // The SSE socket can drop while the backend is busy extracting/embedding, even though the
+      // job keeps running. Before declaring failure, ask the job endpoint what really happened.
+      const failInterrupted = () => {
+        if (!isMountedRef.current || isDoneRef.current) return;
         disconnect();
-        if (!isMountedRef.current) return;
-        const errMessage = "Backend connection lost. Pipeline interrupted mid-upload.";
-        setError(errMessage);
+        setError("Backend connection lost. Pipeline interrupted mid-upload.");
         setStatus("error");
         setSteps((prev) =>
           prev.map((s) =>
             s.status === "active" ? { ...s, value: "interrupted", status: "pending" } : s
           )
         );
+      };
+
+      const recover = (attempt: number) => {
+        recoveryTimerRef.current = setTimeout(async () => {
+          recoveryTimerRef.current = null;
+          if (!isMountedRef.current || isDoneRef.current) return;
+          try {
+            const res = await fetch(`${backendUrl}/api/jobs/${jobId}/result`);
+            if (!isMountedRef.current || isDoneRef.current) return;
+            if (res.ok) {
+              const body = await res.json();
+              if (body.status === "completed" && body.result) {
+                isDoneRef.current = true;
+                eventQueueRef.current.push({
+                  stage: "done",
+                  description: "Pipeline completed",
+                  status: "completed",
+                  metadata: {
+                    pages: body.result.page_count,
+                    chunks: body.result.chunk_count,
+                    report_id: body.result.id,
+                    report: body.result,
+                  },
+                });
+                if (!isProcessingQueueRef.current) processQueue();
+                return;
+              }
+              if (body.status === "error") {
+                isDoneRef.current = true;
+                eventQueueRef.current.push({
+                  stage: "done",
+                  description: `Error: ${body.error || "Pipeline failed"}`,
+                  status: "failed",
+                  metadata: { error: body.error || "Pipeline failed" },
+                });
+                if (!isProcessingQueueRef.current) processQueue();
+                return;
+              }
+            }
+          } catch {
+            // backend unreachable; keep retrying until the attempt budget runs out
+          }
+          if (attempt < 40) recover(attempt + 1);
+          else failInterrupted();
+        }, 1500);
+      };
+
+      es.onerror = () => {
+        if (isDoneRef.current) {
+          disconnect();
+          return;
+        }
+        // Stop the browser's auto-reconnect (it would replay and duplicate events) and poll instead.
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+          eventSourceRef.current = null;
+        }
+        if (!recoveryTimerRef.current && isMountedRef.current) recover(0);
       };
     },
     [disconnect, processQueue]

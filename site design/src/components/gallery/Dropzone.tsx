@@ -96,7 +96,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
       }}
       className={`relative rounded-[var(--r-14)] border-2 border-dashed p-8 flex flex-col items-center justify-center text-center select-none overflow-hidden ${
         isDragging
-          ? "border-[var(--verdigris)] bg-[rgba(121,184,166,0.06)]"
+          ? "border-[var(--verdigris)] bg-[rgba(71,119,95,0.06)]"
           : "border-[var(--line-strong)] bg-[var(--ink-800)]/30 hover:border-[var(--dim)]"
       } ${className}`}
     >

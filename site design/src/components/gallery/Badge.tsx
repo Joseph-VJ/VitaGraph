@@ -40,7 +40,7 @@ export const Badge: React.FC<BadgeProps> = ({
   if (variant === "ingesting") {
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-[var(--r-4)] px-2 py-0.5 type-mono-sm bg-[rgba(121,184,166,0.12)] text-[var(--verdigris)] border border-[rgba(121,184,166,0.25)] ${className}`}
+        className={`inline-flex items-center gap-1.5 rounded-[var(--r-4)] px-2 py-0.5 type-mono-sm bg-[rgba(71,119,95,0.12)] text-[var(--verdigris)] border border-[rgba(71,119,95,0.25)] ${className}`}
       >
         <svg
           className="animate-spin w-3 h-3 text-[var(--verdigris)]"
@@ -69,21 +69,21 @@ export const Badge: React.FC<BadgeProps> = ({
 
   const styles: Record<BadgeVariant, string> = {
     answered:
-      "bg-[rgba(121,184,166,0.12)] text-[var(--verdigris)] border border-[rgba(121,184,166,0.25)]",
+      "bg-[rgba(71,119,95,0.12)] text-[var(--verdigris)] border border-[rgba(71,119,95,0.25)]",
     educational:
-      "bg-[rgba(121,184,166,0.12)] text-[var(--verdigris)] border border-[rgba(121,184,166,0.25)]",
+      "bg-[rgba(71,119,95,0.12)] text-[var(--verdigris)] border border-[rgba(71,119,95,0.25)]",
     verdigris:
-      "bg-[rgba(121,184,166,0.12)] text-[var(--verdigris)] border border-[rgba(121,184,166,0.25)]",
+      "bg-[rgba(71,119,95,0.12)] text-[var(--verdigris)] border border-[rgba(71,119,95,0.25)]",
     refused:
-      "bg-[rgba(217,128,141,0.12)] text-[var(--madder)] border border-[rgba(217,128,141,0.25)]",
+      "bg-[rgba(176,82,94,0.12)] text-[var(--madder)] border border-[rgba(176,82,94,0.25)]",
     rejected:
-      "bg-[rgba(217,128,141,0.12)] text-[var(--madder)] border border-[rgba(217,128,141,0.25)]",
+      "bg-[rgba(176,82,94,0.12)] text-[var(--madder)] border border-[rgba(176,82,94,0.25)]",
     madder:
-      "bg-[rgba(217,128,141,0.12)] text-[var(--madder)] border border-[rgba(217,128,141,0.25)]",
+      "bg-[rgba(176,82,94,0.12)] text-[var(--madder)] border border-[rgba(176,82,94,0.25)]",
     insufficient_evidence:
-      "bg-[rgba(217,164,65,0.12)] text-[var(--ochre)] border border-[rgba(217,164,65,0.25)]",
+      "bg-[rgba(197,138,67,0.12)] text-[var(--ochre)] border border-[rgba(197,138,67,0.25)]",
     ochre:
-      "bg-[rgba(217,164,65,0.12)] text-[var(--ochre)] border border-[rgba(217,164,65,0.25)]",
+      "bg-[rgba(197,138,67,0.12)] text-[var(--ochre)] border border-[rgba(197,138,67,0.25)]",
     cornflower:
       "bg-[rgba(134,169,217,0.12)] text-[var(--cornflower)] border border-[rgba(134,169,217,0.25)]",
     dim:

@@ -25,8 +25,8 @@ export const FlagTag: React.FC<FlagTagProps> = ({
         <span
           className={`type-mono-sm px-1.5 py-0.2 rounded-[var(--r-4)] font-medium ${
             flag === "High" || flag === "Low"
-              ? "bg-[rgba(217,128,141,0.18)] text-[var(--madder)] border border-[rgba(217,128,141,0.3)]"
-              : "bg-[rgba(121,184,166,0.15)] text-[var(--verdigris)] border border-[rgba(121,184,166,0.3)]"
+              ? "bg-[rgba(176,82,94,0.18)] text-[var(--madder)] border border-[rgba(176,82,94,0.3)]"
+              : "bg-[rgba(71,119,95,0.15)] text-[var(--verdigris)] border border-[rgba(71,119,95,0.3)]"
           }`}
         >
           {flag}

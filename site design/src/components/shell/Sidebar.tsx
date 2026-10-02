@@ -323,7 +323,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   return (
     <aside
       aria-label="Primary navigation"
-      className={`w-[240px] h-screen bg-[var(--ink-800)] border-r border-[var(--line-faint)] flex flex-col justify-between flex-shrink-0 select-none overflow-y-auto ${className}`}
+      className={`w-[240px] h-screen bg-[var(--alloy-surface)] bg-gradient-to-b from-[#D6DCE0] to-[#C6CED4] border-r border-[var(--line-strong)] shadow-[4px_0_12px_rgba(40,50,58,0.10),12px_0_32px_rgba(46,98,112,0.10),inset_-1px_0_0_rgba(255,255,255,0.5)] flex flex-col justify-between flex-shrink-0 select-none overflow-y-auto ${className}`}
     >
       <div>
         {/* Brand Block (§5.1) */}

@@ -22,7 +22,9 @@ async def ask_question(payload: QuestionCreate, background: bool = False) -> dic
 
     if payload.background or background:
         # Launch non-blocking background streaming task
-        asyncio.create_task(question_service.ask_stream_task(payload.user_id, payload.text, jid))
+        asyncio.create_task(question_service.ask_stream_task(
+            payload.user_id, payload.text, jid, report_id=payload.report_id, mode=payload.mode
+        ))
         return {
             "question_id": f"qst_{uuid.uuid4().hex[:12]}",
             "job_id": jid,
@@ -54,7 +56,9 @@ async def stream_question(payload: QuestionCreate) -> StreamingResponse:
     jid = job_broker.get_or_create_job(payload.job_id)
 
     # Launch streaming task asynchronously
-    asyncio.create_task(question_service.ask_stream_task(payload.user_id, payload.text, jid))
+    asyncio.create_task(question_service.ask_stream_task(
+        payload.user_id, payload.text, jid, report_id=payload.report_id, mode=payload.mode
+    ))
 
     return StreamingResponse(
         job_broker.event_generator(jid),

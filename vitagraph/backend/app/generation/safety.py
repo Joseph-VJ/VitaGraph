@@ -109,6 +109,29 @@ def needs_boundary_response(classification: str) -> bool:
     return classification in ("out_of_bounds", "urgent")
 
 
+_NOT_UNITS = frozenset({
+    "a", "an", "and", "or", "of", "in", "on", "at", "to", "for", "by", "as", "is", "are", "was",
+    "were", "be", "been", "the", "that", "this", "which", "with", "from", "have", "has", "had",
+    "not", "also", "but", "if", "then", "than", "it", "its", "so", "no", "yes", "reports", "report",
+    "pages", "page", "values", "value", "results", "result", "tests", "test", "entries", "entry",
+    "your", "my", "our", "their", "his", "her", "you", "we", "they", "all", "any", "each",
+    "both", "more", "most", "over", "under", "about", "only", "same", "here", "there", "these",
+    "those", "such", "where", "while", "after", "before", "since", "during", "into", "out", "off",
+    "up", "down", "when", "who", "what", "how", "why", "will", "can", "might", "could",
+    "would", "should", "do", "does", "did",
+    "times", "years", "year", "months", "month", "days", "day", "sections", "section", "points",
+})
+_MONTHS = frozenset({
+    "january", "february", "march", "april", "june", "july", "august",
+    "september", "october", "november", "december", "sept",
+})
+_UNIT_WORDS = frozenset({"units", "unit", "cells", "copies", "ratio", "score"})
+_STRUCTURAL_WORDS = frozenset({
+    "section", "sections", "page", "pages", "part", "step", "item", "table", "figure", "chunk",
+    "row", "no", "number", "report", "line", "point", "appendix",
+})
+
+
 def _measurement_tokens(text: str) -> set[str]:
     """Extract normalized measurement tokens: number+unit pairs and years.
 
@@ -118,11 +141,41 @@ def _measurement_tokens(text: str) -> set[str]:
     health values.
     """
     tokens = set()
-    for number, unit in re.findall(r"(\d+(?:\.\d+)?)\s*([a-zA-Z%][a-zA-Z/%]*)", text):
-        tokens.add(f"{number}{unit.lower()}")
+    lowered = text.lower()
+    for m in re.finditer(r"(\d+(?:\.\d+)?)\s*([a-zA-Z%][a-zA-Z/%]*)", text):
+        number, unit = m.group(1), m.group(2).lower()
+        # "Section 2 were ..." / "2 and 3": a number followed by an ordinary word is not a value+unit.
+        if unit in _NOT_UNITS:
+            continue
+        # Units are short (mg, dl, mmhg), compounds (mg/dl, %), known unit words, or month names
+        # (dates stay verified). A longer plain word after a number ("2025 your") is prose.
+        if (
+            len(unit) >= 5
+            and "/" not in unit
+            and "%" not in unit
+            and unit not in _MONTHS
+            and unit not in _UNIT_WORDS
+        ):
+            continue
+        before = re.search(r"([a-z]+)[\s#.]*$", lowered[: m.start()])
+        if before and before.group(1) in _STRUCTURAL_WORDS:
+            continue
+        tokens.add(f"{number}{unit}")
     for year in re.findall(r"\b(?:19|20)\d{2}\b", text):
         tokens.add(year)
     return tokens
+
+
+def evidence_texts(hits: list[dict]) -> list[str]:
+    """Texts an answer may legitimately quote: chunk text plus the citation metadata the
+    model is shown alongside it (report date and filename, e.g. "20 June 2025")."""
+    out: list[str] = []
+    for hit in hits:
+        out.append(hit.get("document", "") or "")
+        for key in ("report_date", "report_filename"):
+            if hit.get(key):
+                out.append(str(hit[key]))
+    return out
 
 
 def check_answer_safety(answer_text: str, evidence_snippets: list[str]) -> tuple[bool, str | None]:
@@ -134,6 +187,9 @@ def check_answer_safety(answer_text: str, evidence_snippets: list[str]) -> tuple
     answer for audit.
     """
     lowered = answer_text.lower()
+    # Conditional safety advice ("if you have any urgent symptoms...") is not an assertion
+    # about the user; only unconditional "you have ..." statements count as diagnostic.
+    lowered = re.sub(r"\b(?:if|should|whether|when|in case)\s+you have\b", "", lowered)
 
     diagnostic_assertions = [
         "you have", "you are suffering from", "this means you have",
@@ -147,7 +203,10 @@ def check_answer_safety(answer_text: str, evidence_snippets: list[str]) -> tuple
     for snippet in evidence_snippets:
         allowed |= _measurement_tokens(snippet)
 
-    for token in _measurement_tokens(answer_text) - allowed:
+    # Citation identifiers (chunk ids, filenames) are not health values.
+    cleaned = re.sub(r"chk_[0-9a-f]+", " ", answer_text)
+    cleaned = re.sub(r"[\w.-]+\.pdf", " ", cleaned, flags=re.IGNORECASE)
+    for token in _measurement_tokens(cleaned) - allowed:
         return False, (
             f"Safety check: measurement '{token}' does not appear in any evidence snippet."
         )

@@ -14,7 +14,9 @@ from app.core.config import settings
 from app.rag import embedder, vector_store
 
 
-def retrieve(user_id: str, question: str, top_k: int | None = None) -> list[dict]:
+def retrieve(
+    user_id: str, question: str, top_k: int | None = None, report_id: str | None = None
+) -> list[dict]:
     """Return evidence hits for a question, restricted to one user.
 
     Each hit carries chunk text plus the report-level metadata needed to
@@ -26,7 +28,9 @@ def retrieve(user_id: str, question: str, top_k: int | None = None) -> list[dict
 
     k = top_k or settings.top_k_results
     query_vector = embedder.embed_query(question)
-    hits = vector_store.query_user_chunks(user_id=user_id, query_vector=query_vector, top_k=k)
+    hits = vector_store.query_user_chunks(
+        user_id=user_id, query_vector=query_vector, top_k=k, report_id=report_id
+    )
 
     kept = [hit for hit in hits if hit["score"] >= settings.min_evidence_score]
 

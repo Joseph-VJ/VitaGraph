@@ -11,11 +11,11 @@ export interface PulseRingProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const COLOR_MAP = {
-  verdigris: "rgba(121, 184, 166, 0.7)",
-  ochre: "rgba(217, 164, 65, 0.7)",
-  madder: "rgba(217, 128, 141, 0.7)",
+  verdigris: "rgba(71,119,95, 0.7)",
+  ochre: "rgba(197,138,67, 0.7)",
+  madder: "rgba(176,82,94, 0.7)",
   cornflower: "rgba(134, 169, 217, 0.7)",
-  lilac: "rgba(169, 146, 208, 0.7)",
+  lilac: "rgba(111,97,146, 0.7)",
 };
 
 /**

@@ -12,9 +12,9 @@ interface LEDProps {
 }
 
 const colorMap: Record<LEDColor, string> = {
-  verdigris: "bg-[var(--verdigris)] shadow-[0_0_8px_rgba(121,184,166,0.4)]",
-  ochre: "bg-[var(--ochre)] shadow-[0_0_8px_rgba(217,164,65,0.4)]",
-  madder: "bg-[var(--madder)] shadow-[0_0_8px_rgba(217,128,141,0.4)]",
+  verdigris: "bg-[var(--verdigris)] shadow-[0_0_8px_rgba(71,119,95,0.4)]",
+  ochre: "bg-[var(--ochre)] shadow-[0_0_8px_rgba(197,138,67,0.4)]",
+  madder: "bg-[var(--madder)] shadow-[0_0_8px_rgba(176,82,94,0.4)]",
   cornflower: "bg-[var(--cornflower)] shadow-[0_0_8px_rgba(134,169,217,0.4)]",
   faint: "bg-[var(--faint)]",
 };

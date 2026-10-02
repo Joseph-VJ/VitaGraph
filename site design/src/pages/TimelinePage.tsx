@@ -481,7 +481,7 @@ export const TimelinePage: React.FC = () => {
                   setFilter(val);
                 }
               }}
-              className="h-9 px-3 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] text-[var(--bone)] type-label focus:outline-none focus:border-[var(--verdigris)] focus:ring-1 focus:ring-[var(--verdigris)]/50 focus:shadow-[0_0_8px_rgba(121,184,166,0.25)] transition-all duration-[120ms] ease-out cursor-pointer"
+              className="h-9 px-3 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] text-[var(--bone)] type-label focus:outline-none focus:border-[var(--verdigris)] focus:ring-1 focus:ring-[var(--verdigris)]/50 focus:shadow-[0_0_8px_rgba(71,119,95,0.25)] transition-all duration-[120ms] ease-out cursor-pointer"
             >
               <option value="all">All events</option>
               <option value="reports">Lab reports only</option>
@@ -621,7 +621,7 @@ export const TimelinePage: React.FC = () => {
                   <div
                     className={`absolute -left-[31px] top-1.5 w-4 h-4 rounded-full border-4 border-[var(--ink-900)] transition-colors duration-240 ${
                       isLatest
-                        ? "bg-[var(--verdigris)] shadow-[0_0_8px_rgba(121,184,166,0.5)]"
+                        ? "bg-[var(--verdigris)] shadow-[0_0_8px_rgba(71,119,95,0.5)]"
                         : "bg-[var(--ink-600)]"
                     }`}
                   />
@@ -1104,9 +1104,9 @@ export const TimelinePage: React.FC = () => {
                         variant="solid-danger"
                         className={`h-7 text-xs flex-1 justify-center transition-all duration-200 ${
                           armedState === "arming"
-                            ? "border-[var(--madder)] shadow-[0_0_12px_rgba(217,128,141,0.6)] bg-[var(--madder)]/30 text-[var(--bone)]"
+                            ? "border-[var(--madder)] shadow-[0_0_12px_rgba(176,82,94,0.6)] bg-[var(--madder)]/30 text-[var(--bone)]"
                             : armedState === "armed"
-                            ? "border-[var(--madder)] bg-[var(--madder)] text-[var(--bone)] font-semibold shadow-[0_0_8px_rgba(217,128,141,0.4)]"
+                            ? "border-[var(--madder)] bg-[var(--madder)] text-[var(--bone)] font-semibold shadow-[0_0_8px_rgba(176,82,94,0.4)]"
                             : ""
                         }`}
                         disabled={isDeleting}

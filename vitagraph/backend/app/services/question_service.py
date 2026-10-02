@@ -417,7 +417,13 @@ def _persist(user_id: str, question_id: str, question_text: str, classification:
     return ans
 
 
-async def ask_stream_task(user_id: str, question_text: str, job_id: str | None = None) -> dict:
+async def ask_stream_task(
+    user_id: str,
+    question_text: str,
+    job_id: str | None = None,
+    report_id: str | None = None,
+    mode: str = "rag_ai",
+) -> dict:
     """Execute streaming RAG pipeline with AgentRouter.
 
     Streams thinking blocks, tool calls (search_chroma, query_networkx_graph),
@@ -502,7 +508,7 @@ async def ask_stream_task(user_id: str, question_text: str, job_id: str | None =
     # Retrieval
     t0_ret = time.perf_counter()
     try:
-        evidence = retriever.retrieve(user_id=user_id, question=retrieval_question)
+        evidence = retriever.retrieve(user_id=user_id, question=retrieval_question, report_id=report_id)
     except Exception as exc:
         job_broker.publish_error(jid, f"Vector retrieval error: {str(exc)}")
         t_total = int((time.perf_counter() - t_start) * 1000)
@@ -583,17 +589,19 @@ async def ask_stream_task(user_id: str, question_text: str, job_id: str | None =
     from app.core.config import settings
 
     summary_text = ""
+    tool_evidence: list[dict] = []  # passages the AI retrieved itself via search tools
     ai_status = "ok"
     safety_note = None
     stream_failed = False
     error_message = None
 
-    if settings.allow_api and settings.effective_api_key:
+    if mode != "rag_only" and settings.allow_api and settings.effective_api_key:
         try:
             async for event_type, payload in llm_service.stream_agent_rag(
                 user_id=user_id,
                 question=question_text,
                 initial_evidence=evidence,
+                report_id=report_id,
             ):
                 if event_type == "thinking":
                     job_broker.publish_event(
@@ -612,6 +620,12 @@ async def ask_stream_task(user_id: str, question_text: str, job_id: str | None =
                         event_type="tool_call",
                     )
                 elif event_type == "tool_result":
+                    for ev in (payload.get("result") or {}).get("evidence", []) or []:
+                        tool_evidence.append({
+                            "document": ev.get("snippet", ""),
+                            "report_date": ev.get("report_date"),
+                            "report_filename": ev.get("report_filename"),
+                        })
                     job_broker.publish_event(
                         jid,
                         stage="generation",
@@ -627,11 +641,26 @@ async def ask_stream_task(user_id: str, question_text: str, job_id: str | None =
                         metadata=payload,
                         event_type="text_delta",
                     )
+                elif event_type == "model_fallback":
+                    job_broker.publish_event(
+                        jid,
+                        stage="generation",
+                        description=f"Model fallback from {payload.get('from')} to {payload.get('to')}",
+                        metadata=payload,
+                        event_type="model_fallback",
+                    )
                 elif event_type == "completed":
                     summary_text = payload.get("summary_text", "")
                     safety_note = payload.get("safety_note")
                     if not payload.get("safety_passed", True):
                         ai_status = "replaced_by_fallback"
+                    job_broker.publish_event(
+                        jid,
+                        stage="generation",
+                        description="Reasoning and synthesis completed",
+                        metadata=payload,
+                        event_type="completed",
+                    )
                 elif event_type == "error":
                     stream_failed = True
                     error_message = payload.get("message", "AgentRouter stream failed")
@@ -667,8 +696,12 @@ async def ask_stream_task(user_id: str, question_text: str, job_id: str | None =
         # Fallback composer when allow_api is false
         composed = fallback_composer.compose_answer(question_text, evidence)
         summary_text = composed["summary_text"]
-        ai_status = "disabled"
-        safety_note = "AI API is disabled in configuration"
+        if mode == "rag_only":
+            ai_status = "not_used"
+            safety_note = "Evidence-only mode: the AI was not called."
+        else:
+            ai_status = "disabled"
+            safety_note = "AI API is disabled in configuration"
 
     limitations_text = (
         "The answer above was composed from the quoted evidence only. "
@@ -676,7 +709,8 @@ async def ask_stream_task(user_id: str, question_text: str, job_id: str | None =
     )
 
     if ai_status == "ok":
-        snippets = [hit["document"] for hit in evidence]
+        # The answer may quote anything the AI legitimately retrieved, not just the first pass.
+        snippets = safety.evidence_texts(list(evidence) + tool_evidence)
         passed, reason = safety.check_answer_safety(summary_text, snippets)
         if not passed:
             composed = fallback_composer.compose_answer(question_text, evidence)

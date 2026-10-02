@@ -2,7 +2,8 @@
 // backend only — the frontend never contacts any AI service directly.
 // Override for deployments with VITE_API_URL (e.g. in frontend/.env).
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+// Single source of truth for the backend origin (uvicorn binds 127.0.0.1; "localhost" can resolve to ::1 on Windows).
+export const BASE_URL: string = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
 export class ApiError extends Error {
   status: number;

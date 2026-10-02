@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Query, Response, UploadFile
 
 from app.schemas.report import ComparisonOut, PageOut, ReportOut, ReportStatusOut, TrendOut
 from app.services import report_service, user_service
@@ -80,6 +80,13 @@ def report_status(report_id: str) -> dict:
 @router.get("/{report_id}/pages", response_model=list[PageOut])
 def report_pages(report_id: str) -> list[dict]:
     return report_service.get_pages(report_id)
+
+
+@router.get("/{report_id}/pages/{page_number}/image")
+def report_page_image(report_id: str, page_number: int, dpi: int = Query(110, ge=50, le=200)) -> Response:
+    """Render one stored report page to PNG so the UI can show the user's actual page."""
+    png = report_service.render_page_png(report_id, page_number, dpi)
+    return Response(content=png, media_type="image/png", headers={"Cache-Control": "private, max-age=300"})
 
 
 @router.get("/{user_id}/trends", response_model=TrendOut)

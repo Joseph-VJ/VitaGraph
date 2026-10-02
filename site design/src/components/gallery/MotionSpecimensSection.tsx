@@ -114,7 +114,7 @@ export const MotionSpecimensSection: React.FC = () => {
     playDetent();
     setPhoton17Count((c) => c + 1);
     for (let i = 0; i < 8; i++) {
-      PhotonManager.spawn(30 + i * 12, 50, 240, 50, "#79B8A6", 320);
+      PhotonManager.spawn(30 + i * 12, 50, 240, 50, "#47775F", 320);
     }
   };
 
@@ -1576,7 +1576,7 @@ export const MotionSpecimensSection: React.FC = () => {
                 <div
                   className={`w-9 h-9 rounded-full flex items-center justify-center font-mono text-xs border transition-opacity duration-[240ms] ${
                     evidenceHighlight
-                      ? "bg-[var(--ink-900)] border-[var(--verdigris)] text-[var(--verdigris)] shadow-[0_0_10px_rgba(121,184,166,0.3)]"
+                      ? "bg-[var(--ink-900)] border-[var(--verdigris)] text-[var(--verdigris)] shadow-[0_0_10px_rgba(71,119,95,0.3)]"
                       : "bg-[var(--ink-900)] border-[var(--line-strong)] text-[var(--bone)]"
                   }`}
                 >
@@ -1791,7 +1791,7 @@ export const MotionSpecimensSection: React.FC = () => {
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-mono text-xs border ${
                     subgraph16Active
-                      ? "bg-[var(--ink-900)] border-[var(--verdigris)] text-[var(--verdigris)] shadow-[0_0_12px_rgba(121,184,166,0.4)]"
+                      ? "bg-[var(--ink-900)] border-[var(--verdigris)] text-[var(--verdigris)] shadow-[0_0_12px_rgba(71,119,95,0.4)]"
                       : "bg-[var(--ink-700)] border-[var(--line-strong)] text-[var(--bone)]"
                   }`}
                 >
@@ -1920,7 +1920,7 @@ export const MotionSpecimensSection: React.FC = () => {
                   hull18Breathing && !isT0 ? "animate-breathe" : ""
                 }`}
                 style={{
-                  backgroundColor: "rgba(169, 146, 208, 0.06)",
+                  backgroundColor: "rgba(111,97,146, 0.06)",
                 }}
               >
                 <div className="flex items-center gap-2">

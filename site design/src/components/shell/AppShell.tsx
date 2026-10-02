@@ -11,6 +11,7 @@ import {
   useMotionGovernor,
   getCurrentNavDirection,
 } from "../../motion";
+import { BASE_URL } from "../../api/client";
 
 const ROUTE_TITLES: Record<string, string> = {
   "/": "Overview",
@@ -73,21 +74,27 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    let replayTimer: ReturnType<typeof setTimeout> | null = null;
     const handleReplay = () => {
       hasBooted.current = true;
-      setTimeout(() => {
+      if (replayTimer) clearTimeout(replayTimer);
+      replayTimer = setTimeout(() => {
+        replayTimer = null;
         executeBoot();
       }, 60);
     };
     window.addEventListener("vitagraph:replay-boot", handleReplay);
-    return () => window.removeEventListener("vitagraph:replay-boot", handleReplay);
+    return () => {
+      window.removeEventListener("vitagraph:replay-boot", handleReplay);
+      if (replayTimer) clearTimeout(replayTimer);
+    };
   }, []);
 
   useEffect(() => {
     let isMounted = true;
     const probeBackend = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/health", {
+        const res = await fetch(`${BASE_URL}/api/health`, {
           signal: AbortSignal.timeout(2000),
         });
         if (isMounted) {
@@ -116,7 +123,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const routeTitle = ROUTE_TITLES[location.pathname] || "VitaGraph";
 
   return (
-    <div className="flex h-screen w-screen bg-[var(--ink-900)] text-[var(--bone)] overflow-hidden relative">
+    <div className="flex h-screen w-screen text-[var(--bone)] overflow-hidden relative">
       {/* Route change announcer for assistive technology (WCAG a11y, WS-5) */}
       <div data-testid="route-announcer" aria-live="polite" aria-atomic="true" className="sr-only">
         Navigated to {routeTitle}
@@ -139,7 +146,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             <div className="flex items-center gap-2.5">
               <LED status="offline" size={8} />
               <span>
-                <strong>Backend Offline:</strong> Connection to 127.0.0.1:8000 lost · Live RAG, vector retrieval, and pipeline ingestion are paused · Graph & timeline inspectable
+                <strong>Backend Offline:</strong> Connection to {BASE_URL.replace(/^https?:\/\//, "")} lost · Live RAG, vector retrieval, and pipeline ingestion are paused · Graph & timeline inspectable
               </span>
             </div>
             <span className="type-mono-sm uppercase text-[11px] opacity-90 font-medium tracking-wide">Fail-Closed Boundary</span>

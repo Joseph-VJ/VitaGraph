@@ -110,3 +110,40 @@ def test_pure_injection_question_is_refused_without_retrieval():
     assert answer["classification"] == "unsupported"
     assert answer["evidence"] == []
     assert "no answerable question" in answer["summary_text"].lower()
+
+
+def test_conditional_safety_advice_is_not_diagnostic_phrasing():
+    ok, _ = safety.check_answer_safety(
+        "Hemoglobin is a protein. If you have any urgent or worsening symptoms, contact a clinician.", [])
+    assert ok
+
+    bad, reason = safety.check_answer_safety("Based on this, you have anaemia.", [])
+    assert not bad and "diagnostic" in reason
+
+
+def test_structural_numbers_are_not_mistaken_for_measurements():
+    evidence = ["Hemoglobin Result: 14.1 g/dL (12.0 - 15.5 g/dL)"]
+    ok, _ = safety.check_answer_safety(
+        "Entries described in Section 2 were not confirmed. Your hemoglobin was 14.1 g/dL.", evidence)
+    assert ok
+
+    bad, reason = safety.check_answer_safety("Your hemoglobin was 99 g/dL.", evidence)
+    assert not bad and "99g/dl" in reason
+
+
+def test_report_date_metadata_counts_as_evidence_for_dates():
+    hits = [{"document": "Hemoglobin Result: 14.1 g/dL", "report_date": "20 June 2025",
+             "report_filename": "Arjun_Lab_Report_Jun2025.pdf"}]
+    ok, _ = safety.check_answer_safety(
+        "On 20 June 2025 your hemoglobin was 14.1 g/dL.", safety.evidence_texts(hits))
+    assert ok
+    bad, _ = safety.check_answer_safety(
+        "On 3 March 2025 your hemoglobin was 14.1 g/dL.", safety.evidence_texts(hits))
+    assert not bad
+
+
+def test_citation_ids_and_filenames_are_not_measurements():
+    ok, _ = safety.check_answer_safety(
+        "See chunk `chk_5b3b6e638b7f` in Arjun_Lab_Report_Jun2025.pdf for the range.",
+        ["Hemoglobin Result: 14.1 g/dL"])
+    assert ok

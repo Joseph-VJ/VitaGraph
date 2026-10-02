@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { LED } from "../gallery/LED";
 import { useMotionGovernor } from "../../motion";
 import { transitionNavigate } from "../../motion/navigation";
+import { BASE_URL } from "../../api/client";
 
 interface HealthState {
   online: boolean;
@@ -41,7 +42,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
     const checkHealth = async () => {
       const startTime = performance.now();
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/health", {
+        const res = await fetch(`${BASE_URL}/api/health`, {
           signal: AbortSignal.timeout(2000),
         });
         const duration = Math.round(performance.now() - startTime);

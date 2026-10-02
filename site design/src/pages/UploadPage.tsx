@@ -76,10 +76,10 @@ export const UploadPage: React.FC = () => {
       setShowSuccessMoment(true);
       if (isT3) {
         for (let i = 0; i < 6; i++) {
-          PhotonManager.spawn(50 + i * 80, 30, 480, 30, "#79B8A6", 240);
+          PhotonManager.spawn(50 + i * 80, 30, 480, 30, "#47775F", 240);
         }
-        DustManager.spawn(280, 40, "#79B8A6", 16);
-        DustManager.spawn(160, 40, "#86A9D9", 12);
+        DustManager.spawn(280, 40, "#47775F", 16);
+        DustManager.spawn(160, 40, "#2E6270", 12);
       }
 
       const reportId = jobStream.finalMetadata?.reportId;
@@ -581,6 +581,12 @@ export const UploadPage: React.FC = () => {
         isOpen={isPopupOpen}
         filename={file?.name || "Clinical Report PDF"}
         jobStream={jobStream}
+        userId={user?.id}
+        onContinueToAsk={() => {
+          setIsPopupOpen(false);
+          const rid = jobStream.finalMetadata?.reportId;
+          transitionNavigate(navigate, rid ? `/ask?report=${encodeURIComponent(String(rid))}` : "/ask", { direction: "forward" });
+        }}
         onClose={() => setIsPopupOpen(false)}
         onContinueToLibrary={() => {
           setIsPopupOpen(false);

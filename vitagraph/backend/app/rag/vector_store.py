@@ -52,17 +52,23 @@ def index_chunks(rows: list[dict]) -> int:
     return len(rows)
 
 
-def query_user_chunks(user_id: str, query_vector: list[float], top_k: int) -> list[dict]:
+def query_user_chunks(
+    user_id: str, query_vector: list[float], top_k: int, report_id: str | None = None
+) -> list[dict]:
     """Similarity search strictly within one user's evidence.
 
     Raises if user_id is missing — the retrieval filter is never optional.
     """
     if not user_id:
         raise ValueError("Retrieval without a user filter is forbidden (fail closed).")
+    # The user filter is mandatory; a report filter only narrows it further.
+    where: dict = {"user_id": {"$eq": user_id}}
+    if report_id:
+        where = {"$and": [where, {"report_id": {"$eq": report_id}}]}
     result = _collection().query(
         query_embeddings=[query_vector],
         n_results=top_k,
-        where={"user_id": {"$eq": user_id}},
+        where=where,
         include=["documents", "metadatas", "distances"],
     )
     hits = []
@@ -98,3 +104,18 @@ def store_health() -> dict:
         return {"status": "ok", "chunks": _collection().count()}
     except Exception as exc:
         return {"status": "error", "detail": str(exc)}
+
+
+def sample_embeddings(ids: list[str], n_values: int = 8) -> list[dict]:
+    """Return the first n_values of the stored vector for each id (real values, for display)."""
+    if not ids:
+        return []
+    got = _collection().get(ids=ids, include=["embeddings"])
+    out = []
+    for cid, vec in zip(got["ids"], got["embeddings"]):
+        out.append({"chunk_id": cid, "dim": len(vec), "values": [round(float(v), 4) for v in vec[:n_values]]})
+    return out
+
+
+def collection_count() -> int:
+    return _collection().count()

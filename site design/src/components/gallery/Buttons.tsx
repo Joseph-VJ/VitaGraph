@@ -22,7 +22,7 @@ export const Button: React.FC<ButtonProps> = ({
     ghost:
       "bg-transparent text-[var(--bone)] border border-[var(--line-strong)] hover:bg-[var(--ink-700)] active:bg-[var(--ink-600)]",
     "outline-danger":
-      "bg-transparent text-[var(--madder)] border border-[var(--madder)] hover:bg-[rgba(217,128,141,0.12)] active:bg-[rgba(217,128,141,0.2)]",
+      "bg-transparent text-[var(--madder)] border border-[var(--madder)] hover:bg-[rgba(176,82,94,0.12)] active:bg-[rgba(176,82,94,0.2)]",
     "solid-danger":
       "bg-[var(--madder)] text-[var(--ink-900)] font-medium hover:brightness-105 active:brightness-95 border border-transparent",
   };

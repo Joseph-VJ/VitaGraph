@@ -278,12 +278,12 @@ export const InsightsPage: React.FC = () => {
         color: predicateColors[rel] || "bg-[var(--bone)]",
         strokeColor:
           rel === "CONTAINS"
-            ? "#79B8A6"
+            ? "#47775F"
             : rel === "MENTIONS"
-            ? "#D9A441"
+            ? "#C58A43"
             : rel === "HAS_MEASUREMENT"
-            ? "#86A9D9"
-            : "#A992D0",
+            ? "#2E6270"
+            : "#6F6192",
       };
     })
     .sort((a, b) => b.count - a.count);

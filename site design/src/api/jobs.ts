@@ -1,6 +1,7 @@
 // Jobs API client for plan Section 12 SSE streaming.
 
 import { api } from "./client";
+import { BASE_URL } from "./client";
 
 export interface JobEvent {
   index: string;
@@ -21,5 +22,5 @@ export interface JobStatus {
 export const jobsApi = {
   create: () => api.post<{ job_id: string; status: string }>("/api/jobs", {}),
   getStatus: (jobId: string) => api.get<JobStatus>(`/api/jobs/${jobId}`),
-  getEventsUrl: (jobId: string) => `http://127.0.0.1:8000/api/jobs/${jobId}/events`,
+  getEventsUrl: (jobId: string) => `${BASE_URL}/api/jobs/${jobId}/events`,
 };

@@ -1,331 +1,254 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  QuestionCard,
-  AnswerBlock,
-  RefusalCard,
-  Button,
-  IconButton,
-  Select,
-  Badge,
-  EvidenceSpanViewer,
-  ThinkingDetailsPanel,
-  useToast,
-  type TraceRowData,
-} from "../components/gallery";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { QuestionCard, RefusalCard, Button, EvidenceSpanViewer, useToast } from "../components/gallery";
+import { AgentThoughtTree } from "../components/agent/AgentThoughtTree";
+import { PaperAnswer } from "../components/agent/PaperAnswer";
+import { useAgentStream } from "../hooks/useAgentStream";
 import { useUser } from "../context/UserContext";
 import { questionsApi } from "../api/questions";
-import type { Answer, EvidenceCard } from "../types";
-import { playChime, playThud, playDetent, governor, isReducedMotion } from "../motion";
+import { reportsApi } from "../api/reports";
+import { graphApi } from "../api/graph";
+import type { Answer, EvidenceCard, Report } from "../types";
+import { playChime, playThud, playDetent } from "../motion";
 import { DetentPress } from "../motion/fx/DetentPress";
 
-interface ThreadItem {
-  id: string;
-  type: "answer" | "refusal" | "loading";
-  questionText: string;
-  timestamp: string;
-  rewrittenQuery?: string;
-  category?: string;
-  answer?: Answer;
-  elapsedTime?: string;
-  refusalText?: string;
-  sourceRect?: DOMRect | null;
-}
+const SUGGESTED = [
+  "What was my hemoglobin level?",
+  "What were my fasting glucose and HbA1c values?",
+  "Should I stop taking metformin based on my creatinine level?",
+  "Diagnose my symptoms and prescribe an antibiotic",
+];
+
+const RESULT_POLL_MS = 400;
+const RESULT_POLL_MAX = 10;
 
 export const AskPage: React.FC = () => {
   const { user } = useUser();
   const { addToast } = useToast();
   const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
-  const isT0 = isReducedMotion() || governor.getState().tier === "T0";
 
-  const [activeDrawerTab, setActiveDrawerTab] = useState("Thinking details");
-  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
-  const [questionInput, setQuestionInput] = useState("");
-  const [mode, setMode] = useState("Paper");
-  const [modeKey, setModeKey] = useState<number>(0);
+  const stream = useAgentStream();
+  const isStreaming = stream.status === "connecting" || stream.status === "streaming";
 
-  const handleModeChange = (newMode: string) => {
-    setMode(newMode);
-    setModeKey(Date.now());
-    playDetent();
-  };
-  const [threads, setThreads] = useState<ThreadItem[]>([]);
-  const [isAsking, setIsAsking] = useState(false);
-  const [streamTraces, setStreamTraces] = useState<TraceRowData[]>([]);
-  const [streamJobId, setStreamJobId] = useState<string | null>(null);
-  const [streamError, setStreamError] = useState<string | null>(null);
-  const [isReplayJob, setIsReplayJob] = useState(false);
-  const [activeEvidence, setActiveEvidence] = useState<EvidenceCard[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const reportParam = searchParams.get("report");
+  const [scopeReport, setScopeReport] = useState<Report | null>(null);
+  const [docSuggestions, setDocSuggestions] = useState<string[]>([]);
+  const [mode, setMode] = useState<"rag_ai" | "rag_only">("rag_ai");
+
+  const [input, setInput] = useState("");
+  const [question, setQuestion] = useState<{ text: string; time: string; jobId: string } | null>(null);
+  const [result, setResult] = useState<Answer | null>(null);
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceCard | null>(null);
-  const [isEvidenceViewerOpen, setIsEvidenceViewerOpen] = useState(false);
-  const [graphConcepts, setGraphConcepts] = useState<string[]>([
-    "Hemoglobin",
-    "Fasting Glucose",
-    "Creatinine",
-    "HbA1c",
-    "Lipid Profile",
-  ]);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
-  const inputRef = useRef<HTMLInputElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const reportsRef = useRef<Report[] | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Suggested prompt chips for quick clinical & boundary verification
-  const suggestedQuestions = [
-    "What was my hemoglobin level?",
-    "What were my fasting glucose and HbA1c values?",
-    "Should I stop taking metformin based on my creatinine level?",
-    "Diagnose my symptoms and prescribe an antibiotic",
-  ];
-
-  // Clean up SSE on unmount
-  useEffect(() => {
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-    };
+  const clearPoll = useCallback(() => {
+    if (pollTimerRef.current) {
+      clearTimeout(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
   }, []);
 
-  const handleAskQuestion = async (queryText: string) => {
-    const trimmed = queryText.trim();
-    if (!trimmed || isAsking) return;
+  useEffect(() => clearPoll, [clearPoll]);
 
-    const inputRect = inputRef.current?.getBoundingClientRect() || null;
-    setIsAsking(true);
-    setQuestionInput("");
-    const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const threadId = `th_${Date.now()}`;
-    const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    setStreamJobId(jobId);
-    setStreamTraces([]);
-    setStreamError(null);
-    setIsReplayJob(false);
-
-    // Append loading thread item with input sourceRect for FLIP morph (§M5.2, §M7.4)
-    setThreads((prev) => [
-      ...prev,
-      {
-        id: threadId,
-        type: "loading",
-        questionText: trimmed,
-        timestamp,
-        category: "educational",
-        sourceRect: inputRect,
-      },
-    ]);
-
-    // Connect to SSE stream BEFORE POST per US-15 reality contract
-    const backendUrl = "http://127.0.0.1:8000";
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
+  // "Chat with this PDF": resolve the report from ?report=<id> and derive suggested questions
+  // from the document's real content (graph test names that actually appear in its pages).
+  useEffect(() => {
+    if (!reportParam) {
+      setScopeReport(null);
+      setDocSuggestions([]);
+      return;
     }
-
-    const es = new EventSource(`${backendUrl}/api/jobs/${jobId}/events`);
-    eventSourceRef.current = es;
-
-    const tStart = performance.now();
-
-    const finishAnswer = (answer: Answer) => {
-      const elapsedMs = Math.round(performance.now() - tStart);
-      const elapsedStr = `${(elapsedMs / 1000).toFixed(1)} s`;
-
-      if (answer.evidence && answer.evidence.length > 0) {
-        setActiveEvidence(answer.evidence);
-      }
-
-      if (answer.status === "refused") {
-        playThud();
-        setThreads((prev) =>
-          prev.map((item) =>
-            item.id === threadId
-              ? {
-                  ...item,
-                  type: "refusal",
-                  refusalText: answer.summary_text,
-                  elapsedTime: elapsedStr,
-                  category: "diagnostic boundary",
-                  sourceRect: inputRect,
-                }
-              : item
-          )
-        );
-        addToast("done", "Clinical Boundary Guard", "Query handled with diagnostic boundary refusal");
-      } else {
-        playChime();
-        setThreads((prev) =>
-          prev.map((item) =>
-            item.id === threadId
-              ? {
-                  ...item,
-                  type: "answer",
-                  answer,
-                  elapsedTime: elapsedStr,
-                  category: answer.classification || "educational",
-                  rewrittenQuery: trimmed.toLowerCase(),
-                  sourceRect: inputRect,
-                }
-              : item
-          )
-        );
-        addToast("done", "Response Complete", `Generated grounded response with ${answer.evidence?.length || 0} citations`);
-        window.dispatchEvent(new CustomEvent("vitagraph:job-done", { detail: { stage: "done", answer } }));
-        try {
-          localStorage.setItem("vitagraph:last_job_done", JSON.stringify({ time: Date.now(), stage: "done", type: "question" }));
-        } catch {}
-      }
-      setIsAsking(false);
-    };
-
-    // Every trace row lands on its real SSE event (§M7.4)
-    es.onmessage = (e) => {
+    let cancelled = false;
+    (async () => {
       try {
-        const evt = JSON.parse(e.data);
-        if (evt && evt.stage) {
-          if (evt.is_replay) {
-            setIsReplayJob(true);
-          }
-          setStreamTraces((prev) => {
-            if (prev.some((item) => item.index === evt.index && item.stage === evt.stage)) {
-              return prev;
-            }
-            return [...prev, evt];
-          });
-
-          if (evt.stage === "graph" && evt.subDescription) {
-            const match = evt.subDescription.match(/Active concepts:\s*(.+)$/i);
-            if (match && match[1]) {
-              const concepts = match[1].split(",").map((s: string) => s.trim());
-              setGraphConcepts(concepts);
-            }
-          }
-
-          if (evt.stage === "done") {
-            const answer: Answer | undefined = evt.metadata?.answer;
-            if (answer) {
-              finishAnswer(answer);
-            } else {
-              questionsApi
-                .result(jobId)
-                .then((res) => {
-                  if (res.result) {
-                    finishAnswer(res.result);
-                  } else {
-                    setIsAsking(false);
-                  }
-                })
-                .catch(() => setIsAsking(false));
-            }
-            if (eventSourceRef.current) {
-              eventSourceRef.current.close();
-              eventSourceRef.current = null;
-            }
-          }
-        }
+        const reports = await reportsApi.list(effectiveUserId);
+        const rep = reports.find((r) => r.id === reportParam) ?? null;
+        if (cancelled) return;
+        setScopeReport(rep);
+        if (!rep) return;
+        reportsRef.current = reports;
+        const [pages, graph] = await Promise.all([reportsApi.pages(rep.id), graphApi.getGraph(effectiveUserId)]);
+        if (cancelled) return;
+        const text = pages.map((p) => p.extracted_text ?? "").join(" ").toLowerCase();
+        const labels = Array.from(
+          new Set(
+            graph.nodes
+              .filter((n) => ["test", "biomarker", "measurement"].includes(String(n.type)))
+              .map((n) => String(n.label))
+              .filter((l) => l.length > 2 && text.includes(l.toLowerCase()))
+          )
+        ).slice(0, 4);
+        setDocSuggestions(labels.map((l) => `What was my ${l} result in this report?`));
       } catch {
-        // Heartbeat or comment line
+        if (!cancelled) setScopeReport(null);
       }
+    })();
+    return () => {
+      cancelled = true;
     };
+  }, [reportParam, effectiveUserId]);
 
-    // §M7.4 Stream Error Freeze: Freezes sequence at last completed row without wiping state
-    es.onerror = () => {
-      playThud();
-      setStreamError("Backend stream interrupted. EventSource disconnected.");
-      addToast("failed", "Stream Disconnected", "Backend connection lost during generation");
-      setIsAsking(false);
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-    };
+  const handleAsk = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed || isStreaming) return;
+      clearPoll();
+      const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      setQuestion({ text: trimmed, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), jobId });
+      setResult(null);
+      setInput("");
+      stream.start(effectiveUserId, trimmed, jobId, { reportId: scopeReport?.id ?? null, mode });
+    },
+    [effectiveUserId, isStreaming, stream.start, clearPoll, scopeReport, mode]
+  );
 
-    try {
-      const response = await questionsApi.ask(effectiveUserId, trimmed, jobId, true, mode);
-      if (response && (response as any).summary_text) {
-        finishAnswer(response);
-      }
-    } catch (err) {
-      playThud();
-      setStreamError(`Backend inquiry failed: ${(err as Error).message}`);
-      addToast("failed", "Inquiry Failed", (err as Error).message);
-      setThreads((prev) =>
-        prev.map((item) =>
-          item.id === threadId
-            ? {
-                ...item,
-                type: "refusal",
-                refusalText: `Request failed: ${(err as Error).message}. Check backend connectivity.`,
-                elapsedTime: "0.0 s",
-                category: "connection error",
-              }
-            : item
-        )
-      );
-      setIsAsking(false);
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-    }
-  };
-
-  // Run initial question on mount if thread is empty to present live grounded state
+  // After the terminal event, fetch the persisted answer: it carries full evidence
+  // cards (report_id, offsets) and the refusal text, which is not streamed as deltas.
   useEffect(() => {
-    if (threads.length === 0) {
-      handleAskQuestion("What was my hemoglobin level?");
-    }
-  }, []);
+    if (!stream.finished || !question) return;
+    let cancelled = false;
+    let tries = 0;
+    const poll = () => {
+      questionsApi
+        .result(question.jobId)
+        .then((res) => {
+          if (cancelled) return;
+          if (res.result) {
+            setResult(res.result);
+            if (res.result.status === "refused" || stream.status === "error") playThud();
+            else {
+              playChime();
+              addToast("done", "Response complete", `${res.result.evidence?.length ?? 0} citations resolved`);
+            }
+          } else if (++tries < RESULT_POLL_MAX) {
+            pollTimerRef.current = setTimeout(poll, RESULT_POLL_MS);
+          }
+        })
+        .catch(() => {
+          if (!cancelled && ++tries < RESULT_POLL_MAX) pollTimerRef.current = setTimeout(poll, RESULT_POLL_MS);
+        });
+    };
+    poll();
+    return () => {
+      cancelled = true;
+      clearPoll();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stream.finished, question?.jobId]);
 
-  // Expose test hooks for automated verification of MS-07 Ask choreography
   useEffect(() => {
-    (window as any).__VG_TEST_ASK_QUESTION__ = (query: string) => {
-      handleAskQuestion(query);
-    };
-    (window as any).__VG_TEST_SIMULATE_STREAM_ERROR__ = (msg: string = "Backend stream interrupted: simulated disconnection") => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-      setStreamError(msg);
-      setIsAsking(false);
-    };
+    if (stream.status === "error") {
+      playThud();
+      addToast("failed", "Stream interrupted", stream.error ?? undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stream.status]);
+
+  useEffect(() => {
+    (window as any).__VG_TEST_ASK_QUESTION__ = handleAsk;
     return () => {
       delete (window as any).__VG_TEST_ASK_QUESTION__;
-      delete (window as any).__VG_TEST_SIMULATE_STREAM_ERROR__;
     };
-  }, []);
+  }, [handleAsk]);
 
-  const drawerTabs = ["Thinking details", "Retrieved chunks", "Graph context"];
+  const citations = useMemo(
+    () => (result?.evidence?.length ? result.evidence : stream.evidence).map((e) => ({ chunk_id: e.chunk_id, report_filename: e.report_filename })),
+    [result, stream.evidence]
+  );
 
-  // Trace stage colors
-  const stageColors: Record<string, string> = {
-    retrieval: "text-[var(--verdigris)]",
-    reranking: "text-[var(--lilac)]",
-    graph: "text-[var(--ochre)]",
-    citation: "text-[var(--cornflower)]",
-    generation: "text-[var(--madder)]",
-    safety: "text-[var(--lilac)]",
-    done: "text-[var(--verdigris)]",
-  };
+  // Citation chip -> EvidenceSpanViewer. Stream evidence lacks report_id, so resolve it from the reports list.
+  const handleCite = useCallback(
+    async (token: string) => {
+      const t = token.toLowerCase();
+      const pool: Array<Partial<EvidenceCard> & { chunk_id: string; report_filename: string }> = [
+        ...(result?.evidence ?? []),
+        ...stream.evidence,
+      ];
+      const match = pool
+        .filter((e) => e.chunk_id.toLowerCase() === t || e.report_filename.toLowerCase() === t)
+        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0];
+
+      try {
+        let reportId = match?.report_id;
+        let filename = match?.report_filename ?? token;
+        if (!reportId) {
+          if (!reportsRef.current) reportsRef.current = await reportsApi.list(effectiveUserId);
+          const rep = reportsRef.current.find((r) => r.original_filename.toLowerCase() === filename.toLowerCase());
+          if (!rep) throw new Error(`No report named "${token}" found for this user.`);
+          reportId = rep.id;
+          filename = rep.original_filename;
+        }
+        setSelectedEvidence({
+          chunk_id: match?.chunk_id ?? "",
+          report_id: reportId,
+          report_filename: filename,
+          report_date: match?.report_date ?? null,
+          page_number: match?.page_number ?? 1,
+          snippet: match?.snippet ?? "",
+          score: match?.score ?? 0,
+          char_start: match?.char_start ?? null,
+          char_end: match?.char_end ?? null,
+        });
+        setViewerOpen(true);
+        playDetent();
+      } catch (err) {
+        addToast("failed", "Citation unavailable", err instanceof Error ? err.message : undefined);
+      }
+    },
+    [result, stream.evidence, effectiveUserId, addToast]
+  );
+
+  const isRefusal = result?.status === "refused";
+  // If the backend safety check rejected the AI text, never show it: show the verified
+  // evidence-only answer the backend persisted instead.
+  const withheld = stream.answerWithheld || result?.ai_service_status === "replaced_by_fallback";
+  const answerMarkdown = isRefusal
+    ? ""
+    : withheld
+    ? result?.summary_text || ""
+    : stream.finalAnswer || result?.summary_text || "";
+  const initial = user?.display_label ? user.display_label[0].toUpperCase() : "A";
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 items-start w-full" data-testid="ask-page">
-      {/* Main Conversation Stream (1fr) */}
-      <div
-        className="flex-1 flex flex-col gap-6 min-w-0 w-full"
-        style={{ viewTransitionName: !isT0 ? "report-title" : undefined }}
-      >
-        {/* Suggested Quick Inquiries */}
+      {/* THE PAPER — answer column */}
+      <div className="flex-1 flex flex-col gap-5 min-w-0 w-full">
+        {reportParam && (
+          <div
+            className="flex items-center justify-between gap-3 rounded-[var(--r-10)] bg-[var(--jade-slate)]/12 border border-[var(--jade-slate)]/50 px-4 py-2.5 shadow-[var(--shadow-3d-sm)]"
+            data-testid="scope-chip"
+          >
+            <div className="min-w-0 text-[13px] text-[var(--text-main)]">
+              <span className="text-[var(--text-muted)]">Chatting with </span>
+              <strong className="font-semibold truncate">{scopeReport?.original_filename ?? "loading document…"}</strong>
+              {scopeReport && (
+                <span className="text-[var(--text-muted)] type-mono-sm text-[11px]"> · {scopeReport.page_count ?? "?"} pages · answers use only this PDF</span>
+              )}
+            </div>
+            <button
+              onClick={() => setSearchParams({})}
+              className="text-[12px] text-[var(--deep-petrol)] underline cursor-pointer flex-shrink-0"
+            >
+              Use all my reports
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center gap-2">
           <span className="type-label text-[var(--dim)] text-[12px] mr-1">Quick inquiries:</span>
-          {suggestedQuestions.map((q) => (
+          {(docSuggestions.length ? docSuggestions : SUGGESTED).map((q) => (
             <DetentPress key={q}>
               <button
-                disabled={isAsking}
+                disabled={isStreaming}
                 onClick={() => {
                   playDetent();
-                  handleAskQuestion(q);
+                  handleAsk(q);
                 }}
-                className="px-2.5 py-1 rounded-[var(--r-4)] bg-[var(--ink-800)] border border-[var(--line-strong)] hover:border-[var(--verdigris)] hover:text-[var(--bone)] text-[var(--dim)] type-mono-sm text-[11px] transition-all cursor-pointer disabled:opacity-50"
+                className="px-2.5 py-1 rounded-[var(--r-6)] bg-[var(--alloy-surface)] border border-[var(--line-strong)] shadow-[var(--shadow-3d-sm)] hover:border-[var(--jade-slate)] text-[var(--text-muted)] hover:text-[var(--text-main)] type-mono-sm text-[11px] transition-colors cursor-pointer disabled:opacity-50"
               >
                 {q}
               </button>
@@ -333,331 +256,155 @@ export const AskPage: React.FC = () => {
           ))}
         </div>
 
-        {/* Conversation Threads */}
-        <div className="space-y-6" data-testid="conversation-threads">
-          {threads.map((item) => (
-            <div key={item.id} className="space-y-4">
-              {/* User Question Card (FLIP-morphs from input via sourceRect per §M5.2, §M7.4) */}
-              {item.type !== "refusal" && (
-                <QuestionCard
-                  initial={user?.display_label ? user.display_label[0].toUpperCase() : "A"}
-                  question={item.questionText}
-                  date={item.timestamp}
-                  category={item.category}
-                  rewrittenQuery={item.rewrittenQuery}
-                  sourceRect={item.sourceRect}
-                />
-              )}
+        {!question && (
+          <div className="rounded-[var(--r-14)] bg-[var(--alloy-surface)] border border-dashed border-[var(--line-strong)] p-10 text-center shadow-[var(--shadow-3d-sm)]">
+            <p className="font-serif text-[18px] text-[var(--deep-petrol)] m-0">Ask about your reports.</p>
+            <p className="type-meta text-[var(--dim)] text-[12.5px] mt-1.5 mb-0">
+              Every statement is grounded in your uploaded documents; watch the agent&apos;s reasoning on the right.
+            </p>
+          </div>
+        )}
 
-              {/* Loading active stream state */}
-              {item.type === "loading" && (
-                <div className="rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-5 flex flex-col gap-3 m-enter">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[var(--verdigris)] animate-ping" />
-                      <span className="type-body text-[var(--bone)] font-medium">
-                        Consulting clinical reports & knowledge graph...
-                      </span>
-                      <Badge variant="ingesting">streaming pipeline</Badge>
-                    </div>
-                    {streamJobId && (
-                      <span className="type-mono-sm text-[var(--dim)] text-[11px] truncate max-w-[150px]">
-                        {streamJobId}
-                      </span>
-                    )}
-                  </div>
+        {question && (
+          <div className="flex flex-col gap-5" data-testid="conversation-threads">
+            <QuestionCard initial={initial} question={question.text} date={question.time} />
 
-                  {/* Skeleton shimmer until first event per US-15 */}
-                  {streamTraces.length === 0 && !streamError ? (
-                    <div className="space-y-2.5 py-2">
-                      <div className="h-3.5 bg-[var(--ink-700)] rounded animate-pulse w-3/4" />
-                      <div className="h-3 bg-[var(--ink-700)] rounded animate-pulse w-1/2" />
-                      <div className="h-3 bg-[var(--ink-700)] rounded animate-pulse w-2/3" />
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5 pt-1">
-                      {streamTraces.slice(-2).map((tr) => (
-                        <div key={tr.index} className="flex items-center justify-between type-mono-sm text-[12px]">
-                          <span className={`${stageColors[tr.stage] || "text-[var(--verdigris)]"} font-medium`}>
-                            [{tr.stage}] {tr.description}
-                          </span>
-                          <span className="text-[var(--dim)]">{tr.latency || ""}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+            {isRefusal && result && (
+              <RefusalCard initial={initial} question={question.text} date={question.time} refusalText={result.summary_text} />
+            )}
 
-                  {streamError && (
-                    <div className="p-2.5 rounded-[var(--r-6)] bg-[var(--madder)]/15 border border-[var(--madder)]/30 text-[var(--madder)] text-[12px] animate-detent-impulse">
-                      {streamError}
-                    </div>
-                  )}
+            {withheld && !isRefusal && (
+              <div className="rounded-[var(--r-10)] border border-[var(--solar-bronze)] bg-[var(--solar-bronze)]/10 px-4 py-3 text-[13px] text-[var(--text-main)]" data-testid="withheld-note">
+                <strong className="font-semibold">AI wording withheld.</strong> The safety check did not accept the AI&apos;s
+                phrasing, so this is the verified evidence-only answer taken directly from your report.
+              </div>
+            )}
 
-                  <div className="type-meta text-[var(--dim)] text-[12px] border-t border-[var(--line-faint)] pt-2 flex items-center justify-between">
-                    <span>User privacy filtered to {effectiveUserId}.</span>
-                    <span>Real EventSource stream</span>
-                  </div>
+            {!isRefusal && answerMarkdown && (
+              <PaperAnswer markdown={answerMarkdown} citations={citations} onCite={handleCite} isStreaming={isStreaming} />
+            )}
+
+            {!isRefusal && result?.evidence && result.evidence.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2" data-testid="sources-row">
+                <span className="type-label text-[var(--dim)] text-[12px]">Sources:</span>
+                {result.evidence.slice(0, 8).map((e) => (
+                  <button
+                    key={e.chunk_id}
+                    onClick={() => handleCite(e.chunk_id)}
+                    title={e.snippet}
+                    className="inline-flex items-center gap-1 px-2 py-[2px] rounded-[var(--r-pill)] bg-[var(--jade-slate)] text-[var(--text-on-primary)] font-mono text-[11px] shadow-[var(--shadow-3d-sm)] hover:brightness-110 cursor-pointer"
+                  >
+                    {e.report_filename} · p{e.page_number} · {(e.score * 100).toFixed(0)}%
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {result?.status === "insufficient_evidence" && (
+              <div className="rounded-[var(--r-10)] border border-[var(--solar-bronze)] bg-[var(--solar-bronze)]/10 p-4 text-[13px] text-[var(--text-main)]" data-testid="insufficient-note">
+                <strong className="font-semibold">No AI answer was generated.</strong> None of your report passages matched this
+                question above the 0.40 relevance floor, so VitaGraph did not call the AI rather than guess. Ask about a test or
+                value in your reports, for example:
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {SUGGESTED.slice(0, 2).map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => handleAsk(q)}
+                      className="px-2.5 py-1 rounded-[var(--r-6)] bg-[var(--alloy-surface)] border border-[var(--line-strong)] shadow-[var(--shadow-3d-sm)] type-mono-sm text-[11px] cursor-pointer"
+                    >
+                      {q}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Grounded 4-Part Answer Block */}
-              {item.type === "answer" && item.answer && (
-                <AnswerBlock
-                  summaryText={item.answer.summary_text}
-                  limitationsText={item.answer.limitations_text}
-                  safetyText={item.answer.safety_text}
-                  evidenceCards={item.answer.evidence}
-                  status={item.answer.status}
-                  elapsedTime={item.elapsedTime || "0.8 s"}
-                  onEvidenceClick={(ev) => {
-                    setSelectedEvidence(ev);
-                    setIsEvidenceViewerOpen(true);
-                  }}
-                />
-              )}
+            {!isRefusal && !answerMarkdown && isStreaming && (
+              <div className="rounded-[var(--r-10)] bg-[var(--alloy-surface)] border border-[var(--line-strong)] p-5 shadow-[var(--shadow-3d)] space-y-2.5" aria-busy="true">
+                <div className="h-3.5 bg-[var(--steel-fog)] rounded animate-pulse w-3/4" />
+                <div className="h-3 bg-[var(--steel-fog)] rounded animate-pulse w-1/2" />
+                <div className="h-3 bg-[var(--steel-fog)] rounded animate-pulse w-2/3" />
+              </div>
+            )}
 
-              {/* Verbatim Refusal Card */}
-              {item.type === "refusal" && (
-                <RefusalCard
-                  initial={user?.display_label ? user.display_label[0].toUpperCase() : "A"}
-                  question={item.questionText}
-                  date={item.timestamp}
-                  refusalText={item.refusalText}
-                />
-              )}
-            </div>
-          ))}
-        </div>
+            {stream.status === "error" && !answerMarkdown && (
+              <div role="alert" className="rounded-[var(--r-10)] border border-[var(--madder)] bg-[var(--madder)]/10 p-4 text-[13px] text-[var(--madder)]">
+                {stream.error ?? "The stream failed."} No answer was produced.
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Ask Bar / Follow-up Input */}
-        <div
-          className={`rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-2.5 flex items-center gap-2 sticky bottom-4 shadow-lg backdrop-blur-md transition-opacity duration-[180ms] ${
-            isAsking ? "opacity-60" : "opacity-100"
-          }`}
-        >
+        <div className="rounded-[var(--r-10)] bg-[var(--alloy-surface)] border border-[var(--line-strong)] shadow-[var(--shadow-3d)] p-2.5 flex items-center gap-2 sticky bottom-4">
           <input
-            ref={inputRef}
             type="text"
-            value={questionInput}
-            onChange={(e) => setQuestionInput(e.target.value)}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                handleAskQuestion(questionInput);
+                handleAsk(input);
               }
             }}
-            disabled={isAsking}
-            placeholder={isAsking ? "Processing inquiry..." : "Ask a medical question about your reports…"}
-            className="flex-1 bg-transparent px-3 py-1.5 type-body text-[var(--bone)] placeholder-[var(--faint)] focus:outline-none focus:ring-1 focus:ring-[var(--verdigris)] rounded-[var(--r-4)] transition-[box-shadow] duration-[80ms]"
+            disabled={isStreaming}
+            placeholder={isStreaming ? "Agent is working…" : "Ask a medical question about your reports…"}
+            className="flex-1 bg-transparent px-3 py-1.5 type-body text-[var(--text-main)] placeholder-[var(--faint)] focus:outline-none focus:ring-1 focus:ring-[var(--jade-slate)] rounded-[var(--r-4)]"
             data-testid="ask-question-input"
           />
-          <Select
-            compactPaper
-            value={mode}
-            onChange={(e) => handleModeChange(e.target.value)}
-            options={[
-              { value: "Paper", label: "Paper" },
-              { value: "Graph", label: "Graph" },
-            ]}
-          />
+          <div role="radiogroup" aria-label="Answer mode" className="flex rounded-[var(--r-6)] border border-[var(--line-strong)] overflow-hidden flex-shrink-0">
+            {([
+              ["rag_ai", "Evidence + AI", "Retrieve passages from your PDF, then the AI explains them"],
+              ["rag_only", "Evidence only", "Show matching passages from your PDF without calling the AI"],
+            ] as const).map(([value, label, hint]) => (
+              <button
+                key={value}
+                role="radio"
+                aria-checked={mode === value}
+                title={hint}
+                disabled={isStreaming}
+                onClick={() => setMode(value)}
+                className={`px-2.5 h-9 text-[11.5px] font-medium cursor-pointer transition-colors ${
+                  mode === value ? "bg-[var(--deep-petrol)] text-[var(--text-on-primary)]" : "bg-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {isStreaming && (
+            <Button variant="ghost" className="h-9 px-3" onClick={stream.abort} data-testid="ask-stop-button">
+              Stop
+            </Button>
+          )}
           <DetentPress>
             <Button
               variant="primary"
-              className="h-9 px-4 flex items-center gap-2"
-              disabled={isAsking || !questionInput.trim()}
+              className="h-9 px-4"
+              disabled={isStreaming || !input.trim()}
               onClick={() => {
                 playDetent();
-                handleAskQuestion(questionInput);
+                handleAsk(input);
               }}
               data-testid="ask-send-button"
             >
-              {isAsking ? (
-                <span className="w-3.5 h-3.5 rounded-full border-2 border-[var(--ink-900)] border-t-transparent animate-spin" />
-              ) : (
-                <svg className="w-3.5 h-3.5 rotate-45 -mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                  <path d="M22 2L11 13" />
-                  <path d="M22 2l-7 20-4-9-9-4 20-7z" />
-                </svg>
-              )}
-              <span>{isAsking ? "Processing..." : "Send"}</span>
+              {isStreaming ? "Working…" : "Send"}
             </Button>
           </DetentPress>
         </div>
       </div>
 
-      {/* Right Drawer (400px Collapsible §9.4) */}
-      {isDrawerOpen && (
-        <aside className="w-full lg:w-[400px] flex-shrink-0 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-4 flex flex-col justify-between">
-          <div>
-            {/* Drawer Header with Close button */}
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--line-faint)] mb-3">
-              <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${isAsking ? "bg-[var(--lilac)] animate-pulse" : "bg-[var(--verdigris)]"}`} />
-                <span className="type-card-title text-[15px] text-[var(--bone)]">
-                  {isAsking ? "Streaming pipeline..." : "Clinical Context"}
-                </span>
-                <span
-                  key={modeKey}
-                  data-testid="ask-mode-chip"
-                  className={`px-2 py-0.5 text-[10px] font-mono rounded-[var(--r-4)] border border-[var(--line-strong)] bg-[var(--ink-700)] text-[var(--bone)] ${
-                    !isT0 ? "animate-chip-pop" : ""
-                  }`}
-                >
-                  {mode}
-                </span>
-              </div>
-              <DetentPress>
-                <IconButton
-                  size={24}
-                  title="Collapse drawer"
-                  onClick={() => {
-                    playDetent();
-                    setIsDrawerOpen(false);
-                  }}
-                  className="border-transparent bg-transparent hover:bg-[var(--ink-700)] text-[var(--dim)]"
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </IconButton>
-              </DetentPress>
-            </div>
-
-            {/* Drawer Tabs */}
-            <div className="flex border-b border-[var(--line-faint)] mb-4">
-              {drawerTabs.map((tab) => {
-                const isActive = activeDrawerTab === tab;
-                return (
-                  <DetentPress key={tab}>
-                    <button
-                      onClick={() => {
-                        playDetent();
-                        setActiveDrawerTab(tab);
-                      }}
-                      className={`py-2 px-3 type-label transition-colors duration-[120ms] relative cursor-pointer ${
-                        isActive
-                          ? "text-[var(--bone)] border-b-2 border-b-[var(--verdigris)] -mb-[1px]"
-                          : "text-[var(--dim)] hover:text-[var(--bone)]"
-                      }`}
-                    >
-                      {tab}
-                    </button>
-                  </DetentPress>
-                );
-              })}
-            </div>
-
-            {/* Tab 1: Live Execution Trace (Plan §12 SSE) */}
-            {activeDrawerTab === "Thinking details" && (
-              <ThinkingDetailsPanel
-                traces={streamTraces}
-                jobId={streamJobId}
-                isStreaming={isAsking}
-                streamError={streamError}
-                isReplay={isReplayJob}
-              />
-            )}
-
-            {/* Tab 2: Retrieved Chunks */}
-            {activeDrawerTab === "Retrieved chunks" && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="type-card-title text-[14px] text-[var(--bone)]">
-                    Retrieved chunks ({activeEvidence.length})
-                  </span>
-                  <span className="type-mono-sm text-[var(--dim)]">score threshold ≥ 0.40</span>
-                </div>
-
-                {activeEvidence.length === 0 ? (
-                  <div className="py-6 text-center text-[var(--dim)] type-meta text-[12px]">
-                    No evidence chunks retrieved for this inquiry.
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {activeEvidence.map((chunk, idx) => (
-                      <div
-                        key={chunk.chunk_id}
-                        onClick={() => {
-                          setSelectedEvidence(chunk);
-                          setIsEvidenceViewerOpen(true);
-                        }}
-                        className="p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/40 hover:bg-[var(--ink-700)]/70 border border-[var(--line-faint)] hover:border-[var(--verdigris)]/50 transition-all flex flex-col gap-1.5 cursor-pointer group"
-                      >
-                        <div className="flex items-center justify-between type-mono-sm">
-                          <span className="text-[var(--bone)] font-medium truncate max-w-[220px]">
-                            {chunk.report_filename}
-                          </span>
-                          <span className="text-[var(--verdigris)] font-semibold">
-                            {(chunk.score * 100).toFixed(0)}% match
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 type-meta text-[var(--dim)] text-[11px]">
-                          <span>Page {chunk.page_number}</span>
-                          {chunk.report_date && <span>• Date: {chunk.report_date}</span>}
-                          <span>• #{String(idx + 1).padStart(2, "0")}</span>
-                        </div>
-                        <p className="type-reading text-[11.5px] text-[var(--dim)] italic line-clamp-2">
-                          “{chunk.snippet}”
-                        </p>
-                        <div className="flex items-center justify-between pt-1 border-t border-[var(--line-faint)] type-mono-sm text-[10.5px]">
-                          <span className="text-[var(--dim)]">
-                            {chunk.char_start != null && chunk.char_end != null
-                              ? `span ${chunk.char_start}–${chunk.char_end}`
-                              : "provenance verified"}
-                          </span>
-                          <span className="text-[var(--verdigris)] group-hover:underline">
-                            Inspect span
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Tab 3: Graph Context */}
-            {activeDrawerTab === "Graph context" && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="type-card-title text-[14px] text-[var(--bone)]">
-                    Active Graph Concepts
-                  </span>
-                  <Badge variant="completed">NetworkX topology</Badge>
-                </div>
-                <p className="type-meta text-[var(--dim)] text-[12px]">
-                  Clinical entities grounded in patient laboratory reports and mapped into the knowledge graph.
-                </p>
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {graphConcepts.map((concept) => (
-                    <span
-                      key={concept}
-                      className="px-2 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--line-strong)] type-label text-[11.5px] text-[var(--bone)]"
-                    >
-                      {concept}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Drawer Marginalia */}
-          <div className="mt-6 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-marginalia text-[13px]">
-              Same data. Deeper understanding.
-            </span>
-          </div>
-        </aside>
-      )}
-
-      {/* Evidence Span Viewer Modal (§9.8) */}
-      <EvidenceSpanViewer
-        evidence={selectedEvidence}
-        isOpen={isEvidenceViewerOpen}
-        onClose={() => setIsEvidenceViewerOpen(false)}
+      {/* THE INSTRUMENT — telemetry column */}
+      <AgentThoughtTree
+        thinkingLogs={stream.thinkingLogs}
+        stageEvents={stream.stageEvents}
+        toolCalls={stream.toolCalls}
+        modelFallbacks={stream.modelFallbacks}
+        isStreaming={isStreaming}
+        error={stream.error}
+        diagnostic={stream.diagnostic}
       />
+
+      <EvidenceSpanViewer evidence={selectedEvidence} isOpen={viewerOpen} onClose={() => setViewerOpen(false)} />
     </div>
   );
 };

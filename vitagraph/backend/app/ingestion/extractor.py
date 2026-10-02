@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 import uuid
+from collections.abc import Callable
 
 import pymupdf as fitz  # PyMuPDF
 
@@ -108,8 +109,15 @@ def parse_report_date(pages: list[dict]) -> str | None:
     return None
 
 
-def extract_report(report: dict) -> list[dict]:
-    """Extract every page of a stored report with scan detection and table normalization (US-16)."""
+def extract_report(
+    report: dict,
+    on_page: Callable[[dict, int], None] | None = None,
+) -> list[dict]:
+    """Extract every page of a stored report with scan detection and table normalization (US-16).
+
+    on_page(page, total_pages) is called right after each page completes so callers can
+    publish real per-page progress. OCR pages carry real detection boxes in page["ocr_boxes"].
+    """
     report_id = report["id"]
     doc = fitz.open(report["stored_path"])
     pages: list[dict] = []
@@ -119,6 +127,7 @@ def extract_report(report: dict) -> list[dict]:
             page_id = f"pg_{uuid.uuid4().hex[:12]}"
             raw_text = _normalize_whitespace(page.get_text("text"))
             note = None
+            ocr_boxes: list[dict] = []
 
             # Table extraction and normalization per US-16
             table_rows = _extract_and_normalize_tables(page)
@@ -140,6 +149,7 @@ def extract_report(report: dict) -> list[dict]:
                     method = ocr_result.method
                     quality = "uncertain" if ocr_result.low_confidence else "good"
                     note = ocr_result.note
+                    ocr_boxes = ocr_result.boxes
                 else:
                     # Neither engine available or OCR failed completely
                     method = (
@@ -161,7 +171,10 @@ def extract_report(report: dict) -> list[dict]:
                 "quality": quality,
                 "text_length": len(raw_text),
                 "note": note,
+                "ocr_boxes": ocr_boxes,
             })
+            if on_page is not None:
+                on_page(pages[-1], len(doc))
     finally:
         doc.close()
 

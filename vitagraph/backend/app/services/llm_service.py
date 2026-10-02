@@ -29,7 +29,7 @@ from openai import (
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
-from app.generation.safety import check_answer_safety, SAFETY_TEXT
+from app.generation.safety import check_answer_safety, evidence_texts, SAFETY_TEXT
 from app.graph import builder as graph_builder
 from app.rag import retriever
 
@@ -101,6 +101,8 @@ TOOL_DEFINITIONS = [
                         ),
                     },
                 },
+                # Gateway validators reject a missing `required`; an explicit empty list is valid.
+                "required": [],
             },
         },
     },
@@ -121,13 +123,15 @@ def get_client() -> AsyncOpenAI:
     )
 
 
-def execute_tool(name: str, arguments: dict[str, Any], user_id: str) -> dict[str, Any]:
+def execute_tool(
+    name: str, arguments: dict[str, Any], user_id: str, report_id: str | None = None
+) -> dict[str, Any]:
     """Execute a RAG tool and return structured payload."""
     if name == "search_chroma":
         query = arguments.get("query", "")
         top_k = arguments.get("top_k", 5)
         try:
-            hits = retriever.retrieve(user_id=user_id, question=query, top_k=top_k)
+            hits = retriever.retrieve(user_id=user_id, question=query, top_k=top_k, report_id=report_id)
             return {
                 "evidence": [
                     {
@@ -207,6 +211,7 @@ async def stream_agent_rag(
     user_id: str,
     question: str,
     initial_evidence: list[dict[str, Any]] | None = None,
+    report_id: str | None = None,
 ) -> AsyncGenerator[tuple[str, dict[str, Any]], None]:
     """Execute streaming RAG agent pipeline over AgentRouter with model fallback.
 
@@ -315,7 +320,10 @@ async def stream_agent_rag(
         current_tool_calls: dict[int, dict[str, Any]] = {}
         content_accumulator = []
 
-        async for item_type, data in stream_with_model_fallback(messages, TOOL_DEFINITIONS, active_model):
+        # The knowledge graph spans all of a user's reports; a single-PDF chat must not leak
+        # facts from other reports, so only the (report-filtered) search tool is offered.
+        tools = [t for t in TOOL_DEFINITIONS if t['function']['name'] == 'search_chroma'] if report_id else TOOL_DEFINITIONS
+        async for item_type, data in stream_with_model_fallback(messages, tools, active_model):
             if item_type == "model_fallback":
                 yield ("model_fallback", data)
                 continue
@@ -397,7 +405,7 @@ async def stream_agent_rag(
                     },
                 )
 
-                tool_res = execute_tool(name, args, user_id=user_id)
+                tool_res = execute_tool(name, args, user_id=user_id, report_id=report_id)
 
                 # Collect new evidence from tool if ChromaDB search
                 if name == "search_chroma" and "evidence" in tool_res:
@@ -469,7 +477,7 @@ async def stream_agent_rag(
             full_text = "".join(content_accumulator).strip()
 
         # Perform safety check on final text
-        evidence_snippets = [hit.get("document", "") for hit in collected_evidence]
+        evidence_snippets = evidence_texts(collected_evidence)
         passed, safety_reason = check_answer_safety(full_text, evidence_snippets)
 
         yield (

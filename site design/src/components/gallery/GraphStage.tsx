@@ -39,23 +39,23 @@ interface SimEdge {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  person: "#86A9D9",      // cornflower
-  condition: "#86A9D9",   // cornflower
-  report: "#86A9D9",      // cornflower
-  test: "#79B8A6",        // verdigris (biomarker)
-  biomarker: "#79B8A6",   // verdigris
-  date: "#79B8A6",        // verdigris
-  measurement: "#D9A441", // ochre
-  section: "#A992D0",     // lilac
-  category: "#A992D0",    // lilac
-  treatment: "#A992D0",   // lilac
+  person: "#2E6270",      // cornflower
+  condition: "#2E6270",   // cornflower
+  report: "#2E6270",      // cornflower
+  test: "#47775F",        // verdigris (biomarker)
+  biomarker: "#47775F",   // verdigris
+  date: "#47775F",        // verdigris
+  measurement: "#C58A43", // ochre
+  section: "#6F6192",     // lilac
+  category: "#6F6192",    // lilac
+  treatment: "#6F6192",   // lilac
   chunk: "#6B7683",       // faint
-  uncertainty: "#D9808D", // madder
-  outcome: "#D9808D",     // madder
+  uncertainty: "#B0525E", // madder
+  outcome: "#B0525E",     // madder
 };
 
 // Glow sprite cache (§M8.1: one pre-rendered radial-gradient sprite per category color, 5 total, 64x64 offscreen)
-const GLOW_COLORS = ["#86a9d9", "#79b8a6", "#d9a441", "#a992d0", "#d9808d"] as const;
+const GLOW_COLORS = ["#2E6270", "#47775F", "#C58A43", "#6F6192", "#B0525E"] as const;
 const glowSpriteMap = new Map<string, HTMLCanvasElement>();
 
 function getGlowSprite(hexColor: string, size = 64): HTMLCanvasElement | null {
@@ -92,7 +92,7 @@ if (typeof document !== "undefined") {
 function getNodeColor(node: GraphNode): string {
   if (node.color && node.color.startsWith("#")) return node.color;
   const t = (node.type || "").toLowerCase();
-  return CATEGORY_COLORS[t] || "#79B8A6";
+  return CATEGORY_COLORS[t] || "#47775F";
 }
 
 // Ontology rank per §M8.2 (Report -> Category -> Test -> Measurement -> Chunk)
@@ -236,7 +236,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       t: 0,
       duration: 320,
       delay: 0,
-      color: "#79B8A6",
+      color: "#47775F",
       vanishElapsed: 0,
     }))
   );
@@ -251,7 +251,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       alpha: 0.25,
       age: 0,
       lifetime: 1400,
-      color: "#79B8A6",
+      color: "#47775F",
     }))
   );
 
@@ -498,7 +498,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         const dy = t.y - s.y;
         const edgePxLength = Math.hypot(dx, dy);
         const latencyMs = Math.round(Math.min(900, Math.max(180, 180 + edgePxLength * 0.6)));
-        candidateEdges.push({ edgeIdx: i, reverse: false, color: s.color || t.color || "#79B8A6", latencyMs });
+        candidateEdges.push({ edgeIdx: i, reverse: false, color: s.color || t.color || "#47775F", latencyMs });
       }
     }
 
@@ -1094,21 +1094,21 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         if (isIncident) {
           // Incident edge emphasis: alpha rises to 0.85, width 1.8px (§M8.5)
           const edgeAlpha = 0.45 + 0.40 * hp;
-          ctx.strokeStyle = `rgba(121, 184, 166, ${edgeAlpha * edgeProgress})`;
+          ctx.strokeStyle = `rgba(71,119,95, ${edgeAlpha * edgeProgress})`;
           ctx.lineWidth = 1.0 + 0.8 * hp;
         } else if (hasHover) {
           // Non-incident edges dim to 0.30 (§M8.5)
-          ctx.strokeStyle = `rgba(43, 52, 64, ${0.30 * edgeProgress})`;
+          ctx.strokeStyle = `rgba(154,167,176, ${0.30 * edgeProgress})`;
           ctx.lineWidth = 0.8;
         } else if (isQuestionActiveEdge || isSelectedEdge) {
-          ctx.strokeStyle = `rgba(121, 184, 166, ${0.85 * edgeProgress})`;
+          ctx.strokeStyle = `rgba(71,119,95, ${0.85 * edgeProgress})`;
           ctx.lineWidth = 1.8;
         } else if (hasActiveQuestion) {
           // Inactive edges dim to exactDim via weighted spring (§M8.3)
-          ctx.strokeStyle = `rgba(43, 52, 64, ${exactDim * edgeProgress})`;
+          ctx.strokeStyle = `rgba(154,167,176, ${exactDim * edgeProgress})`;
           ctx.lineWidth = 0.8;
         } else if (activeId) {
-          ctx.strokeStyle = `rgba(43, 52, 64, ${0.35 * edgeProgress})`;
+          ctx.strokeStyle = `rgba(154,167,176, ${0.35 * edgeProgress})`;
           ctx.lineWidth = 0.8;
         } else {
           ctx.strokeStyle = `rgba(155, 161, 176, ${0.28 * edgeProgress})`;
@@ -1222,7 +1222,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
           ctx.beginPath();
           ctx.arc(n.x, n.y, pulseRadius, 0, 2 * Math.PI);
-          ctx.strokeStyle = `rgba(121, 184, 166, ${pulseAlpha})`;
+          ctx.strokeStyle = `rgba(71,119,95, ${pulseAlpha})`;
           ctx.lineWidth = Math.max(1, 2.5 * (1 - pulseProgress));
           ctx.stroke();
         }
@@ -1254,7 +1254,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         ctx.fill();
 
         ctx.lineWidth = isSelected || isConceptActive || isHovered ? 2.5 : 1.2;
-        ctx.strokeStyle = isSelected || isHovered ? "#FFFFFF" : isConceptActive ? "rgba(121, 184, 166, 0.9)" : "rgba(232, 226, 217, 0.45)";
+        ctx.strokeStyle = isSelected || isHovered ? "#28323A" : isConceptActive ? "rgba(71,119,95, 0.9)" : "rgba(85,99,110,0.45)";
         ctx.stroke();
         ctx.globalAlpha = 1.0;
 
@@ -1266,7 +1266,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           const hairlineLen = 12 * hairlineEase;
 
           ctx.save();
-          ctx.strokeStyle = "rgba(217, 164, 65, 0.50)";
+          ctx.strokeStyle = "rgba(197,138,67, 0.50)";
           ctx.lineWidth = 1.0;
           ctx.beginPath();
           ctx.moveTo(n.x, n.y - currentRadius);
@@ -1289,17 +1289,17 @@ export const GraphStage: React.FC<GraphStageProps> = ({
             const rectY = chipY - chipH / 2;
 
             ctx.globalAlpha = (isDimmed ? exactDim : 1.0) * chipAlpha;
-            ctx.fillStyle = "rgba(26, 31, 38, 0.92)";
+            ctx.fillStyle = "rgba(223,227,230,0.92)";
             ctx.beginPath();
             ctx.roundRect(rectX, rectY, chipW, chipH, 4);
             ctx.fill();
 
-            ctx.strokeStyle = "rgba(217, 164, 65, 0.45)";
+            ctx.strokeStyle = "rgba(197,138,67, 0.45)";
             ctx.lineWidth = 1.0;
             ctx.stroke();
 
             // Value text
-            ctx.fillStyle = "#D9A441";
+            ctx.fillStyle = "#C58A43";
             ctx.textAlign = "left";
             ctx.textBaseline = "middle";
             ctx.fillText(valText, rectX + 6, chipY);
@@ -1317,14 +1317,14 @@ export const GraphStage: React.FC<GraphStageProps> = ({
               if (washElapsed >= 0 && washElapsed < 240 && !prefersReducedMotion) {
                 const washAlpha = 0.35 * (1 - washElapsed / 240);
                 ctx.save();
-                ctx.fillStyle = `rgba(217, 128, 141, ${washAlpha})`;
+                ctx.fillStyle = `rgba(176,82,94, ${washAlpha})`;
                 ctx.beginPath();
                 ctx.roundRect(flagX - 2, flagTagY, flagTagW, flagTagH, 2);
                 ctx.fill();
                 ctx.restore();
               }
 
-              ctx.fillStyle = "#D9808D";
+              ctx.fillStyle = "#B0525E";
               ctx.fillText("HIGH", flagX, chipY);
             }
           }
@@ -1336,13 +1336,13 @@ export const GraphStage: React.FC<GraphStageProps> = ({
           const fontSize = Math.max(9, Math.min(14, 8 + currentRadius * 0.45));
           ctx.font = `${isSelected || isConceptActive || isHovered ? "600" : "500"} ${fontSize}px 'Plus Jakarta Sans', sans-serif`;
           if (isSelected || isConceptActive || isHovered) {
-            ctx.fillStyle = "#FFFFFF"; // label alpha -> 1
+            ctx.fillStyle = "#28323A"; // label alpha -> 1
           } else if (isNeighbor) {
-            ctx.fillStyle = "rgba(230, 228, 222, 0.80)"; // neighbor labels alpha -> 0.8
+            ctx.fillStyle = "rgba(40,50,58,0.80)"; // neighbor labels alpha -> 0.8
           } else if (isDimmed) {
-            ctx.fillStyle = "rgba(155, 161, 176, 0.40)";
+            ctx.fillStyle = "rgba(85,99,110,0.45)";
           } else {
-            ctx.fillStyle = "#E6E4DE";
+            ctx.fillStyle = "#28323A";
           }
           ctx.textAlign = "center";
           ctx.textBaseline = "top";
@@ -1703,7 +1703,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         <div
           className="absolute inset-0 pointer-events-none z-0"
           style={{
-            background: "radial-gradient(circle at center, transparent 40%, rgba(14,17,22,0.85) 100%)",
+            background: "radial-gradient(circle at center, transparent 40%, rgba(186,195,202,0.75) 100%)",
           }}
         />
 

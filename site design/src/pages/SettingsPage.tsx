@@ -230,7 +230,7 @@ export const SettingsPage: React.FC = () => {
                   : "border-[var(--line-strong)] text-[var(--dim)] hover:text-[var(--bone)]"
               }`}
             >
-              <div className="w-3 h-3 rounded-full bg-[#0E1116] border border-[var(--verdigris)]" />
+              <div className="w-3 h-3 rounded-full bg-[var(--steel-fog)] border border-[var(--verdigris)]" />
               <span className="type-label">Instrument (Dark)</span>
             </button>
           </DetentPress>
@@ -245,7 +245,7 @@ export const SettingsPage: React.FC = () => {
                   : "border-[var(--line-strong)] text-[var(--dim)] hover:text-[var(--bone)]"
               }`}
             >
-              <div className="w-3 h-3 rounded-full bg-[#F5EFEB] border border-[#D8CFBC]" />
+              <div className="w-3 h-3 rounded-full bg-[var(--titanium-mist)] border border-[var(--line-strong)]" />
               <span className="type-label">Paper (Light)</span>
             </button>
           </DetentPress>

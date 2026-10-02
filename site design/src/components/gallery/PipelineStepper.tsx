@@ -54,9 +54,10 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
         }
       });
 
+      let completedTimer: ReturnType<typeof setTimeout> | null = null;
       if (newlyCompleted.size > 0) {
         setCompletedStepIndices(newlyCompleted);
-        setTimeout(() => {
+        completedTimer = setTimeout(() => {
           setCompletedStepIndices(new Set());
         }, 360);
       }
@@ -65,7 +66,10 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
       setIsImpulsing(true);
       playDetent();
       const timer = setTimeout(() => setIsImpulsing(false), 180);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        if (completedTimer) clearTimeout(completedTimer);
+      };
     }
   }, [steps, isT0]);
 
@@ -108,7 +112,7 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
               <div className="flex flex-col items-center relative z-10">
                 {/* Done State — checkmark DrawPath (§M7.2) + WashSweep on complete (§7.2-A) */}
                 {step.status === "done" && (
-                  <div className="relative w-7 h-7 rounded-full bg-[var(--verdigris)] text-[var(--ink-900)] flex items-center justify-center font-bold shadow-[0_0_8px_rgba(121,184,166,0.3)] overflow-hidden">
+                  <div className="relative w-7 h-7 rounded-full bg-[var(--verdigris)] text-[var(--ink-900)] flex items-center justify-center font-bold shadow-[0_0_8px_rgba(71,119,95,0.3)] overflow-hidden">
                     <WashSweep
                       active={completedStepIndices.has(idx)}
                       color="rgba(255, 255, 255, 0.45)"

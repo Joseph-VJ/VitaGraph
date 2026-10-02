@@ -7,7 +7,7 @@ available, returns unavailable result marked uncertain — never silent.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -17,6 +17,8 @@ class OcrResult:
     low_confidence: bool = False
     note: str | None = None
     method: str = "ocr"
+    # Real detection boxes, normalised to 0..1 of the rendered page: {x0,y0,x1,y1,text,conf}
+    boxes: list[dict] = field(default_factory=list)
 
 
 def _tesseract_available() -> bool:
@@ -52,12 +54,24 @@ def ocr_page(doc, page_index: int) -> OcrResult:
             mean_confidence = sum(confidences) / len(confidences) if confidences else 0.0
 
             text = pytesseract.image_to_string(image)
+            boxes = []
+            for i, word in enumerate(data["text"]):
+                conf = float(data["conf"][i]) if str(data["conf"][i]) not in ("-1", "") else -1.0
+                if not str(word).strip() or conf < 0:
+                    continue
+                x, y, w, h = data["left"][i], data["top"][i], data["width"][i], data["height"][i]
+                boxes.append({
+                    "x0": round(x / image.width, 4), "y0": round(y / image.height, 4),
+                    "x1": round((x + w) / image.width, 4), "y1": round((y + h) / image.height, 4),
+                    "text": str(word), "conf": round(conf, 1),
+                })
             low_confidence = mean_confidence < 60 or len(text.strip()) < 40
             return OcrResult(
                 ok=True,
                 text=text,
                 low_confidence=low_confidence,
                 method="ocr-tesseract",
+                boxes=boxes,
                 note=f"Tesseract OCR mean confidence {mean_confidence:.0f}%."
                 if low_confidence else None,
             )
@@ -85,11 +99,23 @@ def ocr_page(doc, page_index: int) -> OcrResult:
                 scores = [float(line[2]) for line in result if len(line) > 2]
                 mean_conf = (sum(scores) / len(scores) * 100) if scores else 0.0
                 low_confidence = mean_conf < 60 or len(text.strip()) < 40
+                boxes = []
+                for line in result:
+                    if len(line) < 3 or not line[1]:
+                        continue
+                    xs = [pt[0] for pt in line[0]]
+                    ys = [pt[1] for pt in line[0]]
+                    boxes.append({
+                        "x0": round(min(xs) / pixmap.width, 4), "y0": round(min(ys) / pixmap.height, 4),
+                        "x1": round(max(xs) / pixmap.width, 4), "y1": round(max(ys) / pixmap.height, 4),
+                        "text": str(line[1]), "conf": round(float(line[2]) * 100, 1),
+                    })
                 return OcrResult(
                     ok=True,
                     text=text,
                     low_confidence=low_confidence,
                     method="ocr-rapid",
+                    boxes=boxes,
                     note=f"RapidOCR confidence {mean_conf:.0f}%."
                     if low_confidence
                     else f"RapidOCR extracted ({mean_conf:.0f}% confidence)",

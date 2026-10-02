@@ -35,7 +35,7 @@ const photonPool: PhotonParticle[] = Array.from({ length: MAX_PHOTONS }, () => (
   cpy: 0,
   progress: 0,
   speed: 0.02,
-  color: "#79B8A6",
+  color: "#47775F",
   alpha: 0.5,
 }));
 
@@ -45,7 +45,7 @@ export class PhotonManager {
     sy: number,
     tx: number,
     ty: number,
-    color: string = "#79B8A6",
+    color: string = "#47775F",
     latencyMs: number = 400
   ): boolean {
     if (governor.getState().tier !== "T3") return false;

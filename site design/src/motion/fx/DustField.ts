@@ -31,12 +31,12 @@ const dustPool: DustParticle[] = Array.from({ length: MAX_DUST }, () => ({
   maxLife: 1600,
   alpha: 0.2,
   maxAlpha: 0.25,
-  color: "#79B8A6",
+  color: "#47775F",
   radius: 1.5,
 }));
 
 export class DustManager {
-  public static spawn(x: number, y: number, color: string = "#79B8A6", count: number = 4): void {
+  public static spawn(x: number, y: number, color: string = "#47775F", count: number = 4): void {
     if (governor.getState().tier !== "T3") return;
 
     let spawned = 0;

@@ -15,6 +15,7 @@ import { questionsApi } from "../api/questions";
 import { governor } from "../motion/quality";
 import { isReducedMotion } from "../motion/features";
 import { ticker } from "../motion/ticker";
+import { BASE_URL } from "../api/client";
 
 export const KnowledgeGraphPage: React.FC = () => {
   const location = useLocation();
@@ -36,6 +37,7 @@ export const KnowledgeGraphPage: React.FC = () => {
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const eventQueueRef = useRef<any[]>([]);
+  const queueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isProcessingQueueRef = useRef<boolean>(false);
 
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -94,7 +96,7 @@ export const KnowledgeGraphPage: React.FC = () => {
     // Motion-safe ViewTransition path: mount transient chip at node screen rect
     setMorphChip({
       rect: screenRect,
-      color: node.color || "#79B8A6",
+      color: node.color || "#47775F",
       label: node.label || node.id,
     });
     if (typeof window !== "undefined") {
@@ -145,6 +147,10 @@ export const KnowledgeGraphPage: React.FC = () => {
   // Clean up SSE stream on unmount
   useEffect(() => {
     return () => {
+      if (queueTimerRef.current) {
+        clearTimeout(queueTimerRef.current);
+        queueTimerRef.current = null;
+      }
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
@@ -265,6 +271,11 @@ export const KnowledgeGraphPage: React.FC = () => {
       eventSourceRef.current = null;
     }
 
+    if (queueTimerRef.current) {
+      clearTimeout(queueTimerRef.current);
+      queueTimerRef.current = null;
+    }
+
     const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
     setActiveJobId(jobId);
     setThinkingTraces([]);
@@ -274,11 +285,14 @@ export const KnowledgeGraphPage: React.FC = () => {
     setIsReplayJob(false);
 
     // Subscribe to real SSE stream BEFORE POST per US-15
-    const backendUrl = "http://127.0.0.1:8000";
+    const backendUrl = BASE_URL;
     const es = new EventSource(`${backendUrl}/api/jobs/${jobId}/events`);
     eventSourceRef.current = es;
     eventQueueRef.current = [];
     isProcessingQueueRef.current = false;
+    // The server closes the stream right after the terminal `done` event. Our paced queue may not
+    // have reached it yet, so a close after `done` was received is normal, not a failure.
+    let sawTerminal = false;
 
     const processQueue = () => {
       if (eventQueueRef.current.length === 0) {
@@ -319,7 +333,8 @@ export const KnowledgeGraphPage: React.FC = () => {
       const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const dwellMs = prefersReducedMotion ? 0 : 280; // presentation dwell (US-15)
 
-      setTimeout(() => {
+      queueTimerRef.current = setTimeout(() => {
+        queueTimerRef.current = null;
         processQueue();
       }, dwellMs);
     };
@@ -328,6 +343,7 @@ export const KnowledgeGraphPage: React.FC = () => {
       try {
         const evt = JSON.parse(e.data);
         if (evt && evt.stage) {
+          if (evt.stage === "done") sawTerminal = true;
           eventQueueRef.current.push(evt);
           if (!isProcessingQueueRef.current) {
             processQueue();
@@ -339,6 +355,10 @@ export const KnowledgeGraphPage: React.FC = () => {
     };
 
     es.onerror = () => {
+      if (sawTerminal) {
+        es.close(); // normal end of stream; queued events (incl. done) keep draining
+        return;
+      }
       setStreamError("Backend stream disconnected (stopped backend detected). Stream failed.");
       addToast("failed", "Stream Interrupted", "Connection to backend stream was interrupted.");
       setIsStreaming(false);
