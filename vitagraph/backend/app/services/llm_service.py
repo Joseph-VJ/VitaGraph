@@ -108,6 +108,7 @@ def get_client() -> AsyncOpenAI:
         base_url=base_url,
         api_key=api_key,
         timeout=timeout,
+        default_headers={"User-Agent": "RooCode/0.15.0"},
     )
 
 

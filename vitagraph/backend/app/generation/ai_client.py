@@ -80,6 +80,7 @@ def _build_headers_and_url(url: str, key: str, request_id: str) -> tuple[str, di
         "Authorization": f"Bearer {key.strip()}",
         "Content-Type": "application/json",
         "X-Request-Id": request_id,
+        "User-Agent": "RooCode/0.15.0",
     }
     # Google Gemini OpenAI-compatible endpoint accepts key parameter or Bearer token
     if "generativelanguage.googleapis.com" in target_url and "key=" not in target_url:
