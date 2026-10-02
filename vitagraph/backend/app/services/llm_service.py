@@ -321,7 +321,7 @@ async def stream_agent_rag(
                 continue
 
             chunk = data
-            if not chunk.choices:
+            if not chunk or not getattr(chunk, "choices", None):
                 continue
 
             delta = chunk.choices[0].delta
@@ -429,6 +429,22 @@ async def stream_agent_rag(
                     }
                 )
 
+            # Anchor instruction for Phase 2 synthesis: enforce 4-part structure and suppress further tool attempts
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        "All requested tools have finished executing. Now synthesize your final grounded answer "
+                        "using the retrieved tool results above. You MUST strictly use the mandatory 4-part structure:\n"
+                        "1. Summary: Direct clinical/educational takeaway.\n"
+                        "2. Evidence: Exact values, units, reference ranges, and report dates from the tool results.\n"
+                        "3. Limitations: Any missing tests, omitted panels, or boundary caveats.\n"
+                        "4. Safety: Practical follow-up advisories and physician consultation recommendations.\n"
+                        "Do not output any further tool calls, XML, or DSML tags."
+                    ),
+                }
+            )
+
             # Phase 2: Final synthesis stream following tool execution
             final_content = []
 
@@ -438,7 +454,7 @@ async def stream_agent_rag(
                     continue
 
                 chunk = data
-                if not chunk.choices:
+                if not chunk or not getattr(chunk, "choices", None):
                     continue
                 delta = chunk.choices[0].delta
                 reasoning = getattr(delta, "reasoning_content", None) or getattr(delta, "reasoning", None)
