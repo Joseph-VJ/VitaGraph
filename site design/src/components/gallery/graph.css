@@ -40,10 +40,16 @@
 
 /* Legibility scrims behind the HUD and the legend (text sits on a graph, not on a card) */
 .graph-scrim-top {
-  background: linear-gradient(180deg, rgba(8, 12, 15, 0.9) 0%, rgba(8, 12, 15, 0.6) 55%, rgba(8, 12, 15, 0) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(8, 12, 15, 0.95) 0%,
+    rgba(8, 12, 15, 0.88) 60%,
+    rgba(8, 12, 15, 0.5) 82%,
+    rgba(8, 12, 15, 0) 100%
+  );
 }
 .graph-scrim-bottom {
-  background: linear-gradient(0deg, rgba(8, 12, 15, 0.85) 0%, rgba(8, 12, 15, 0.45) 60%, rgba(8, 12, 15, 0) 100%);
+  background: linear-gradient(0deg, rgba(8, 12, 15, 0.92) 0%, rgba(8, 12, 15, 0.7) 55%, rgba(8, 12, 15, 0) 100%);
 }
 
 /* HUD: four real counts from the backend, number over label */
@@ -182,6 +188,7 @@
 
 /* Centrality bar in the concepts list */
 .graph-bar {
+  display: block;
   height: 3px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.1);

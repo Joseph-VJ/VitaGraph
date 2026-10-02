@@ -84,13 +84,25 @@ below has its one-line reason (antislop R-31).
 | HUD inside the frame: four real counts (Odometer ids kept), the cap note, the selection chip | The counts are backend values; the chip says what is selected without covering the graph (the full detail stays in the panel beside it). |
 | Concepts, connections and groups panel (real centrality, real edge relations, groups named after their most central concept) | A keyboard and screen-reader route into a canvas, and a way to read the graph in words. Group focus dims the rest and fits the camera to the group. |
 | Slider, fit and layout switch on the right edge; the layout switch replaces the reference's "2D" button | There is no 3D here, so a 2D/3D toggle would be a dead control. |
+| Camera fit and label placement keep clear of the measured overlays (HUD, controls column, caption, open panel); the controls column sits below a tall HUD and shortens its slider if the band is tight | Fixed padding let nodes and labels run under the HUD and the zoom label (a label under the cap note, "Undated" meeting "107%") and, on a phone, the cap note under the "+" button. The footprint is read from the DOM, so it holds at any size. |
+| Overlay changes redo the camera's current mode (overview, or centred on the picked node, clear of a phone sheet); a refresh with the same nodes leaves the camera alone | A pick has to survive the HUD changing height (its chip is longer or shorter per node) and a data refresh with the same nodes, which used to snap the camera back to the overview. |
+| Soft dark scrim behind the HUD | The counts and note stay legible when a node drifts behind them, without a hard panel edge. |
+| The concepts panel is solid, about five rows tall and scrolls inside; on a phone it is a full-width sheet over the graph | Translucent glass let graph labels show through the list. The centrality bars were inline spans that never drew, so rows were taller than they looked. The middle tab is "Links" (the HUD's word) so the header fits 390px. |
 
 Measured (Chrome, real graph data for the first persona: 275 nodes, 645 edges, 94 drawn):
 axe-core 4.10 WCAG 2.2 A/AA on the full page with the panel open, 0 violations; 32 tab stops inside the frame,
 all with a visible focus ring, none under 24px; no horizontal overflow at 390, 768 and 1440; no looping animation
 under reduced motion; 144 fps idle and 143 fps with the CPU throttled 4x.
 
+Demo cohort persona on the live backend (usr_7cd5de757a04: 1,090 nodes, 2,911 links, 13 groups; 120 of 170 concepts
+drawn), captured at 1440x900, 1920x1080 and 390x844: no drawn node under the HUD, controls, caption, pill or open
+panel at rest (on a phone the open panel is a sheet over the graph, by design); no text overlaps the controls column;
+the panel background is opaque; axe-core 0 violations on /graph with the panel open at 1440; no horizontal
+overflow at 390.
+
 Open items: the page selects the first node on load and keeps static placeholder content in the document panel
 (NEJM_2023_HeartFailure.pdf) beside the graph; `GET /api/graph/{user}` costs seconds of CPU for a large persona
 (about 5 s for 1,090 nodes), blocks the health probe and is not cancelled when the request is abandoned;
-touch-action is none on the canvas so one-finger drags pan the graph, not the page.
+touch-action is none on the canvas so one-finger drags pan the graph, not the page; the page loads the graph twice on
+first visit (before and after the persona resolves), which doubles that cost and resets a selection made in between
+to the first node.

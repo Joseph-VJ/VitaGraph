@@ -330,6 +330,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
   const lastZoomPctRef = useRef<number>(-1);
   const zoomLabelRef = useRef<HTMLSpanElement | null>(null);
   const zoomSliderRef = useRef<HTMLInputElement | null>(null);
+  const controlsRef = useRef<HTMLDivElement | null>(null);
   const panelOpenRef = useRef<boolean>(false);
   const simNodesRef = useRef<SimNode[]>([]);
   const simEdgesRef = useRef<SimEdge[]>([]);
@@ -350,20 +351,52 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     vx: number;
     vy: number;
   } | null>(null);
+  // Measured footprint of everything laid over the canvas (HUD, controls, legend, panel), in frame pixels.
+  // The camera fit and the label placement both keep clear of it, so nothing sits under overlay text.
+  interface OverlayRect {
+    x0: number;
+    y0: number;
+    x1: number;
+    y1: number;
+  }
+  const overlaysRef = useRef<{
+    rects: OverlayRect[];
+    hudBottom: number;
+    controlsLeft: number;
+    legendTop: number;
+    panel: OverlayRect | null;
+    w: number;
+    h: number;
+  }>({ rects: [], hudBottom: 0, controlsLeft: 0, legendTop: 0, panel: null, w: 0, h: 0 });
+  const padSigRef = useRef<string>("");
+  // The whole graph in view, centred on a node the person picked, or left where it is (after a deselect).
+  // Overlay changes (a taller HUD, the panel opening) re-do whichever of these is current.
+  const camModeRef = useRef<{ kind: "fit" | "focus" | "free"; id?: string }>({ kind: "fit" });
+  const roSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
+  const [compact, setCompact] = useState<boolean>(false);
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const pinchRef = useRef<{ dist: number; cx: number; cy: number } | null>(null);
 
   // ----- Camera helpers -----------------------------------------------------------------
 
-  /** Room to leave around the content: HUD on top, legend below, controls (and panel) on the right. */
-  const getFitPads = useCallback((w: number): FitPads => {
+  /**
+   * Room to leave around the content, from the measured overlays (fixed numbers only until they are measured).
+   * An open panel beside the graph is part of the footprint. On a phone it is a sheet over the graph: the
+   * overview ignores it (the band left above it is too small to be worth fitting), but `aboveSheet` keeps a
+   * focused node or group in that band so a pick from the list is still visible.
+   */
+  const getFitPads = useCallback((w: number, h: number, aboveSheet = false): FitPads => {
+    const o = overlaysRef.current;
     const narrow = w < 640;
-    return {
-      left: narrow ? 12 : 28,
-      right: (narrow ? 58 : 78) + (panelOpenRef.current && w >= 900 ? 332 : 0),
-      top: narrow ? 176 : 108,
-      bottom: narrow ? 70 : 52,
-    };
+    const measured = o.w > 0;
+    const top = measured && o.hudBottom > 0 ? o.hudBottom + 8 : narrow ? 176 : 112;
+    let bottom = measured && o.legendTop < h ? h - o.legendTop + 8 : narrow ? 70 : 52;
+    let right = measured && o.controlsLeft < w ? w - o.controlsLeft + 10 : narrow ? 58 : 78;
+    if (panelOpenRef.current && o.panel) {
+      if (!narrow) right = Math.max(right, w - o.panel.x0 + 10);
+      else if (aboveSheet) bottom = Math.max(bottom, h - o.panel.y0 + 10);
+    }
+    return { left: narrow ? 12 : 28, right, top, bottom };
   }, []);
 
   /** Fit the graph (or a subset) to the frame. Instant under reduced motion. */
@@ -376,7 +409,8 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       if (!w || !h) return;
       const nodes = subset && subset.length > 0 ? subset : simNodesRef.current;
       if (nodes.length === 0) return;
-      const target = fitView(nodes, w, h, getFitPads(w), 0.5, kMax);
+      camModeRef.current = { kind: "fit" };
+      const target = fitView(nodes, w, h, getFitPads(w, h, !!subset), 0.5, kMax);
       const instant = !animate || governor.getState().tier === "T0" || isReducedMotion();
       if (instant) {
         cameraRef.current = { x: target.x, y: target.y, k: target.k, vx: 0, vy: 0, vk: 0 };
@@ -419,14 +453,19 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     if (!simNode) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
+    camModeRef.current = { kind: "focus", id: node.id };
 
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
     const isT0 = governor.getState().tier === "T0" || isReducedMotion();
     const k = Math.max(cameraRef.current.k, 0.95);
 
-    const targetX = width / 2 - simNode.x;
-    const targetY = height / 2 - simNode.y - (0.08 * height) / k;
+    // Centre of the area left clear by the overlays
+    const pads = getFitPads(width, height, true);
+    const sx = pads.left + (width - pads.left - pads.right) / 2;
+    const sy = pads.top + (height - pads.top - pads.bottom) / 2;
+    const targetX = (sx - width / 2) / k - simNode.x + width / 2;
+    const targetY = (sy - height / 2) / k - simNode.y + height / 2;
 
     if (isT0) {
       cameraRef.current.x = targetX;
@@ -441,7 +480,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       targetCamRef.current = { x: targetX, y: targetY, k, active: true };
       momentumRef.current.active = false;
     }
-  }, []);
+  }, [getFitPads]);
 
   // Fit Subgraph on activation (§M8.4)
   const fitSubgraph = useCallback(() => {
@@ -465,26 +504,10 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
     if (activeNodes.length === 0) return;
 
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
-    for (let i = 0; i < activeNodes.length; i++) {
-      const an = activeNodes[i];
-      if (an.x < minX) minX = an.x;
-      if (an.x > maxX) maxX = an.x;
-      if (an.y < minY) minY = an.y;
-      if (an.y > maxY) maxY = an.y;
-    }
-
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-    const spanX = Math.max(120, maxX - minX + 120);
-    const spanY = Math.max(120, maxY - minY + 120);
-    const fitK = Math.max(0.5, Math.min(2.0, Math.min(width / spanX, height / spanY)));
-
-    const targetX = width / 2 - cx;
-    const targetY = height / 2 - cy;
+    const fit = fitView(activeNodes, width, height, getFitPads(width, height, true), 0.5, 2.0);
+    const fitK = fit.k;
+    const targetX = fit.x;
+    const targetY = fit.y;
 
     if (isT0) {
       cameraRef.current.x = targetX;
@@ -499,7 +522,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       targetCamRef.current = { x: targetX, y: targetY, k: fitK, active: true };
       momentumRef.current.active = false;
     }
-  }, [activeConcepts, activeNodeIds]);
+  }, [activeConcepts, activeNodeIds, getFitPads]);
 
   // Spawn Photons (<= 24) and Dust (<= 40) on question activation (§M8.3, Gate 28)
   const spawnPhotonsAndDust = useCallback(() => {
@@ -779,6 +802,90 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     panelOpenRef.current = panelOpen;
   }, [panelOpen]);
 
+  const measureOverlays = useCallback(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const fr = frame.getBoundingClientRect();
+    if (fr.width === 0 || fr.height === 0) return;
+    const rel = (el: Element, pad: number): OverlayRect => {
+      const r = el.getBoundingClientRect();
+      return { x0: r.left - fr.left - pad, y0: r.top - fr.top - pad, x1: r.right - fr.left + pad, y1: r.bottom - fr.top + pad };
+    };
+
+    // The controls column sits at mid height, but never on the HUD: on a phone the HUD is tall, so the
+    // column moves down and the zoom slider gives up some length instead of covering the counts note.
+    const controlsEl = controlsRef.current;
+    const sliderEl = zoomSliderRef.current;
+    const hudEl = frame.querySelector('[data-graph-overlay="hud"]');
+    if (controlsEl && sliderEl && hudEl) {
+      sliderEl.style.height = "";
+      const natural = sliderEl.offsetHeight;
+      const fixed = controlsEl.offsetHeight - natural;
+      const bandTop = hudEl.getBoundingClientRect().bottom - fr.top + 14;
+      const bandBottom = fr.height - 12;
+      const sliderH = Math.round(clamp(bandBottom - bandTop - fixed, 36, natural));
+      sliderEl.style.height = `${sliderH}px`;
+      const colH = fixed + sliderH;
+      const top = clamp((fr.height - colH) / 2, bandTop, Math.max(bandTop, bandBottom - colH));
+      controlsEl.style.top = `${Math.round(top)}px`;
+      controlsEl.style.translate = "none";
+    }
+
+    const rects: OverlayRect[] = [];
+    let hudBottom = 0;
+    let controlsLeft = fr.width;
+    let legendTop = fr.height;
+    frame.querySelectorAll("[data-graph-overlay]").forEach((el) => {
+      const kind = el.getAttribute("data-graph-overlay");
+      const r = rel(el, 6);
+      rects.push(r);
+      if (kind === "hud") hudBottom = Math.max(hudBottom, r.y1);
+      if (kind === "controls") controlsLeft = Math.min(controlsLeft, r.x0);
+      if (kind === "legend") legendTop = Math.min(legendTop, r.y0);
+    });
+    const panelEl = frame.querySelector('[data-testid="graph-concepts-panel"], [data-testid="graph-panel-open"]');
+    let panel: OverlayRect | null = null;
+    if (panelEl) {
+      panel = rel(panelEl, 8);
+      rects.push(panel);
+    }
+    overlaysRef.current = { rects, hudBottom, controlsLeft, legendTop, panel, w: fr.width, h: fr.height };
+    const narrowFrame = fr.width < 900;
+    setCompact((prev) => (prev === narrowFrame ? prev : narrowFrame));
+  }, []);
+
+  // Measure the overlays and, if the clear area moved, refit (unless the person has taken the camera)
+  const syncOverlays = useCallback(() => {
+    measureOverlays();
+    const o = overlaysRef.current;
+    const sig = `${Math.round(o.hudBottom)}|${Math.round(o.legendTop)}|${Math.round(o.controlsLeft)}|${panelOpenRef.current ? Math.round(o.panel?.x0 ?? 0) : "closed"}`;
+    if (sig === padSigRef.current) return;
+    const hadBefore = padSigRef.current !== "";
+    padSigRef.current = sig;
+    if (hadBefore && simNodesRef.current.length > 0 && !userMovedRef.current && communityFocusRef.current === null) {
+      const mode = camModeRef.current;
+      const picked = mode.kind === "focus" ? simNodesRef.current.find((n) => n.id === mode.id) : undefined;
+      if (picked) focusNode(picked);
+      else if (mode.kind === "fit") applyFit(true);
+    }
+  }, [measureOverlays, applyFit, focusNode]);
+
+  useLayoutEffect(() => {
+    panelOpenRef.current = panelOpen;
+    syncOverlays();
+  });
+
+  // Web fonts change the HUD's height once they arrive
+  useEffect(() => {
+    let alive = true;
+    document.fonts?.ready.then(() => {
+      if (alive) syncOverlays();
+    });
+    return () => {
+      alive = false;
+    };
+  }, [syncOverlays]);
+
   // 2. Build the layout: sizes, colours, community regions, then settle before the first frame
   const buildLayout = useCallback(
     (forceRelayout: boolean) => {
@@ -926,8 +1033,16 @@ export const GraphStage: React.FC<GraphStageProps> = ({
   // Refit when the frame or the side panel changes size, unless the person has taken the camera
   useEffect(() => {
     if (!simNodesRef.current.length || userMovedRef.current) return;
-    applyFit(true);
-  }, [panelOpen, applyFit]);
+    const mode = camModeRef.current;
+    const picked = mode.kind === "focus" ? simNodesRef.current.find((n) => n.id === mode.id) : undefined;
+    if (picked) focusNode(picked);
+    else applyFit(true);
+  }, [panelOpen, applyFit, focusNode]);
+
+  // After a deselect the camera stays where it is
+  useEffect(() => {
+    if (!selectedNode && camModeRef.current.kind === "focus") camModeRef.current = { kind: "free" };
+  }, [selectedNode]);
 
   useEffect(() => {
     const el = canvasRef.current;
@@ -936,9 +1051,15 @@ export const GraphStage: React.FC<GraphStageProps> = ({
     const ro = new ResizeObserver(() => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
+        measureOverlays();
         const w = el.clientWidth;
         const h = el.clientHeight;
         if (!w || !h || simNodesRef.current.length === 0) return;
+        // A new observer reports its first size straight away; only a real size change moves the camera,
+        // so a data refresh with the same nodes never throws the person out of the node they picked
+        const last = roSizeRef.current;
+        roSizeRef.current = { w, h };
+        if (last.w === w && last.h === h) return;
         const prevArea = layoutAreaRef.current;
         if (prevArea && Math.abs((w * h) / prevArea - 1) > 0.35 && !userMovedRef.current) {
           buildLayout(true);
@@ -952,7 +1073,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, [buildLayout, applyFit]);
+  }, [buildLayout, applyFit, measureOverlays]);
 
   // Group focus from the panel: dim the rest and bring the group into view
   useEffect(() => {
@@ -1538,6 +1659,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
       // 10b. Labels: importance decides who gets a place; a label never covers another or a node
       const budget = labelBudget(k, nodes.length);
+      const overlays = overlaysRef.current.rects;
       const placed: Array<{ x0: number; y0: number; x1: number; y1: number }> = [];
       const labelOrder = order;
       const candidates: number[] = [];
@@ -1584,7 +1706,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         const text = n.display.length > 26 ? n.display.slice(0, 24) + "…" : n.display;
         const w = textWidth(ctx, font, text);
         const sr = n.sr || n.r * k;
-        const gap = 5;
+        const gap = isSelected ? 12 : 5; // the selection ring sits about 6px outside the node
         const h = size * 1.2;
 
         // Try right, below, left, above
@@ -1596,33 +1718,44 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         ];
         let chosen = -1;
         let box = { x0: 0, y0: 0, x1: 0, y1: 0 };
-        for (let si = 0; si < spots.length; si++) {
-          const [px, py, align] = spots[si];
-          const x0 = align === "left" ? px : align === "right" ? px - w : px - w / 2;
-          const b = { x0: x0 - 3, x1: x0 + w + 3, y0: py - h / 2 - 1, y1: py + h / 2 + 1 };
-          let clash = false;
-          for (let pi = 0; pi < placed.length && !clash; pi++) {
-            const r = placed[pi];
-            if (b.x0 < r.x1 && b.x1 > r.x0 && b.y0 < r.y1 && b.y1 > r.y0) clash = true;
-          }
-          for (let ni = 0; ni < nodes.length && !clash; ni++) {
-            const o = nodes[ni];
-            if (o === n || o.a < 0.3) continue;
-            const orad = (o.sr || o.r * k) + 1;
-            const nx = clamp(o.sx, b.x0, b.x1);
-            const ny = clamp(o.sy, b.y0, b.y1);
-            if ((nx - o.sx) * (nx - o.sx) + (ny - o.sy) * (ny - o.sy) < orad * orad) clash = true;
-          }
-          if (b.x0 < 6 || b.x1 > width - 6 || b.y0 < 6 || b.y1 > height - 6) clash = true;
-          if (!clash) {
-            chosen = si;
-            box = b;
-            break;
+        // Pass 0 respects everything. Pass 1 (focus of attention only) still keeps clear of overlays
+        // but may touch other labels and nodes, so the selected node always gets a readable label.
+        for (let pass = 0; pass < 2 && chosen < 0; pass++) {
+          if (pass === 1 && !emphasised) break;
+          for (let si = 0; si < spots.length; si++) {
+            const [px, py, align] = spots[si];
+            const x0 = align === "left" ? px : align === "right" ? px - w : px - w / 2;
+            const b = { x0: x0 - 3, x1: x0 + w + 3, y0: py - h / 2 - 1, y1: py + h / 2 + 1 };
+            let clash = false;
+            if (b.x0 < 6 || b.x1 > width - 6 || b.y0 < 6 || b.y1 > height - 6) clash = true;
+            for (let oi = 0; oi < overlays.length && !clash; oi++) {
+              const r = overlays[oi];
+              if (b.x0 < r.x1 && b.x1 > r.x0 && b.y0 < r.y1 && b.y1 > r.y0) clash = true;
+            }
+            if (pass === 0) {
+              for (let pi = 0; pi < placed.length && !clash; pi++) {
+                const r = placed[pi];
+                if (b.x0 < r.x1 && b.x1 > r.x0 && b.y0 < r.y1 && b.y1 > r.y0) clash = true;
+              }
+              for (let ni = 0; ni < nodes.length && !clash; ni++) {
+                const o = nodes[ni];
+                if (o === n || o.a < 0.3) continue;
+                const orad = (o.sr || o.r * k) + 1;
+                const nx = clamp(o.sx, b.x0, b.x1);
+                const ny = clamp(o.sy, b.y0, b.y1);
+                if ((nx - o.sx) * (nx - o.sx) + (ny - o.sy) * (ny - o.sy) < orad * orad) clash = true;
+              }
+            }
+            if (!clash) {
+              chosen = si;
+              box = b;
+              break;
+            }
           }
         }
         if (chosen < 0) {
           if (!emphasised) continue;
-          chosen = 0; // the focus of attention always gets its label
+          chosen = 0; // the focus of attention always gets its label, even if every spot is crowded
           const [px, py, align] = spots[0];
           const x0 = align === "left" ? px : px - w;
           box = { x0: x0 - 3, x1: x0 + w + 3, y0: py - h / 2 - 1, y1: py + h / 2 + 1 };
@@ -1662,6 +1795,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         const must = selId === n.id || hoverId === n.id;
         const box = { x0: cx - 2, x1: cx + cw + 2, y0: cy - 2, y1: cy + ch + 2 };
         if (!must && placed.some((r) => box.x0 < r.x1 && box.x1 > r.x0 && box.y0 < r.y1 && box.y1 > r.y0)) continue;
+        if (overlays.some((r) => box.x0 < r.x1 && box.x1 > r.x0 && box.y0 < r.y1 && box.y1 > r.y0)) continue;
         placed.push(box);
         ctx.globalAlpha = n.a * reveal;
         ctx.fillStyle = "rgba(14,20,24,0.94)";
@@ -2030,7 +2164,8 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         />
 
         {/* HUD: four real counts from the backend, the selected node, and an honest note about what is on screen */}
-        <div className="graph-scrim-top absolute top-0 left-0 right-0 z-20 px-4 pt-3 pb-9 pointer-events-none">
+        <div className="graph-scrim-top absolute top-0 left-0 right-0 z-20 px-4 pt-3 pb-14 pointer-events-none">
+          <div data-graph-overlay="hud">
           <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2.5">
             <dl className="flex flex-wrap items-end gap-x-6 gap-y-2 m-0">
               <div className="graph-stat">
@@ -2070,7 +2205,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
             {selectedNode && (
               <div
                 data-testid="graph-node-provenance-card"
-                className="pointer-events-auto flex items-center gap-2.5 min-w-0 max-w-full rounded-[var(--r-10)] bg-[var(--ink-800)]/90 border border-[var(--line-strong)] pl-3 pr-1 py-1 m-enter"
+                className="pointer-events-auto flex items-center gap-2.5 min-w-0 max-w-full rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] pl-3 pr-1 py-1 m-enter"
               >
                 <span
                   aria-hidden="true"
@@ -2152,10 +2287,12 @@ export const GraphStage: React.FC<GraphStageProps> = ({
               )}
             </div>
           )}
+          </div>
         </div>
 
         {/* Concepts, connections and groups (bottom right) */}
         <GraphConceptsPanel
+          compact={compact}
           open={panelOpen}
           onToggle={setPanelOpen}
           tab={panelTab}
@@ -2168,7 +2305,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         />
 
         {/* Controls (right edge): zoom slider, fit to screen, layout switch */}
-        <div data-testid="graph-controls" className="absolute right-3 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-2">
+        <div ref={controlsRef} data-testid="graph-controls" data-graph-overlay="controls" className="absolute right-3 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-2">
           <IconButton size={32} title="Zoom in" aria-label="Zoom in" onClick={() => handleZoom(1.2)}>
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -2229,7 +2366,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
         {/* Legend: what size and colour mean, in one honest line */}
         <div className="graph-scrim-bottom absolute bottom-0 left-0 right-0 z-[19] px-4 pt-8 pb-2.5 pointer-events-none">
-          <p className="m-0 type-meta text-[var(--dim)] max-w-[calc(100%-10rem)] sm:max-w-none" data-testid="graph-legend">
+          <p data-graph-overlay="legend" className="m-0 type-meta text-[var(--dim)] max-w-[calc(100%-10rem)] sm:max-w-none w-fit" data-testid="graph-legend">
             Size shows how central a node is. Colour shows its group.
           </p>
         </div>

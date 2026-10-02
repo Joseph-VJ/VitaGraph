@@ -145,6 +145,8 @@ export function buildGraphSummary(nodes: GraphNode[], edges: IndexedEdge[]): Gra
 export type PanelTab = "concepts" | "connections" | "groups";
 
 interface GraphConceptsPanelProps {
+  /** Narrow frame: a slimmer panel, so the graph keeps room beside it. */
+  compact?: boolean;
   open: boolean;
   onToggle: (open: boolean) => void;
   tab: PanelTab;
@@ -158,7 +160,7 @@ interface GraphConceptsPanelProps {
 
 const TABS: Array<{ id: PanelTab; label: string }> = [
   { id: "concepts", label: "Concepts" },
-  { id: "connections", label: "Connections" },
+  { id: "connections", label: "Links" },
   { id: "groups", label: "Groups" },
 ];
 
@@ -174,6 +176,7 @@ const rowClass =
   "w-full text-left px-2.5 py-2 rounded-[var(--r-6)] text-[var(--bone)] cursor-pointer hover:bg-[var(--ink-700)] focus-visible:outline-2 focus-visible:outline-[var(--deep-petrol)] focus-visible:outline-offset-0 transition-colors duration-[120ms]";
 
 export const GraphConceptsPanel: React.FC<GraphConceptsPanelProps> = ({
+  compact = false,
   open,
   onToggle,
   tab,
@@ -200,7 +203,7 @@ export const GraphConceptsPanel: React.FC<GraphConceptsPanelProps> = ({
         data-testid="graph-panel-open"
         aria-expanded={false}
         onClick={() => onToggle(true)}
-        className="absolute bottom-3 right-14 z-20 h-9 pl-2.5 pr-3.5 inline-flex items-center gap-2 rounded-[var(--r-6)] bg-[var(--ink-800)]/95 border border-[var(--line-control)] text-[var(--bone)] type-body text-[13px] cursor-pointer hover:bg-[var(--ink-700)] shadow-[var(--shadow-float)]"
+        className="absolute bottom-3 right-14 z-20 h-9 pl-2.5 pr-3.5 inline-flex items-center gap-2 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-control)] text-[var(--bone)] type-body text-[13px] cursor-pointer hover:bg-[var(--ink-700)] shadow-[var(--shadow-float)]"
       >
         <svg className="w-3.5 h-3.5 text-[var(--deep-petrol)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
           <line x1="8" y1="6" x2="21" y2="6" />
@@ -219,7 +222,8 @@ export const GraphConceptsPanel: React.FC<GraphConceptsPanelProps> = ({
     <section
       data-testid="graph-concepts-panel"
       aria-label="Concepts and links"
-      className="absolute bottom-3 left-3 right-14 sm:left-auto sm:w-[332px] z-20 max-h-[min(46%,420px)] flex flex-col rounded-[var(--r-10)] bg-[var(--ink-800)]/96 border border-[var(--line-strong)] shadow-[var(--shadow-float)]"
+      style={{ ["--panel-w" as string]: compact ? "272px" : "332px" }}
+      className="absolute bottom-3 left-3 right-3 z-30 sm:left-auto sm:right-14 sm:z-20 sm:w-[var(--panel-w)] max-h-[min(46%,284px)] flex flex-col rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] shadow-[var(--shadow-float)]"
     >
       <div className="flex items-center justify-between gap-2 px-2 pt-1.5 border-b border-[var(--line-strong)]">
         <div role="tablist" aria-label="Graph summary" className="flex items-center gap-0.5">
