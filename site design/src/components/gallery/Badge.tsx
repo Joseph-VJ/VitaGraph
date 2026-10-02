@@ -30,7 +30,7 @@ export const Badge: React.FC<BadgeProps> = ({
 }) => {
   if (variant === "completed") {
     return (
-      <span data-testid={testId} className={`inline-flex items-center gap-1.5 type-mono-sm text-[var(--bone)] ${className}`}>
+      <span data-testid={testId} className={`inline-flex items-center gap-1.5 text-[12px] leading-[16px] font-medium text-[var(--bone)] ${className}`}>
         <LED color="verdigris" live={false} />
         <span>{children || "Completed in 4.8 s"}</span>
       </span>
@@ -40,7 +40,7 @@ export const Badge: React.FC<BadgeProps> = ({
   if (variant === "ingesting") {
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-[var(--r-4)] px-2 py-0.5 type-mono-sm bg-[rgba(71,119,95,0.12)] text-[var(--verdigris)] border border-[rgba(71,119,95,0.25)] ${className}`}
+        className={`inline-flex items-center gap-1.5 rounded-[var(--r-4)] px-2 py-0.5 text-[12px] leading-[16px] font-medium bg-[rgba(71,119,95,0.12)] text-[var(--verdigris)] border border-[rgba(71,119,95,0.25)] ${className}`}
       >
         <svg
           className="animate-spin w-3 h-3 text-[var(--verdigris)]"
@@ -81,9 +81,9 @@ export const Badge: React.FC<BadgeProps> = ({
     madder:
       "bg-[rgba(176,82,94,0.12)] text-[var(--madder)] border border-[rgba(176,82,94,0.25)]",
     insufficient_evidence:
-      "bg-[rgba(197,138,67,0.12)] text-[var(--ochre)] border border-[rgba(197,138,67,0.25)]",
+      "bg-[rgba(197,138,67,0.12)] text-[var(--ochre-ink)] border border-[rgba(197,138,67,0.25)]",
     ochre:
-      "bg-[rgba(197,138,67,0.12)] text-[var(--ochre)] border border-[rgba(197,138,67,0.25)]",
+      "bg-[rgba(197,138,67,0.12)] text-[var(--ochre-ink)] border border-[rgba(197,138,67,0.25)]",
     cornflower:
       "bg-[rgba(134,169,217,0.12)] text-[var(--cornflower)] border border-[rgba(134,169,217,0.25)]",
     dim:
@@ -103,7 +103,7 @@ export const Badge: React.FC<BadgeProps> = ({
   return (
     <span
       data-testid={testId}
-      className={`inline-flex items-center rounded-[var(--r-4)] px-2 py-0.5 type-mono-sm ${styles[variant]} ${className}`}
+      className={`inline-flex items-center rounded-[var(--r-4)] px-2 py-0.5 text-[12px] leading-[16px] font-medium ${styles[variant]} ${className}`}
     >
       {children || defaultText[variant] || ""}
     </span>

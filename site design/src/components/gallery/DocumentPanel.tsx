@@ -129,7 +129,7 @@ export const DocumentPanel: React.FC<DocumentPanelProps> = ({
           {selectedNode?.betweenness !== undefined && (
             <div className="flex justify-between type-body text-[12.5px]">
               <span className="text-[var(--dim)]">Network Centrality</span>
-              <span className="text-[var(--ochre)] font-mono">
+              <span className="text-[var(--ochre-ink)] font-mono">
                 {selectedNode.betweenness.toFixed(3)}
               </span>
             </div>

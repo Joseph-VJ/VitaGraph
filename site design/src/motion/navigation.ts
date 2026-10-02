@@ -22,31 +22,31 @@ export const CANONICAL_JOURNEY: JourneyStep[] = [
     id: "home",
     path: "/",
     label: "Overview",
-    reason: "Upload a report to map its entities →",
+    reason: "Upload a report to map its entities",
   },
   {
     id: "upload",
     path: "/upload",
     label: "Ingest",
-    reason: "Inspect patient knowledge graph →",
+    reason: "Inspect patient knowledge graph",
   },
   {
     id: "graph",
     path: "/graph",
     label: "Knowledge Graph",
-    reason: "Query longitudinal evidence →",
+    reason: "Query longitudinal evidence",
   },
   {
     id: "ask",
     path: "/ask",
     label: "Ask Questions",
-    reason: "Audit chronological timeline →",
+    reason: "Audit chronological timeline",
   },
   {
     id: "timeline",
     path: "/timeline",
     label: "Timeline",
-    reason: "Return to system overview →",
+    reason: "Return to system overview",
   },
 ];
 

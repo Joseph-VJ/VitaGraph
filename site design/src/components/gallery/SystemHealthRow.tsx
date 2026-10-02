@@ -31,7 +31,7 @@ export const SystemHealthRow: React.FC<SystemHealthRowProps> = ({
       case "live":
         return { color: "verdigris", live: true, label: "live", textClass: "text-[var(--verdigris)]" };
       case "disabled":
-        return { color: "ochre", live: false, label: "disabled by policy", textClass: "text-[var(--ochre)]" };
+        return { color: "ochre", live: false, label: "disabled by policy", textClass: "text-[var(--ochre-ink)]" };
       case "error":
         return { color: "madder", live: false, label: "error", textClass: "text-[var(--madder)]" };
     }

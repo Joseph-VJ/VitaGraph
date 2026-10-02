@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { DeltaChip, Button, Marginalia, ErrorState, EmptyState } from "../components/gallery";
+import { DeltaChip, Button, ErrorState, EmptyState } from "../components/gallery";
 import { Odometer } from "../motion/fx/Odometer";
 import { flip, flipFrom } from "../motion/flip";
 import { DrawPath } from "../motion/fx/DrawPath";
@@ -146,10 +146,6 @@ export const ComparePage: React.FC = () => {
             Side-by-side comparative analysis of {user?.display_label || "Arjun R"} ({effectiveUserId}) across panels.
           </p>
         </div>
-        <Marginalia
-          text="Same data. Deeper understanding."
-          sketch="leaf"
-        />
       </div>
 
       {error && (
@@ -276,7 +272,7 @@ export const ComparePage: React.FC = () => {
               <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] text-[var(--dim)] border border-[var(--line-strong)] type-mono-sm flex items-center gap-1">
                 <Odometer value={summary.stable} duration={480} testId="odo-stable" /> stable
               </span>
-              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(197,138,67,0.12)] text-[var(--ochre)] border border-[rgba(197,138,67,0.25)] type-mono-sm flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(197,138,67,0.12)] text-[var(--ochre-ink)] border border-[rgba(197,138,67,0.25)] type-mono-sm flex items-center gap-1">
                 <Odometer value={summary.unavailable} duration={480} testId="odo-unavailable" /> unavailable
               </span>
             </div>

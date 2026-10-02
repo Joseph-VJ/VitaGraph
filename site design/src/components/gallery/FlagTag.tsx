@@ -17,7 +17,7 @@ export const FlagTag: React.FC<FlagTagProps> = ({
     <div
       className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-800)] border border-[var(--line-strong)] ${className}`}
     >
-      <span className="type-mono text-[var(--ochre)]">
+      <span className="type-mono text-[var(--ochre-ink)]">
         {value}
         {unit && <span className="ml-1 text-[var(--dim)] type-mono-sm">{unit}</span>}
       </span>

@@ -99,7 +99,7 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
   const stageColors: Record<TraceRowData["stage"], string> = {
     retrieval: "text-[var(--verdigris)]",
     reranking: "text-[var(--lilac)]",
-    graph: "text-[var(--ochre)]",
+    graph: "text-[var(--ochre-ink)]",
     citation: "text-[var(--cornflower)]",
     generation: "text-[var(--madder)]",
     safety: "text-[var(--lilac)]",
@@ -165,7 +165,7 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
           </svg>
           <span className="type-card-title text-[var(--bone)]">Thinking details</span>
           {hasReplay && (
-            <span className="px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded bg-[var(--ochre)]/15 text-[var(--ochre)] border border-[var(--ochre)]/30 font-semibold">
+            <span className="px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded bg-[var(--ochre)]/15 text-[var(--ochre-ink)] border border-[var(--ochre)]/30 font-semibold">
               replay
             </span>
           )}

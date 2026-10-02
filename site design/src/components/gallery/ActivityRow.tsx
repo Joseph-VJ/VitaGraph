@@ -45,9 +45,9 @@ export const ActivityRow: React.FC<ActivityRowProps> = ({
     },
     graph: {
       border: "border-l-[var(--ochre)]",
-      iconColor: "text-[var(--ochre)]",
+      iconColor: "text-[var(--ochre-ink)]",
       icon: (
-        <svg className="w-4 h-4 text-[var(--ochre)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+        <svg className="w-4 h-4 text-[var(--ochre-ink)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
           <circle cx="18" cy="5" r="3" />
           <circle cx="6" cy="12" r="3" />
           <circle cx="18" cy="19" r="3" />

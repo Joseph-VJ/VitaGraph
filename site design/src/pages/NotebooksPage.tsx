@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Badge, Button, Marginalia, ErrorState } from "../components/gallery";
+import { Badge, Button, ErrorState } from "../components/gallery";
 import { Sequence, governor, isReducedMotion } from "../motion";
 import { DetentPress } from "../motion/fx/DetentPress";
 import { WashSweep } from "../motion/fx/WashSweep";
@@ -162,10 +162,6 @@ export const NotebooksPage: React.FC = () => {
             Interactive Jupyter research workflows, statistical models, and validation routines.
           </p>
         </div>
-        <Marginalia
-          text="Better questions Healthier People"
-          sketch="quill"
-        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">

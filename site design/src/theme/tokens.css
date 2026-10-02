@@ -1,35 +1,46 @@
-/* DESIGN.md Appendix A & §4 — Frozen Tokens */
+/* VitaGraph design tokens: "steel bench + paper".
+   Value encodes role: paper (lightest) is where people read, the canvas is the bench,
+   steel (darkest) is machine chrome. Legacy token names are kept so every screen re-themes. */
 :root {
-  /* Titanium Lagoon (Phase 3): legacy token names remapped so every screen re-themes */
-  --ink-900: #DFE3E6;
-  --ink-800: #CED5DA;
-  --ink-700: #BAC3CA;
-  --ink-600: #AAB5BD;
+  /* Surfaces */
+  --ink-900: #DFE3E6; /* canvas: the bench */
+  --ink-800: #F3F6F6; /* paper: cards, answers, forms (lightest) */
+  --ink-700: #E6EBED; /* well: inset areas, hover on paper */
+  --ink-600: #D5DCE0; /* well, stronger */
 
-  --line-strong: #9AA7B0;
-  --line-faint: #B0BBC2;
+  --line-strong: #B4BFC6; /* card and divider borders */
+  --line-faint: #D0D7DC;
+  --line-control: #7C8B95; /* input and control borders, 3:1 on paper */
 
+  /* Text. Every pair below is >= 4.5:1 on canvas and on paper. */
   --bone: #28323A;
-  --dim: #55636E;
-  --faint: #6C7983;
+  --dim: #4A5762;
+  --faint: #566470;
 
-  --verdigris: #47775F;
-  --ochre: #C58A43;
+  /* State hues: text-safe values. Raw fills live in the named palette below. */
+  --verdigris: #3B6A53; /* verified / success */
+  --ochre: #C58A43; /* warning fill and border only */
+  --ochre-ink: #7F5416; /* warning text */
   --cornflower: #2E6270;
-  --lilac: #6F6192;
-  --madder: #B0525E;
+  --lilac: #5F5290;
+  --madder: #9E4552; /* refusal / failure */
 
-  --paper: #E8ECEE;
+  --paper: #F6F8F8;
   --paper-ink: #28323A;
-  --paper-fold: #BAC3CA;
+  --paper-fold: #D5DCE0;
 
   --text-main: #28323A;
-  --text-muted: #55636E;
+  --text-muted: #4A5762;
   --text-on-primary: #F3F6F6;
 
-  /* 3D layered shadows */
-  --shadow-3d: 0 1px 0 rgba(255,255,255,.55) inset, 0 1px 2px rgba(40,50,58,.14), 0 4px 10px rgba(40,50,58,.10), 0 12px 28px rgba(46,98,112,.12);
-  --shadow-3d-sm: 0 1px 0 rgba(255,255,255,.5) inset, 0 1px 2px rgba(40,50,58,.12), 0 3px 8px rgba(40,50,58,.08);
+  /* Chrome (sidebar, status strip, instrument pane) */
+  --chrome: #CDD4D9;
+  --chrome-line: #AEB9C0;
+
+  /* Elevation: flat at rest. Shadow marks only what floats above the page. */
+  --shadow-3d: 0 1px 0 rgba(255,255,255,.7) inset, 0 1px 1px rgba(40,50,58,.06);
+  --shadow-3d-sm: 0 1px 0 rgba(255,255,255,.6) inset;
+  --shadow-float: 0 10px 28px rgba(40,50,58,.20), 0 2px 6px rgba(40,50,58,.12);
 
   /* Titanium Lagoon Palette */
   --titanium-mist: #DFE3E6;
@@ -70,14 +81,14 @@
   --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-ink: cubic-bezier(0, 0, 0.2, 1);
 
-  --shadow-floating: 0 8px 24px rgba(40, 50, 58, 0.22);
+  --shadow-floating: 0 10px 28px rgba(40, 50, 58, 0.20), 0 2px 6px rgba(40, 50, 58, 0.12);
 }
 
 /* Paper theme (§4.2) */
 [data-theme="paper"] {
   --ink-900: #F2F3F1;
   --ink-800: #FAFAF8;
-  --ink-700: #FFFFFF;
+  --ink-700: #F3F6F6;
   --ink-600: #EAECE8;
 
   --line-strong: #D8DBD6;
@@ -93,7 +104,7 @@
   --lilac: #8068A8;
   --madder: #B85664;
 
-  --paper: #FFFFFF;
+  --paper: #F6F8F8;
   --paper-ink: #16181D;
   --paper-fold: #D8DBD6;
 }

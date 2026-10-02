@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Badge, LED, Button, Marginalia } from "../components/gallery";
+import { Badge, LED, Button } from "../components/gallery";
 import { getNavDirection, setNavDirection } from "../motion/navigation";
 import { Sequence, isReducedMotion, governor } from "../motion";
 import { DetentPress } from "../motion/fx/DetentPress";
@@ -145,10 +145,6 @@ export const DatasetsPage: React.FC = () => {
             Active vector indexes, knowledge graph collections, and synthetic cohort data.
           </p>
         </div>
-        <Marginalia
-          text="Better data. Healthier decisions."
-          sketch="compass"
-        />
       </div>
 
       {/* Datasets Cards Grid (§M5.2 - Staggered enter) */}

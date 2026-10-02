@@ -5,7 +5,6 @@ import {
   DeltaChip,
   Button,
   IconButton,
-  Marginalia,
   ErrorState,
   EmptyState,
 } from "../components/gallery";
@@ -504,11 +503,6 @@ export const TimelinePage: React.FC = () => {
             {isSimulatingUpload ? "Ingesting..." : "+ Add Follow-up Report (No Reload)"}
           </Button>
 
-          <Marginalia
-            text="Same data. Kinder answers."
-            sketch="leaf"
-            size={20}
-          />
         </div>
       </div>
 
@@ -1183,7 +1177,7 @@ export const TimelinePage: React.FC = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="type-body text-xs text-[var(--dim)]">eGFR</span>
-                <span className="type-mono-sm text-[var(--ochre)]">−6 mL/min Decreasing</span>
+                <span className="type-mono-sm text-[var(--ochre-ink)]">−6 mL/min Decreasing</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="type-body text-xs text-[var(--dim)]">HbA1c</span>

@@ -45,7 +45,7 @@
 /* Base resets & typography defaults per DESIGN.md §3 & Titanium Lagoon */
 body {
   font-family: var(--font-sans);
-  background: radial-gradient(circle at 50% 0%, #E8ECEF 0%, #DFE3E6 50%, #D3D9DE 100%);
+  background: linear-gradient(180deg, #E5E9EC 0%, #DFE3E6 38%, #D9DEE2 100%);
   background-color: var(--titanium-mist);
   color: var(--text-main);
   margin: 0;
@@ -64,32 +64,34 @@ body {
 /* Exact typography classes per DESIGN.md §3 */
 .type-display {
   font-family: "Spectral", Georgia, serif;
-  font-size: 26px;
-  line-height: 32px;
+  font-size: 30px;
+  line-height: 36px;
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--bone);
 }
 
 .type-screen-sub {
   font-family: "Spectral", Georgia, serif;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 15px;
+  line-height: 22px;
   font-weight: 400;
   color: var(--dim);
 }
 
 .type-card-title {
   font-family: "Spectral", Georgia, serif;
-  font-size: 17px;
-  line-height: 24px;
+  font-size: 18px;
+  line-height: 26px;
   font-weight: 600;
+  letter-spacing: -0.005em;
   color: var(--bone);
 }
 
 .type-reading {
   font-family: "IBM Plex Sans", sans-serif;
-  font-size: 13.5px;
-  line-height: 21px;
+  font-size: 14.5px;
+  line-height: 24px;
   font-weight: 400;
   max-width: 68ch;
   color: var(--bone);
@@ -97,25 +99,25 @@ body {
 
 .type-body {
   font-family: "IBM Plex Sans", sans-serif;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 14px;
+  line-height: 22px;
   font-weight: 400;
   color: var(--bone);
 }
 
 .type-label {
   font-family: "IBM Plex Sans", sans-serif;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 13px;
+  line-height: 18px;
   font-weight: 500;
-  letter-spacing: 0.01em;
 }
 
 .type-meta {
   font-family: "IBM Plex Sans", sans-serif;
-  font-size: 11px;
-  line-height: 14px;
+  font-size: 12px;
+  line-height: 16px;
   font-weight: 400;
+  font-variant-numeric: tabular-nums;
   color: var(--dim);
 }
 
@@ -138,19 +140,19 @@ body {
 
 .type-mono-sm {
   font-family: "IBM Plex Mono", monospace;
-  font-size: 11px;
-  line-height: 14px;
+  font-size: 11.5px;
+  line-height: 16px;
   font-weight: 400;
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
 
 .type-stat {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 24px;
-  line-height: 28px;
-  font-weight: 500;
-  letter-spacing: 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 30px;
+  line-height: 34px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -161,9 +163,7 @@ body {
   font-weight: 500;
   font-style: italic;
   display: inline-block;
-  transform: rotate(-2deg);
-  opacity: 0.60;
-  color: var(--bone);
+  color: var(--dim);
 }
 
 /* Quality floor focus ring (§4.8) */
@@ -173,8 +173,13 @@ select:focus-visible,
 textarea:focus-visible,
 a:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid var(--verdigris);
+  outline: 2px solid var(--deep-petrol);
   outline-offset: 2px;
+}
+
+/* Programmatic focus targets (route-change headings) are not controls: no ring. */
+[tabindex="-1"]:focus {
+  outline: none;
 }
 
 /* Texture overlays (§4.7) */
@@ -701,13 +706,13 @@ button:not(:disabled):active,
 
 /* Static 45° madder hatch (CSS repeating-linear-gradient, frozen colors, never animated per §M7.10) */
 .bg-madder-hatch {
-  background-color: var(--madder);
+  background-color: #F2DDE0;
   background-image: repeating-linear-gradient(
     45deg,
-    rgba(176,82,94, 0.92),
-    rgba(176,82,94, 0.92) 10px,
-    #B0525E 10px,
-    #B0525E 20px
+    #F2DDE0,
+    #F2DDE0 10px,
+    #EBD0D4 10px,
+    #EBD0D4 20px
   );
 }
 

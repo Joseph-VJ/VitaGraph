@@ -61,7 +61,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
       case "/upload":
         return {
           title: "Upload & Ingest",
-          sub: "Turn your health reports into a structured knowledge graph.",
+          sub: "Add a report and watch it become a knowledge graph.",
           placeholder: "Search reports, concepts, or ask a question…",
           shortcut: "Ctrl K",
           breadcrumb: null,
@@ -76,8 +76,8 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
         };
       case "/ask":
         return {
-          title: "RAG Assistant",
-          sub: "Ask questions. Get evidence-backed answers from your health reports.",
+          title: "Ask your reports",
+          sub: "Every answer cites the report page it came from.",
           placeholder: "Search your reports, concepts, or ask a question…",
           shortcut: "Ctrl K",
           breadcrumb: null,
@@ -160,7 +160,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
       default: // Home
         return {
           title: "Workspace overview",
-          sub: "Your health reports, evidence, and insights — all in one place.",
+          sub: "Your reports, evidence and insights in one place.",
           placeholder: "Search reports, concepts, or ask a question…",
           shortcut: "Ctrl K",
           breadcrumb: null,
@@ -172,15 +172,15 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
 
   return (
     <header
-      className={`h-[72px] px-8 bg-[var(--ink-900)] border-b border-[var(--line-faint)] flex items-center justify-between flex-shrink-0 select-none ${className}`}
+      className={`min-h-[84px] px-4 sm:px-8 py-3 bg-[var(--ink-900)] border-b border-[var(--line-strong)] flex flex-wrap items-center justify-between gap-x-6 gap-y-3 flex-shrink-0 select-none ${className}`}
     >
       {/* Left: Title block or Breadcrumb */}
-      <div className="flex flex-col justify-center min-w-0 pr-4">
+      <div className="flex flex-col justify-center min-w-0 flex-1 basis-[260px]">
         {config.breadcrumb ? (
           <div>
             <Breadcrumb items={config.breadcrumb} className="mb-0.5" />
             <h1
-              className="type-display text-[22px] leading-tight text-[var(--bone)]"
+              className="type-display text-[26px] sm:text-[30px]"
               style={{
                 viewTransitionName:
                   supportsViewTransitions() && governor.getState().tier !== "T0"
@@ -190,14 +190,14 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
             >
               {config.title}
             </h1>
-            <p className="type-screen-sub text-[13px] leading-tight text-[var(--dim)] mt-0.5">
+            <p className="type-screen-sub mt-1 max-w-[62ch]">
               {config.sub}
             </p>
           </div>
         ) : (
           <div>
             <h1
-              className="type-display text-[24px] leading-tight text-[var(--bone)]"
+              className="type-display text-[26px] sm:text-[30px]"
               style={{
                 viewTransitionName:
                   supportsViewTransitions() && governor.getState().tier !== "T0"
@@ -207,7 +207,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
             >
               {config.title}
             </h1>
-            <p className="type-screen-sub text-[13px] leading-tight text-[var(--dim)] mt-0.5">
+            <p className="type-screen-sub mt-1 max-w-[62ch]">
               {config.sub}
             </p>
           </div>
@@ -219,7 +219,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
         {/* Replay mode badge (§US-12, §M7.10: pops on enter, static while on, never disguised as live) */}
         {isReplay && (
           <Badge variant="ochre" className="animate-chip-pop" testId="replay-mode-badge">
-            REPLAY MODE
+            Replay mode
           </Badge>
         )}
 
@@ -231,7 +231,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
         )}
 
         {/* Search input (300px) */}
-        <div data-boot-target="header-search" className="relative w-[300px] flex items-center">
+        <div data-boot-target="header-search" className="relative w-full sm:w-[300px] flex items-center order-last sm:order-none">
           <span className="absolute left-3 text-[var(--dim)] pointer-events-none">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" />
@@ -242,9 +242,9 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
             type="text"
             placeholder={config.placeholder}
             onChange={(e) => onSearch?.(e.target.value)}
-            className="w-full h-9 pl-9 pr-14 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] text-[var(--bone)] placeholder-[var(--faint)] text-[12.5px] transition-colors duration-[120ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--verdigris)] hover:border-[var(--dim)]"
+            className="w-full h-10 pl-9 pr-14 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-control)] text-[var(--bone)] placeholder-[var(--faint)] text-[13px] transition-colors duration-[120ms] focus-visible:outline-2 focus-visible:outline-[var(--deep-petrol)] focus-visible:outline-offset-1 hover:border-[var(--dim)]"
           />
-          <span className="absolute right-2.5 px-1.5 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--line-strong)] text-[var(--dim)] type-mono-sm pointer-events-none">
+          <span className="absolute right-2.5 px-1.5 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--line-strong)] text-[var(--dim)] type-mono-sm pointer-events-none hidden sm:inline">
             {config.shortcut}
           </span>
         </div>
@@ -256,14 +256,14 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="flex items-center text-left gap-2.5 pl-3 border-l border-[var(--line-faint)] hover:opacity-90 transition-opacity cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-full bg-[var(--verdigris)] text-[var(--ink-900)] flex items-center justify-center font-semibold text-[13px] shadow-sm">
+            <div className="w-9 h-9 rounded-full bg-[var(--deep-petrol)] text-[var(--text-on-primary)] flex items-center justify-center font-semibold text-[14px]">
               {user?.display_label ? user.display_label.charAt(0).toUpperCase() : "V"}
             </div>
-            <div className="flex flex-col">
-              <span className="type-body text-[12.5px] font-medium leading-none text-[var(--bone)]">
+            <div className="hidden sm:flex flex-col">
+              <span className="type-body text-[13px] font-medium leading-none text-[var(--bone)]">
                 {user?.display_label || "Connecting..."}
               </span>
-              <span className="type-meta text-[11px] text-[var(--dim)] leading-none mt-1">
+              <span className="type-meta leading-none mt-1.5">
                 {user ? `Persona ${user.id.slice(0, 6)}` : "No persona"}
               </span>
             </div>
@@ -277,9 +277,9 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
           </button>
 
           {showUserMenu && users.length > 0 && (
-            <div className="absolute right-0 mt-2 w-56 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] shadow-lg py-1 z-50">
-              <div className="px-3 py-1.5 text-[11px] font-medium text-[var(--dim)] border-b border-[var(--line-faint)]">
-                Switch Persona
+            <div className="absolute right-0 mt-2 w-56 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] shadow-[var(--shadow-float)] py-1 z-50">
+              <div className="px-3 py-1.5 text-[12px] font-medium text-[var(--dim)] border-b border-[var(--line-faint)]">
+                Switch persona
               </div>
               {users.map((u) => (
                 <button

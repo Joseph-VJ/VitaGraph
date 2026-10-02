@@ -88,7 +88,7 @@ export const JourneyRail: React.FC = () => {
       data-testid="journey-rail"
       data-view-journey-rail="true"
       aria-label="Guided Journey Navigation"
-      className="fixed bottom-10 right-8 z-40 flex items-center gap-3.5 px-4 py-2 rounded-full bg-[var(--ink-800)]/95 backdrop-blur-md border border-[var(--line-strong)] shadow-[var(--shadow-floating)] transition-all duration-[var(--m-quick)] ease-out select-none hover:border-[var(--line-faint)] group"
+      className="fixed bottom-12 right-4 sm:right-8 left-auto z-40 flex items-center gap-3 pl-3 pr-3.5 py-2 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] shadow-[var(--shadow-float)] select-none max-w-[calc(100vw-5rem)]"
     >
       {/* Previous Step Affordance Button (if not on first step) */}
       {currentStepIndex > 0 && prevStep && (
@@ -109,7 +109,7 @@ export const JourneyRail: React.FC = () => {
       )}
 
       {/* 5-Stage Journey Progress Dots */}
-      <div className="flex items-center gap-1.5" aria-label="Journey steps">
+      <div className="hidden sm:flex items-center gap-1.5" aria-label="Journey steps">
         {CANONICAL_JOURNEY.map((step, idx) => {
           const isCurrent = idx === currentStepIndex;
           const isCompleted = idx < currentStepIndex;
@@ -142,7 +142,7 @@ export const JourneyRail: React.FC = () => {
         })}
       </div>
 
-      <div className="h-4 w-[1px] bg-[var(--line-faint)]" />
+      <div className="hidden sm:block h-4 w-[1px] bg-[var(--line-strong)]" />
 
       {/* Next Step Affordance Button */}
       <DetentPress className="inline-flex">
@@ -152,11 +152,11 @@ export const JourneyRail: React.FC = () => {
           onClick={advance}
           className="flex items-center gap-2 text-left cursor-pointer group/btn focus-visible:outline-2 focus-visible:outline-[var(--verdigris)] focus-visible:outline-offset-2 rounded"
         >
-          <div className="flex flex-col w-[210px]">
-            <span className="type-meta text-[10px] text-[var(--dim)] uppercase tracking-wider font-semibold truncate">
-              Next step ({nextStepIndex + 1}/5)
+          <div className="flex flex-col w-[150px] sm:w-[220px] min-w-0">
+            <span className="type-meta truncate">
+              Next step, {nextStepIndex + 1} of 5
             </span>
-            <span className="type-label text-xs text-[var(--bone)] group-hover/btn:text-[var(--verdigris)] transition-colors truncate">
+            <span className="type-label text-[13px] text-[var(--bone)] group-hover/btn:text-[var(--deep-petrol)] transition-colors truncate">
               {currentStep.reason}
             </span>
           </div>

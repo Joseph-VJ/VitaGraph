@@ -140,13 +140,13 @@ export const UncertainState: React.FC<UncertainStateProps> = ({
     <div
       className={`rounded-[var(--r-6)] border border-[var(--line-strong)] border-l-2 border-l-[var(--ochre)] bg-[var(--ink-800)] p-3.5 flex items-center gap-3 ${className}`}
     >
-      <svg className="w-4 h-4 text-[var(--ochre)] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <svg className="w-4 h-4 text-[var(--ochre-ink)] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
         <line x1="12" y1="9" x2="12" y2="13" />
         <line x1="12" y1="17" x2="12.01" y2="17" />
       </svg>
       <div>
-        <span className="type-label text-[var(--ochre)] font-semibold mr-2">
+        <span className="type-label text-[var(--ochre-ink)] font-semibold mr-2">
           marked uncertain
         </span>
         <span className="type-meta text-[var(--dim)]">{note}</span>

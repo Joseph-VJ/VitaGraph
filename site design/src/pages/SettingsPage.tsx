@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Badge, Marginalia, LED } from "../components/gallery";
+import { Badge, LED } from "../components/gallery";
 import {
   governor,
   useMotionGovernor,
@@ -58,10 +58,6 @@ export const SettingsPage: React.FC = () => {
             Local generation boundaries, privacy guardrails, and persistent storage paths.
           </p>
         </div>
-        <Marginalia
-          text="Same data. Kinder answers."
-          sketch="leaf"
-        />
       </div>
 
       {/* 1. Model & Inference Engine */}
@@ -99,7 +95,7 @@ export const SettingsPage: React.FC = () => {
 
           <div className="flex items-center justify-between py-2 border-b border-[var(--line-faint)]">
             <span className="type-label text-[var(--dim)]">External Proprietary APIs</span>
-            <span className="type-mono-sm text-[var(--ochre)] font-semibold">
+            <span className="type-mono-sm text-[var(--ochre-ink)] font-semibold">
               Disabled by academic policy
             </span>
           </div>

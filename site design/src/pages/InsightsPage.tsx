@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Badge, Button, Marginalia, ErrorState } from "../components/gallery";
+import { Badge, Button, ErrorState } from "../components/gallery";
 import { Odometer } from "../motion/fx/Odometer";
 import { flipFrom } from "../motion/flip";
 import { Sequence } from "../motion/sequence";
@@ -316,10 +316,6 @@ export const InsightsPage: React.FC = () => {
               <span>Refresh Analytics</span>
             </Button>
           </DetentPress>
-          <Marginalia
-            text="Better data. Healthier decisions."
-            sketch="leaf"
-          />
         </div>
       </div>
 

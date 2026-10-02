@@ -4,7 +4,6 @@ import {
   Badge,
   Button,
   IconButton,
-  Marginalia,
   EmptyState,
   ErrorState,
 } from "../components/gallery";
@@ -180,10 +179,6 @@ export const LibraryPage: React.FC = () => {
           ))}
         </div>
 
-        <Marginalia
-          text="Same documents. Deeper insights."
-          sketch="compass"
-        />
       </div>
 
       {error && (

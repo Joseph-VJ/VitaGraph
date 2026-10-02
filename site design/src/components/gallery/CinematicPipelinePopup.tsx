@@ -172,7 +172,7 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
                   ? "bg-[var(--madder)]/15 border-[var(--madder)]/40 text-[var(--madder)]"
                   : isCompleted
                   ? "bg-[var(--verdigris)]/15 border-[var(--verdigris)]/40 text-[var(--verdigris)]"
-                  : "bg-[var(--ochre)]/15 border-[var(--ochre)]/40 text-[var(--ochre)]"
+                  : "bg-[var(--ochre)]/15 border-[var(--ochre)]/40 text-[var(--ochre-ink)]"
               }`}
             >
               {isError ? (

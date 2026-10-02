@@ -1,7 +1,5 @@
 import React, { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LED } from "../gallery/LED";
-import { Marginalia, type MarginaliaSketch } from "../gallery/Marginalia";
 import { flip, supportsViewTransitions, governor, setNavDirection, getNavDirection } from "../../motion";
 
 export interface NavItem {
@@ -189,150 +187,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   ];
 
   // Context list according to active screen (§5.1)
-  const renderContextList = () => {
-    if (currentPath === "/graph") {
-      return (
-        <div className="mt-4 pt-3 border-t border-[var(--line-faint)]">
-          <div className="type-meta text-[var(--dim)] mb-2 px-3">Recent sessions</div>
-          <div className="space-y-0.5">
-            <div className="px-3 py-1.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border-l-2 border-l-[var(--verdigris)]">
-              <div className="type-body text-[12px] text-[var(--bone)] truncate">Heart failure and SGLT2i</div>
-              <div className="type-mono-sm text-[var(--dim)]">Today, 6:24 PM</div>
-            </div>
-            <div className="px-3 py-1.5 hover:bg-[var(--ink-700)] rounded-[var(--r-4)] cursor-pointer">
-              <div className="type-body text-[12px] text-[var(--dim)] hover:text-[var(--bone)] truncate">Metformin and CKD</div>
-              <div className="type-mono-sm text-[var(--faint)]">Aug 29, 2025</div>
-            </div>
-            <div className="px-3 py-1.5 hover:bg-[var(--ink-700)] rounded-[var(--r-4)] cursor-pointer">
-              <div className="type-body text-[12px] text-[var(--dim)] hover:text-[var(--bone)] truncate">Vitamin D and immunity</div>
-              <div className="type-mono-sm text-[var(--faint)]">Aug 24, 2025</div>
-            </div>
-            <div className="px-3 py-1.5 hover:bg-[var(--ink-700)] rounded-[var(--r-4)] cursor-pointer">
-              <div className="type-body text-[12px] text-[var(--dim)] hover:text-[var(--bone)] truncate">Hypertension guidelines</div>
-              <div className="type-mono-sm text-[var(--faint)]">Aug 20, 2025</div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (currentPath === "/ask") {
-      return (
-        <div className="mt-4 pt-3 border-t border-[var(--line-faint)]">
-          <div className="type-meta text-[var(--dim)] mb-2 px-3">Recent questions</div>
-          <div className="space-y-1">
-            <div className="px-3 py-1.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border-l-2 border-l-[var(--verdigris)] flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <div className="type-body text-[12px] text-[var(--bone)] truncate">SGLT2 inhibitors in heart failure</div>
-                <div className="type-mono-sm text-[var(--dim)]">2 hours ago</div>
-              </div>
-              <LED color="verdigris" className="mt-1" />
-            </div>
-            <div className="px-3 py-1.5 hover:bg-[var(--ink-700)] rounded-[var(--r-4)] flex items-start justify-between gap-2 cursor-pointer">
-              <div className="min-w-0 flex-1">
-                <div className="type-body text-[12px] text-[var(--dim)] hover:text-[var(--bone)] truncate">Metformin and CKD risk</div>
-                <div className="type-mono-sm text-[var(--faint)]">5 hours ago</div>
-              </div>
-              <LED color="verdigris" className="mt-1" />
-            </div>
-            <div className="px-3 py-1.5 hover:bg-[var(--ink-700)] rounded-[var(--r-4)] flex items-start justify-between gap-2 cursor-pointer">
-              <div className="min-w-0 flex-1">
-                <div className="type-body text-[12px] text-[var(--dim)] hover:text-[var(--bone)] truncate">Vitamin D and immunity</div>
-                <div className="type-mono-sm text-[var(--faint)]">1 day ago</div>
-              </div>
-              <LED color="verdigris" className="mt-1" />
-            </div>
-            <div className="px-3 py-1.5 hover:bg-[var(--ink-700)] rounded-[var(--r-4)] flex items-start justify-between gap-2 cursor-pointer">
-              <div className="min-w-0 flex-1">
-                <div className="type-body text-[12px] text-[var(--dim)] hover:text-[var(--bone)] truncate">Can I stop my medication?</div>
-                <div className="type-mono-sm text-[var(--faint)]">2 days ago</div>
-              </div>
-              <LED color="madder" className="mt-1" />
-            </div>
-            <div className="px-3 py-1.5 hover:bg-[var(--ink-700)] rounded-[var(--r-4)] flex items-start justify-between gap-2 cursor-pointer">
-              <div className="min-w-0 flex-1">
-                <div className="type-body text-[12px] text-[var(--dim)] hover:text-[var(--bone)] truncate">Statins in older adults</div>
-                <div className="type-mono-sm text-[var(--faint)]">3 days ago</div>
-              </div>
-              <LED color="verdigris" className="mt-1" />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (currentPath === "/timeline") {
-      return (
-        <div className="mt-4 pt-3 border-t border-[var(--line-faint)]">
-          <div className="type-meta text-[var(--dim)] mb-2 px-3">Recent personas</div>
-          <div className="space-y-1">
-            <div className="px-3 py-1.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border-l-2 border-l-[var(--verdigris)] flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <div className="type-body text-[12px] text-[var(--bone)] truncate">Arjun R</div>
-                <div className="type-mono-sm text-[var(--dim)]">VG-2026-001</div>
-              </div>
-              <LED color="verdigris" className="mt-1" />
-            </div>
-            <div className="px-3 py-1.5 hover:bg-[var(--ink-700)] rounded-[var(--r-4)] flex items-start justify-between gap-2 cursor-pointer">
-              <div className="min-w-0 flex-1">
-                <div className="type-body text-[12px] text-[var(--dim)] hover:text-[var(--bone)] truncate">Meera S</div>
-                <div className="type-mono-sm text-[var(--faint)]">VG-2026-002</div>
-              </div>
-              <LED color="verdigris" className="mt-1" />
-            </div>
-            <div className="px-3 py-1.5 hover:bg-[var(--ink-700)] rounded-[var(--r-4)] flex items-start justify-between gap-2 cursor-pointer">
-              <div className="min-w-0 flex-1">
-                <div className="type-body text-[12px] text-[var(--dim)] hover:text-[var(--bone)] truncate">Kavya N</div>
-                <div className="type-mono-sm text-[var(--faint)]">VG-2026-003</div>
-              </div>
-              <LED color="verdigris" className="mt-1" />
-            </div>
-            <div className="px-3 py-1.5 hover:bg-[var(--ink-700)] rounded-[var(--r-4)] flex items-start justify-between gap-2 cursor-pointer">
-              <div className="min-w-0 flex-1">
-                <div className="type-body text-[12px] text-[var(--dim)] hover:text-[var(--bone)] truncate">Rohan K</div>
-                <div className="type-mono-sm text-[var(--faint)]">VG-2026-004</div>
-              </div>
-              <LED color="verdigris" className="mt-1" />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return null;
-  };
-
-  // Rotating marginalia note per screen (§5.1, §9.10)
-  const getMarginalia = (): { text: string; sketch: MarginaliaSketch } => {
-    switch (currentPath) {
-      case "/upload":
-        return { text: "Turn Health Reports into Knowledge.", sketch: "mountains" };
-      case "/graph":
-        return { text: "Small questions lead to healthier tomorrows.", sketch: "mountains" };
-      case "/ask":
-        return { text: "Better Questions Healthier Tomorrows.", sketch: "leaf" };
-      case "/timeline":
-        return { text: "Same data. Kinder answers.", sketch: "leaf" };
-      default:
-        return { text: "Better questions Healthier tomorrows.", sketch: "leaf" };
-    }
-  };
-
-  const marginalia = getMarginalia();
-
+  // The per-screen context lists (recent sessions, questions, personas) were hardcoded demo
+  // content, not user data, so they are no longer rendered. Persona switching lives in the header menu.
   return (
     <aside
       aria-label="Primary navigation"
-      className={`w-[240px] h-screen bg-[var(--alloy-surface)] bg-gradient-to-b from-[#D6DCE0] to-[#C6CED4] border-r border-[var(--line-strong)] shadow-[4px_0_12px_rgba(40,50,58,0.10),12px_0_32px_rgba(46,98,112,0.10),inset_-1px_0_0_rgba(255,255,255,0.5)] flex flex-col justify-between flex-shrink-0 select-none overflow-y-auto ${className}`}
+      className={`w-[60px] lg:w-[240px] h-screen bg-[var(--chrome)] border-r border-[var(--chrome-line)] shadow-[2px_0_10px_rgba(40,50,58,0.08)] flex flex-col justify-between flex-shrink-0 select-none overflow-y-auto overflow-x-hidden ${className}`}
     >
       <div>
         {/* Brand Block (§5.1) */}
-        <div className="p-5 pb-4 border-b border-[var(--line-faint)]">
+        <div className="p-3 lg:p-5 pb-3 lg:pb-4 border-b border-[var(--chrome-line)]">
           <Link
             to="/upload"
             viewTransition={supportsViewTransitions() && governor.getState().tier !== "T0"}
             onClick={() => setNavDirection(getNavDirection(currentPath, "/upload"))}
-            className="flex items-center gap-2.5 focus:outline-none"
+            className="flex items-center justify-center lg:justify-start gap-2.5 rounded-[var(--r-6)]"
           >
             {/* Leaf glyph (verdigris hand-drawn SVG) */}
             <svg
@@ -352,11 +221,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
               <path d="M2 17l10 5 10-5" />
               <path d="M2 12l10 5 10-5" />
             </svg>
-            <span className="font-['Spectral'] text-[18px] leading-tight font-semibold text-[var(--bone)] tracking-tight">
+            <span className="hidden lg:inline font-['Spectral'] text-[20px] leading-tight font-semibold text-[var(--bone)] tracking-tight">
               VitaGraph
             </span>
           </Link>
-          <p className="type-meta text-[var(--dim)] mt-1 pl-7">
+          <p className="hidden lg:block type-meta text-[var(--dim)] mt-1 pl-7">
             Evidence for a healthier tomorrow
           </p>
         </div>
@@ -367,7 +236,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
           <div
             ref={indicatorRef}
             data-testid="sidebar-active-indicator"
-            className="absolute left-2 w-[2px] bg-[var(--verdigris)] rounded-r pointer-events-none z-10"
+            className="absolute left-2 w-[3px] bg-[var(--deep-petrol)] rounded-r pointer-events-none z-10"
             style={{ top: 0, height: 0, display: "none" }}
           />
 
@@ -382,10 +251,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
                 onClick={() => setNavDirection(getNavDirection(currentPath, item.path))}
                 data-active={isActive ? "true" : "false"}
                 data-boot-target="nav-item"
-                className={`flex items-center gap-3 px-3 py-2 rounded-[var(--r-6)] transition-colors duration-[120ms] ease-out group relative border-l-2 ${
+                title={item.label}
+                aria-label={item.label}
+                aria-current={isActive ? "page" : undefined}
+                className={`flex items-center justify-center lg:justify-start gap-3 px-2 lg:px-3 py-2 rounded-[var(--r-6)] transition-colors duration-[120ms] ease-out group relative border-l-2 ${
                   isActive
-                    ? "bg-[var(--ink-700)] text-[var(--bone)] border-l-[var(--verdigris)]"
-                    : "text-[var(--dim)] hover:text-[var(--bone)] hover:bg-[var(--ink-700)]/70 border-l-transparent"
+                    ? "bg-[var(--ink-800)] text-[var(--bone)] border-l-[var(--deep-petrol)] shadow-[var(--shadow-3d)]"
+                    : "text-[var(--dim)] hover:text-[var(--bone)] hover:bg-[var(--ink-800)]/60 border-l-transparent"
                 }`}
               >
                 <span
@@ -395,12 +267,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
                 >
                   {item.icon}
                 </span>
-                <div className="min-w-0 flex-1">
-                  <div className="type-body text-[13px] leading-tight font-normal text-current">
+                <div className="hidden lg:block min-w-0 flex-1">
+                  <div className="type-body text-[14px] leading-tight font-medium text-current">
                     {item.label}
                   </div>
                   {item.sublabel && (
-                    <div className="type-label text-[11px] text-[var(--dim)] opacity-80 truncate leading-tight mt-0.5">
+                    <div className="type-label text-[12px] text-[var(--dim)] truncate leading-tight mt-0.5 font-normal">
                       {item.sublabel}
                     </div>
                   )}
@@ -410,27 +282,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
           })}
         </nav>
 
-        {/* Per-Screen Context List (§5.1) */}
-        {renderContextList()}
-
         {/* Gallery Link (§7) */}
-        <div className="mt-4 pt-3 border-t border-[var(--line-faint)]">
+        <div className="mt-4 pt-3 border-t border-[var(--chrome-line)]">
           <Link
             to="/gallery"
+            title="Component gallery"
             viewTransition={supportsViewTransitions() && governor.getState().tier !== "T0"}
             onClick={() => setNavDirection(getNavDirection(currentPath, "/gallery"))}
-            className="flex items-center gap-2.5 px-3 py-1.5 rounded-[var(--r-6)] text-[var(--dim)] hover:text-[var(--bone)] hover:bg-[var(--ink-700)]/70 transition-colors duration-[120ms]"
+            className="flex items-center justify-center lg:justify-start gap-2.5 px-2 lg:px-3 py-1.5 mx-2 rounded-[var(--r-6)] text-[var(--dim)] hover:text-[var(--bone)] hover:bg-[var(--ink-800)]/60 transition-colors duration-[120ms]"
           >
             <span className="type-mono-sm text-[11px] text-[var(--verdigris)]">§7</span>
-            <span className="type-body text-[12px]">Component gallery</span>
+            <span className="hidden lg:inline type-body text-[13px]">Component gallery</span>
           </Link>
         </div>
       </div>
 
-      {/* Marginalia Block (§5.1, §9.10) */}
-      <div className="p-5 pt-3 border-t border-[var(--line-faint)]">
-        <Marginalia text={marginalia.text} sketch={marginalia.sketch} />
-      </div>
     </aside>
   );
 };

@@ -18,19 +18,19 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   const variantStyles: Record<ButtonVariant, string> = {
     primary:
-      "bg-[var(--verdigris)] text-[var(--ink-900)] font-medium hover:brightness-105 active:brightness-95 border border-transparent shadow-sm",
+      "bg-[var(--deep-petrol)] text-[var(--text-on-primary)] font-medium hover:brightness-110 active:brightness-95 border border-transparent",
     ghost:
-      "bg-transparent text-[var(--bone)] border border-[var(--line-strong)] hover:bg-[var(--ink-700)] active:bg-[var(--ink-600)]",
+      "bg-[var(--ink-800)] text-[var(--bone)] border border-[var(--line-control)] hover:bg-[var(--ink-700)] active:bg-[var(--ink-600)]",
     "outline-danger":
       "bg-transparent text-[var(--madder)] border border-[var(--madder)] hover:bg-[rgba(176,82,94,0.12)] active:bg-[rgba(176,82,94,0.2)]",
     "solid-danger":
-      "bg-[var(--madder)] text-[var(--ink-900)] font-medium hover:brightness-105 active:brightness-95 border border-transparent",
+      "bg-[var(--madder)] text-[var(--text-on-primary)] font-medium hover:brightness-110 active:brightness-95 border border-transparent",
   };
 
   return (
     <button
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-[var(--r-6)] type-body transition-[filter,background-color,border-color,transform] duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--verdigris)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${variantStyles[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-[var(--r-6)] type-body transition-[filter,background-color,border-color,transform] duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--deep-petrol)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${variantStyles[variant]} ${className}`}
       {...props}
     >
       {loading && (
@@ -68,7 +68,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
       title={title}
       disabled={disabled}
       style={{ width: `${size}px`, height: `${size}px` }}
-      className={`inline-flex items-center justify-center rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] text-[var(--bone)] hover:bg-[var(--ink-700)] active:bg-[var(--ink-600)] transition-[background-color,border-color,transform] duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--verdigris)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex-shrink-0 ${className}`}
+      className={`inline-flex items-center justify-center rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] text-[var(--bone)] hover:bg-[var(--ink-700)] active:bg-[var(--ink-600)] transition-[background-color,border-color,transform] duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--deep-petrol)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex-shrink-0 ${className}`}
       {...props}
     >
       {children}

@@ -4,7 +4,6 @@ import {
   Dropzone,
   QuarantineRow,
   Badge,
-  Marginalia,
   Button,
   useToast,
   UncertainState,
@@ -266,11 +265,6 @@ export const UploadPage: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 w-full">
-      {/* Screen-level Marginalia top-right (§9.2) */}
-      <div className="flex justify-end -mt-2 -mb-2">
-        <Marginalia text="Same documents. Deeper insights." sketch="compass" />
-      </div>
-
       {/* Quick Test Bar for Autonomous & Browser Verification */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-[var(--r-8)] bg-[var(--ink-800)] border border-[var(--line-strong)]">
         <div className="flex items-center gap-2">
@@ -398,7 +392,7 @@ export const UploadPage: React.FC = () => {
                       ocrPagesCount > 0 ? (
                         <div className="flex items-center gap-2">
                           <Badge variant="ochre">{ocrPagesCount} page(s)</Badge>
-                          <span className="type-meta text-[var(--ochre)] text-[11.5px] font-medium">active</span>
+                          <span className="type-meta text-[var(--ochre-ink)] text-[11.5px] font-medium">active</span>
                         </div>
                       ) : (
                         <div className="flex items-baseline gap-1.5">

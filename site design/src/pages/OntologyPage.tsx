@@ -1,6 +1,6 @@
 import React, { useState, useRef, useLayoutEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Badge, Button, Marginalia } from "../components/gallery";
+import { Badge, Button } from "../components/gallery";
 import { transitionNavigate } from "../motion/navigation";
 import { springToLinear, governor, isReducedMotion } from "../motion";
 import { Ticker } from "../motion/ticker";
@@ -128,10 +128,6 @@ export const OntologyPage: React.FC = () => {
             Standardized clinical concepts mapped via SNOMED-CT, LOINC, and RxNorm.
           </p>
         </div>
-        <Marginalia
-          text="Evidence connects a healthier tomorrow."
-          sketch="leaf"
-        />
       </div>
 
       {/* Relation Type Ledger (§M5.3 - animate-bar-settle + Odometer counts) */}

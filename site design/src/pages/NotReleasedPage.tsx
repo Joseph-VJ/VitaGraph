@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { EmptyState, Button, Marginalia } from "../components/gallery";
+import { EmptyState, Button } from "../components/gallery";
 import { transitionNavigate, setNavDirection } from "../motion/navigation";
 
 interface NotReleasedPageProps {
@@ -16,11 +16,6 @@ export const NotReleasedPage: React.FC<NotReleasedPageProps> = ({
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-xl mx-auto text-center gap-6 py-12">
-      <Marginalia
-        text="Same data. Deeper understanding."
-        sketch="leaf"
-        className="mb-2"
-      />
 
       <div className="w-full">
         <h2 className="type-display text-2xl text-[var(--bone)] mb-2">

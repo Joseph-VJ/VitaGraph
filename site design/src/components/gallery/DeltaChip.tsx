@@ -24,7 +24,7 @@ export const DeltaChip: React.FC<DeltaChipProps> = ({
     },
     decrease: {
       bg: "bg-[rgba(197,138,67,0.12)]",
-      text: "text-[var(--ochre)]",
+      text: "text-[var(--ochre-ink)]",
       border: "border-[rgba(197,138,67,0.25)]",
       defaultLabel: "−6 slight decrease",
     },

@@ -1774,7 +1774,7 @@ export const MotionSpecimensSection: React.FC = () => {
               <span className="type-mono-sm text-[var(--bone)] font-medium">
                 M5.16 Subgraph Activation
               </span>
-              <span className="type-mono-sm text-[var(--ochre)]">
+              <span className="type-mono-sm text-[var(--ochre-ink)]">
                 PulseRing 1.2s + Dim 0.40
               </span>
             </div>
@@ -1953,7 +1953,7 @@ export const MotionSpecimensSection: React.FC = () => {
               <span className="type-mono-sm text-[var(--bone)] font-medium">
                 M5.19 Dynamic Camera Pan & Zoom
               </span>
-              <span className="type-mono-sm text-[var(--ochre)]">
+              <span className="type-mono-sm text-[var(--ochre-ink)]">
                 Preset (90/20/1.2)
               </span>
             </div>
@@ -1988,7 +1988,7 @@ export const MotionSpecimensSection: React.FC = () => {
                     onClick={() => handleCamera19Focus("nodeB")}
                     className={`w-8 h-8 rounded-full border flex items-center justify-center font-mono text-[10px] cursor-pointer ${
                       camera19Target === "nodeB"
-                        ? "border-[var(--ochre)] text-[var(--ochre)] bg-[var(--ochre)]/10"
+                        ? "border-[var(--ochre)] text-[var(--ochre-ink)] bg-[var(--ochre)]/10"
                         : "border-[var(--line-strong)] text-[var(--bone)]"
                     }`}
                   >
