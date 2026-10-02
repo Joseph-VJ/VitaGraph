@@ -46,7 +46,7 @@ export const RefusalCard: React.FC<RefusalCardProps> = ({
         </div>
 
         <Badge variant="refused" className="flex-shrink-0">
-          refused — diagnostic boundary
+          refused: diagnostic boundary
         </Badge>
       </div>
 

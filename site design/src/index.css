@@ -61,6 +61,8 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Typography classes live in the components layer so explicit utilities (text-*, font-*) override them. */
+@layer components {
 /* Exact typography classes per DESIGN.md §3 */
 .type-display {
   font-family: "Spectral", Georgia, serif;
@@ -68,6 +70,15 @@ body {
   line-height: 36px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  color: var(--bone);
+}
+
+.type-title {
+  font-family: "Spectral", Georgia, serif;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
   color: var(--bone);
 }
 
@@ -164,6 +175,7 @@ body {
   font-style: italic;
   display: inline-block;
   color: var(--dim);
+}
 }
 
 /* Quality floor focus ring (§4.8) */
@@ -941,30 +953,30 @@ button:not(:disabled):active,
 .paper-md li { margin-bottom: 4px; }
 .paper-md strong { font-weight: 600; }
 .paper-md code { font-family: var(--font-mono); font-size: 12.5px; background: var(--steel-fog); padding: 1px 5px; border-radius: 4px; }
-.paper-md table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+.paper-table-wrap {
+  overflow-x: auto;
   margin: 6px 0 12px;
-  font-size: 13.5px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
-  overflow: hidden;
-  display: block;
-  overflow-x: auto;
+}
+.paper-md table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 20px;
 }
 .paper-md th {
-  background: var(--steel-fog);
-  color: var(--deep-petrol);
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  background: var(--ink-700);
+  color: var(--bone);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
   text-align: left;
+  white-space: nowrap;
 }
-.paper-md th, .paper-md td { padding: 7px 12px; border-bottom: 1px solid var(--line-faint); }
+.paper-md th, .paper-md td { padding: 8px 14px; border-bottom: 1px solid var(--line-faint); }
 .paper-md tr:last-child td { border-bottom: 0; }
-.paper-md tbody tr:nth-child(even) td { background: rgba(255, 255, 255, 0.28); }
+
 
 .vg-caret {
   width: 8px; height: 16px; border-radius: 2px;
@@ -976,4 +988,17 @@ button:not(:disabled):active,
 @keyframes vg-flow { to { stroke-dashoffset: -14; } }
 @media (prefers-reduced-motion: reduce) {
   .vg-caret, .vg-flow-line { animation: none; }
+}
+
+/* Touch devices: 44px minimum targets (antislop R-03). Switches and the tiny journey dots keep their own sizing. */
+@media (pointer: coarse) {
+  button:not([role="switch"]):not([data-testid^="journey-dot"]):not(.sr-only),
+  select,
+  input[type="text"],
+  input[type="search"] {
+    min-height: 44px;
+  }
+  button:not([role="switch"]):not([data-testid^="journey-dot"]):not(.sr-only) {
+    min-width: 44px;
+  }
 }

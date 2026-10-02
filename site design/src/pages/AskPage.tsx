@@ -77,12 +77,12 @@ export const AskPage: React.FC = () => {
         const labels = Array.from(
           new Set(
             graph.nodes
-              .filter((n) => ["test", "biomarker", "measurement"].includes(String(n.type)))
+              .filter((n) => ["test", "biomarker"].includes(String(n.type)))
               .map((n) => String(n.label))
               .filter((l) => l.length > 2 && text.includes(l.toLowerCase()))
           )
         ).slice(0, 4);
-        setDocSuggestions(labels.map((l) => `What was my ${l} result in this report?`));
+        setDocSuggestions(labels.map((l) => `What does this report say about ${l}?`));
       } catch {
         if (!cancelled) setScopeReport(null);
       }
@@ -219,19 +219,21 @@ export const AskPage: React.FC = () => {
       <div className="flex-1 flex flex-col gap-5 min-w-0 w-full">
         {reportParam && (
           <div
-            className="flex items-center justify-between gap-3 rounded-[var(--r-10)] bg-[var(--jade-slate)]/12 border border-[var(--jade-slate)]/50 px-4 py-2.5 shadow-[var(--shadow-3d-sm)]"
+            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-[var(--r-10)] bg-[var(--verdigris)]/10 border border-[var(--verdigris)]/50 px-4 py-2.5 shadow-[var(--shadow-3d-sm)]"
             data-testid="scope-chip"
           >
             <div className="min-w-0 text-[13px] text-[var(--text-main)]">
-              <span className="text-[var(--text-muted)]">Chatting with </span>
-              <strong className="font-semibold truncate">{scopeReport?.original_filename ?? "loading document…"}</strong>
+              <span className="text-[var(--dim)]">Chatting with </span>
+              <strong className="font-semibold">{scopeReport?.original_filename ?? "your document"}</strong>
               {scopeReport && (
-                <span className="text-[var(--text-muted)] type-mono-sm text-[11px]"> · {scopeReport.page_count ?? "?"} pages · answers use only this PDF</span>
+                <span className="text-[var(--dim)]">
+                  {" "}({scopeReport.page_count === 1 ? "1 page" : `${scopeReport.page_count ?? "?"} pages`}). Answers use only this PDF.
+                </span>
               )}
             </div>
             <button
               onClick={() => setSearchParams({})}
-              className="text-[12px] text-[var(--deep-petrol)] underline cursor-pointer flex-shrink-0"
+              className="text-[13px] text-[var(--deep-petrol)] underline cursor-pointer flex-shrink-0 min-h-[24px]"
             >
               Use all my reports
             </button>
@@ -239,7 +241,7 @@ export const AskPage: React.FC = () => {
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="type-label text-[var(--dim)] text-[12px] mr-1">Quick inquiries:</span>
+          <span className="type-label text-[var(--dim)] mr-1">Try asking</span>
           {(docSuggestions.length ? docSuggestions : SUGGESTED).map((q) => (
             <DetentPress key={q}>
               <button
@@ -248,7 +250,7 @@ export const AskPage: React.FC = () => {
                   playDetent();
                   handleAsk(q);
                 }}
-                className="px-2.5 py-1 rounded-[var(--r-6)] bg-[var(--alloy-surface)] border border-[var(--line-strong)] shadow-[var(--shadow-3d-sm)] hover:border-[var(--jade-slate)] text-[var(--text-muted)] hover:text-[var(--text-main)] type-mono-sm text-[11px] transition-colors cursor-pointer disabled:opacity-50"
+                className="px-3 py-1.5 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-control)] hover:border-[var(--deep-petrol)] text-[var(--bone)] type-body text-[13px] leading-[18px] text-left transition-colors cursor-pointer disabled:opacity-50"
               >
                 {q}
               </button>
@@ -257,10 +259,10 @@ export const AskPage: React.FC = () => {
         </div>
 
         {!question && (
-          <div className="rounded-[var(--r-14)] bg-[var(--alloy-surface)] border border-dashed border-[var(--line-strong)] p-10 text-center shadow-[var(--shadow-3d-sm)]">
-            <p className="font-serif text-[18px] text-[var(--deep-petrol)] m-0">Ask about your reports.</p>
-            <p className="type-meta text-[var(--dim)] text-[12.5px] mt-1.5 mb-0">
-              Every statement is grounded in your uploaded documents; watch the agent&apos;s reasoning on the right.
+          <div className="rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-8 sm:p-10">
+            <p className="type-card-title m-0">Ask about your reports</p>
+            <p className="type-body text-[var(--dim)] mt-2 mb-0 max-w-[52ch]">
+              Answers use only what is in your uploaded documents, and each one points to the page it came from. The agent&apos;s steps appear beside the answer as it works.
             </p>
           </div>
         )}
@@ -286,15 +288,15 @@ export const AskPage: React.FC = () => {
 
             {!isRefusal && result?.evidence && result.evidence.length > 0 && (
               <div className="flex flex-wrap items-center gap-2" data-testid="sources-row">
-                <span className="type-label text-[var(--dim)] text-[12px]">Sources:</span>
+                <span className="type-label text-[var(--dim)]">Sources</span>
                 {result.evidence.slice(0, 8).map((e) => (
                   <button
                     key={e.chunk_id}
                     onClick={() => handleCite(e.chunk_id)}
                     title={e.snippet}
-                    className="inline-flex items-center gap-1 px-2 py-[2px] rounded-[var(--r-pill)] bg-[var(--jade-slate)] text-[var(--text-on-primary)] font-mono text-[11px] shadow-[var(--shadow-3d-sm)] hover:brightness-110 cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[var(--r-6)] bg-[var(--verdigris)] text-[var(--text-on-primary)] text-[12.5px] font-medium hover:brightness-110 cursor-pointer"
                   >
-                    {e.report_filename} · p{e.page_number} · {(e.score * 100).toFixed(0)}%
+                    {e.report_filename}, page {e.page_number}, {(e.score * 100).toFixed(0)}% match
                   </button>
                 ))}
               </div>
@@ -310,7 +312,7 @@ export const AskPage: React.FC = () => {
                     <button
                       key={q}
                       onClick={() => handleAsk(q)}
-                      className="px-2.5 py-1 rounded-[var(--r-6)] bg-[var(--alloy-surface)] border border-[var(--line-strong)] shadow-[var(--shadow-3d-sm)] type-mono-sm text-[11px] cursor-pointer"
+                      className="px-2.5 py-1 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] shadow-[var(--shadow-3d-sm)] type-mono-sm text-[12px] cursor-pointer"
                     >
                       {q}
                     </button>
@@ -320,10 +322,10 @@ export const AskPage: React.FC = () => {
             )}
 
             {!isRefusal && !answerMarkdown && isStreaming && (
-              <div className="rounded-[var(--r-10)] bg-[var(--alloy-surface)] border border-[var(--line-strong)] p-5 shadow-[var(--shadow-3d)] space-y-2.5" aria-busy="true">
-                <div className="h-3.5 bg-[var(--steel-fog)] rounded animate-pulse w-3/4" />
-                <div className="h-3 bg-[var(--steel-fog)] rounded animate-pulse w-1/2" />
-                <div className="h-3 bg-[var(--steel-fog)] rounded animate-pulse w-2/3" />
+              <div className="rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] p-5 shadow-[var(--shadow-3d)] space-y-2.5" aria-busy="true">
+                <div className="h-3.5 bg-[var(--ink-600)] rounded animate-pulse w-3/4" />
+                <div className="h-3 bg-[var(--ink-600)] rounded animate-pulse w-1/2" />
+                <div className="h-3 bg-[var(--ink-600)] rounded animate-pulse w-2/3" />
               </div>
             )}
 
@@ -335,7 +337,7 @@ export const AskPage: React.FC = () => {
           </div>
         )}
 
-        <div className="rounded-[var(--r-10)] bg-[var(--alloy-surface)] border border-[var(--line-strong)] shadow-[var(--shadow-3d)] p-2.5 flex items-center gap-2 sticky bottom-4">
+        <div className="rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-control)] shadow-[var(--shadow-float)] p-2.5 flex flex-wrap items-center gap-2 sticky bottom-14 sm:bottom-4">
           <input
             type="text"
             value={input}
@@ -347,11 +349,11 @@ export const AskPage: React.FC = () => {
               }
             }}
             disabled={isStreaming}
-            placeholder={isStreaming ? "Agent is working…" : "Ask a medical question about your reports…"}
-            className="flex-1 bg-transparent px-3 py-1.5 type-body text-[var(--text-main)] placeholder-[var(--faint)] focus:outline-none focus:ring-1 focus:ring-[var(--jade-slate)] rounded-[var(--r-4)]"
+            placeholder={isStreaming ? "Working on your question…" : "Ask about a result, a date or a trend in your reports"}
+            className="flex-1 basis-full sm:basis-0 min-w-0 bg-transparent px-3 py-2 type-body text-[var(--bone)] placeholder-[var(--faint)] focus-visible:outline-2 focus-visible:outline-[var(--deep-petrol)] focus-visible:outline-offset-0 rounded-[var(--r-4)]"
             data-testid="ask-question-input"
           />
-          <div role="radiogroup" aria-label="Answer mode" className="flex rounded-[var(--r-6)] border border-[var(--line-strong)] overflow-hidden flex-shrink-0">
+          <div role="radiogroup" aria-label="Answer mode" className="flex rounded-[var(--r-6)] border border-[var(--line-control)] overflow-hidden flex-shrink-0">
             {([
               ["rag_ai", "Evidence + AI", "Retrieve passages from your PDF, then the AI explains them"],
               ["rag_only", "Evidence only", "Show matching passages from your PDF without calling the AI"],
@@ -363,8 +365,8 @@ export const AskPage: React.FC = () => {
                 title={hint}
                 disabled={isStreaming}
                 onClick={() => setMode(value)}
-                className={`px-2.5 h-9 text-[11.5px] font-medium cursor-pointer transition-colors ${
-                  mode === value ? "bg-[var(--deep-petrol)] text-[var(--text-on-primary)]" : "bg-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                className={`px-3 h-9 text-[13px] font-medium cursor-pointer transition-colors ${
+                  mode === value ? "bg-[var(--deep-petrol)] text-[var(--text-on-primary)]" : "bg-transparent text-[var(--dim)] hover:text-[var(--bone)]"
                 }`}
               >
                 {label}

@@ -84,7 +84,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
       <div
         onClick={() => transitionNavigate(navigate, "/settings", { direction: "forward" })}
         className="flex items-center gap-1 cursor-pointer hover:text-[var(--bone)] transition-colors group"
-        title={`Motion Tier: ${motion.tier} (${motion.mode} mode${motion.reducedMotion ? ", reduced-motion locked" : ""}) — open Settings to configure`}
+        title={`Motion Tier: ${motion.tier} (${motion.mode} mode${motion.reducedMotion ? ", reduced-motion locked" : ""}). Open Settings to configure.`}
       >
         <span className="text-[var(--dim)] group-hover:text-[var(--bone)] type-mono-sm">
           motion {motion.tier}{motion.mode === "manual" ? " · manual" : ""}
@@ -154,7 +154,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
 
   return (
     <footer
-      className="h-8 px-4 bg-[var(--chrome)] border-t border-[var(--chrome-line)] flex items-center justify-between type-mono-sm select-none flex-shrink-0 z-30"
+      className="h-8 px-3 sm:px-4 bg-[var(--chrome)] border-t border-[var(--chrome-line)] whitespace-nowrap overflow-hidden flex items-center justify-between type-mono-sm select-none flex-shrink-0 z-30"
     >
       {/* Left: System LED + Status + allow_api status */}
       <div data-boot-target="status-led" className="flex items-center gap-2.5">
@@ -165,7 +165,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
         {!health.allowApi && (
           <>
             <span className="text-[var(--line-strong)]">|</span>
-            <span className="text-[var(--dim)] text-[11px]">allow_api=false (offline core)</span>
+            <span className="text-[var(--dim)] text-[12px]">allow_api=false (offline core)</span>
           </>
         )}
       </div>
@@ -176,7 +176,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
       </div>
 
       {/* Right: Version + links + theme toggle */}
-      <div className="flex items-center">
+      <div className="hidden sm:flex items-center">
         {renderRightControls()}
       </div>
     </footer>

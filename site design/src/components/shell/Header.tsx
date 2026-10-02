@@ -215,7 +215,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
       </div>
 
       {/* Right: Mode badges + Search Input + User Chip (§5.2, §US-12) */}
-      <div className="flex items-center gap-3 flex-shrink-0">
+      <div className="flex flex-wrap items-center justify-between gap-3 w-full sm:w-auto sm:flex-nowrap sm:flex-shrink-0">
         {/* Replay mode badge (§US-12, §M7.10: pops on enter, static while on, never disguised as live) */}
         {isReplay && (
           <Badge variant="ochre" className="animate-chip-pop" testId="replay-mode-badge">
@@ -254,7 +254,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
           <button
             type="button"
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center text-left gap-2.5 pl-3 border-l border-[var(--line-faint)] hover:opacity-90 transition-opacity cursor-pointer"
+            className="flex items-center text-left gap-2.5 sm:pl-3 sm:border-l border-[var(--line-faint)] hover:opacity-90 transition-opacity cursor-pointer"
           >
             <div className="w-9 h-9 rounded-full bg-[var(--deep-petrol)] text-[var(--text-on-primary)] flex items-center justify-center font-semibold text-[14px]">
               {user?.display_label ? user.display_label.charAt(0).toUpperCase() : "V"}
@@ -294,7 +294,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
                   }`}
                 >
                   <span className="truncate">{u.display_label}</span>
-                  {u.id === user?.id && <span className="text-[10px] type-mono-sm">active</span>}
+                  {u.id === user?.id && <span className="text-[11.5px] type-mono-sm">active</span>}
                 </button>
               ))}
             </div>

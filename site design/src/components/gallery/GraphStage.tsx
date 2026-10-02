@@ -1178,6 +1178,12 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         (window as any).__VG_ACTIVE_PHOTONS__ = activePhotonsCount;
       }
 
+      // Labels are queued while nodes draw, then placed by importance so they never pile up.
+      const labelQueue: Array<{
+        text: string; x: number; y: number; font: string; size: number;
+        fill: string; alpha: number; priority: number; force: boolean;
+      }> = [];
+
       // 6. Draw Nodes with Viewport Culling, Glow Sprites, and Hover Scale (§M8.1, §M8.5)
       for (let idx = 0; idx < nodes.length; idx++) {
         const n = nodes[idx];
@@ -1260,7 +1266,10 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
         // Measurement chips & Flag tags (§M8.7)
         const isMeasurement = (n.type || "").toLowerCase() === "measurement" || n.value !== undefined;
-        if (isMeasurement && revealProgress > 0.4) {
+        // Value chips are detail: show them for the focused neighbourhood or once zoomed in,
+        // otherwise dozens of chips stack on top of each other.
+        const showValueChip = isSelected || isHovered || isConceptActive || isNeighbor || cameraRef.current.k >= 1.5;
+        if (isMeasurement && showValueChip && revealProgress > 0.4) {
           const hairlineProgress = prefersReducedMotion ? 1.0 : Math.min(1.0, Math.max(0, (revealProgress - 0.4) / 0.6));
           const hairlineEase = servoEase(hairlineProgress);
           const hairlineLen = 12 * hairlineEase;
@@ -1280,7 +1289,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
             const valText = n.value !== undefined ? `${n.value} ${n.unit || ""}` : (n.label || "");
             const hasHighFlag = n.flag && n.flag.toUpperCase() === "HIGH";
 
-            ctx.font = "600 10px 'JetBrains Mono', monospace";
+            ctx.font = "600 10px 'IBM Plex Mono', monospace";
             const textW = ctx.measureText(valText).width;
             const flagW = hasHighFlag ? 32 : 0;
             const chipW = textW + flagW + 12;
@@ -1333,25 +1342,57 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
         // Proportional labels with neighbor emphasis (§M8.5)
         if (revealProgress > 0.45 && (!isDimmed || isSelected || isHovered || isNeighbor)) {
-          const fontSize = Math.max(9, Math.min(14, 8 + currentRadius * 0.45));
-          ctx.font = `${isSelected || isConceptActive || isHovered ? "600" : "500"} ${fontSize}px 'Plus Jakarta Sans', sans-serif`;
-          if (isSelected || isConceptActive || isHovered) {
-            ctx.fillStyle = "#28323A"; // label alpha -> 1
+          const fontSize = Math.max(10, Math.min(14, 8 + currentRadius * 0.45));
+          const emphasised = isSelected || isConceptActive || isHovered;
+          let fill = "#28323A";
+          if (emphasised) {
+            fill = "#28323A"; // label alpha -> 1
           } else if (isNeighbor) {
-            ctx.fillStyle = "rgba(40,50,58,0.80)"; // neighbor labels alpha -> 0.8
+            fill = "rgba(40,50,58,0.85)"; // neighbor labels alpha -> 0.85
           } else if (isDimmed) {
-            ctx.fillStyle = "rgba(85,99,110,0.45)";
-          } else {
-            ctx.fillStyle = "#28323A";
+            fill = "rgba(85,99,110,0.55)";
           }
-          ctx.textAlign = "center";
-          ctx.textBaseline = "top";
-
           const labelText = n.label || n.id;
-          const displayLabel = labelText.length > 20 ? labelText.slice(0, 18) + "…" : labelText;
-          ctx.fillText(displayLabel, n.x, n.y + currentRadius + 4);
+          labelQueue.push({
+            text: labelText.length > 20 ? labelText.slice(0, 18) + "…" : labelText,
+            x: n.x,
+            y: n.y + currentRadius + 4,
+            font: `${emphasised ? "600" : "500"} ${fontSize}px 'IBM Plex Sans', sans-serif`,
+            size: fontSize,
+            fill,
+            alpha: 1,
+            priority: (emphasised ? 1000 : isNeighbor ? 500 : 0) + currentRadius,
+            force: emphasised,
+          });
         }
       }
+
+      // Place labels, most important first. A label that would overlap one already placed is
+      // skipped (it appears when zoomed in, hovered or selected). Forced labels always draw.
+      labelQueue.sort((l1, l2) => l2.priority - l1.priority);
+      const placedLabels: Array<{ x0: number; y0: number; x1: number; y1: number }> = [];
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.lineJoin = "round";
+      for (const item of labelQueue) {
+        ctx.font = item.font;
+        const w = ctx.measureText(item.text).width;
+        const box = { x0: item.x - w / 2 - 3, x1: item.x + w / 2 + 3, y0: item.y - 1, y1: item.y + item.size + 3 };
+        if (
+          !item.force &&
+          placedLabels.some((r) => box.x0 < r.x1 && box.x1 > r.x0 && box.y0 < r.y1 && box.y1 > r.y0)
+        ) {
+          continue;
+        }
+        placedLabels.push(box);
+        ctx.globalAlpha = item.alpha;
+        ctx.strokeStyle = "rgba(223,227,230,0.9)"; // halo keeps text legible over edges
+        ctx.lineWidth = 3;
+        ctx.strokeText(item.text, item.x, item.y);
+        ctx.fillStyle = item.fill;
+        ctx.fillText(item.text, item.x, item.y);
+      }
+      ctx.globalAlpha = 1.0;
 
       // 7. Draw Evidence Dust Particles (T3 only, <= 40 pooled, drift <= 12px, §M8.3)
       let activeDustCount = 0;
@@ -1602,7 +1643,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
       {/* Stats row & Controls above frame (§7.16) */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
         {/* Live Metrics */}
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-[var(--cornflower)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="18" cy="5" r="3" />
@@ -1669,7 +1710,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
               <span className="w-2 h-2 rounded-full bg-[var(--verdigris)] animate-pulse" />
               <span>Activated concepts: {activeConcepts.join(", ")}</span>
               {subgraphMetrics && (
-                <span className="text-[var(--bone)] text-[11px] font-medium ml-1">
+                <span className="text-[var(--bone)] text-[12px] font-medium ml-1">
                   ({subgraphMetrics.total_nodes} nodes • {subgraphMetrics.total_edges} edges)
                 </span>
               )}
@@ -1678,8 +1719,9 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select
+            aria-label="Graph layout"
             value={layoutMode}
             onChange={(e) => setLayoutMode(e.target.value)}
             options={[
@@ -1708,7 +1750,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         />
 
         {/* Legend chips top-right (§7.16) */}
-        <div className="absolute top-4 right-4 z-20 flex items-center gap-3 bg-[var(--ink-800)]/85 backdrop-blur-sm px-3 py-1.5 rounded-[var(--r-6)] border border-[var(--line-strong)]">
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-3 bg-[var(--ink-800)]/85 px-3 py-1.5 rounded-[var(--r-6)] border border-[var(--line-strong)]">
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-[var(--cornflower)]" />
             <span className="type-label text-[var(--dim)]">Condition</span>
@@ -1729,7 +1771,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
 
         {/* Skeleton shimmer before first graph data arrives (§US-18) */}
         {!graphData && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-[var(--ink-900)]/80 backdrop-blur-sm pointer-events-none">
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-[var(--ink-900)]/80 pointer-events-none">
             <div className="w-16 h-16 rounded-full skeleton-shimmer" />
             <div className="h-4 w-48 rounded-[var(--r-4)] skeleton-shimmer" />
             <div className="h-3 w-32 rounded-[var(--r-4)] skeleton-shimmer opacity-75" />
@@ -1758,7 +1800,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         {selectedNode && (
           <div
             data-testid="graph-node-provenance-card"
-            className="absolute bottom-4 right-16 z-30 w-72 rounded-[var(--r-10)] bg-[var(--ink-800)]/95 backdrop-blur-md border border-[var(--line-strong)] p-3.5 shadow-xl flex flex-col gap-2 m-enter"
+            className="absolute bottom-4 right-16 z-30 w-72 rounded-[var(--r-10)] bg-[var(--ink-800)]/95 border border-[var(--line-strong)] p-3.5 shadow-xl flex flex-col gap-2 m-enter"
           >
             <div className="flex items-center justify-between pb-1.5 border-b border-[var(--line-faint)]">
               <span className="type-card-title text-[var(--bone)] truncate max-w-[200px]">
@@ -1767,6 +1809,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
               <button
                 type="button"
                 onClick={() => handleSelectNode(null)}
+                aria-label="Close node details"
                 className="text-[var(--dim)] hover:text-[var(--bone)] p-1 cursor-pointer"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1784,7 +1827,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
               </div>
               {selectedNode.report_id && (
                 <div className="flex justify-between type-body text-[12px]">
-                  <span className="text-[var(--dim)]">Source Report</span>
+                  <span className="text-[var(--dim)]">Source report</span>
                   <span className="type-mono-sm text-[var(--bone)] truncate max-w-[140px]">
                     {selectedNode.report_id}
                   </span>

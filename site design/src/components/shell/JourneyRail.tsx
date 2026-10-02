@@ -99,7 +99,7 @@ export const JourneyRail: React.FC = () => {
             onClick={retreat}
             title={`Previous: ${prevStep.label}`}
             aria-label={`Previous step: ${prevStep.label}`}
-            className="w-5 h-5 rounded-full bg-[var(--ink-700)] flex items-center justify-center text-[var(--bone)] hover:bg-[var(--line-strong)] hover:text-[var(--bone)] transition-all duration-[var(--m-micro)] hover:-translate-x-0.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--verdigris)] focus-visible:outline-offset-2"
+            className="w-6 h-6 rounded-full bg-[var(--ink-700)] flex items-center justify-center text-[var(--bone)] hover:bg-[var(--line-strong)] hover:text-[var(--bone)] transition-all duration-[var(--m-micro)] hover:-translate-x-0.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--deep-petrol)] focus-visible:outline-offset-2"
           >
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="15 18 9 12 15 6" />
@@ -109,7 +109,7 @@ export const JourneyRail: React.FC = () => {
       )}
 
       {/* 5-Stage Journey Progress Dots */}
-      <div className="hidden sm:flex items-center gap-1.5" aria-label="Journey steps">
+      <div className="hidden sm:flex items-center" aria-label="Journey steps">
         {CANONICAL_JOURNEY.map((step, idx) => {
           const isCurrent = idx === currentStepIndex;
           const isCompleted = idx < currentStepIndex;
@@ -127,15 +127,20 @@ export const JourneyRail: React.FC = () => {
                 if (isAudioEnabled()) playDetent();
                 transitionNavigate(navigate, step.path, { direction: dir });
               }}
-              className={`relative rounded-full transition-all duration-[var(--m-quick)] cursor-pointer flex items-center justify-center focus-visible:outline-2 focus-visible:outline-[var(--verdigris)] focus-visible:outline-offset-2 ${
-                isCurrent
-                  ? "w-3 h-3 bg-[var(--verdigris)] ring-2 ring-[var(--verdigris)]/30 scale-110"
-                  : isCompleted
-                  ? "w-2.5 h-2.5 bg-[var(--verdigris)]/80 hover:bg-[var(--verdigris)]"
-                  : "w-2.5 h-2.5 bg-[var(--line-strong)] hover:bg-[var(--dim)]"
-              }`}
+              className="relative w-6 h-6 rounded-full cursor-pointer flex items-center justify-center focus-visible:outline-2 focus-visible:outline-[var(--deep-petrol)] focus-visible:outline-offset-0"
             >
-              {isCurrent && <PulseRing color="verdigris" />}
+              <span
+                aria-hidden="true"
+                className={`relative rounded-full transition-all duration-[var(--m-quick)] flex items-center justify-center ${
+                  isCurrent
+                    ? "w-3 h-3 bg-[var(--deep-petrol)] ring-2 ring-[var(--deep-petrol)]/30 scale-110"
+                    : isCompleted
+                    ? "w-2.5 h-2.5 bg-[var(--deep-petrol)]/70"
+                    : "w-2.5 h-2.5 bg-[var(--line-control)]"
+                }`}
+              >
+                {isCurrent && <PulseRing color="verdigris" />}
+              </span>
               <span className="sr-only">Step {idx + 1}: {step.label}</span>
             </button>
           );
@@ -150,7 +155,7 @@ export const JourneyRail: React.FC = () => {
           type="button"
           data-testid="journey-next-btn"
           onClick={advance}
-          className="flex items-center gap-2 text-left cursor-pointer group/btn focus-visible:outline-2 focus-visible:outline-[var(--verdigris)] focus-visible:outline-offset-2 rounded"
+          className="flex items-center gap-2 text-left cursor-pointer group/btn focus-visible:outline-2 focus-visible:outline-[var(--deep-petrol)] focus-visible:outline-offset-2 rounded"
         >
           <div className="flex flex-col w-[150px] sm:w-[220px] min-w-0">
             <span className="type-meta truncate">
@@ -162,7 +167,7 @@ export const JourneyRail: React.FC = () => {
           </div>
 
           {/* Directional Next Indicator Arrow */}
-          <span className="w-5 h-5 rounded-full bg-[var(--ink-700)] flex items-center justify-center text-[var(--bone)] group-hover/btn:bg-[var(--verdigris)] group-hover/btn:text-[var(--ink-900)] transition-all duration-[var(--m-micro)] group-hover/btn:translate-x-0.5">
+          <span className="w-6 h-6 rounded-full bg-[var(--ink-700)] flex items-center justify-center text-[var(--bone)] group-hover/btn:bg-[var(--verdigris)] group-hover/btn:text-[var(--ink-900)] transition-all duration-[var(--m-micro)] group-hover/btn:translate-x-0.5">
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="9 18 15 12 9 6" />
             </svg>

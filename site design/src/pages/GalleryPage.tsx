@@ -47,7 +47,7 @@ export const GalleryPage: React.FC = () => {
             <span className="type-mono-sm text-[var(--dim)]">·</span>
             <span className="type-mono-sm text-[var(--dim)]">DESIGN.md §7 Component Gallery (Items 1–26) + Motion Specimens (§M5, §M9)</span>
           </div>
-          <h1 className="type-display">Instrument & Paper — Gallery</h1>
+          <h1 className="type-display">Instrument & Paper: Gallery</h1>
           <p className="type-screen-sub mt-1">
             Every component in all designed states under theme instrument. Frozen tokens only.
           </p>
@@ -67,7 +67,7 @@ export const GalleryPage: React.FC = () => {
         {/* 01. LED */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            01. led — §7.1 (8px circle, colors §4.1, live adds 2s breathe)
+            01. led: §7.1 (8px circle, colors §4.1, live adds 2s breathe)
           </div>
           <div className="flex flex-wrap items-center gap-8">
             <div className="flex items-center gap-2">
@@ -100,11 +100,11 @@ export const GalleryPage: React.FC = () => {
         {/* 02. BADGE */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            02. badge — §7.2 (radius 4, padding 2/8, mono-sm)
+            02. badge: §7.2 (radius 4, padding 2/8, mono-sm)
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <Badge variant="answered">answered</Badge>
-            <Badge variant="refused">refused — diagnostic boundary</Badge>
+            <Badge variant="refused">refused: diagnostic boundary</Badge>
             <Badge variant="insufficient_evidence">insufficient evidence</Badge>
             <Badge variant="educational">educational</Badge>
             <Badge variant="rejected">1 file rejected</Badge>
@@ -116,7 +116,7 @@ export const GalleryPage: React.FC = () => {
         {/* 03. FLAG TAG */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            03. flag tag — §7.3 (High/Low madder tint, paired with ochre mono value)
+            03. flag tag: §7.3 (High/Low madder tint, paired with ochre mono value)
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <FlagTag value="428" unit="pg/mL" flag="High" />
@@ -130,7 +130,7 @@ export const GalleryPage: React.FC = () => {
         {/* 04. DELTA CHIP */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            04. delta chip — §7.4 (status deltas in verdigris, ochre, madder, cornflower)
+            04. delta chip: §7.4 (status deltas in verdigris, ochre, madder, cornflower)
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <DeltaChip type="improving" label="+0.1 improving" />
@@ -143,7 +143,7 @@ export const GalleryPage: React.FC = () => {
         {/* 05. BUTTONS */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            05. buttons — §7.5 (primary, ghost, outline-danger, solid-danger, icon-button, 120ms hover)
+            05. buttons: §7.5 (primary, ghost, outline-danger, solid-danger, icon-button, 120ms hover)
           </div>
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
@@ -193,7 +193,7 @@ export const GalleryPage: React.FC = () => {
         {/* 06. INPUTS / SELECTS */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            06. inputs / selects — §7.6 (height 36px, radius 6, 2px verdigris focus ring, paper mode 84px)
+            06. inputs / selects: §7.6 (height 36px, radius 6, 2px verdigris focus ring, paper mode 84px)
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
@@ -229,7 +229,7 @@ export const GalleryPage: React.FC = () => {
         {/* 07. STAT TILE */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            07. stat tile — §7.7 (radius 10, padding 16, 6 metrics with tinted icons, type/stat value)
+            07. stat tile: §7.7 (radius 10, padding 16, 6 metrics with tinted icons, type/stat value)
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <StatTile type="doc" label="Reports" value="12" />
@@ -244,21 +244,21 @@ export const GalleryPage: React.FC = () => {
         {/* 08. SYSTEM HEALTH ROW */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            08. system-health row — §7.8 (LED + name + status + latency mono-sm right)
+            08. system-health row: §7.8 (LED + name + status + latency mono-sm right)
           </div>
           <div className="max-w-md bg-[var(--ink-800)] rounded-[var(--r-6)] p-3 border border-[var(--line-strong)]">
             <SystemHealthRow name="FastAPI (:8000)" status="ok" latency="24 ms" />
             <SystemHealthRow name="Chroma (vector DB)" status="ok" latency="12 ms" />
             <SystemHealthRow name="SQLite (metadata)" status="ok" latency="6 ms" />
-            <SystemHealthRow name="SSE (realtime)" status="live" latency="—" />
-            <SystemHealthRow name="LLM (answering)" status="disabled" statusLabel="disabled by policy" latency="—" />
+            <SystemHealthRow name="SSE (realtime)" status="live" latency="n/a" />
+            <SystemHealthRow name="LLM (answering)" status="disabled" statusLabel="disabled by policy" latency="n/a" />
           </div>
         </section>
 
         {/* 09. SPARKLINE CARD */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            09. sparkline card — §7.9 (title row, SVG verdigris line, mono axis & footnote)
+            09. sparkline card: §7.9 (title row, SVG verdigris line, mono axis & footnote)
           </div>
           <div className="max-w-md">
             <SparklineCard />
@@ -268,7 +268,7 @@ export const GalleryPage: React.FC = () => {
         {/* 10. ACTIVITY ROW */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            10. activity row — §7.10 (2px left rule by class: indexed, answered, graph, refusal, dataset)
+            10. activity row: §7.10 (2px left rule by class: indexed, answered, graph, refusal, dataset)
           </div>
           <div className="rounded-[var(--r-6)] border border-[var(--line-strong)] overflow-hidden">
             <ActivityRow
@@ -296,7 +296,7 @@ export const GalleryPage: React.FC = () => {
               activityClass="refusal"
               timestamp="2026-09-09 13:52:10"
               eventName="Safety refusal"
-              details="Declined to answer — outside diagnostic scope"
+              details="Declined to answer: outside diagnostic scope"
               objectName="User question"
             />
             <ActivityRow
@@ -312,7 +312,7 @@ export const GalleryPage: React.FC = () => {
         {/* 11. DROPZONE */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            11. dropzone — §7.11 (radius 14 dashed line-strong, 96px hand-drawn page SVG, Spectral 15 regular hint)
+            11. dropzone: §7.11 (radius 14 dashed line-strong, 96px hand-drawn page SVG, Spectral 15 regular hint)
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -329,7 +329,7 @@ export const GalleryPage: React.FC = () => {
         {/* 12. PIPELINE STEPPER */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            12. pipeline stepper — §7.12 (6 nodes 28px: done, active with glow pulse, pending)
+            12. pipeline stepper: §7.12 (6 nodes 28px: done, active with glow pulse, pending)
           </div>
           <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-900)] border border-[var(--line-strong)]">
             <PipelineStepper />
@@ -339,7 +339,7 @@ export const GalleryPage: React.FC = () => {
         {/* 13. QUALITY BAR */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            13. quality bar — §7.13 (track 96×4 ink-600 radius 2, verdigris for native, ochre for ocr)
+            13. quality bar: §7.13 (track 96×4 ink-600 radius 2, verdigris for native, ochre for ocr)
           </div>
           <div className="flex flex-wrap items-center gap-8">
             <div className="flex items-center gap-3">
@@ -356,7 +356,7 @@ export const GalleryPage: React.FC = () => {
         {/* 14. MANIFEST ROW */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            14. manifest row — §7.14 (label dim left, value mono-sm right, copy button on SHA256)
+            14. manifest row: §7.14 (label dim left, value mono-sm right, copy button on SHA256)
           </div>
           <div className="max-w-md bg-[var(--ink-800)] rounded-[var(--r-6)] p-3 border border-[var(--line-strong)]">
             <ManifestRow label="File name" value="synthetic_panel_2025-06-20.pdf" />
@@ -371,7 +371,7 @@ export const GalleryPage: React.FC = () => {
         {/* 15. QUARANTINE ROW */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            15. quarantine row — §7.15 (2px madder rule, doc icon, filename mono, reason meta, Retry)
+            15. quarantine row: §7.15 (2px madder rule, doc icon, filename mono, reason meta, Retry)
           </div>
           <div className="max-w-xl">
             <QuarantineRow
@@ -384,7 +384,7 @@ export const GalleryPage: React.FC = () => {
         {/* 16. GRAPH STAGE */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            16. graph stage — §7.16 (frame radius 14, dot grid + vignette, hulls, legend, nodes, chips, card, minimap)
+            16. graph stage: §7.16 (frame radius 14, dot grid + vignette, hulls, legend, nodes, chips, card, minimap)
           </div>
           <GraphStage />
         </section>
@@ -392,7 +392,7 @@ export const GalleryPage: React.FC = () => {
         {/* 17. ASK BAR */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            17. ask bar — §7.17 (tab row with verdigris top rule, flex input, mode select, Send paper plane)
+            17. ask bar: §7.17 (tab row with verdigris top rule, flex input, mode select, Send paper plane)
           </div>
           <AskBar />
         </section>
@@ -400,7 +400,7 @@ export const GalleryPage: React.FC = () => {
         {/* 18. THINKING DETAILS PANEL */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            18. thinking-details panel — §7.18 (header with badge & select, traces 01-06 with stage colors, fingerprint)
+            18. thinking-details panel: §7.18 (header with badge & select, traces 01-06 with stage colors, fingerprint)
           </div>
           <ThinkingDetailsPanel />
         </section>
@@ -408,7 +408,7 @@ export const GalleryPage: React.FC = () => {
         {/* 19. DOCUMENT PANEL */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            19. document panel — §7.19 (header icon tile 40px, metadata with ·, tabs, DOI link, summary, slip, insights)
+            19. document panel: §7.19 (header icon tile 40px, metadata with ·, tabs, DOI link, summary, slip, insights)
           </div>
           <div className="max-w-lg">
             <DocumentPanel />
@@ -418,7 +418,7 @@ export const GalleryPage: React.FC = () => {
         {/* 20. PAPER SLIP */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            20. paper slip — §7.20 (the paper voice: bg #EDE7DA, 22px folded corner, citation chip, Spectral italic quote)
+            20. paper slip: §7.20 (the paper voice: bg #EDE7DA, 22px folded corner, citation chip, Spectral italic quote)
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -447,7 +447,7 @@ export const GalleryPage: React.FC = () => {
         {/* 21. QUESTION CARD */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            21. question card — §7.21 (avatar 28 verdigris initial, question, rewritten query block in ink-900)
+            21. question card: §7.21 (avatar 28 verdigris initial, question, rewritten query block in ink-900)
           </div>
           <QuestionCard
             initial="V"
@@ -461,7 +461,7 @@ export const GalleryPage: React.FC = () => {
         {/* 22. ANSWER BLOCK */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            22. answer block — §7.22 (header, badge, 4 part rows with underlined evidence links, embedded slips)
+            22. answer block: §7.22 (header, badge, 4 part rows with underlined evidence links, embedded slips)
           </div>
           <AnswerBlock />
         </section>
@@ -469,7 +469,7 @@ export const GalleryPage: React.FC = () => {
         {/* 23. REFUSAL CARD */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            23. refusal card — §7.23 (madder shield icon, refused badge, verbatim boundary copy)
+            23. refusal card: §7.23 (madder shield icon, refused badge, verbatim boundary copy)
           </div>
           <RefusalCard />
         </section>
@@ -477,7 +477,7 @@ export const GalleryPage: React.FC = () => {
         {/* 24. STATE SET */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            24. state set — §7.24 (empty, loading shimmer 1.2s, error with 2px madder rule + Retry, uncertain)
+            24. state set: §7.24 (empty, loading shimmer 1.2s, error with 2px madder rule + Retry, uncertain)
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <EmptyState quote="Every journey begins with a first record." actionLabel="Upload report" />
@@ -490,7 +490,7 @@ export const GalleryPage: React.FC = () => {
         {/* 25. MARGINALIA */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            25. marginalia — §7.25 / §9.10 (Spectral 15/22 italic, rotate −2°, 60% dim, hand-drawn sketches)
+            25. marginalia: §7.25 / §9.10 (Spectral 15/22 italic, rotate −2°, 60% dim, hand-drawn sketches)
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 p-4 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)]">
             <Marginalia text="Same data. Deeper understanding." sketch="mountains" />
@@ -503,7 +503,7 @@ export const GalleryPage: React.FC = () => {
         {/* 26. BREADCRUMB */}
         <section className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] m-scroll-reveal">
           <div className="type-mono-sm text-[var(--dim)] mb-3 pb-2 border-b border-[var(--line-faint)]">
-            26. breadcrumb — §7.26 (type/label, › chevrons dim, current page bone)
+            26. breadcrumb: §7.26 (type/label, › chevrons dim, current page bone)
           </div>
           <div className="p-3 bg-[var(--ink-900)] rounded-[var(--r-6)] border border-[var(--line-strong)]">
             <Breadcrumb

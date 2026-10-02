@@ -291,7 +291,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
             onClick={() => setNavDirection(getNavDirection(currentPath, "/gallery"))}
             className="flex items-center justify-center lg:justify-start gap-2.5 px-2 lg:px-3 py-1.5 mx-2 rounded-[var(--r-6)] text-[var(--dim)] hover:text-[var(--bone)] hover:bg-[var(--ink-800)]/60 transition-colors duration-[120ms]"
           >
-            <span className="type-mono-sm text-[11px] text-[var(--verdigris)]">§7</span>
+            <span className="type-mono-sm text-[12px] text-[var(--verdigris)]">§7</span>
             <span className="hidden lg:inline type-body text-[13px]">Component gallery</span>
           </Link>
         </div>

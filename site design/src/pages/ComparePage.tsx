@@ -140,7 +140,7 @@ export const ComparePage: React.FC = () => {
             style={{ viewTransitionName: !isT0 ? "report-title" : undefined }}
             className="type-title text-[var(--bone)]"
           >
-            Compare Longitudinal Reports
+            Compare reports over time
           </h2>
           <p className="type-meta text-[var(--dim)] mt-0.5">
             Side-by-side comparative analysis of {user?.display_label || "Arjun R"} ({effectiveUserId}) across panels.
@@ -162,8 +162,8 @@ export const ComparePage: React.FC = () => {
 
       {/* Selectors for Baseline and Follow-up panels with FLIP-swap (§M7.7, M4.1) */}
       <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <div id="baseline-chip-container" className="flex items-center gap-2 transition-transform duration-[80ms] active:scale-[0.99]">
+        <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto min-w-0">
+          <div id="baseline-chip-container" className="flex flex-wrap items-center gap-2 w-full sm:w-auto max-w-full min-w-0 transition-transform duration-[80ms] active:scale-[0.99]">
             <label htmlFor="baseline-select" className="type-label text-[var(--dim)] text-xs">
               Baseline panel:
             </label>
@@ -179,11 +179,11 @@ export const ComparePage: React.FC = () => {
                   setBaselineId(val);
                 }
               }}
-              className="h-8 px-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)] focus:ring-1 focus:ring-[var(--verdigris)]/50 focus:shadow-[0_0_8px_rgba(71,119,95,0.25)] transition-all duration-[120ms] ease-out cursor-pointer"
+              className="h-9 px-2.5 w-full sm:w-auto max-w-full min-w-0 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)] focus:ring-1 focus:ring-[var(--verdigris)]/50 focus:shadow-[0_0_8px_rgba(71,119,95,0.25)] transition-all duration-[120ms] ease-out cursor-pointer"
             >
               {reports.map((r) => (
                 <option key={r.id} value={r.id}>
-                  {r.report_date || r.upload_time.split("T")[0]} — {r.original_filename}
+                  {r.report_date || r.upload_time.split("T")[0]}: {r.original_filename}
                 </option>
               ))}
             </select>
@@ -233,11 +233,11 @@ export const ComparePage: React.FC = () => {
                   setFollowupId(val);
                 }
               }}
-              className="h-8 px-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)] focus:ring-1 focus:ring-[var(--verdigris)]/50 focus:shadow-[0_0_8px_rgba(71,119,95,0.25)] transition-all duration-[120ms] ease-out cursor-pointer"
+              className="h-9 px-2.5 w-full sm:w-auto max-w-full min-w-0 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)] focus:ring-1 focus:ring-[var(--verdigris)]/50 focus:shadow-[0_0_8px_rgba(71,119,95,0.25)] transition-all duration-[120ms] ease-out cursor-pointer"
             >
               {reports.map((r) => (
                 <option key={r.id} value={r.id}>
-                  {r.report_date || r.upload_time.split("T")[0]} — {r.original_filename}
+                  {r.report_date || r.upload_time.split("T")[0]}: {r.original_filename}
                 </option>
               ))}
             </select>
@@ -260,9 +260,9 @@ export const ComparePage: React.FC = () => {
       {/* Summary Strip (§9.6, §M7.7: counts odometer, segment widths scaleX to real proportions) */}
       <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="type-label text-[var(--bone)]">Longitudinal shifts:</span>
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <span className="type-label text-[var(--bone)]">Longitudinal shifts</span>
+            <div className="flex flex-wrap items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(71,119,95,0.12)] text-[var(--verdigris)] border border-[rgba(71,119,95,0.25)] type-mono-sm flex items-center gap-1">
                 <Odometer value={summary.improved} duration={480} testId="odo-improved" /> improved
               </span>
@@ -280,11 +280,11 @@ export const ComparePage: React.FC = () => {
 
           <div className="flex items-center gap-3 type-mono-sm text-xs text-[var(--dim)]">
             <span>
-              Baseline: <strong>{compData?.baseline_date || "—"}</strong>
+              Baseline: <strong>{compData?.baseline_date || "n/a"}</strong>
             </span>
             <span>→</span>
             <span>
-              Follow-up: <strong>{compData?.followup_date || "—"}</strong>
+              Follow-up: <strong>{compData?.followup_date || "n/a"}</strong>
             </span>
           </div>
         </div>
@@ -366,7 +366,7 @@ export const ComparePage: React.FC = () => {
                 <th className="type-label text-[var(--dim)] py-3 px-4">
                   Follow-up ({compData?.followup_date || "Follow-up"})
                 </th>
-                <th className="type-label text-[var(--dim)] py-3 px-4">Delta & Trajectory</th>
+                <th className="type-label text-[var(--dim)] py-3 px-4">Change and trend</th>
                 <th className="type-label text-[var(--dim)] py-3 px-4 text-right">Provenance</th>
               </tr>
             </thead>
@@ -413,7 +413,7 @@ export const ComparePage: React.FC = () => {
                       <span className="type-body font-medium text-[var(--bone)] block">
                         {row.test}
                       </span>
-                      <span className="type-meta text-[var(--dim)] text-[11px]">
+                      <span className="type-meta text-[var(--dim)] text-[12px]">
                         {row.category} · {row.unit}
                       </span>
                     </td>
@@ -424,7 +424,7 @@ export const ComparePage: React.FC = () => {
                     >
                       {row.baseline}{" "}
                       {row.baseline !== "—" && (
-                        <span className="type-mono-sm text-[11px] text-[var(--faint)]">
+                        <span className="type-mono-sm text-[12px] text-[var(--faint)]">
                           {row.unit}
                         </span>
                       )}
@@ -436,7 +436,7 @@ export const ComparePage: React.FC = () => {
                     >
                       {row.followup}{" "}
                       {row.followup !== "—" && (
-                        <span className="type-mono-sm text-[11px] text-[var(--dim)]">
+                        <span className="type-mono-sm text-[12px] text-[var(--dim)]">
                           {row.unit}
                         </span>
                       )}

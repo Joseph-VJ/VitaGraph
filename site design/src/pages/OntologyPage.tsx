@@ -123,7 +123,7 @@ export const OntologyPage: React.FC = () => {
     <div className="flex flex-col gap-6 w-full">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="type-title text-[var(--bone)]">Biomedical Ontology & Vocabularies</h2>
+          <h2 className="type-title text-[var(--bone)]">Ontology and vocabularies</h2>
           <p className="type-meta text-[var(--dim)] mt-0.5">
             Standardized clinical concepts mapped via SNOMED-CT, LOINC, and RxNorm.
           </p>
@@ -147,11 +147,11 @@ export const OntologyPage: React.FC = () => {
               <span className="type-mono-sm text-[var(--verdigris)] font-semibold block">
                 {r.rel}
               </span>
-              <span className="type-meta text-[var(--dim)] text-[11px] block mt-0.5">
+              <span className="type-meta text-[var(--dim)] text-[12px] block mt-0.5">
                 {r.desc}
               </span>
               <div className="mt-2 flex items-center justify-between">
-                <span className="type-mono-sm text-[var(--faint)] text-[10px] flex items-center gap-1">
+                <span className="type-mono-sm text-[var(--faint)] text-[11.5px] flex items-center gap-1">
                   <Odometer value={r.count} duration={360} /> edges
                 </span>
               </div>
@@ -168,7 +168,7 @@ export const OntologyPage: React.FC = () => {
 
       {/* Filter and search */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 p-1 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)]">
+        <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)]">
           {[
             { id: "all", label: "All concepts (10)" },
             { id: "condition", label: "Conditions (1)" },
@@ -211,10 +211,10 @@ export const OntologyPage: React.FC = () => {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-[var(--line-faint)] bg-[var(--ink-700)]/20">
-              <th className="type-label text-[var(--dim)] py-2.5 px-4">Concept Name</th>
+              <th className="type-label text-[var(--dim)] py-2.5 px-4">Concept name</th>
               <th className="type-label text-[var(--dim)] py-2.5 px-4">Category</th>
-              <th className="type-label text-[var(--dim)] py-2.5 px-4">Standard Code</th>
-              <th className="type-label text-[var(--dim)] py-2.5 px-4">Graph Edges</th>
+              <th className="type-label text-[var(--dim)] py-2.5 px-4">Standard code</th>
+              <th className="type-label text-[var(--dim)] py-2.5 px-4">Graph edges</th>
               <th className="type-label text-[var(--dim)] py-2.5 px-4">Occurrences</th>
               <th className="type-label text-[var(--dim)] py-2.5 px-4 text-right">Action</th>
             </tr>

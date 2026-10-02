@@ -53,7 +53,7 @@ export const SettingsPage: React.FC = () => {
     <div className="flex flex-col gap-6 w-full max-w-4xl">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="type-title text-[var(--bone)]">Settings & System Configuration</h2>
+          <h2 className="type-title text-[var(--bone)]">System configuration</h2>
           <p className="type-meta text-[var(--dim)] mt-0.5">
             Local generation boundaries, privacy guardrails, and persistent storage paths.
           </p>
@@ -80,14 +80,14 @@ export const SettingsPage: React.FC = () => {
 
         <div className="space-y-3 text-xs">
           <div className="flex items-center justify-between py-2 border-b border-[var(--line-faint)]">
-            <span className="type-label text-[var(--dim)]">Engine Service</span>
+            <span className="type-label text-[var(--dim)]">Engine service</span>
             <span className="type-mono-sm text-[var(--bone)] font-mono">
               gen-service v2 · cfg 2026-08
             </span>
           </div>
 
           <div className="flex items-center justify-between py-2 border-b border-[var(--line-faint)]">
-            <span className="type-label text-[var(--dim)]">Inference Endpoint</span>
+            <span className="type-label text-[var(--dim)]">Inference endpoint</span>
             <span className="type-mono-sm text-[var(--bone)] font-mono">
               http://localhost:8000/api/ai
             </span>
@@ -134,13 +134,16 @@ export const SettingsPage: React.FC = () => {
             <DetentPress>
               <button
                 type="button"
+                role="switch"
+                aria-checked={diagnosticGuard}
+                aria-label="Enforce diagnostic refusal boundary"
                 onClick={() => setDiagnosticGuard(!diagnosticGuard)}
                 className={`w-11 h-6 rounded-full transition-colors duration-[120ms] p-1 flex items-center cursor-pointer ${
-                  diagnosticGuard ? "bg-[var(--verdigris)]" : "bg-[var(--ink-700)]"
+                  diagnosticGuard ? "bg-[var(--deep-petrol)]" : "bg-[var(--line-control)]"
                 }`}
               >
                 <div
-                  className={`w-4 h-4 rounded-full bg-[var(--ink-900)] transition-transform duration-[120ms] ${
+                  className={`w-4 h-4 rounded-full bg-[var(--ink-800)] shadow-sm transition-transform duration-[120ms] ${
                     diagnosticGuard ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
@@ -154,19 +157,22 @@ export const SettingsPage: React.FC = () => {
                 Local-Only Execution Mode (Airgap Guarantee)
               </span>
               <span className="type-meta text-[var(--dim)] text-xs">
-                Zero network egress — all vector embeddings and graph queries stay on localhost
+                Zero network egress: all vector embeddings and graph queries stay on localhost
               </span>
             </div>
             <DetentPress>
               <button
                 type="button"
+                role="switch"
+                aria-checked={localOnly}
+                aria-label="Local-only execution mode"
                 onClick={() => setLocalOnly(!localOnly)}
                 className={`w-11 h-6 rounded-full transition-colors duration-[120ms] p-1 flex items-center cursor-pointer ${
-                  localOnly ? "bg-[var(--verdigris)]" : "bg-[var(--ink-700)]"
+                  localOnly ? "bg-[var(--deep-petrol)]" : "bg-[var(--line-control)]"
                 }`}
               >
                 <div
-                  className={`w-4 h-4 rounded-full bg-[var(--ink-900)] transition-transform duration-[120ms] ${
+                  className={`w-4 h-4 rounded-full bg-[var(--ink-800)] shadow-sm transition-transform duration-[120ms] ${
                     localOnly ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
@@ -186,13 +192,16 @@ export const SettingsPage: React.FC = () => {
             <DetentPress>
               <button
                 type="button"
+                role="switch"
+                aria-checked={allowApi}
+                aria-label="External API fallback"
                 onClick={() => setAllowApi(!allowApi)}
                 className={`w-11 h-6 rounded-full transition-colors duration-[120ms] p-1 flex items-center cursor-pointer ${
-                  allowApi ? "bg-[var(--verdigris)]" : "bg-[var(--ink-700)]"
+                  allowApi ? "bg-[var(--deep-petrol)]" : "bg-[var(--line-control)]"
                 }`}
               >
                 <div
-                  className={`w-4 h-4 rounded-full bg-[var(--ink-900)] transition-transform duration-[120ms] ${
+                  className={`w-4 h-4 rounded-full bg-[var(--ink-800)] shadow-sm transition-transform duration-[120ms] ${
                     allowApi ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
@@ -283,7 +292,7 @@ export const SettingsPage: React.FC = () => {
         <div className="space-y-4 text-xs">
           {/* Tier override selector */}
           <div>
-            <span className="type-label text-[var(--dim)] block mb-2">Quality Tier Override</span>
+            <span className="type-label text-[var(--dim)] block mb-2">Quality tier override</span>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
               {[
                 { id: "auto", label: "Auto (Governor)", desc: "Dynamic 60fps scaling" },
@@ -305,7 +314,7 @@ export const SettingsPage: React.FC = () => {
                       }`}
                     >
                       <span className="type-mono-sm font-semibold">{opt.label}</span>
-                      <span className="text-[10px] text-[var(--dim)] leading-tight">{opt.desc}</span>
+                      <span className="text-[11.5px] text-[var(--dim)] leading-tight">{opt.desc}</span>
                     </button>
                   </DetentPress>
                 );
@@ -328,20 +337,20 @@ export const SettingsPage: React.FC = () => {
             </div>
             <div className="grid grid-cols-3 gap-2 text-center items-center">
               <div className="p-2 bg-[var(--ink-800)] rounded-[var(--r-4)] border border-[var(--line-faint)]">
-                <span className="type-meta text-[10px] text-[var(--dim)] block mb-1">LED Breathe</span>
+                <span className="type-meta text-[11.5px] text-[var(--dim)] block mb-1">LED Breathe</span>
                 <div className="flex justify-center">
                   <LED color="verdigris" live={!isT0} />
                 </div>
               </div>
               <div className="p-2 bg-[var(--ink-800)] rounded-[var(--r-4)] border border-[var(--line-faint)]">
-                <span className="type-meta text-[10px] text-[var(--dim)] block mb-1">Odometer Roll</span>
+                <span className="type-meta text-[11.5px] text-[var(--dim)] block mb-1">Odometer roll</span>
                 <span className="type-mono text-xs font-bold text-[var(--bone)]">
                   <Odometer value={motion.tier === "T3" ? 60 : motion.tier === "T2" ? 30 : 0} duration={360} />
                 </span>
               </div>
               <div className="p-2 bg-[var(--ink-800)] rounded-[var(--r-4)] border border-[var(--line-faint)]">
-                <span className="type-meta text-[10px] text-[var(--dim)] block mb-1">Canvas Particles</span>
-                <span className="type-mono text-[10px] text-[var(--verdigris)] font-medium">
+                <span className="type-meta text-[11.5px] text-[var(--dim)] block mb-1">Canvas particles</span>
+                <span className="type-mono text-[11.5px] text-[var(--verdigris)] font-medium">
                   {motion.tier === "T3" ? "Active (24)" : "Suppressed"}
                 </span>
               </div>
@@ -351,19 +360,19 @@ export const SettingsPage: React.FC = () => {
           {/* Telemetry info */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-[var(--line-faint)]">
             <div className="p-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
-              <span className="type-label text-[var(--dim)] block text-[11px]">Hardware / Governor Mode</span>
+              <span className="type-label text-[var(--dim)] block text-[12px]">Hardware / Governor Mode</span>
               <span className="type-mono-sm text-[var(--bone)] font-mono">
                 {(motion.mode || "auto").toUpperCase()} ({motion.reducedMotion ? "prefers-reduced-motion active" : "standard display"})
               </span>
             </div>
             <div className="p-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
-              <span className="type-label text-[var(--dim)] block text-[11px]">Active FPS Sample</span>
+              <span className="type-label text-[var(--dim)] block text-[12px]">Active FPS Sample</span>
               <span className="type-mono-sm text-[var(--bone)] font-mono">
                 {motion.fps} FPS (rolling 2s mean)
               </span>
             </div>
             <div className="p-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
-              <span className="type-label text-[var(--dim)] block text-[11px]">Canvas DPR Cap</span>
+              <span className="type-label text-[var(--dim)] block text-[12px]">Canvas DPR Cap</span>
               <span className="type-mono-sm text-[var(--bone)] font-mono">
                 {motion.dprCap}x resolution
               </span>
@@ -384,6 +393,9 @@ export const SettingsPage: React.FC = () => {
               <button
                 type="button"
                 data-testid="sound-toggle-btn"
+                role="switch"
+                aria-checked={soundEnabled}
+                aria-label="Interface sound"
                 onClick={() => {
                   const next = !soundEnabled;
                   setSoundEnabled(next);
@@ -393,11 +405,11 @@ export const SettingsPage: React.FC = () => {
                   }
                 }}
                 className={`w-11 h-6 rounded-full transition-colors duration-[120ms] p-1 flex items-center cursor-pointer ${
-                  soundEnabled ? "bg-[var(--verdigris)]" : "bg-[var(--ink-700)]"
+                  soundEnabled ? "bg-[var(--deep-petrol)]" : "bg-[var(--line-control)]"
                 }`}
               >
                 <div
-                  className={`w-4 h-4 rounded-full bg-[var(--ink-900)] transition-transform duration-[120ms] ${
+                  className={`w-4 h-4 rounded-full bg-[var(--ink-800)] shadow-sm transition-transform duration-[120ms] ${
                     soundEnabled ? "translate-x-5" : "translate-x-0"
                   }`}
                 />

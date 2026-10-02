@@ -70,6 +70,7 @@ export const AskBar: React.FC<AskBarProps> = ({
 
         {/* Mode select (84px per §7.6) */}
         <Select
+          aria-label="Answer style"
           compactPaper
           value={mode}
           onChange={(e) => setMode(e.target.value)}

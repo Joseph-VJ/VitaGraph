@@ -69,7 +69,7 @@ export const RankChips: React.FC<{
           data-testid={`rank-chip-${chip.id}`}
           data-rank={chip.rank}
           data-score={chip.score}
-          className="px-2 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--lilac)]/40 text-[var(--bone)] type-mono-sm text-[11px] flex items-center gap-1.5 shadow-sm animate-chip-pop"
+          className="px-2 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--lilac)]/40 text-[var(--bone)] type-mono-sm text-[12px] flex items-center gap-1.5 shadow-sm animate-chip-pop"
         >
           <span className="text-[var(--lilac)] font-semibold">#{chip.rank}</span>
           <span className="truncate max-w-[130px]">{chip.label}</span>
@@ -165,7 +165,7 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
           </svg>
           <span className="type-card-title text-[var(--bone)]">Thinking details</span>
           {hasReplay && (
-            <span className="px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded bg-[var(--ochre)]/15 text-[var(--ochre-ink)] border border-[var(--ochre)]/30 font-semibold">
+            <span className="px-2 py-0.5 text-[11.5px] font-mono rounded bg-[var(--ochre)]/15 text-[var(--ochre-ink)] border border-[var(--ochre)]/30 font-semibold">
               replay
             </span>
           )}
@@ -214,7 +214,7 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
             <div className="flex-1 h-3 bg-[var(--ink-700)] rounded" />
             <div className="w-12 h-3 bg-[var(--ink-700)] rounded" />
           </div>
-          <div className="type-meta text-[11px] text-[var(--dim)] text-center pt-1">
+          <div className="type-meta text-[12px] text-[var(--dim)] text-center pt-1">
             Waiting for real pipeline events from EventSource (/api/jobs/{jobId || "{id}"}/events)…
           </div>
         </div>
@@ -222,7 +222,7 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
 
       {/* Raw JSON Mode */}
       {detailMode === "Raw JSON" && traces.length > 0 && (
-        <pre className="my-2 p-3 text-[11px] type-mono bg-[var(--ink-900)] rounded-[var(--r-6)] border border-[var(--line-faint)] overflow-x-auto text-[var(--bone)] max-h-60">
+        <pre className="my-2 p-3 text-[12px] type-mono bg-[var(--ink-900)] rounded-[var(--r-6)] border border-[var(--line-faint)] overflow-x-auto text-[var(--bone)] max-h-60">
           {JSON.stringify(traces, null, 2)}
         </pre>
       )}
@@ -252,7 +252,7 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
                     />
                   </span>
                   <span
-                    className={`type-mono text-[11px] w-28 flex-shrink-0 animate-stage-flash ${
+                    className={`type-mono text-[12px] w-28 flex-shrink-0 animate-stage-flash ${
                       stageColors[row.stage] || "text-[var(--dim)]"
                     }`}
                     data-testid={`trace-stage-${row.stage}`}
@@ -297,7 +297,7 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
               <WashSweep color="var(--madder)" testId="error-wash-sweep" />
               <div className="flex items-center gap-3 min-w-0 flex-1 mr-3 z-20">
                 <span className="type-mono-sm text-[var(--madder)] w-5 flex-shrink-0 font-bold">!</span>
-                <span className="type-mono text-[11px] w-28 flex-shrink-0 text-[var(--madder)] font-semibold">
+                <span className="type-mono text-[12px] w-28 flex-shrink-0 text-[var(--madder)] font-semibold">
                   [stream_error]
                 </span>
                 <div className="min-w-0 flex-1">

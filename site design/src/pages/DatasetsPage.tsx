@@ -140,7 +140,7 @@ export const DatasetsPage: React.FC = () => {
       {/* Top row */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="type-title text-[var(--bone)]">Datasets & Knowledge Sources</h2>
+          <h2 className="type-title text-[var(--bone)]">Datasets and knowledge sources</h2>
           <p className="type-meta text-[var(--dim)] mt-0.5">
             Active vector indexes, knowledge graph collections, and synthetic cohort data.
           </p>
@@ -190,7 +190,7 @@ export const DatasetsPage: React.FC = () => {
 
                 <div className="space-y-2 py-3 border-y border-[var(--line-faint)] text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="type-label text-[var(--dim)]">Store Type</span>
+                    <span className="type-label text-[var(--dim)]">Store type</span>
                     <span className="type-mono-sm text-[var(--bone)]">{ds.type}</span>
                   </div>
                   <div className="flex items-center justify-between">
@@ -202,7 +202,7 @@ export const DatasetsPage: React.FC = () => {
                     <span className="type-mono-sm text-[var(--dim)]">{ds.dimensions}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="type-label text-[var(--dim)]">Last Verified</span>
+                    <span className="type-label text-[var(--dim)]">Last verified</span>
                     <span className="type-mono-sm text-[var(--verdigris)]">{ds.lastSync}</span>
                   </div>
                 </div>
@@ -217,7 +217,7 @@ export const DatasetsPage: React.FC = () => {
                         durationMs={480}
                       />
                     </svg>
-                    <span className="type-meta text-[11px] text-[var(--verdigris)] font-mono">
+                    <span className="type-meta text-[12px] text-[var(--verdigris)] font-mono">
                       SHA-256 matched canonical registry
                     </span>
                   </div>
@@ -232,7 +232,7 @@ export const DatasetsPage: React.FC = () => {
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="w-2 h-2 rounded-full bg-[var(--madder)] flex-shrink-0" />
-                      <span className="type-meta text-[11px] text-[var(--madder)] font-mono truncate">
+                      <span className="type-meta text-[12px] text-[var(--madder)] font-mono truncate">
                         {st.error}
                       </span>
                     </div>
@@ -240,7 +240,7 @@ export const DatasetsPage: React.FC = () => {
                       <Button
                         variant="solid-danger"
                         onClick={() => handleVerifyIntegrity(idx)}
-                        className="h-6 px-2 text-[10px] flex-shrink-0"
+                        className="h-6 px-2 text-[11.5px] flex-shrink-0"
                         data-testid="dataset-verify-retry-btn"
                       >
                         Retry
@@ -251,7 +251,7 @@ export const DatasetsPage: React.FC = () => {
               </div>
 
               <div className="mt-4 pt-3 flex items-center justify-between">
-                <span className="type-mono-sm text-[var(--faint)] text-[11px]">
+                <span className="type-mono-sm text-[var(--faint)] text-[12px]">
                   Zero cloud egress · Local only
                 </span>
                 <div className="flex items-center gap-2">

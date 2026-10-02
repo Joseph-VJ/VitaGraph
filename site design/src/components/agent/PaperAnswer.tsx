@@ -32,7 +32,9 @@ function kindOf(heading: string): Section["kind"] {
   return "other";
 }
 
-function splitSections(md: string): Section[] {
+function splitSections(rawMd: string): Section[] {
+  // The model sometimes starts a heading mid-line ("...documents.# 1. SUMMARY"); put it on its own line.
+  const md = rawMd.replace(/([^\n#])(#{1,3}\s+\d\.\s)/g, "$1\n\n$2");
   const lines = md.split("\n");
   const sections: Section[] = [];
   let cur: { heading: string; lines: string[] } | null = null;
@@ -80,6 +82,15 @@ function linkCitations(body: string, citations: CitationRef[]): string {
     .join("\n");
 }
 
+// The model writes headings like "1. SUMMARY"; show them in sentence case.
+function sentenceCase(node: React.ReactNode): React.ReactNode {
+  if (typeof node === "string") {
+    return node.replace(/([A-Z]{2,})/g, (w) => w.charAt(0) + w.slice(1).toLowerCase());
+  }
+  if (Array.isArray(node)) return node.map((n, i) => <React.Fragment key={i}>{sentenceCase(n)}</React.Fragment>);
+  return node;
+}
+
 const SectionView = memo(function SectionView({
   section,
   citations,
@@ -96,6 +107,14 @@ const SectionView = memo(function SectionView({
 
   const components: Components = useMemo(
     () => ({
+      h1: ({ children }) => <h2>{sentenceCase(children)}</h2>,
+      h2: ({ children }) => <h2>{sentenceCase(children)}</h2>,
+      h3: ({ children }) => <h3>{sentenceCase(children)}</h3>,
+      table: ({ children }) => (
+        <div className="paper-table-wrap">
+          <table>{children}</table>
+        </div>
+      ),
       a: ({ href, children }) => {
         if (href?.startsWith("cite:")) {
           const token = decodeURIComponent(href.slice(5));
@@ -105,7 +124,7 @@ const SectionView = memo(function SectionView({
               onClick={() => onCite(token)}
               data-testid="citation-chip"
               title="Open in Evidence Span Viewer"
-              className="inline-flex items-center gap-1 align-baseline mx-0.5 px-2 py-[1px] rounded-[var(--r-pill)] bg-[var(--jade-slate)] text-[var(--text-on-primary)] font-mono text-[11.5px] leading-[18px] shadow-[var(--shadow-3d-sm)] hover:brightness-110 active:translate-y-px cursor-pointer"
+              className="inline-flex items-center gap-1 align-baseline mx-0.5 px-2 py-[1px] rounded-[var(--r-4)] bg-[var(--verdigris)] text-[var(--text-on-primary)] text-[12.5px] font-medium leading-[20px] hover:brightness-110 cursor-pointer"
             >
               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
                 <path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z" />
@@ -129,7 +148,7 @@ const SectionView = memo(function SectionView({
   return (
     <section
       data-testid={`answer-section-${section.kind}`}
-      className={`rounded-[var(--r-10)] bg-[var(--alloy-surface)] border border-[var(--line-strong)] shadow-[var(--shadow-3d)] px-5 py-4 ${
+      className={`rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] px-5 py-4 ${
         isSafety ? "border-l-[4px] border-l-[var(--solar-bronze)]" : ""
       }`}
     >

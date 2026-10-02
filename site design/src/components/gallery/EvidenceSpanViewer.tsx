@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { IconButton, Button, Badge } from "./index";
 import { reportsApi } from "../../api/reports";
 import type { EvidenceCard, ReportPage } from "../../types";
@@ -164,7 +165,7 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
     new Sequence().wait(1500).addAction(() => setCopied(false)).play();
   };
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 bg-[rgba(40,50,58,0.72)] backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fade-in"
       onClick={(e) => {
@@ -222,7 +223,7 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
                       testId="odo-char-start-hdr"
                     />
                   ) : (
-                    "—"
+                    "n/a"
                   )}{" "}
                   · char_end:{" "}
                   {charEnd >= 0 ? (
@@ -232,7 +233,7 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
                       testId="odo-char-end-hdr"
                     />
                   ) : (
-                    "—"
+                    "n/a"
                   )}
                 </span>
                 <span>•</span>
@@ -262,7 +263,7 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
             <div className="flex items-center justify-between px-5 py-2.5 bg-[var(--ink-800)] border-b border-[var(--line-faint)]">
               <div className="flex items-center gap-2">
                 <span className="type-label text-[12px] text-[var(--dim)]">Source endpoint:</span>
-                <code className="type-mono-sm text-[11.5px] px-2 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] text-[var(--bone)]">
+                <code className="type-mono-sm text-[12px] px-2 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] text-[var(--bone)]">
                   /api/reports/{evidence.report_id}/pages
                 </code>
               </div>
@@ -272,17 +273,17 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
                   <button
                     disabled={currentPageIndex <= 0}
                     onClick={() => setCurrentPageIndex((p) => Math.max(0, p - 1))}
-                    className="px-2 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--line-strong)] hover:text-[var(--bone)] text-[var(--dim)] type-mono-sm text-[11px] disabled:opacity-40 cursor-pointer"
+                    className="px-2 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--line-strong)] hover:text-[var(--bone)] text-[var(--dim)] type-mono-sm text-[12px] disabled:opacity-40 cursor-pointer"
                   >
                     Prev
                   </button>
-                  <span className="type-mono-sm text-[11.5px] text-[var(--dim)] px-1">
+                  <span className="type-mono-sm text-[12px] text-[var(--dim)] px-1">
                     {currentPageIndex + 1} / {pages.length}
                   </span>
                   <button
                     disabled={currentPageIndex >= pages.length - 1}
                     onClick={() => setCurrentPageIndex((p) => Math.min(pages.length - 1, p + 1))}
-                    className="px-2 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--line-strong)] hover:text-[var(--bone)] text-[var(--dim)] type-mono-sm text-[11px] disabled:opacity-40 cursor-pointer"
+                    className="px-2 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--line-strong)] hover:text-[var(--bone)] text-[var(--dim)] type-mono-sm text-[12px] disabled:opacity-40 cursor-pointer"
                   >
                     Next
                   </button>
@@ -307,8 +308,8 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
               ) : (
                 <div className="w-full max-w-2xl bg-[var(--paper)] text-[var(--paper-ink)] rounded-[var(--r-6)] p-6 sm:p-8 paper-slip-grain shadow-md border border-[var(--paper-fold)] select-text">
                   <div className="flex items-center justify-between pb-3 mb-4 border-b border-[rgba(40,50,58,0.14)] text-[12px]">
-                    <span className="font-['IBM_Plex_Sans'] font-medium text-[rgba(40,50,58,0.65)] uppercase tracking-wider text-[10px]">
-                      Extracted Laboratory Text — Page {activePage?.page_number || 1}
+                    <span className="font-['IBM_Plex_Sans'] font-medium text-[rgba(40,50,58,0.65)] text-[11.5px]">
+                      Extracted laboratory text, page {activePage?.page_number || 1}
                     </span>
                     <span className="type-mono-sm text-[rgba(40,50,58,0.65)]">
                       {activePage?.text_length || pageText.length} characters
@@ -472,7 +473,7 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
                   <div className="type-body text-[12.5px] font-medium text-[var(--bone)]">
                     {isExactMatch ? "Highlight matches snippet" : "Span verified in document"}
                   </div>
-                  <div className="type-meta text-[11px] text-[var(--dim)] mt-0.5">
+                  <div className="type-meta text-[12px] text-[var(--dim)] mt-0.5">
                     Character offsets match extracted report text from SQLite database and vector index.
                   </div>
                 </div>
@@ -480,11 +481,11 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
 
               {/* Quoted Snippet Box */}
               <div>
-                <div className="type-meta text-[var(--dim)] text-[11.5px] mb-1.5 flex items-center justify-between">
+                <div className="type-meta text-[var(--dim)] text-[12px] mb-1.5 flex items-center justify-between">
                   <span>Quoted snippet</span>
                   <button
                     onClick={handleCopySnippet}
-                    className="type-mono-sm text-[11px] text-[var(--dim)] hover:text-[var(--bone)] underline cursor-pointer"
+                    className="type-mono-sm text-[12px] text-[var(--dim)] hover:text-[var(--bone)] underline cursor-pointer"
                   >
                     {copied ? "Copied" : "Copy"}
                   </button>
@@ -498,7 +499,7 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
 
               {/* Clinical boundary / provenance footnote */}
               <div className="pt-2 border-t border-[var(--line-faint)]">
-                <p className="type-meta text-[var(--dim)] text-[11.5px] leading-[17px]">
+                <p className="type-meta text-[var(--dim)] text-[12px] leading-[17px]">
                   VitaGraph preserves character-accurate spans to ensure non-hallucinated citation trails. All evidence is scoped strictly to user consent boundaries.
                 </p>
               </div>
@@ -525,5 +526,5 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
         </div>
       </div>
     </div>
-  );
+    , document.body);
 };

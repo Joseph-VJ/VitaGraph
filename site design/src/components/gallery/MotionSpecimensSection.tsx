@@ -657,7 +657,7 @@ export const MotionSpecimensSection: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3">
           {/* Interactive Tier Override Controller (§7.13-C) */}
           <div className="flex items-center gap-1 bg-[var(--ink-900)] p-1 rounded-[var(--r-6)] border border-[var(--line-strong)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] px-1.5 font-mono">Tier:</span>
+            <span className="type-meta text-[12px] text-[var(--dim)] px-1.5 font-mono">Tier:</span>
             {(["auto", "T3", "T2", "T1", "T0"] as const).map((t) => (
               <button
                 key={t}
@@ -667,7 +667,7 @@ export const MotionSpecimensSection: React.FC = () => {
                   governor.setOverride(t);
                   playDetent();
                 }}
-                className={`px-2 py-0.5 rounded-[var(--r-4)] text-[11px] font-mono transition-colors cursor-pointer ${
+                className={`px-2 py-0.5 rounded-[var(--r-4)] text-[12px] font-mono transition-colors cursor-pointer ${
                   motion.mode === (t === "auto" ? "auto" : "manual") && (t === "auto" || motion.tier === t)
                     ? "bg-[var(--verdigris)] text-[var(--ink-900)] font-bold"
                     : "text-[var(--dim)] hover:text-[var(--bone)]"
@@ -702,7 +702,7 @@ export const MotionSpecimensSection: React.FC = () => {
 
       {/* Token & Easings Index Table */}
       <div className="p-4 rounded-[var(--r-8)] bg-[var(--ink-900)] border border-[var(--line-strong)]">
-        <div className="type-mono-sm text-[var(--dim)] mb-3 uppercase tracking-wider text-[11px]">
+        <div className="type-mono-sm text-[var(--dim)] mb-3 text-[12px]">
           Frozen Timing Tokens & Named Easings (§M2)
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
@@ -720,14 +720,14 @@ export const MotionSpecimensSection: React.FC = () => {
               key={item.token}
               className="p-2 rounded-[var(--r-4)] bg-[var(--ink-800)] border border-[var(--line-faint)] flex flex-col justify-between"
             >
-              <span className="type-mono-sm font-mono text-[var(--verdigris)] text-[11px]">
+              <span className="type-mono-sm font-mono text-[var(--verdigris)] text-[12px]">
                 {item.token}
               </span>
               <div className="flex items-baseline justify-between mt-1">
                 <span className="type-mono text-[var(--bone)] font-semibold text-xs">
                   {item.ms}
                 </span>
-                <span className="type-meta text-[var(--dim)] text-[10px]">
+                <span className="type-meta text-[var(--dim)] text-[11.5px]">
                   {item.desc}
                 </span>
               </div>
@@ -748,10 +748,10 @@ export const MotionSpecimensSection: React.FC = () => {
               key={item.name}
               className="p-2 rounded-[var(--r-4)] bg-[var(--ink-800)] border border-[var(--line-faint)]"
             >
-              <div className="type-mono-sm font-mono text-[var(--bone)] text-[11px]">
+              <div className="type-mono-sm font-mono text-[var(--bone)] text-[12px]">
                 {item.name}
               </div>
-              <div className="type-meta text-[var(--verdigris)] text-[10px] mt-0.5">
+              <div className="type-meta text-[var(--verdigris)] text-[11.5px] mt-0.5">
                 spring: {item.spring}
               </div>
             </div>
@@ -862,7 +862,7 @@ export const MotionSpecimensSection: React.FC = () => {
                       </span>
                       <Badge variant="verdigris">FLIP Active</Badge>
                     </div>
-                    <div className="text-[11px] text-[var(--bone)]">
+                    <div className="text-[12px] text-[var(--bone)]">
                       Hemoglobin: 14.2 g/dL · Fasting Glucose: 92 mg/dL · Grounded
                     </div>
                   </div>
@@ -879,7 +879,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)]">
+            <span className="type-meta text-[12px] text-[var(--dim)]">
               State: {isExpanded ? "Expanded Sheet" : "Compact Chip"}
             </span>
             <Button variant="ghost" onClick={handleMorphToggle}>
@@ -923,7 +923,7 @@ export const MotionSpecimensSection: React.FC = () => {
                 >
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <span className="type-meta text-[10px] text-[var(--dim)]">Check Draw</span>
+                <span className="type-meta text-[11.5px] text-[var(--dim)]">Check Draw</span>
               </div>
 
               {/* Sparkline Needle */}
@@ -940,7 +940,7 @@ export const MotionSpecimensSection: React.FC = () => {
                 >
                   <path d="M 2 20 Q 20 5, 35 15 T 68 8" />
                 </svg>
-                <span className="type-meta text-[10px] text-[var(--dim)]">Needle Draw</span>
+                <span className="type-meta text-[11.5px] text-[var(--dim)]">Needle Draw</span>
               </div>
 
               {/* Connector + Work-dot */}
@@ -952,13 +952,13 @@ export const MotionSpecimensSection: React.FC = () => {
                   />
                   <div className="absolute top-0 bottom-0 w-2 bg-[var(--bone)] rounded-full animate-work-dot" />
                 </div>
-                <span className="type-meta text-[10px] text-[var(--dim)]">Connector + Dot</span>
+                <span className="type-meta text-[11.5px] text-[var(--dim)]">Connector + Dot</span>
               </div>
             </div>
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)]">
+            <span className="type-meta text-[12px] text-[var(--dim)]">
               Path Length Re-evaluated
             </span>
             <Button
@@ -1048,7 +1048,7 @@ export const MotionSpecimensSection: React.FC = () => {
                     testId="gallery-specimen-odo"
                   />
                 </div>
-                <div className="type-meta text-[10px] text-[var(--dim)] mt-1">
+                <div className="type-meta text-[11.5px] text-[var(--dim)] mt-1">
                   Target: {odoValues[odoIdx]}
                 </div>
               </div>
@@ -1056,7 +1056,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)]">
+            <span className="type-meta text-[12px] text-[var(--dim)]">
               assert(finalValue === input)
             </span>
             <Button
@@ -1102,7 +1102,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)]">
+            <span className="type-meta text-[12px] text-[var(--dim)]">
               Easing: var(--ease-ink)
             </span>
             <Button
@@ -1156,7 +1156,7 @@ export const MotionSpecimensSection: React.FC = () => {
                       </div>
                       <Badge variant="verdigris">Biomarker</Badge>
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-[var(--dim)] font-mono pt-1 border-t border-[var(--line-faint)]">
+                    <div className="flex items-center justify-between text-[12px] text-[var(--dim)] font-mono pt-1 border-t border-[var(--line-faint)]">
                       <span>Conf: 99.4%</span>
                       <span>Degree: 14 edges</span>
                       <span>Chr: 7p11.2</span>
@@ -1176,7 +1176,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)]">
+            <span className="type-meta text-[12px] text-[var(--dim)]">
               State: {nodeMorphExpanded ? "Expanded Sheet" : "Collapsed Node"}
             </span>
             <Button
@@ -1240,7 +1240,7 @@ export const MotionSpecimensSection: React.FC = () => {
                         )}
                         {isPassed ? "✓" : step.idx + 1}
                       </div>
-                      <span className="type-meta text-[10px] text-[var(--dim)] font-mono">
+                      <span className="type-meta text-[11.5px] text-[var(--dim)] font-mono">
                         {step.label}
                       </span>
                     </div>
@@ -1251,7 +1251,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Stage: {stepperStage + 1} of 3
             </span>
             <Button
@@ -1300,7 +1300,7 @@ export const MotionSpecimensSection: React.FC = () => {
                         </span>
                       </UnderlineDraw>
                     </div>
-                    <span className="type-meta text-[11px] text-[var(--dim)] font-mono tabular-nums">
+                    <span className="type-meta text-[12px] text-[var(--dim)] font-mono tabular-nums">
                       {r.meta}
                     </span>
                   </div>
@@ -1310,7 +1310,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               {reasoningStreaming ? "Streaming..." : `${reasoningRows.length} steps resolved`}
             </span>
             <Button
@@ -1373,12 +1373,12 @@ export const MotionSpecimensSection: React.FC = () => {
                     <Odometer value={chartRingPct} />%
                   </div>
                 </div>
-                <span className="type-meta text-[10px] text-[var(--dim)] font-mono">Modularity Q</span>
+                <span className="type-meta text-[11.5px] text-[var(--dim)] font-mono">Modularity Q</span>
               </div>
 
               {/* Bar Meter */}
               <div className="flex-1 max-w-[120px] flex flex-col gap-1.5">
-                <div className="flex justify-between type-meta text-[10px] text-[var(--dim)] font-mono">
+                <div className="flex justify-between type-meta text-[11.5px] text-[var(--dim)] font-mono">
                   <span>Hub Density</span>
                   <span className="tabular-nums"><Odometer value={chartBarPct} />%</span>
                 </div>
@@ -1396,7 +1396,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Preset: {chartPreset}
             </span>
             <div className="flex items-center gap-1">
@@ -1459,14 +1459,14 @@ export const MotionSpecimensSection: React.FC = () => {
                   </span>
                 )}
               </div>
-              <span className="type-meta text-[10px] text-[var(--dim)] font-mono mt-1">
+              <span className="type-meta text-[11.5px] text-[var(--dim)] font-mono mt-1">
                 P95 Latency Telemetry
               </span>
             </div>
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Trend: {kpiTrend.toUpperCase()}
             </span>
             <div className="flex items-center gap-1.5">
@@ -1525,7 +1525,7 @@ export const MotionSpecimensSection: React.FC = () => {
                     </span>
                     <Badge variant="verdigris">Active</Badge>
                   </div>
-                  <p className="type-meta text-[11px] text-[var(--dim)] font-mono">
+                  <p className="type-meta text-[12px] text-[var(--dim)] font-mono">
                     1,024 chunks embedded with all-MiniLM-L6-v2
                   </p>
                 </div>
@@ -1534,7 +1534,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Status: {skeletonLoading ? "Loading" : "Loaded"}
             </span>
             <Button
@@ -1631,7 +1631,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Focal Subgraph: {evidenceHighlight ? "Active (Dim 0.40)" : "Resting"}
             </span>
             <Button
@@ -1677,7 +1677,7 @@ export const MotionSpecimensSection: React.FC = () => {
                   <div className="type-mono-sm text-xs text-[var(--bone)] font-medium">
                     {item.title}
                   </div>
-                  <div className="type-meta text-[10px] text-[var(--dim)] font-mono">
+                  <div className="type-meta text-[11.5px] text-[var(--dim)] font-mono">
                     {item.desc}
                   </div>
                 </div>
@@ -1686,10 +1686,10 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Timeline: CSS view()
             </span>
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Scroll container above ↑
             </span>
           </div>
@@ -1735,7 +1735,7 @@ export const MotionSpecimensSection: React.FC = () => {
                       </div>
                       <Badge variant="verdigris">14.1 g/dL</Badge>
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-[var(--dim)] font-mono pt-1 border-t border-[var(--line-faint)]">
+                    <div className="flex items-center justify-between text-[12px] text-[var(--dim)] font-mono pt-1 border-t border-[var(--line-faint)]">
                       <span>Ref: 13.5 - 17.5</span>
                       <span>Degree: 8 edges</span>
                       <span>Page: 1</span>
@@ -1755,7 +1755,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               View Transition: {node15Expanded ? "Detail Sheet" : "Canvas Chip"}
             </span>
             <Button variant="ghost" onClick={handleNode15Toggle}>
@@ -1827,7 +1827,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               State: {subgraph16Active ? "Activated (0.40 Dim)" : "Resting"}
             </span>
             <Button variant="ghost" onClick={handleSubgraph16Toggle}>
@@ -1856,7 +1856,7 @@ export const MotionSpecimensSection: React.FC = () => {
 
             <div className="h-32 flex items-center justify-between bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-4 relative overflow-hidden">
               <div className="flex flex-col items-center gap-1 z-10">
-                <div className="w-8 h-8 rounded-full bg-[var(--ink-700)] border border-[var(--line-strong)] flex items-center justify-center font-mono text-[10px] text-[var(--dim)]">
+                <div className="w-8 h-8 rounded-full bg-[var(--ink-700)] border border-[var(--line-strong)] flex items-center justify-center font-mono text-[11.5px] text-[var(--dim)]">
                   Chunk
                 </div>
                 <span className="type-meta text-[9px] text-[var(--dim)]">p. 1 §4</span>
@@ -1878,7 +1878,7 @@ export const MotionSpecimensSection: React.FC = () => {
               </div>
 
               <div className="flex flex-col items-center gap-1 z-10">
-                <div className="w-8 h-8 rounded-full bg-[var(--verdigris)] text-[var(--ink-900)] flex items-center justify-center font-mono text-[10px] font-bold">
+                <div className="w-8 h-8 rounded-full bg-[var(--verdigris)] text-[var(--ink-900)] flex items-center justify-center font-mono text-[11.5px] font-bold">
                   HGB
                 </div>
                 <span className="type-meta text-[9px] text-[var(--verdigris)]">Concept</span>
@@ -1887,7 +1887,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Photons fired: {photon17Count * 8} (T3 lane L1)
             </span>
             <Button variant="ghost" onClick={handleFirePhotons17}>
@@ -1934,7 +1934,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Frequency: 0.111 Hz (Gate 24 pass)
             </span>
             <Button variant="ghost" onClick={() => setHull18Breathing((b) => !b)}>
@@ -1976,7 +1976,7 @@ export const MotionSpecimensSection: React.FC = () => {
                 <div className="flex items-center gap-6">
                   <div
                     onClick={() => handleCamera19Focus("nodeA")}
-                    className={`w-8 h-8 rounded-full border flex items-center justify-center font-mono text-[10px] cursor-pointer ${
+                    className={`w-8 h-8 rounded-full border flex items-center justify-center font-mono text-[11.5px] cursor-pointer ${
                       camera19Target === "nodeA"
                         ? "border-[var(--verdigris)] text-[var(--verdigris)] bg-[var(--verdigris)]/10"
                         : "border-[var(--line-strong)] text-[var(--bone)]"
@@ -1986,7 +1986,7 @@ export const MotionSpecimensSection: React.FC = () => {
                   </div>
                   <div
                     onClick={() => handleCamera19Focus("nodeB")}
-                    className={`w-8 h-8 rounded-full border flex items-center justify-center font-mono text-[10px] cursor-pointer ${
+                    className={`w-8 h-8 rounded-full border flex items-center justify-center font-mono text-[11.5px] cursor-pointer ${
                       camera19Target === "nodeB"
                         ? "border-[var(--ochre)] text-[var(--ochre-ink)] bg-[var(--ochre)]/10"
                         : "border-[var(--line-strong)] text-[var(--bone)]"
@@ -2000,7 +2000,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Target: {camera19Target}
             </span>
             <div className="flex items-center gap-1.5">
@@ -2037,28 +2037,28 @@ export const MotionSpecimensSection: React.FC = () => {
 
             <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 grid grid-cols-2 gap-2 content-center">
               <div className="p-2 rounded-[var(--r-4)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
-                <div className="type-meta text-[10px] text-[var(--dim)] uppercase">Nodes</div>
+                <div className="type-meta text-[11.5px] text-[var(--dim)] ">Nodes</div>
                 <div className="type-mono text-base font-semibold text-[var(--bone)]">
                   <Odometer value={currentStats20.nodes} duration={480} testId="specimen-odo-nodes" />
                 </div>
               </div>
 
               <div className="p-2 rounded-[var(--r-4)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
-                <div className="type-meta text-[10px] text-[var(--dim)] uppercase">Edges</div>
+                <div className="type-meta text-[11.5px] text-[var(--dim)] ">Edges</div>
                 <div className="type-mono text-base font-semibold text-[var(--bone)]">
                   <Odometer value={currentStats20.edges} duration={480} testId="specimen-odo-edges" />
                 </div>
               </div>
 
               <div className="p-2 rounded-[var(--r-4)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
-                <div className="type-meta text-[10px] text-[var(--dim)] uppercase">Communities</div>
+                <div className="type-meta text-[11.5px] text-[var(--dim)] ">Communities</div>
                 <div className="type-mono text-base font-semibold text-[var(--bone)]">
                   <Odometer value={currentStats20.comm} duration={480} testId="specimen-odo-comm" />
                 </div>
               </div>
 
               <div className="p-2 rounded-[var(--r-4)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
-                <div className="type-meta text-[10px] text-[var(--dim)] uppercase">Modularity Q</div>
+                <div className="type-meta text-[11.5px] text-[var(--dim)] ">Modularity Q</div>
                 <div className="type-mono text-base font-semibold text-[var(--bone)]">
                   <Odometer
                     value={currentStats20.mod}
@@ -2073,7 +2073,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Preset: {currentStats20.name}
             </span>
             <Button variant="ghost" onClick={handleCycleStats20}>
@@ -2102,7 +2102,7 @@ export const MotionSpecimensSection: React.FC = () => {
 
             <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 flex flex-col justify-between">
               <div>
-                <div className="type-meta text-[10px] text-[var(--dim)] mb-1.5 flex justify-between">
+                <div className="type-meta text-[11.5px] text-[var(--dim)] mb-1.5 flex justify-between">
                   <span>Proportional Diff Balance</span>
                   <span className="font-mono text-[var(--bone)]">{compare21Current.name}</span>
                 </div>
@@ -2127,19 +2127,19 @@ export const MotionSpecimensSection: React.FC = () => {
 
               <div className="grid grid-cols-3 gap-2 pt-1 border-t border-[var(--line-faint)]">
                 <div className="text-center">
-                  <span className="type-meta text-[10px] text-[var(--verdigris)] block">Improved</span>
+                  <span className="type-meta text-[11.5px] text-[var(--verdigris)] block">Improved</span>
                   <span className="type-mono text-sm font-semibold text-[var(--bone)]">
                     <Odometer value={compare21Current.improved} duration={360} testId="specimen-odo-compare-imp" />
                   </span>
                 </div>
                 <div className="text-center">
-                  <span className="type-meta text-[10px] text-[var(--madder)] block">Declined</span>
+                  <span className="type-meta text-[11.5px] text-[var(--madder)] block">Declined</span>
                   <span className="type-mono text-sm font-semibold text-[var(--bone)]">
                     <Odometer value={compare21Current.declined} duration={360} testId="specimen-odo-compare-dec" />
                   </span>
                 </div>
                 <div className="text-center">
-                  <span className="type-meta text-[10px] text-[var(--cornflower)] block">Stable</span>
+                  <span className="type-meta text-[11.5px] text-[var(--cornflower)] block">Stable</span>
                   <span className="type-mono text-sm font-semibold text-[var(--bone)]">
                     <Odometer value={compare21Current.stable} duration={360} testId="specimen-odo-compare-stb" />
                   </span>
@@ -2149,7 +2149,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Mode: WAAPI transform-only
             </span>
             <Button variant="ghost" onClick={handleToggleCompare21} data-testid="specimen-compare-toggle">
@@ -2201,7 +2201,7 @@ export const MotionSpecimensSection: React.FC = () => {
                   />
                 </svg>
                 <div>
-                  <span className="type-meta text-[10px] text-[var(--dim)] block">Modularity Q</span>
+                  <span className="type-meta text-[11.5px] text-[var(--dim)] block">Modularity Q</span>
                   <span className="type-mono text-base font-semibold text-[var(--bone)]">
                     <Odometer
                       value={insights22Score}
@@ -2215,7 +2215,7 @@ export const MotionSpecimensSection: React.FC = () => {
               </div>
 
               <div className="w-32">
-                <div className="type-meta text-[10px] text-[var(--dim)] mb-1 flex justify-between">
+                <div className="type-meta text-[11.5px] text-[var(--dim)] mb-1 flex justify-between">
                   <span>Hub Rank</span>
                   <span className="font-mono text-[var(--bone)]">{Math.round(insights22Rank * 100)}%</span>
                 </div>
@@ -2231,7 +2231,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Gate 18: No class remount
             </span>
             <Button variant="ghost" onClick={handleRefreshInsights22} data-testid="specimen-insights-refresh-btn">
@@ -2261,7 +2261,7 @@ export const MotionSpecimensSection: React.FC = () => {
             <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="type-meta text-[10px] text-[var(--dim)] block">Hemoglobin (g/dL)</span>
+                  <span className="type-meta text-[11.5px] text-[var(--dim)] block">Hemoglobin (g/dL)</span>
                   <span
                     data-testid="specimen-scrub-hemo"
                     className="type-mono text-base font-semibold text-[var(--bone)]"
@@ -2270,7 +2270,7 @@ export const MotionSpecimensSection: React.FC = () => {
                   </span>
                 </div>
                 <div>
-                  <span className="type-meta text-[10px] text-[var(--dim)] block">Vitamin D (ng/mL)</span>
+                  <span className="type-meta text-[11.5px] text-[var(--dim)] block">Vitamin D (ng/mL)</span>
                   <span
                     data-testid="specimen-scrub-vitd"
                     className="type-mono text-base font-semibold text-[var(--bone)]"
@@ -2279,7 +2279,7 @@ export const MotionSpecimensSection: React.FC = () => {
                   </span>
                 </div>
                 <div>
-                  <span className="type-meta text-[10px] text-[var(--dim)] block">Spine Depth</span>
+                  <span className="type-meta text-[11.5px] text-[var(--dim)] block">Spine Depth</span>
                   <span className="type-mono text-xs text-[var(--verdigris)] font-mono">
                     {Math.round(scrub23Val * 100)}%
                   </span>
@@ -2302,7 +2302,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Scrub: baseline → follow-up
             </span>
             <Button
@@ -2353,7 +2353,7 @@ export const MotionSpecimensSection: React.FC = () => {
                           isExiting ? "m-exit" : "m-enter"
                         }`}
                       >
-                        <span className="type-body text-[var(--bone)] text-[11px]">{item.name}</span>
+                        <span className="type-body text-[var(--bone)] text-[12px]">{item.name}</span>
                         <Badge variant={item.cat === "Lab" ? "verdigris" : item.cat === "Cardio" ? "madder" : "cornflower"}>
                           {item.cat}
                         </Badge>
@@ -2371,7 +2371,7 @@ export const MotionSpecimensSection: React.FC = () => {
                   key={c}
                   onClick={() => handleFilter24Change(c)}
                   data-testid={`specimen-filter-tab-${c.toLowerCase()}`}
-                  className={`px-2 py-0.5 text-[10px] font-mono rounded-[var(--r-4)] transition-colors ${
+                  className={`px-2 py-0.5 text-[11.5px] font-mono rounded-[var(--r-4)] transition-colors ${
                     filter24Cat === c
                       ? "bg-[var(--verdigris)] text-[var(--ink-950)] font-medium"
                       : "bg-[var(--ink-800)] text-[var(--dim)] hover:text-[var(--bone)]"
@@ -2381,7 +2381,7 @@ export const MotionSpecimensSection: React.FC = () => {
                 </button>
               ))}
             </div>
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Active: {filter24Cat}
             </span>
           </div>
@@ -2408,7 +2408,7 @@ export const MotionSpecimensSection: React.FC = () => {
 
             <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 flex flex-col justify-between">
               <div>
-                <span className="type-meta text-[10px] text-[var(--dim)] block">Fasting Glucose (mg/dL)</span>
+                <span className="type-meta text-[11.5px] text-[var(--dim)] block">Fasting Glucose (mg/dL)</span>
                 <div className="flex items-baseline gap-2 mt-1">
                   <span className="type-mono text-2xl font-bold text-[var(--bone)]">
                     <Odometer value={kpi25Value} duration={480} testId="specimen-odo-kpi" />
@@ -2419,14 +2419,14 @@ export const MotionSpecimensSection: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-[var(--line-faint)]">
-                <span className="type-meta text-[10px] text-[var(--dim)]">Norm: 70–99</span>
+                <span className="type-meta text-[11.5px] text-[var(--dim)]">Norm: 70–99</span>
                 <Badge variant="verdigris">Normal</Badge>
               </div>
             </div>
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Impulse: {kpi25Impulse ? "Active" : "Idle"}
             </span>
             <DetentPress>
@@ -2460,11 +2460,11 @@ export const MotionSpecimensSection: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="type-label text-[13px] text-[var(--bone)] font-semibold block">Blood Panel Longitudinal</span>
-                  <span className="type-mono text-[10px] text-[var(--dim)]">sha256: 7e2f...91a4</span>
+                  <span className="type-mono text-[11.5px] text-[var(--dim)]">sha256: 7e2f...91a4</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <LED color={integrity26Verified ? "verdigris" : "ochre"} live={integrity26Running} />
-                  <span className="type-meta text-[11px] text-[var(--bone)]">
+                  <span className="type-meta text-[12px] text-[var(--bone)]">
                     {integrity26Verified ? "Verified" : integrity26Running ? "Checking..." : "Unverified"}
                   </span>
                 </div>
@@ -2475,7 +2475,7 @@ export const MotionSpecimensSection: React.FC = () => {
                   <svg className="w-4 h-4 text-[var(--verdigris)] flex-shrink-0" viewBox="0 0 24 24" fill="none">
                     <DrawPath d="M4 12l5 5L20 6" stroke="var(--verdigris)" strokeWidth={2.5} durationMs={480} />
                   </svg>
-                  <span className="type-meta text-[11px] text-[var(--verdigris)] font-mono">
+                  <span className="type-meta text-[12px] text-[var(--verdigris)] font-mono">
                     SHA-256 matched canonical registry
                   </span>
                 </div>
@@ -2484,7 +2484,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Status: {integrity26Verified ? "Canonical OK" : "Pending"}
             </span>
             <DetentPress>
@@ -2539,7 +2539,7 @@ export const MotionSpecimensSection: React.FC = () => {
                   <p className="type-meta text-xs text-[var(--dim)] mb-2">
                     Observation confirmed across 2 longitudinal panels with optimal reference range.
                   </p>
-                  <span className="type-mono text-[10px] text-[var(--verdigris)] font-medium">
+                  <span className="type-mono text-[11.5px] text-[var(--verdigris)] font-medium">
                     Extraction confidence: 99.4%
                   </span>
                 </div>
@@ -2548,7 +2548,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               State: {skeleton27Loading ? "Skeleton" : "Populated"}
             </span>
             <DetentPress>
@@ -2579,7 +2579,7 @@ export const MotionSpecimensSection: React.FC = () => {
             </p>
 
             <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-2.5 flex flex-col justify-between">
-              <div className="space-y-1.5 font-mono text-[11px]">
+              <div className="space-y-1.5 font-mono text-[12px]">
                 <div className={`flex items-center justify-between px-2 py-1 rounded bg-[var(--ink-900)] ${notebook28Step >= 1 ? "m-enter text-[var(--bone)]" : "text-[var(--faint)]"}`}>
                   <span>[1] load_patient_graph()</span>
                   {notebook28Step >= 1 && <span className="text-[var(--verdigris)]">✓ 12ms</span>}
@@ -2597,7 +2597,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Steps: {notebook28Step}/3 executed
             </span>
             <DetentPress>
@@ -2633,20 +2633,20 @@ export const MotionSpecimensSection: React.FC = () => {
 
             <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-3 grid grid-cols-3 gap-2 text-center items-center">
               <div className="p-2 bg-[var(--ink-900)] rounded-[var(--r-4)] border border-[var(--line-faint)]">
-                <span className="type-meta text-[10px] text-[var(--dim)] block mb-1">LED Breathe</span>
+                <span className="type-meta text-[11.5px] text-[var(--dim)] block mb-1">LED Breathe</span>
                 <div className="flex justify-center">
                   <LED color="verdigris" live={!isT0} />
                 </div>
               </div>
               <div className="p-2 bg-[var(--ink-900)] rounded-[var(--r-4)] border border-[var(--line-faint)]">
-                <span className="type-meta text-[10px] text-[var(--dim)] block mb-1">Odometer</span>
+                <span className="type-meta text-[11.5px] text-[var(--dim)] block mb-1">Odometer</span>
                 <span className="type-mono text-xs font-bold text-[var(--bone)]">
                   <Odometer value={motion.tier === "T3" ? 60 : motion.tier === "T2" ? 30 : 0} duration={360} />
                 </span>
               </div>
               <div className="p-2 bg-[var(--ink-900)] rounded-[var(--r-4)] border border-[var(--line-faint)]">
-                <span className="type-meta text-[10px] text-[var(--dim)] block mb-1">Particles</span>
-                <span className="type-mono text-[10px] text-[var(--verdigris)] font-medium">
+                <span className="type-meta text-[11.5px] text-[var(--dim)] block mb-1">Particles</span>
+                <span className="type-mono text-[11.5px] text-[var(--verdigris)] font-medium">
                   {motion.tier === "T3" ? "Active (24)" : "Suppressed"}
                 </span>
               </div>
@@ -2654,10 +2654,10 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Active Tier: {motion.tier} ({motion.mode})
             </span>
-            <span className="type-meta text-[11px] text-[var(--bone)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--bone)] font-mono">
               {isT0 ? "Instant Settle" : "Physical Motion"}
             </span>
           </div>
@@ -2693,7 +2693,7 @@ export const MotionSpecimensSection: React.FC = () => {
                         isExiting ? "m-exit" : "m-enter"
                       }`}
                     >
-                      <span className="type-body text-[11px] text-[var(--bone)] truncate">{t.text}</span>
+                      <span className="type-body text-[12px] text-[var(--bone)] truncate">{t.text}</span>
                       <button
                         onClick={() => handleDismissToast30(t.id)}
                         data-testid={`specimen-toast-dismiss-${t.id}`}
@@ -2709,7 +2709,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Stack: {toasts30.length} items
             </span>
             <DetentPress>
@@ -2748,7 +2748,7 @@ export const MotionSpecimensSection: React.FC = () => {
                     <span className="type-body text-xs font-semibold text-[var(--bone)]">Modal Inspection Sheet</span>
                     <Badge variant="verdigris">Settled</Badge>
                   </div>
-                  <span className="type-meta text-[10px] text-[var(--dim)] font-mono">
+                  <span className="type-meta text-[11.5px] text-[var(--dim)] font-mono">
                     Spring: stiffness 240, damping 28
                   </span>
                   <div className="flex justify-end">
@@ -2773,10 +2773,10 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               State: {modal31Open ? "Open" : "Closed"}
             </span>
-            <span className="type-meta text-[11px] text-[var(--bone)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--bone)] font-mono">
               Paper spring
             </span>
           </div>
@@ -2806,7 +2806,7 @@ export const MotionSpecimensSection: React.FC = () => {
                 skeleton={<div className="h-16 bg-[var(--ink-700)] rounded animate-pulse" />}
               >
                 <div className="p-2 bg-[var(--ink-900)] rounded border border-[var(--line-faint)]">
-                  <span className="type-mono text-[10px] text-[var(--dim)] block">Entity A</span>
+                  <span className="type-mono text-[11.5px] text-[var(--dim)] block">Entity A</span>
                   <span className="type-body text-xs font-semibold text-[var(--bone)]">Arjun R.</span>
                 </div>
               </CrossfadeContainer>
@@ -2815,7 +2815,7 @@ export const MotionSpecimensSection: React.FC = () => {
                 skeleton={<div className="h-16 bg-[var(--ink-700)] rounded animate-pulse" />}
               >
                 <div className="p-2 bg-[var(--ink-900)] rounded border border-[var(--line-faint)]">
-                  <span className="type-mono text-[10px] text-[var(--dim)] block">Entity B</span>
+                  <span className="type-mono text-[11.5px] text-[var(--dim)] block">Entity B</span>
                   <span className="type-body text-xs font-semibold text-[var(--bone)]">Sarah L.</span>
                 </div>
               </CrossfadeContainer>
@@ -2823,7 +2823,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               CLS: 0.0000
             </span>
             <DetentPress>
@@ -2864,7 +2864,7 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Replay: #{empty33Key}
             </span>
             <DetentPress>
@@ -2896,24 +2896,24 @@ export const MotionSpecimensSection: React.FC = () => {
             <div className="h-32 bg-[var(--ink-800)] rounded-[var(--r-6)] border border-[var(--line-faint)] p-2.5 overflow-y-auto space-y-2">
               <div className="p-2 rounded bg-[var(--ink-900)] border border-[var(--line-faint)] m-scroll-reveal">
                 <span className="type-body text-xs font-semibold text-[var(--bone)] block">Scroll Item 1: Biomarkers</span>
-                <span className="type-meta text-[10px] text-[var(--dim)]">Glides into view as spine scrolls</span>
+                <span className="type-meta text-[11.5px] text-[var(--dim)]">Glides into view as spine scrolls</span>
               </div>
               <div className="p-2 rounded bg-[var(--ink-900)] border border-[var(--line-faint)] m-scroll-reveal">
                 <span className="type-body text-xs font-semibold text-[var(--bone)] block">Scroll Item 2: Centrality Rank</span>
-                <span className="type-meta text-[10px] text-[var(--dim)]">Betweenness hub measurement</span>
+                <span className="type-meta text-[11.5px] text-[var(--dim)]">Betweenness hub measurement</span>
               </div>
               <div className="p-2 rounded bg-[var(--ink-900)] border border-[var(--line-faint)] m-scroll-reveal">
                 <span className="type-body text-xs font-semibold text-[var(--bone)] block">Scroll Item 3: Louvain Partition</span>
-                <span className="type-meta text-[10px] text-[var(--dim)]">Community hull boundary detection</span>
+                <span className="type-meta text-[11.5px] text-[var(--dim)]">Community hull boundary detection</span>
               </div>
             </div>
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Utility: .m-scroll-reveal
             </span>
-            <span className="type-meta text-[11px] text-[var(--verdigris)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--verdigris)] font-mono">
               view() / IO
             </span>
           </div>
@@ -2964,10 +2964,10 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               State: {mg1Expanded ? "Expanded" : "Collapsed"}
             </span>
-            <span className="type-meta text-[11px] text-[var(--verdigris)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--verdigris)] font-mono">
               DetentPress + 120ms
             </span>
           </div>
@@ -2997,7 +2997,7 @@ export const MotionSpecimensSection: React.FC = () => {
                 <span
                   key={mg2Key}
                   data-testid="specimen-mg2-chip"
-                  className={`px-2 py-0.5 rounded-[var(--r-4)] type-mono text-[10px] font-semibold border ${
+                  className={`px-2 py-0.5 rounded-[var(--r-4)] type-mono text-[11.5px] font-semibold border ${
                     mg2Mode === "Paper"
                       ? "bg-[var(--verdigris)]/10 text-[var(--verdigris)] border-[var(--verdigris)]/30"
                       : "bg-[var(--cornflower)]/10 text-[var(--cornflower)] border-[var(--cornflower)]/30"
@@ -3027,10 +3027,10 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Selected: {mg2Mode}
             </span>
-            <span className="type-meta text-[11px] text-[var(--bone)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--bone)] font-mono">
               Key remount
             </span>
           </div>
@@ -3105,10 +3105,10 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Last press: {mg3LastPressed}
             </span>
-            <span className="type-meta text-[11px] text-[var(--verdigris)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--verdigris)] font-mono">
               DetentPress + 80ms
             </span>
           </div>
@@ -3186,10 +3186,10 @@ export const MotionSpecimensSection: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line-faint)]">
-            <span className="type-meta text-[11px] text-[var(--dim)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--dim)] font-mono">
               Status: {mg4ShowConfirm ? (mg4Exiting ? "Exiting (120ms)" : "Mounted") : "Idle"}
             </span>
-            <span className="type-meta text-[11px] text-[var(--bone)] font-mono">
+            <span className="type-meta text-[12px] text-[var(--bone)] font-mono">
               Sequence.wait(120)
             </span>
           </div>
@@ -3234,7 +3234,7 @@ export const MotionSpecimensSection: React.FC = () => {
               <span className="type-mono-sm text-[var(--bone)] font-medium">1. Detent</span>
               <Badge variant="verdigris">1200 Hz Triangle</Badge>
             </div>
-            <p className="type-meta text-[11px] text-[var(--dim)] mb-3">
+            <p className="type-meta text-[12px] text-[var(--dim)] mb-3">
               15 ms exponential decay, gain 0.03. Used for stepper complete, chip pop, and button detents.
             </p>
             <Button
@@ -3259,7 +3259,7 @@ export const MotionSpecimensSection: React.FC = () => {
               <span className="type-mono-sm text-[var(--bone)] font-medium">2. Chime</span>
               <Badge variant="cornflower">660→990 Hz Pair</Badge>
             </div>
-            <p className="type-meta text-[11px] text-[var(--dim)] mb-3">
+            <p className="type-meta text-[12px] text-[var(--dim)] mb-3">
               120 ms harmonic sine chord, gain 0.04. Used for answer done and job completion.
             </p>
             <Button
@@ -3284,7 +3284,7 @@ export const MotionSpecimensSection: React.FC = () => {
               <span className="type-mono-sm text-[var(--bone)] font-medium">3. Thud</span>
               <Badge variant="madder">220 Hz Sine</Badge>
             </div>
-            <p className="type-meta text-[11px] text-[var(--dim)] mb-3">
+            <p className="type-meta text-[12px] text-[var(--dim)] mb-3">
               80 ms exponential decay, gain 0.03. Used for diagnostic refusal, quarantine, and error.
             </p>
             <Button
@@ -3299,7 +3299,7 @@ export const MotionSpecimensSection: React.FC = () => {
         </div>
 
         <div className="pt-2 text-center">
-          <p className="type-meta text-[11px] text-[var(--dim)]">
+          <p className="type-meta text-[12px] text-[var(--dim)]">
             <strong>Gate 31 Compliance:</strong> Audio is strictly redundant. Every auditory event is paired with a visual badge, LED state, or text change and announced to screen readers via <code>aria-live</code>.
           </p>
         </div>

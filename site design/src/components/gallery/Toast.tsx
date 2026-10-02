@@ -125,12 +125,12 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                   <span className="type-label text-[var(--bone)] font-medium text-[13px] truncate">
                     {toast.title}
                   </span>
-                  <span className="type-mono-sm text-[var(--faint)] text-[10px] flex-shrink-0">
+                  <span className="type-mono-sm text-[var(--faint)] text-[11.5px] flex-shrink-0">
                     {toast.timestamp}
                   </span>
                 </div>
                 {toast.detail && (
-                  <p className="type-meta text-[var(--dim)] text-[11px] mt-0.5 break-words line-clamp-2">
+                  <p className="type-meta text-[var(--dim)] text-[12px] mt-0.5 break-words line-clamp-2">
                     {toast.detail}
                   </p>
                 )}

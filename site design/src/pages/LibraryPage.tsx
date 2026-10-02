@@ -193,48 +193,48 @@ export const LibraryPage: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="p-3.5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col">
           <span className="type-label text-[var(--dim)]">Total indexed</span>
-          <span className="type-stat text-2xl font-mono text-[var(--bone)] mt-1">
+          <span className="type-stat text-2xl text-[var(--bone)] mt-1">
             <Odometer value={reports.length} duration={480} testId="odo-total-indexed" />
           </span>
-          <span className="type-meta text-[var(--dim)] text-[11px] mt-0.5">
+          <span className="type-meta text-[var(--dim)] text-[12px] mt-0.5">
             Clinical panels & lab reports
           </span>
         </div>
 
         <div className="p-3.5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col">
           <span className="type-label text-[var(--dim)]">Total chunks</span>
-          <span className="type-stat text-2xl font-mono text-[var(--bone)] mt-1">
+          <span className="type-stat text-2xl text-[var(--bone)] mt-1">
             <Odometer value={totalChunks} duration={480} testId="odo-total-chunks" />
           </span>
-          <span className="type-meta text-[var(--dim)] text-[11px] mt-0.5">
+          <span className="type-meta text-[var(--dim)] text-[12px] mt-0.5">
             Vector-embedded in ChromaDB
           </span>
         </div>
 
         <div className="p-3.5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col">
           <span className="type-label text-[var(--dim)]">Extraction quality</span>
-          <span className="type-stat text-2xl font-mono text-[var(--verdigris)] mt-1 flex items-center">
+          <span className="type-stat text-2xl text-[var(--verdigris)] mt-1 flex items-center">
             <Odometer value={qualityRate} duration={480} testId="odo-extraction-quality" />%
           </span>
-          <span className="type-meta text-[var(--dim)] text-[11px] mt-0.5">
+          <span className="type-meta text-[var(--dim)] text-[12px] mt-0.5">
             {readyCount} native verified
           </span>
         </div>
 
         <div className="p-3.5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col">
           <span className="type-label text-[var(--dim)]">Total pages</span>
-          <span className="type-stat text-2xl font-mono text-[var(--bone)] mt-1">
+          <span className="type-stat text-2xl text-[var(--bone)] mt-1">
             <Odometer value={totalPages} duration={480} testId="odo-total-pages" />
           </span>
-          <span className="type-meta text-[var(--dim)] text-[11px] mt-0.5">
+          <span className="type-meta text-[var(--dim)] text-[12px] mt-0.5">
             Preserved layout & provenance
           </span>
         </div>
       </div>
 
       {/* Search Input Filter & Action */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] focus-within:border-[var(--verdigris)] transition-colors duration-[120ms]">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex-1 min-w-[220px] flex items-center gap-2 px-3 py-2 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-control)] focus-within:border-[var(--deep-petrol)] transition-colors duration-[120ms]">
           <svg className="w-4 h-4 text-[var(--dim)] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -311,12 +311,12 @@ export const LibraryPage: React.FC = () => {
                 key={doc.id}
                 data-testid={`library-row-${doc.id}`}
                 style={{ animationDelay: `${Math.min(idx * 24, 240)}ms` }}
-                className={`p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] hover:border-[var(--dim)] transition-all duration-[120ms] ease-out flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
+                className={`p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] hover:border-[var(--deep-petrol)] transition-colors duration-[120ms] ease-out flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
                   isExiting || isNavigating ? "m-exit" : "m-enter"
                 }`}
               >
                 {/* Left: Document Info */}
-                <div className="flex items-start gap-4 min-w-0 flex-1">
+                <div className="flex items-start gap-4 min-w-0 w-full md:w-auto flex-1">
                   <div className="w-10 h-10 rounded-[var(--r-6)] bg-[var(--ink-700)] flex items-center justify-center text-[var(--verdigris)] flex-shrink-0 mt-0.5">
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
                       <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
@@ -331,42 +331,32 @@ export const LibraryPage: React.FC = () => {
                           viewTransitionName:
                             isNavigating && !isT0 ? "report-title" : undefined,
                         }}
-                        className="type-title text-[var(--bone)] text-base font-medium truncate"
+                        className="type-card-title truncate"
                       >
                         {doc.original_filename.replace(/\.pdf$/i, "").replace(/_/g, " ")}
                       </h3>
-                      <Badge variant="verdigris">Lab report</Badge>
-                      <Badge variant={doc.status === "ready" ? "verdigris" : "ochre"}>
-                        {doc.status}
-                      </Badge>
+                      {doc.status !== "ready" && <Badge variant="ochre">{doc.status}</Badge>}
                       {doc.version > 1 && (
                         <Badge variant="dim">v{doc.version}</Badge>
                       )}
                     </div>
 
-                    <div className="type-meta text-[var(--dim)] flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="text-[var(--bone)] font-mono text-xs">{doc.original_filename}</span>
-                      <span>·</span>
-                      <span>Persona: {effectiveUserId}</span>
-                      <span>·</span>
-                      <span>
-                        Date: {doc.report_date || doc.upload_time.split("T")[0]}
-                      </span>
-                    </div>
+                    <div className="type-mono-sm text-[var(--dim)] truncate">{doc.original_filename}</div>
 
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs">
-                      <span className="type-mono-sm text-[var(--dim)]">
-                        <strong className="text-[var(--bone)]">{doc.page_count || 1}</strong> {doc.page_count === 1 ? "page" : "pages"}
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1 mt-2.5 text-[13px]">
+                      <span className="text-[var(--dim)]">
+                        <strong className="text-[var(--bone)] font-semibold tabular-nums">{doc.page_count || 1}</strong> {doc.page_count === 1 ? "page" : "pages"}
                       </span>
-                      <span className="text-[var(--faint)]">·</span>
-                      <span className="type-mono-sm text-[var(--dim)]">
-                        <strong className="text-[var(--bone)]">{doc.chunk_count ?? 1}</strong> chunks
+                      <span className="text-[var(--dim)]">
+                        <strong className="text-[var(--bone)] font-semibold tabular-nums">{doc.chunk_count ?? 1}</strong> {doc.chunk_count === 1 ? "chunk" : "chunks"}
                       </span>
-                      <span className="text-[var(--faint)]">·</span>
-                      <span className="type-mono-sm text-[var(--faint)] flex items-center gap-1">
-                        SHA256: {doc.file_hash.substring(0, 12)}…
+                      <span className="text-[var(--dim)]">
+                        Dated <strong className="text-[var(--bone)] font-semibold">{doc.report_date || doc.upload_time.split("T")[0]}</strong>
+                      </span>
+                      <span className="type-mono-sm text-[var(--dim)] flex items-center gap-1">
+                        SHA256 {doc.file_hash.substring(0, 12)}…
                         {copiedHash === doc.file_hash ? (
-                          <span className="text-[var(--verdigris)] text-[11px] flex items-center gap-1 font-mono">
+                          <span className="text-[var(--verdigris)] text-[12px] flex items-center gap-1 font-mono">
                             <svg className="w-3 h-3 text-[var(--verdigris)] animate-draw-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="20 6 9 17 4 12" />
                             </svg>

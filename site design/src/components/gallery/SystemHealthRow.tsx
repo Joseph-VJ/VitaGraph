@@ -121,7 +121,7 @@ export const SystemHealthRow: React.FC<SystemHealthRowProps> = ({
               <Odometer value={numericLatency} duration={480} /> ms
             </>
           ) : (
-            latency || "—"
+            latency || "n/a"
           )}
         </span>
       </div>

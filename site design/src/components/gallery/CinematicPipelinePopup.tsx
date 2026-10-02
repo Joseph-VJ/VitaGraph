@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { GraphStage } from "./GraphStage";
 import { graphApi } from "../../api/graph";
 import type { GraphResponse } from "../../api/graph";
@@ -85,8 +86,7 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
   const stage = jobStream.currentStage || "received";
 
   if (view === "graph" && graph) {
-    const m = graph.metrics;
-    return (
+    return createPortal(
       <div
         role="dialog"
         aria-modal="true"
@@ -101,12 +101,12 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
               <h2 id="cinematic-popup-title" className="font-['Spectral'] font-semibold text-[var(--bone)] text-[17px] leading-tight">
                 Your knowledge graph is ready
               </h2>
-              <div className="type-mono-sm text-[var(--dim)] text-[11.5px] truncate mt-0.5">
-                Built from {filename || "your report"} and your earlier reports ·{" "}
-                <span data-testid="graph-metrics">
-                  {m.total_nodes} nodes · {m.total_edges} edges · {m.communities_count} communities
-                </span>
+              <div className="type-meta truncate mt-1">
+                Built from {filename || "your report"} and your earlier reports.
               </div>
+              <span className="sr-only" data-testid="graph-metrics">
+                {graph.metrics.total_nodes} nodes, {graph.metrics.total_edges} edges, {graph.metrics.communities_count} communities
+              </span>
             </div>
             <Badge variant="verdigris">Verified</Badge>
           </div>
@@ -137,18 +137,15 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
                 data-testid="next-to-ask"
               >
                 <span>Next: Ask your document</span>
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
               </Button>
             </DetentPress>
           </div>
         </div>
       </div>
-    );
+      , document.body);
   }
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -159,7 +156,7 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
       }`}
     >
       {/* 3D Glass Frame */}
-      <div className="relative w-full max-w-2xl rounded-[var(--r-14)] bg-[var(--ink-800)]/95 backdrop-blur-xl border border-[var(--line-strong)] shadow-[0_24px_64px_rgba(40,50,58,0.35),0_0_0_1px_rgba(255,255,255,0.4)_inset] overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl rounded-[var(--r-14)] bg-[var(--ink-800)]/95 border border-[var(--line-strong)] shadow-[0_24px_64px_rgba(40,50,58,0.35),0_0_0_1px_rgba(255,255,255,0.4)_inset] overflow-hidden flex flex-col max-h-[90vh]">
         {/* Subtle bevel line at the top */}
         <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-[var(--bone)]/20 to-transparent pointer-events-none" />
 
@@ -194,12 +191,12 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
                 className="font-['Spectral'] font-semibold text-[var(--bone)] text-[16px] leading-tight truncate"
               >
                 {isCompleted
-                  ? "Document Ingestion Complete"
+                  ? "Document ingested"
                   : isError
-                  ? "Pipeline Processing Interrupted"
-                  : "Ingesting Clinical Document"}
+                  ? "Processing interrupted"
+                  : "Ingesting clinical document"}
               </h2>
-              <div className="type-mono-sm text-[var(--dim)] text-[11.5px] truncate mt-0.5">
+              <div className="type-mono-sm text-[var(--dim)] text-[12px] truncate mt-0.5">
                 {filename || "Clinical Report PDF"}
               </div>
             </div>
@@ -207,7 +204,7 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
 
           <div className="flex items-center gap-2.5 flex-shrink-0">
             {jobStream.activeJobId && (
-              <span className="type-mono-sm text-[11px] text-[var(--faint)] hidden sm:inline-block">
+              <span className="type-mono-sm text-[12px] text-[var(--faint)] hidden sm:inline-block">
                 {jobStream.activeJobId}
               </span>
             )}
@@ -252,26 +249,26 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
                         : "bg-[var(--verdigris)] animate-pulse"
                     }`}
                   />
-                  <span className="type-mono-sm text-[10px] tracking-wider text-[var(--bone)]">
+                  <span className="type-mono-sm text-[11.5px] text-[var(--bone)]">
                     {isError
                       ? "FAIL-CLOSED POLICY TRIP"
                       : stage === "received"
-                      ? "VERIFYING FORMAT"
+                      ? "Verifying format"
                       : stage === "extracted"
-                      ? "EXTRACTING TOKENS"
+                      ? "Extracting text"
                       : stage === "chunked"
-                      ? "SEGMENTING CHUNKS"
+                      ? "Splitting into chunks"
                       : stage === "embedded"
-                      ? "GENERATING VECTORS"
+                      ? "Creating embeddings"
                       : stage === "indexed"
-                      ? "BUILDING CHROMA INDEX"
+                      ? "Building the search index"
                       : stage === "graphed"
-                      ? "MAPPING KNOWLEDGE GRAPH"
+                      ? "Mapping the knowledge graph"
                       : "INDEXED & LINKED"}
                   </span>
                 </div>
-                <span className="type-mono-sm text-[10px] text-[var(--dim)]">
-                  {isError ? "HALTED" : `${jobStream.eventCount} evt`}
+                <span className="type-mono-sm text-[11.5px] text-[var(--dim)]">
+                  {isError ? "Stopped" : `${jobStream.eventCount} evt`}
                 </span>
               </div>
 
@@ -282,7 +279,7 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
                     <span className="type-label text-[var(--madder)] text-[12px] font-semibold">
                       Security & Layout Verification Rejected
                     </span>
-                    <span className="type-meta text-[var(--dim)] text-[11px] leading-tight">
+                    <span className="type-meta text-[var(--dim)] text-[12px] leading-tight">
                       Corrupted document, missing text layer, or schema violation. File quarantined.
                     </span>
                   </div>
@@ -290,7 +287,7 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
                   <>
                     {stage === "received" && (
                       <div className="flex flex-col items-center justify-center gap-1.5 text-center">
-                        <span className="type-meta text-[11px] text-[var(--dim)]">Validating PDF header & structure</span>
+                        <span className="type-meta text-[12px] text-[var(--dim)]">Validating PDF header & structure</span>
                         <div className="w-36 h-1 bg-[var(--ink-700)] rounded overflow-hidden">
                           <div className={`w-full h-full bg-[var(--verdigris)] ${!isT0 ? "animate-pulse" : ""}`} />
                         </div>
@@ -344,7 +341,7 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
                           {!isT0 && <PulseRing color="verdigris" />}
                           <div className="w-3 h-3 rounded-full bg-[var(--verdigris)] shadow-[0_0_8px_var(--verdigris)]" />
                         </div>
-                        <span className="type-meta text-[11.5px] text-[var(--bone)]">
+                        <span className="type-meta text-[12px] text-[var(--bone)]">
                           Persisting to local vector store
                         </span>
                       </div>
@@ -369,7 +366,7 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
               </div>
 
               {/* Bottom status line */}
-              <div className="pt-1.5 border-t border-[var(--line-faint)] flex items-center justify-between text-[10px] text-[var(--dim)]">
+              <div className="pt-1.5 border-t border-[var(--line-faint)] flex items-center justify-between text-[11.5px] text-[var(--dim)]">
                 <span className="truncate max-w-[180px]">
                   {isError
                     ? "Execution halted"
@@ -398,7 +395,7 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
                   {jobStream.error || "Corrupted document structure or unreadable text layers."}
                 </span>
               </div>
-              <span className="type-mono-sm text-[11px] text-[var(--madder)] opacity-80 flex-shrink-0 ml-3">
+              <span className="type-mono-sm text-[12px] text-[var(--madder)] opacity-80 flex-shrink-0 ml-3">
                 fail-closed
               </span>
             </div>
@@ -420,7 +417,7 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
                     : jobStream.latestEvent?.description || "Awaiting pipeline worker..."}
                 </span>
               </div>
-              <span className="type-mono-sm text-[var(--faint)] text-[11px] flex-shrink-0 ml-3">
+              <span className="type-mono-sm text-[var(--faint)] text-[12px] flex-shrink-0 ml-3">
                 {isCompleted ? "Pipeline verified" : "EventSource connected"}
               </span>
             </div>
@@ -463,14 +460,11 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
                 }
               }}
             >
-              <span>Continue to Library</span>
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
+              <span>Continue to library</span>
             </Button>
           </DetentPress>
         </div>
       </div>
     </div>
-  );
+    , document.body);
 };

@@ -463,7 +463,7 @@ export const TimelinePage: React.FC = () => {
     <div className="flex flex-col gap-6 w-full">
       {/* Controls / Filter row */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <label htmlFor="event-filter" className="type-label text-[var(--dim)]">
             Show:
           </label>
@@ -630,9 +630,9 @@ export const TimelinePage: React.FC = () => {
                     style={{
                       viewTransitionName: isLatest && !isT0 ? "compare-row-timeline" : undefined,
                     }}
-                    className="flex items-center justify-between mb-3"
+                    className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mb-3"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                       <span className="type-mono text-[var(--bone)] font-medium text-base">
                         {dateStr}
                       </span>
@@ -643,7 +643,7 @@ export const TimelinePage: React.FC = () => {
                       </span>
                     </div>
                     <span className="type-mono-sm text-[var(--faint)] transition-opacity duration-120 delay-120">
-                      {report.page_count ? `${report.page_count} pages` : "1 page"} · sha256: {report.file_hash.slice(0, 8)}…
+                      {report.page_count && report.page_count > 1 ? `${report.page_count} pages` : "1 page"}, sha256 {report.file_hash.slice(0, 8)}…
                     </span>
                   </div>
 
@@ -662,9 +662,9 @@ export const TimelinePage: React.FC = () => {
                           ? "timeline-report"
                           : undefined,
                     }}
-                    className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-5 mb-4"
+                    className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-4 sm:p-5 mb-4"
                   >
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4">
                       <div className="flex items-start gap-3.5">
                         <div
                           className={`w-10 h-10 rounded-[var(--r-6)] bg-[var(--ink-700)] flex items-center justify-center flex-shrink-0 ${
@@ -686,7 +686,7 @@ export const TimelinePage: React.FC = () => {
                             </Badge>
                           </div>
                           <p className="type-meta text-[var(--dim)] mt-0.5">
-                            {report.original_filename} · {report.page_count || 1} page · Parsed by PyPDF/Surya-OCR
+                            {report.original_filename}, {report.page_count && report.page_count > 1 ? `${report.page_count} pages` : "1 page"}
                           </p>
                         </div>
                       </div>
@@ -697,7 +697,6 @@ export const TimelinePage: React.FC = () => {
                         data-testid={`view-report-btn-${report.id}`}
                       >
                         <span>View report</span>
-                        <span className="type-mono-sm">→</span>
                       </Button>
                     </div>
 
@@ -705,15 +704,14 @@ export const TimelinePage: React.FC = () => {
                     <div className="mt-4 pt-4 border-t border-[var(--line-faint)] flex flex-col gap-2.5">
                       <div className="flex items-center gap-2 type-meta text-[var(--dim)]">
                         <span className="w-1.5 h-1.5 rounded-full bg-[var(--verdigris)]" />
-                        <span className="type-label text-[var(--bone)]">Graph updated</span>
-                        <span>—</span>
+                        <span className="type-label text-[var(--bone)]">Graph updated.</span>
                         <span>Extracted entities & relations linked to knowledge graph topology</span>
                       </div>
 
                       <div className="p-3 bg-[var(--ink-900)] rounded-[var(--r-6)] border border-[var(--line-faint)] flex flex-col gap-2.5">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <span className="type-label text-[var(--dim)] text-[11px] block mb-0.5">
+                            <span className="type-label text-[var(--dim)] text-[12px] block mb-0.5">
                               Clinical inquiry
                             </span>
                             <p className="type-reading italic text-[var(--bone)] text-sm">
@@ -727,11 +725,11 @@ export const TimelinePage: React.FC = () => {
                               variant="ghost"
                               onClick={() => handleToggleAnswer(report.id)}
                               data-testid={`show-answer-btn-${report.id}`}
-                              className="text-[11px] h-7 px-2.5 flex-shrink-0 flex items-center gap-1.5"
+                              className="text-[12px] h-7 px-2.5 flex-shrink-0 flex items-center gap-1.5"
                             >
                               <span>{expandedAnswerReportIds.has(report.id) ? "Hide answer" : "Show answer"}</span>
                               <span
-                                className={`text-[10px] inline-block transition-transform duration-[120ms] ${
+                                className={`text-[11.5px] inline-block transition-transform duration-[120ms] ${
                                   expandedAnswerReportIds.has(report.id) && !isT0 ? "rotate-180" : ""
                                 }`}
                               >
@@ -747,9 +745,9 @@ export const TimelinePage: React.FC = () => {
                               !isT0 ? "m-enter-card" : ""
                             }`}
                           >
-                            <div className="flex items-center gap-1.5 text-[var(--verdigris)] type-meta mb-1 font-mono text-[10px]">
+                            <div className="flex items-center gap-1.5 text-[var(--verdigris)] type-meta mb-1 font-mono text-[11.5px]">
                               <span>●</span>
-                              <span>SYNTHESIZED GROUNDED FINDING</span>
+                              <span>Synthesized grounded finding</span>
                             </div>
                             <p className="type-body text-[12px] leading-relaxed text-[var(--bone)]">
                               {isLatest
@@ -769,7 +767,7 @@ export const TimelinePage: React.FC = () => {
                       <div className="space-y-2">
                         {/* Hemoglobin */}
                         <div
-                          className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)] m-enter"
+                          className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)] m-enter"
                           style={{ animationDelay: "0ms" }}
                         >
                           <div className="flex items-center gap-3">
@@ -809,7 +807,7 @@ export const TimelinePage: React.FC = () => {
 
                         {/* eGFR */}
                         <div
-                          className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)] m-enter"
+                          className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)] m-enter"
                           style={{ animationDelay: "24ms" }}
                         >
                           <div className="flex items-center gap-3">
@@ -848,7 +846,7 @@ export const TimelinePage: React.FC = () => {
 
                         {/* HbA1c */}
                         <div
-                          className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)] m-enter"
+                          className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)] m-enter"
                           style={{ animationDelay: "48ms" }}
                         >
                           <div className="flex items-center gap-3">
@@ -889,7 +887,7 @@ export const TimelinePage: React.FC = () => {
                         {/* Vitamin D */}
                         {isLatest ? (
                           <div
-                            className="flex items-center justify-between p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)] m-enter"
+                            className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-[var(--r-6)] bg-[var(--ink-700)]/30 border border-[var(--line-faint)] m-enter"
                             style={{ animationDelay: "72ms" }}
                           >
                             <div className="flex items-center gap-3">
@@ -918,7 +916,7 @@ export const TimelinePage: React.FC = () => {
                           </div>
                         ) : (
                           <div
-                            className="relative flex items-center justify-between p-2.5 rounded-[var(--r-6)] overflow-hidden m-enter"
+                            className="relative flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-[var(--r-6)] overflow-hidden m-enter"
                             style={{ animationDelay: "72ms" }}
                           >
                             {/* Missing Row Dash Pattern SVG drawing once on visibility (§M7.5) */}
@@ -937,7 +935,7 @@ export const TimelinePage: React.FC = () => {
                               />
                             </svg>
                             <span className="type-quote-sm italic text-[var(--dim)] relative z-10">
-                              Vitamin D — Not present in baseline report
+                              Vitamin D: not present in baseline report
                             </span>
                             <span className="type-mono-sm text-[var(--faint)] relative z-10">N/A</span>
                           </div>
@@ -1089,7 +1087,7 @@ export const TimelinePage: React.FC = () => {
                   <div className="type-mono-sm text-[var(--madder)] font-medium text-xs">
                     Confirm deletion of {effectiveUserId}?
                   </div>
-                  <p className="type-meta text-[var(--dim)] text-[11px]">
+                  <p className="type-meta text-[var(--dim)] text-[12px]">
                     Cascades: purges Chroma vectors, uploads, and database rows.
                   </p>
                   <div className="flex items-center gap-2 mt-1">
@@ -1113,7 +1111,7 @@ export const TimelinePage: React.FC = () => {
                           : armedState === "arming"
                           ? "Arming... (400ms)"
                           : armedState === "armed"
-                          ? "ARMED — Click to Purge"
+                          ? "Armed: click again to delete"
                           : "Confirm Purge"}
                       </Button>
                     </DetentPress>
@@ -1148,7 +1146,7 @@ export const TimelinePage: React.FC = () => {
                     <span className="type-mono-sm text-[var(--bone)] block">
                       {r.report_date || r.upload_time.split("T")[0]}
                     </span>
-                    <span className="type-meta text-[var(--dim)] text-[11px] truncate max-w-[180px] block">
+                    <span className="type-meta text-[var(--dim)] text-[12px] truncate max-w-[180px] block">
                       {r.original_filename}
                     </span>
                   </div>
@@ -1165,7 +1163,7 @@ export const TimelinePage: React.FC = () => {
           <div className="bg-[var(--ink-800)] border border-[var(--line-strong)] rounded-[var(--r-14)] p-5">
             <div className="mb-3 pb-2 border-b border-[var(--line-faint)]">
               <h3 className="type-title text-[var(--bone)]">Key observations</h3>
-              <p className="type-meta text-[var(--dim)] text-[11px] mt-0.5">
+              <p className="type-meta text-[var(--dim)] text-[12px] mt-0.5">
                 Longitudinal shifts across panels
               </p>
             </div>

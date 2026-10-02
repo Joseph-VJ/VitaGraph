@@ -295,7 +295,7 @@ export const InsightsPage: React.FC = () => {
     <div className="flex flex-col gap-6 w-full">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="type-title text-[var(--bone)]">Biomedical Insights & Graph Analysis</h2>
+          <h2 className="type-title text-[var(--bone)]">Graph insights</h2>
           <p className="type-meta text-[var(--dim)] mt-0.5">
             Network topology, community modularity, and cross-report evidence synthesis for {user?.display_label || "Arjun R"} ({effectiveUserId}).
           </p>
@@ -313,7 +313,7 @@ export const InsightsPage: React.FC = () => {
                 <path d="M1 20v-6h6" />
                 <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
               </svg>
-              <span>Refresh Analytics</span>
+              <span>Refresh analytics</span>
             </Button>
           </DetentPress>
         </div>
@@ -398,7 +398,7 @@ export const InsightsPage: React.FC = () => {
                     <span className="type-mono-sm text-sm font-bold text-[var(--bone)]">
                       <Odometer value={modularityVal} decimals={2} duration={720} testId="odo-modularity" />
                     </span>
-                    <span className="type-meta text-[10px] text-[var(--dim)]">Modularity</span>
+                    <span className="type-meta text-[11.5px] text-[var(--dim)]">Modularity</span>
                   </div>
                 </div>
 
@@ -421,7 +421,7 @@ export const InsightsPage: React.FC = () => {
                         {comm.label}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 text-[var(--dim)] font-mono text-[11px] flex-shrink-0">
+                    <div className="flex items-center gap-3 text-[var(--dim)] font-mono text-[12px] flex-shrink-0">
                       <span>{comm.coreNodes} nodes</span>
                       <span>{comm.edges} edges</span>
                     </div>
@@ -431,7 +431,7 @@ export const InsightsPage: React.FC = () => {
             </div>
 
             <div className="mt-4 pt-3 flex justify-between items-center">
-              <span className="type-meta text-[var(--faint)] text-[11px]">
+              <span className="type-meta text-[var(--faint)] text-[12px]">
                 Modularity range: 0.0 - 1.0 (higher = denser intra-cluster ties)
               </span>
               <Link
@@ -504,7 +504,7 @@ export const InsightsPage: React.FC = () => {
                         <span className="type-body font-medium text-[var(--bone)] block truncate max-w-[200px]">
                           {hub.name}
                         </span>
-                        <span className="type-meta text-[var(--dim)] text-[10px]">
+                        <span className="type-meta text-[var(--dim)] text-[11.5px]">
                           ({hub.role})
                         </span>
                       </div>
@@ -529,7 +529,7 @@ export const InsightsPage: React.FC = () => {
             </div>
 
             <div className="mt-4 pt-3 flex justify-between items-center">
-              <span className="type-meta text-[var(--faint)] text-[11px]">
+              <span className="type-meta text-[var(--faint)] text-[12px]">
                 FLIP race-sort on metric toggle ({centralityMetric})
               </span>
               <Link
@@ -632,7 +632,7 @@ export const InsightsPage: React.FC = () => {
             </div>
 
             <div className="mt-4 pt-3 border-t border-[var(--line-faint)]">
-              <span className="type-meta text-[var(--faint)] text-[11px]">
+              <span className="type-meta text-[var(--faint)] text-[12px]">
                 Computed dynamically from NetworkX knowledge graph
               </span>
             </div>
@@ -645,7 +645,7 @@ export const InsightsPage: React.FC = () => {
                 <h3 className="type-title text-[var(--bone)] text-base">
                   Longitudinal Synthesis
                 </h3>
-                <Badge variant="verdigris">Active Topology</Badge>
+                <Badge variant="verdigris">Active topology</Badge>
               </div>
 
               <div className="space-y-3 py-2 text-xs">
@@ -654,7 +654,7 @@ export const InsightsPage: React.FC = () => {
                 </p>
 
                 <div className="p-3 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
-                  <span className="type-label text-[var(--dim)] text-[11px] block mb-1">
+                  <span className="type-label text-[var(--dim)] text-[12px] block mb-1">
                     Graph Density & Connectivity
                   </span>
                   <p className="type-reading italic text-[var(--bone)] text-xs">

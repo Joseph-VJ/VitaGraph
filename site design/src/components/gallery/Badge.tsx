@@ -94,7 +94,7 @@ export const Badge: React.FC<BadgeProps> = ({
 
   const defaultText: Partial<Record<BadgeVariant, string>> = {
     answered: "answered",
-    refused: "refused — diagnostic boundary",
+    refused: "refused: diagnostic boundary",
     insufficient_evidence: "insufficient evidence",
     educational: "educational",
     rejected: "1 file rejected",

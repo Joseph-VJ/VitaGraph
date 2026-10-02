@@ -268,28 +268,27 @@ export const UploadPage: React.FC = () => {
       {/* Quick Test Bar for Autonomous & Browser Verification */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-[var(--r-8)] bg-[var(--ink-800)] border border-[var(--line-strong)]">
         <div className="flex items-center gap-2">
-          <span className="type-label text-[var(--bone)] text-[12px]">Direct Pipeline Ingestion:</span>
-          <span className="type-meta text-[var(--dim)] text-[11.5px]">Targeting persona {effectiveUserId}</span>
+          <span className="type-label text-[var(--bone)] text-[12px]">Direct pipeline ingestion</span>
+          <span className="type-meta text-[var(--dim)] text-[12px]">Targeting persona {effectiveUserId}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <DetentPress>
             <Button
               variant="ghost"
-              className="h-7 text-[11px] px-2.5 bg-[var(--verdigris)]/15 border-[var(--verdigris)]/40 text-[var(--verdigris)] hover:bg-[var(--verdigris)]/25 flex items-center gap-1.5 font-medium"
+              className="h-7 text-[12px] px-2.5 bg-[var(--verdigris)]/15 border-[var(--verdigris)]/40 text-[var(--verdigris)] hover:bg-[var(--verdigris)]/25 flex items-center gap-1.5 font-medium"
               disabled={isUploading || isLoadingCohort}
               onClick={() => {
                 playDetent();
                 handleLoadDemoCohort();
               }}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--verdigris)] animate-pulse" />
               {isLoadingCohort ? "Loading demo cohort…" : "Load demo cohort"}
             </Button>
           </DetentPress>
           <DetentPress>
             <Button
               variant="ghost"
-              className="h-7 text-[11px] px-2.5"
+              className="h-7 text-[12px] px-2.5"
               disabled={isUploading || isLoadingCohort}
               onClick={() => {
                 playDetent();
@@ -302,7 +301,7 @@ export const UploadPage: React.FC = () => {
           <DetentPress>
             <Button
               variant="ghost"
-              className="h-7 text-[11px] px-2.5 text-[var(--verdigris)] hover:text-[var(--verdigris)]"
+              className="h-7 text-[12px] px-2.5 text-[var(--verdigris)] hover:text-[var(--verdigris)]"
               disabled={isUploading || isLoadingCohort}
               onClick={() => {
                 playDetent();
@@ -315,7 +314,7 @@ export const UploadPage: React.FC = () => {
           <DetentPress>
             <Button
               variant="ghost"
-              className="h-7 text-[11px] px-2.5 text-[var(--madder)] hover:text-[var(--madder)]"
+              className="h-7 text-[12px] px-2.5 text-[var(--madder)] hover:text-[var(--madder)]"
               disabled={isUploading || isLoadingCohort}
               onClick={() => {
                 playDetent();
@@ -353,64 +352,64 @@ export const UploadPage: React.FC = () => {
                 </p>
               </div>
               <Badge variant={pages.length > 0 ? "verdigris" : "dim"}>
-                {pages.length > 0 ? `${pages.length} pages analyzed` : "Standby"}
+                {pages.length > 0 ? `${pages.length} {pages.length === 1 ? "page" : "pages"} analyzed` : "Standby"}
               </Badge>
             </div>
 
             <div className="flex flex-col gap-4">
               {/* 3 Summary Metric Tiles with Instrument Mono values & Paper Serif labels */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Metric 1: Pages Processed */}
+                {/* Metric 1: Pages processed */}
                 <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-900)] border border-[var(--line-faint)] flex flex-col justify-between min-h-[96px]">
                   <span className="font-['Spectral'] font-medium text-[var(--bone)] text-[13.5px]">
-                    Pages Processed
+                    Pages processed
                   </span>
                   <div className="mt-2">
                     {pages.length > 0 ? (
-                      <div className="type-stat text-[var(--bone)] font-mono tabular-nums text-[24px] font-medium flex items-baseline gap-1.5">
+                      <div className="type-stat text-[var(--bone)] tabular-nums text-[24px] font-medium flex items-baseline gap-1.5">
                         <Odometer value={pages.length} />
                         <span className="type-mono-sm text-[var(--dim)] text-[12px] font-normal">sheets</span>
                       </div>
                     ) : (
-                      <span className="type-stat text-[var(--faint)] font-mono tabular-nums text-[24px] font-medium">
-                        —
+                      <span className="type-stat text-[var(--faint)] tabular-nums text-[24px] font-medium">
+                        n/a
                       </span>
                     )}
                   </div>
-                  <span className="type-meta text-[var(--dim)] text-[11px] mt-1">
+                  <span className="type-meta text-[var(--dim)] text-[12px] mt-1">
                     {pages.length > 0 ? `${nativePagesCount} native text layer` : "Awaiting document upload"}
                   </span>
                 </div>
 
-                {/* Metric 2: OCR Fallback Used */}
+                {/* Metric 2: OCR used */}
                 <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-900)] border border-[var(--line-faint)] flex flex-col justify-between min-h-[96px]">
                   <span className="font-['Spectral'] font-medium text-[var(--bone)] text-[13.5px]">
-                    OCR Fallback Used
+                    OCR used
                   </span>
                   <div className="mt-2 flex items-center">
                     {pages.length > 0 ? (
                       ocrPagesCount > 0 ? (
                         <div className="flex items-center gap-2">
-                          <Badge variant="ochre">{ocrPagesCount} page(s)</Badge>
-                          <span className="type-meta text-[var(--ochre-ink)] text-[11.5px] font-medium">active</span>
+                          <Badge variant="ochre">{ocrPagesCount} {ocrPagesCount === 1 ? "page" : "pages"}</Badge>
+                          <span className="type-meta text-[var(--ochre-ink)] text-[12px] font-medium">active</span>
                         </div>
                       ) : (
                         <div className="flex items-baseline gap-1.5">
-                          <span className="type-stat text-[var(--verdigris)] font-mono text-[20px] font-medium">
+                          <span className="type-stat text-[var(--verdigris)] text-[20px] font-medium">
                             No
                           </span>
-                          <span className="type-mono-sm text-[var(--dim)] text-[11.5px] font-normal">
-                            (100% Native)
+                          <span className="type-mono-sm text-[var(--dim)] text-[12px] font-normal">
+                            (all native text)
                           </span>
                         </div>
                       )
                     ) : (
-                      <span className="type-stat text-[var(--faint)] font-mono tabular-nums text-[24px] font-medium">
-                        —
+                      <span className="type-stat text-[var(--faint)] tabular-nums text-[24px] font-medium">
+                        n/a
                       </span>
                     )}
                   </div>
-                  <span className="type-meta text-[var(--dim)] text-[11px] mt-1">
+                  <span className="type-meta text-[var(--dim)] text-[12px] mt-1">
                     {pages.length > 0
                       ? ocrPagesCount > 0
                         ? "RapidOCR / Tesseract"
@@ -419,24 +418,24 @@ export const UploadPage: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Metric 3: Total Chunks */}
+                {/* Metric 3: Total chunks */}
                 <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-900)] border border-[var(--line-faint)] flex flex-col justify-between min-h-[96px]">
                   <span className="font-['Spectral'] font-medium text-[var(--bone)] text-[13.5px]">
-                    Total Chunks
+                    Total chunks
                   </span>
                   <div className="mt-2">
                     {pages.length > 0 ? (
-                      <div className="type-stat text-[var(--bone)] font-mono tabular-nums text-[24px] font-medium flex items-baseline gap-1.5">
+                      <div className="type-stat text-[var(--bone)] tabular-nums text-[24px] font-medium flex items-baseline gap-1.5">
                         <Odometer value={totalChunks} />
                         <span className="type-mono-sm text-[var(--dim)] text-[12px] font-normal">blocks</span>
                       </div>
                     ) : (
-                      <span className="type-stat text-[var(--faint)] font-mono tabular-nums text-[24px] font-medium">
-                        —
+                      <span className="type-stat text-[var(--faint)] tabular-nums text-[24px] font-medium">
+                        n/a
                       </span>
                     )}
                   </div>
-                  <span className="type-meta text-[var(--dim)] text-[11px] mt-1">
+                  <span className="type-meta text-[var(--dim)] text-[12px] mt-1">
                     {pages.length > 0
                       ? `${totalChars.toLocaleString()} characters indexed`
                       : "ChromaDB vector partition"}
@@ -448,7 +447,7 @@ export const UploadPage: React.FC = () => {
               {pages.length === 0 && (
                 <div
                   data-testid="upload-quality-empty"
-                  className={`flex items-center gap-2.5 p-3 rounded-[var(--r-6)] bg-[var(--ink-900)]/60 border border-[var(--line-faint)] text-[var(--dim)] type-meta text-[11.5px] ${
+                  className={`flex items-center gap-2.5 p-3 rounded-[var(--r-6)] bg-[var(--ink-900)]/60 border border-[var(--line-faint)] text-[var(--dim)] type-meta text-[12px] ${
                     !isT0 ? "m-enter" : ""
                   }`}
                 >
@@ -488,11 +487,11 @@ export const UploadPage: React.FC = () => {
               {/* Footnote when pages present */}
               {pages.length > 0 && (
                 <div className="pt-3 border-t border-[var(--line-faint)] flex items-center justify-between">
-                  <span className="type-quote-sm text-[var(--dim)] italic text-[11.5px]">
+                  <span className="type-quote-sm text-[var(--dim)] italic text-[12px]">
                     {nativePagesCount} native page{nativePagesCount === 1 ? "" : "s"} · {ocrPagesCount} OCR scanned page{ocrPagesCount === 1 ? "" : "s"}
                     {uncertainPages.length > 0 && ` · ${uncertainPages.length} uncertain`}
                   </span>
-                  <span className="type-mono-sm text-[var(--faint)] text-[11px]">
+                  <span className="type-mono-sm text-[var(--faint)] text-[12px]">
                     Engine: RapidOCR / Tesseract dual-engine pipeline
                   </span>
                 </div>

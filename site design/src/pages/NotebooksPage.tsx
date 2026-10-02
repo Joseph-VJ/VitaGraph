@@ -157,7 +157,7 @@ export const NotebooksPage: React.FC = () => {
     <div className="flex flex-col gap-6 w-full">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="type-title text-[var(--bone)]">Research Notebooks</h2>
+          <h2 className="type-title text-[var(--bone)]">Research notebooks</h2>
           <p className="type-meta text-[var(--dim)] mt-0.5">
             Interactive Jupyter research workflows, statistical models, and validation routines.
           </p>
@@ -196,7 +196,7 @@ export const NotebooksPage: React.FC = () => {
                   <p className="type-meta text-[var(--dim)] text-xs line-clamp-2">
                     {nb.summary}
                   </p>
-                  <div className="mt-3 pt-2 border-t border-[var(--line-faint)] flex items-center justify-between text-[11px] text-[var(--faint)]">
+                  <div className="mt-3 pt-2 border-t border-[var(--line-faint)] flex items-center justify-between text-[12px] text-[var(--faint)]">
                     <span>{nb.kernel}</span>
                     <span className="font-mono">{nb.lastRun}</span>
                   </div>
@@ -240,14 +240,14 @@ export const NotebooksPage: React.FC = () => {
 
             <div className="flex items-center gap-2">
               {step > 0 && !error && (
-                <span className="type-mono text-[11px] text-[var(--verdigris)]">
+                <span className="type-mono text-[12px] text-[var(--verdigris)]">
                   {step === 3 ? "Execution complete (0.24s)" : `Executing step ${step}/3...`}
                 </span>
               )}
               {error && (
                 <span
                   data-testid="notebook-step-failed"
-                  className={`type-mono text-[11px] text-[var(--madder)] flex items-center gap-1.5 ${
+                  className={`type-mono text-[12px] text-[var(--madder)] flex items-center gap-1.5 ${
                     !isT0 ? "animate-led-fail" : ""
                   }`}
                 >
@@ -294,7 +294,7 @@ export const NotebooksPage: React.FC = () => {
               <span className="type-label text-[var(--dim)] text-xs">
                 Executable Cell [1]
               </span>
-              <span className="type-mono-sm text-[var(--faint)] text-[11px]">
+              <span className="type-mono-sm text-[var(--faint)] text-[12px]">
                 Python 3.11
               </span>
             </div>

@@ -107,20 +107,20 @@ export const DocumentPanel: React.FC<DocumentPanelProps> = ({
         {/* Key-info rows */}
         <div className="space-y-2 mb-5">
           <div className="flex justify-between type-body text-[12.5px]">
-            <span className="text-[var(--dim)]">Node Type</span>
+            <span className="text-[var(--dim)]">Node type</span>
             <span className="text-[var(--bone)] capitalize">
               {selectedNode?.type || "Report Document"}
             </span>
           </div>
           <div className="flex justify-between type-body text-[12.5px]">
-            <span className="text-[var(--dim)]">Source Document</span>
+            <span className="text-[var(--dim)]">Source document</span>
             <span className="text-[var(--bone)] truncate max-w-[180px]">
               {selectedNode?.report_id || reportFilename}
             </span>
           </div>
           {selectedNode?.value !== undefined && (
             <div className="flex justify-between type-body text-[12.5px]">
-              <span className="text-[var(--dim)]">Extracted Value</span>
+              <span className="text-[var(--dim)]">Extracted value</span>
               <span className="text-[var(--verdigris)] font-medium">
                 {selectedNode.value} {selectedNode.unit || ""}
               </span>
@@ -128,7 +128,7 @@ export const DocumentPanel: React.FC<DocumentPanelProps> = ({
           )}
           {selectedNode?.betweenness !== undefined && (
             <div className="flex justify-between type-body text-[12.5px]">
-              <span className="text-[var(--dim)]">Network Centrality</span>
+              <span className="text-[var(--dim)]">Network centrality</span>
               <span className="text-[var(--ochre-ink)] font-mono">
                 {selectedNode.betweenness.toFixed(3)}
               </span>
@@ -156,8 +156,8 @@ export const DocumentPanel: React.FC<DocumentPanelProps> = ({
 
       {/* Footer action (§7.19) */}
       <div className="pt-4 border-t border-[var(--line-faint)] flex items-center justify-between mt-6">
-        <Button variant="ghost">View in Library</Button>
-        <Button variant="primary">Explore Subgraph</Button>
+        <Button variant="ghost">View in library</Button>
+        <Button variant="primary">Explore subgraph</Button>
       </div>
     </div>
   );

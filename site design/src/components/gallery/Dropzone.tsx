@@ -200,7 +200,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
 
       {/* Footnote — fades to 'Release to ingest.' during drag (§M7.2) */}
       <span className="type-mono-sm text-[var(--faint)] transition-opacity duration-[180ms]">
-        {isDragging ? "Release to ingest." : "Supports PDF · Max 50 MB · Encrypted in transit"}
+        {isDragging ? "Release to ingest." : "PDF only, up to 25 MB"}
       </span>
     </div>
   );

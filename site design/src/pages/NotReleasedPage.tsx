@@ -26,7 +26,7 @@ export const NotReleasedPage: React.FC<NotReleasedPageProps> = ({
         </p>
 
         <EmptyState
-          quote="Not in first release — reserved for future version"
+          quote="Not in the first release. Reserved for a future version."
           actionLabel="Return to workspace overview"
           onAction={() => {
             transitionNavigate(navigate, "/", { direction: "back" });
