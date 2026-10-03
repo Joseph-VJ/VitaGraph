@@ -64,3 +64,30 @@ DEVIATIONS: <anything you did differently from the task, or "none">
 OPEN QUESTIONS: <or "none">
 ```
 Never claim COMPLETE without pasted fresh command output. The reviewer will diff your work and re-run the build.
+
+## 6. Token cheat-sheet and gotchas (learned in Task 01; read before touching any component)
+Use arbitrary-value utilities with CSS variables, the way the existing code does: `bg-[var(--color-bg)]`, `text-[var(--color-text)]`, `border-[var(--color-divider)]`. Do NOT use Tailwind colour names such as `bg-accent`, `text-accent`, `bg-surface`; they are not registered and must not be added.
+
+| Need | Use |
+|---|---|
+| Page background (the ground) | `var(--color-bg)` |
+| Card / panel / input fill | `var(--color-surface)` (grey) or `var(--color-neutral-100)` (lighter) |
+| Main text | `var(--color-text)` |
+| Secondary text (>= 4.5:1) | `var(--faint)` (= #605d5d) or `var(--dim)` (= #444141) |
+| Strong rule between sections | `border-2 border-[var(--color-divider)]` |
+| Light rule inside a table or list | `border border-[var(--line-faint)]` |
+| Primary button fill, red text, links, active states | `var(--accent)` (= #ae1800, the contrast-safe red) with `var(--on-accent)` text |
+| Bright brand red, ONLY for non-text marks: bars, squares, left edge of active nav, focus ring, graph highlights | `var(--color-accent)` (= #ec3013) |
+| Tints | `var(--color-accent-100)` (pale red fill), `var(--color-accent-200)`, `var(--color-neutral-300)` |
+| Verified / success | `var(--verdigris)`; caution `var(--ochre)` fill/border, `var(--ochre-ink)` text; failure `var(--madder)` |
+| Hover tint on a transparent surface | `hover:bg-[color-mix(in_srgb,var(--color-text)_7%,transparent)]` |
+| Shadow (floating things only) | `shadow-[var(--shadow-md)]` |
+| Monospace (hashes, ids, latencies) | the `.font-mono` class or `type-mono` / `type-mono-sm` |
+
+Gotchas:
+1. The classes `type-body`, `type-label`, `type-meta`, `type-mono-sm`, `type-display`, `type-title`, `type-screen-sub` also set a text colour. Inside a dark-on-light element (for example an active nav item with inverted colours) they override inherited colour. When a task needs inverted colours, do NOT use `type-*` classes on that element or its children; use plain utilities (`text-[15px] font-extrabold leading-tight`).
+2. `rounded-full` is hard-coded by Tailwind and does NOT follow our radius tokens. Every `rounded-full` stays round until you remove it. In the files your task names, delete every `rounded-*` class. (A repo-wide sweep happens in a later task; do not do it early.)
+3. Weight 800 in Tailwind is `font-extrabold`; 600 is `font-semibold`. Only 400/600/800 of Archivo are loaded. Never use 500 or 700 (they would be faked or fall back).
+4. `viewTransitionName`, `data-boot-target`, `data-testid`, `aria-*` and `ref` attributes are wired to the motion/boot code and to tests. Keep each one exactly where it is, on an element of the same role.
+5. Do not add npm packages unless the task says so.
+6. Do not use `any` in TypeScript. Do not leave unused imports or variables (the build runs `tsc -b` and fails on them).
