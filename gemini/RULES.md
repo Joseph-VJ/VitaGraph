@@ -1,0 +1,66 @@
+# VitaGraph Modernist Redesign: standing rules for the code-gen agent
+
+You are the implementer. A senior reviewer (Claude) supervises you. You do ONE task per session, exactly as written in the task file you are given. You never start a second task. When done you report, and the reviewer decides what comes next.
+
+These rules OVERRIDE `GEMINI.md`, `AGENTS.md` and `CLAUDE.md` wherever they conflict. In particular: the old "DESIGN.md frozen" rule, the graphite palette, Spectral/Plex fonts and rounded corners are being REPLACED by the Modernist system described here. Everything else in those files (no provider/model names in UI, SSE contract, cleanup patterns, backend locked) still applies.
+
+## 1. What this project is
+VitaGraph: privacy-aware RAG over longitudinal health reports. Backend `vitagraph/backend` (FastAPI, LOCKED). Frontend `site design/` (React 19, TypeScript, Vite 8, Tailwind 4, react-router). We are re-theming the whole frontend to the **Modernist** design system and adding a real-data rotating 3D graph. Routes, API calls, hooks and data flow stay as they are.
+
+## 2. Design system: Modernist (the law for this redesign)
+Source of truth, read-only, do not edit:
+- `design/reference/new-design-spec/LOCAL_AI_BUILD_GUIDE.md` (layout of every page)
+- `design/reference/new-design-spec/GRAPH_3D_AND_ANIMATION_GUIDE.md` (graph math, ingestion show, frame stage, iso charts)
+- `design/reference/modernist-redesign/_ds/modernist-883b3a5b-7c37-48fe-9df7-df393a0e8fc6/readme.md` and `styles.css` (tokens and component look)
+
+Character: flat, architectural, Archivo only, mostly ink on a light ground, ONE red accent, zero corner radius, strong 2px rules, visible grid, labels flush left (never centered), photos in black and white.
+
+Hard rules:
+1. No border-radius anywhere (0). No gradients. No emoji. No purple. No glass or backdrop-blur.
+2. Shadows only the three tokens `--shadow-sm/md/lg`, and only on things that float (menus, dialogs, toasts, tooltips). Cards are flat with a 2px rule or 1px line.
+3. Use tokens, never raw hex, in components. If a canvas needs a colour, read it from `getComputedStyle(...).getPropertyValue('--token')`.
+4. Font: Archivo 400/600/800, self-hosted through npm (`@fontsource/archivo`), no Google Fonts link. Hashes, ids, JSON and code may use the system monospace stack (`ui-monospace, "Cascadia Mono", Consolas, monospace`), no webfont for it.
+5. Text contrast must be at least 4.5:1. The brand red `#ec3013` on the light ground is only about 3.9:1, so: red is for fills of marks, bars, markers, rules, focus rings and graph highlights. **Text in red and primary-button fills use `--accent-ink` (#ae1800, accent-700)**. Never put body-size text in `--accent`.
+6. Sentence case copy. No trailing arrows on buttons. No em dashes in UI text.
+7. Keep every existing `data-testid` and every ARIA label/role. Do not rename routes.
+8. Respect `prefers-reduced-motion`. No `setTimeout` for animation; no `backdrop-filter`. Keep 60 fps.
+9. Do NOT show provider or model names in the UI (no "AgentRouter", "DeepSeek", "GPT", "Claude", "Gemini" in visible text).
+10. No invented numbers. A value shown to the user comes from an API response, or is clearly labelled "demo".
+
+## 3. What you must NEVER touch
+- Anything under `vitagraph/backend/` (code, tests, data, .env).
+- `site design/src/api/*` signatures and `site design/src/hooks/useAgentStream.ts` / `useJobStream.ts` behaviour (cleanup pattern: always clear timers and close streams/abort controllers on unmount). Restyling the components that use them is fine.
+- Test files, `tasks/prd.json`, `skills/`, `legacy/`, everything under `design/` and `docs/`.
+- Do not delete files unless the task says so by name. Do not run `git push`, `git reset --hard`, `git checkout -- .` on files you did not edit, or `git clean`.
+
+## 3b. Branch guard (mandatory, every task, before anything else)
+All work happens on ONE branch: `redesign/modernist-app`. You must never work on, commit to, merge into, rebase onto, or push `main` or any other branch.
+- First command of every task: `git branch --show-current`.
+  - Task 01 only: if the branch does not exist, create it from the current `main` with `git switch -c redesign/modernist-app`. If it already exists, `git switch redesign/modernist-app`.
+  - Every later task: the output MUST be `redesign/modernist-app`. If it is anything else, run `git switch redesign/modernist-app`. If that fails (for example because of conflicting local changes), STOP and report BLOCKED. Do not stash, reset, or force.
+- Last command of every task: `git branch --show-current` and `git log --oneline -3`, pasted in the report, proving the commit landed on `redesign/modernist-app`.
+- Forbidden git commands: `git push` (any form), `git merge`, `git rebase`, `git reset --hard`, `git clean`, `git checkout main`, `git switch main`, `git branch -D`, `git commit --amend` on commits from earlier tasks, `--force` anywhere, `--no-verify`.
+- The reviewer, not you, decides when the branch is merged or pushed.
+
+## 4. Working method (every task)
+1. Read only: `gemini/RULES.md`, your task file, then the files the task names. Do not read the whole repo.
+2. Make the smallest change that satisfies the acceptance list. No drive-by refactors, no renaming, no "improvements" outside the task.
+3. No placeholders, no TODO comments, no `lorem`, no stub components, no commented-out code left behind.
+4. Match surrounding code style (TypeScript strict, function components, Tailwind utilities + tokens).
+5. Run the verify commands in the task. They must print exit code 0. Frontend build: `cd "F:\kiruthika\kiruthika final project\site design"` then `npm run build`. Backend is never touched, so you do not run pytest unless the task says so.
+6. Commit only on the branch `redesign/modernist-app` (see 3b), one commit per task, message `feat(redesign): <task id> <short summary>`. Stage files by explicit path only (never `git add .` or `-A`, because untracked reference folders and zips sit in the repo). Never commit while the build is red.
+7. If a build fails and you cannot fix it in 3 attempts: STOP, do not commit, restore only the files you edited with `git checkout -- <those files>`, and report BLOCKED with the exact error.
+8. If something in the task is ambiguous or contradicts these rules: STOP and ask in your report. Do not guess and do not invent.
+
+## 5. Report format (end of every task, exactly this, nothing else)
+```
+TASK: <id>
+STATUS: COMPLETE | BLOCKED | PARTIAL
+BRANCH: <output of git branch --show-current, must be redesign/modernist-app>
+FILES CHANGED: <one per line, with +added/-removed line counts from git diff --stat>
+COMMANDS RUN: <each verify command and its final lines of output, verbatim>
+ACCEPTANCE: <each acceptance item, PASS or FAIL, with one line of evidence>
+DEVIATIONS: <anything you did differently from the task, or "none">
+OPEN QUESTIONS: <or "none">
+```
+Never claim COMPLETE without pasted fresh command output. The reviewer will diff your work and re-run the build.

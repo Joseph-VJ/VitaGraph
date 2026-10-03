@@ -1,7 +1,7 @@
 import json
 import re
 
-prompt_file = "VITAGRAPH_MOTION_PROMPT.md"
+prompt_file = "docs/motion/VITAGRAPH_MOTION_PROMPT.md"
 with open(prompt_file, "r", encoding="utf-8") as f:
     content = f.read()
 
@@ -38,7 +38,7 @@ else:
 part_d_match = re.search(r"```text\n(MISSION: Add the game-grade motion[\s\S]*?)\n```", content)
 if part_d_match:
     part_d_content = part_d_match.group(1).strip() + "\n"
-    with open("PROMPT_MOTION.md", "w", encoding="utf-8") as f:
+    with open("docs/motion/PROMPT_MOTION.md", "w", encoding="utf-8") as f:
         f.write(part_d_content)
     print("Created PROMPT_MOTION.md successfully.")
 else:

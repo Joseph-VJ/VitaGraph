@@ -1,6 +1,6 @@
 # VitaGraph loop constitution
 Project: VitaGraph (B.Tech). Shipping frontend = `site design/` prototype wired to the REAL backend in `vitagraph/backend`.
-Read order each iteration: AGENTS.md → tasks/prd.json → progress.txt (tail) → DESIGN.md (only when touching UI) → PROJECT_CONTEXT_AND_ROADMAP.md §2.4 + plan §12/§20.1 (only when touching events/graph).
+Read order each iteration: AGENTS.md → tasks/prd.json → progress.txt (tail) → DESIGN.md (only when touching UI) → docs/planning/PROJECT_CONTEXT_AND_ROADMAP.md §2.4 + plan §12/§20.1 (only when touching events/graph).
 Verify commands (Windows):
   backend:  cd vitagraph/backend && .venv\Scripts\python.exe -m pytest tests -q
   frontend: cd "site design" && npm run build   (and npm run dev + browser check for UI stories)
