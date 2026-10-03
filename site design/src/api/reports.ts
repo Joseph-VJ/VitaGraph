@@ -72,6 +72,22 @@ export interface DemoCohortResult {
   modularity: number;
 }
 
+export interface MeasurementRow {
+  test_name: string;
+  category: string;
+  value: number;
+  unit: string;
+  reference_range: string | null;
+  range_low: number | null;
+  range_high: number | null;
+  flag: string;
+  page_number: number;
+  chunk_id: string;
+  char_start: number;
+  char_end: number;
+  span_exact: boolean;
+}
+
 export const reportsApi = {
   upload: (userId: string, file: File, jobId?: string, background: boolean = true) => {
     const form = new FormData();
@@ -85,6 +101,7 @@ export const reportsApi = {
   },
   list: (userId: string) => api.get<Report[]>(`/api/reports?user_id=${userId}`),
   pages: (reportId: string) => api.get<ReportPage[]>(`/api/reports/${reportId}/pages`),
+  measurements: (reportId: string) => api.get<MeasurementRow[]>(`/api/reports/${reportId}/measurements`),
   trends: (userId: string, test: string = "Hemoglobin") =>
     api.get<TrendData>(`/api/reports/${userId}/trends?test=${encodeURIComponent(test)}`),
   compare: (userId: string, baselineId?: string, followupId?: string) => {

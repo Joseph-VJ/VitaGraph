@@ -1,418 +1,263 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  Badge,
-  Button,
-  IconButton,
-  EmptyState,
-  ErrorState,
-} from "../components/gallery";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { reportsApi, type MeasurementRow } from "../api/reports";
 import { useActiveUser } from "../context/UserContext";
-import { reportsApi } from "../api/reports";
-import type { Report } from "../types";
-import { setNavDirection, getNavDirection, transitionNavigate } from "../motion/navigation";
-import { flip } from "../motion/flip";
-import { Sequence } from "../motion/sequence";
-import { Odometer } from "../motion/fx/Odometer";
-import { governor } from "../motion/quality";
-import { isReducedMotion } from "../motion/features";
+import { transitionNavigate } from "../motion/navigation";
+import { makeLabeler, sortReports } from "../lib/reportLabels";
+import type { Report, ReportPage } from "../types";
+
+const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+const num = (v: number) => v.toLocaleString("en-US", { maximumFractionDigits: 3 });
+const headStyle: React.CSSProperties = {
+  fontSize: "0.6875rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-neutral-700)",
+};
+const GRID = "minmax(120px,1.2fr) minmax(90px,0.8fr) minmax(150px,1.6fr) 5.5rem";
+
+function statusOf(r: MeasurementRow): { label: string; hot: boolean } {
+  if (r.range_low !== null && r.range_high !== null) {
+    if (r.value < r.range_low) return { label: "Below range", hot: true };
+    if (r.value > r.range_high) return { label: "Above range", hot: true };
+    return { label: "In range", hot: false };
+  }
+  const f = r.flag.toUpperCase();
+  if (f === "LOW") return { label: "Below range", hot: true };
+  if (f === "HIGH") return { label: "Above range", hot: true };
+  return { label: "No range", hot: false };
+}
 
 export const LibraryPage: React.FC = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   const { user } = useActiveUser();
-  const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
+  const userId = user?.id ?? null;
 
-  const isT0 = isReducedMotion() || governor.getState().tier === "T0";
-
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [appliedSearch, setAppliedSearch] = useState("");
-  const [appliedStatusFilter, setAppliedStatusFilter] = useState<string>("all");
-  const [exitingIds, setExitingIds] = useState<string[]>([]);
-  const [copiedHash, setCopiedHash] = useState<string | null>(null);
-  const [navigatingRowId, setNavigatingRowId] = useState<string | null>(null);
-
+  const [reports, setReports] = useState<Report[] | null>(null);
+  const [selId, setSelId] = useState("");
   const [error, setError] = useState<string | null>(null);
-
-  const listRef = useRef<HTMLDivElement>(null);
-
-  const loadReports = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await reportsApi.list(effectiveUserId);
-      setReports(data);
-    } catch (err: any) {
-      console.warn("Failed to load reports from backend:", err);
-      setError("Failed to load reports: " + (err.message || "Network error"));
-    } finally {
-      setLoading(false);
-    }
-  }, [effectiveUserId]);
+  const [tick, setTick] = useState(0);
+  const [rows, setRows] = useState<MeasurementRow[] | null>(null);
+  const [prevRows, setPrevRows] = useState<MeasurementRow[]>([]);
+  const [rowsError, setRowsError] = useState<string | null>(null);
+  const [pages, setPages] = useState<ReportPage[] | null>(null);
+  const [openTest, setOpenTest] = useState<string | null>(null);
+  const cache = useRef<Map<string, MeasurementRow[]>>(new Map());
 
   useEffect(() => {
-    loadReports();
-  }, [loadReports]);
+    if (!userId) return;
+    let cancelled = false;
+    setReports(null);
+    setError(null);
+    cache.current = new Map();
+    reportsApi
+      .list(userId)
+      .then((list) => {
+        if (cancelled) return;
+        const sorted = sortReports(list);
+        setReports(sorted);
+        setSelId(sorted.length > 0 ? sorted[sorted.length - 1].id : "");
+      })
+      .catch((err: unknown) => { if (!cancelled) setError(err instanceof Error ? err.message : String(err)); });
+    return () => { cancelled = true; };
+  }, [userId, tick]);
 
-  const handleCopyHash = (hash: string) => {
-    navigator.clipboard.writeText(hash);
-    setCopiedHash(hash);
-    new Sequence().wait(1500).addAction(() => setCopiedHash(null)).play();
-  };
+  const labelOf = useMemo(() => makeLabeler(reports ?? []), [reports]);
+  const selIndex = (reports ?? []).findIndex((r) => r.id === selId);
+  const selected = selIndex >= 0 ? (reports ?? [])[selIndex] : null;
+  const previous = selIndex > 0 ? (reports ?? [])[selIndex - 1] : null;
 
-  const matchesCriteria = (rep: Report, sFilter: string, sQuery: string) => {
-    const matchesStatus =
-      sFilter === "all" ||
-      (sFilter === "ready" && rep.status === "ready") ||
-      (sFilter === "failed" && rep.status === "failed");
-    const matchesSearch =
-      rep.original_filename.toLowerCase().includes(sQuery.toLowerCase()) ||
-      rep.file_hash.toLowerCase().includes(sQuery.toLowerCase()) ||
-      (rep.report_date && rep.report_date.toLowerCase().includes(sQuery.toLowerCase()));
-    return matchesStatus && matchesSearch;
-  };
+  const loadMeasurements = useCallback(async (reportId: string): Promise<MeasurementRow[]> => {
+    const hit = cache.current.get(reportId);
+    if (hit) return hit;
+    const data = await reportsApi.measurements(reportId);
+    cache.current.set(reportId, data);
+    return data;
+  }, []);
 
-  // Exit-aware FLIP on search/filter changes (§M4.4)
-  const runFilterWithExit = (nextSearch: string, nextStatus: string) => {
-    const currentVisible = reports.filter((rep) =>
-      matchesCriteria(rep, appliedStatusFilter, appliedSearch)
-    );
-    const nextMatches = new Set(
-      reports
-        .filter((rep) => matchesCriteria(rep, nextStatus, nextSearch))
-        .map((r) => r.id)
-    );
+  useEffect(() => {
+    if (!selected) return;
+    let cancelled = false;
+    setRows(null);
+    setRowsError(null);
+    setPages(null);
+    setOpenTest(null);
+    setPrevRows([]);
+    loadMeasurements(selected.id)
+      .then((d) => { if (!cancelled) setRows(d); })
+      .catch((err: unknown) => { if (!cancelled) { setRows([]); setRowsError(err instanceof Error ? err.message : String(err)); } });
+    if (previous) {
+      loadMeasurements(previous.id).then((d) => { if (!cancelled) setPrevRows(d); }).catch(() => undefined);
+    }
+    return () => { cancelled = true; };
+  }, [selected?.id, previous?.id, loadMeasurements]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const leaving = currentVisible.filter((r) => !nextMatches.has(r.id)).map((r) => r.id);
-
-    if (leaving.length > 0 && !isT0) {
-      setExitingIds(leaving);
-      new Sequence()
-        .wait(180)
-        .addAction(() => {
-          if (listRef.current) {
-            flip(
-              listRef.current,
-              () => {
-                setAppliedSearch(nextSearch);
-                setAppliedStatusFilter(nextStatus);
-                setExitingIds([]);
-              },
-              { spring: "weighted", capMs: 240 }
-            );
-          } else {
-            setAppliedSearch(nextSearch);
-            setAppliedStatusFilter(nextStatus);
-            setExitingIds([]);
-          }
-        })
-        .play();
-    } else {
-      if (listRef.current && !isT0) {
-        flip(
-          listRef.current,
-          () => {
-            setAppliedSearch(nextSearch);
-            setAppliedStatusFilter(nextStatus);
-          },
-          { spring: "weighted", capMs: 240 }
-        );
-      } else {
-        setAppliedSearch(nextSearch);
-        setAppliedStatusFilter(nextStatus);
-      }
+  const toggle = (testName: string) => {
+    const next = openTest === testName ? null : testName;
+    setOpenTest(next);
+    if (next && selected && pages === null) {
+      reportsApi.pages(selected.id).then(setPages).catch(() => setPages([]));
     }
   };
 
-  const handleSearchChange = (val: string) => {
-    setSearch(val);
-    runFilterWithExit(val, statusFilter);
+  const pageStyle: React.CSSProperties = {
+    maxWidth: 1280, margin: "0 auto", padding: "var(--space-8)", display: "flex", flexDirection: "column", gap: "var(--space-8)",
   };
+  const note: React.CSSProperties = { fontSize: "0.9375rem", fontWeight: 600 };
 
-  const handleStatusChange = (val: string) => {
-    setStatusFilter(val);
-    runFilterWithExit(search, val);
-  };
-
-  // Target navigation morph (§M4.4)
-  const handleNavigateRow = (target: string, docId: string) => {
-    setNavigatingRowId(docId);
-    setNavDirection(getNavDirection(location.pathname, target));
-    transitionNavigate(navigate, target, {
-      direction: getNavDirection(location.pathname, target),
-    });
-  };
-
-  const filteredReports = reports.filter((rep) =>
-    matchesCriteria(rep, appliedStatusFilter, appliedSearch)
-  );
-
-  const totalChunks = reports.reduce((acc, r) => acc + (r.chunk_count || 0), 0);
-  const totalPages = reports.reduce((acc, r) => acc + (r.page_count || 1), 0);
-  const readyCount = reports.filter((r) => r.status === "ready").length;
-  const qualityRate = reports.length > 0 ? Math.round((readyCount / reports.length) * 100) : 100;
+  if (!userId || (reports === null && !error)) {
+    return <div data-screen-label="Library" style={pageStyle}><div style={note}>Loading reports</div></div>;
+  }
+  if (error) {
+    return (
+      <div data-screen-label="Library" style={pageStyle}>
+        <div style={note}>Could not load reports. {error}</div>
+        <div><button className="btn btn-secondary" onClick={() => setTick((t) => t + 1)}>Try again</button></div>
+      </div>
+    );
+  }
+  if ((reports ?? []).length === 0) {
+    return (
+      <div data-screen-label="Library" style={pageStyle}>
+        <div style={note}>No reports yet. Upload one to see its values.</div>
+        <div><button className="btn btn-primary" onClick={() => transitionNavigate(navigate, "/upload", { direction: "back" })}>Upload a report</button></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-6 w-full">
-      {/* Top action row with filter tabs and marginalia */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        {/* Filter categories */}
-        <div className="flex items-center gap-1.5 p-1 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)]">
-          {[
-            { id: "all", label: `All reports (${reports.length})` },
-            { id: "ready", label: `Indexed & ready (${readyCount})` },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleStatusChange(tab.id)}
-              className={`px-3 py-1 rounded-[var(--r-4)] type-label transition-all duration-[120ms] ease-out ${
-                statusFilter === tab.id
-                  ? "bg-[var(--ink-700)] text-[var(--bone)] shadow-sm"
-                  : "text-[var(--dim)] hover:text-[var(--bone)] hover:bg-[var(--ink-700)]/50"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-      </div>
-
-      {error && (
-        <ErrorState
-          message={error}
-          onRetry={loadReports}
-          className="mb-2"
-        />
-      )}
-
-      {/* Overview Stat Strip (§9.4, §M4.4 Odometers) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col">
-          <span className="type-label text-[var(--dim)]">Total indexed</span>
-          <span className="type-stat text-2xl text-[var(--bone)] mt-1">
-            <Odometer value={reports.length} duration={480} testId="odo-total-indexed" />
-          </span>
-          <span className="type-meta text-[var(--dim)] text-[12px] mt-0.5">
-            Clinical panels & lab reports
-          </span>
-        </div>
-
-        <div className="p-3.5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col">
-          <span className="type-label text-[var(--dim)]">Total chunks</span>
-          <span className="type-stat text-2xl text-[var(--bone)] mt-1">
-            <Odometer value={totalChunks} duration={480} testId="odo-total-chunks" />
-          </span>
-          <span className="type-meta text-[var(--dim)] text-[12px] mt-0.5">
-            Vector-embedded in ChromaDB
-          </span>
-        </div>
-
-        <div className="p-3.5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col">
-          <span className="type-label text-[var(--dim)]">Extraction quality</span>
-          <span className="type-stat text-2xl text-[var(--verdigris)] mt-1 flex items-center">
-            <Odometer value={qualityRate} duration={480} testId="odo-extraction-quality" />%
-          </span>
-          <span className="type-meta text-[var(--dim)] text-[12px] mt-0.5">
-            {readyCount} native verified
-          </span>
-        </div>
-
-        <div className="p-3.5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col">
-          <span className="type-label text-[var(--dim)]">Total pages</span>
-          <span className="type-stat text-2xl text-[var(--bone)] mt-1">
-            <Odometer value={totalPages} duration={480} testId="odo-total-pages" />
-          </span>
-          <span className="type-meta text-[var(--dim)] text-[12px] mt-0.5">
-            Preserved layout & provenance
-          </span>
-        </div>
-      </div>
-
-      {/* Search Input Filter & Action */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex-1 min-w-[220px] flex items-center gap-2 px-3 py-2 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-control)] focus-within:border-[var(--focus)] transition-colors duration-[120ms]">
-          <svg className="w-4 h-4 text-[var(--dim)] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search reports by filename, date, or SHA-256 hash..."
-            className="w-full bg-transparent type-body text-[var(--bone)] placeholder-[var(--faint)] focus:outline-none text-sm"
-          />
-          {search && (
-            <button
-              onClick={() => handleSearchChange("")}
-              className="text-xs text-[var(--dim)] hover:text-[var(--bone)]"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-
-        <Link to="/compare" viewTransition onClick={() => setNavDirection(getNavDirection(location.pathname, "/compare"))}>
-          <Button variant="ghost" className="h-10 px-4 text-xs">
-            <span>Compare reports</span>
-          </Button>
-        </Link>
-
-        <Link to="/upload" viewTransition onClick={() => setNavDirection(getNavDirection(location.pathname, "/upload"))}>
-          <Button variant="primary" className="h-10 px-4">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            <span>Upload report</span>
-          </Button>
-        </Link>
-      </div>
-
-      {/* Reports List */}
-      <div ref={listRef} data-testid="library-reports-list" className={`space-y-3 ${!isT0 ? "m-scroll-reveal" : ""}`}>
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-pulse"
-              >
-                <div className="flex items-start gap-4 min-w-0 flex-1">
-                  <div className="w-10 h-10 rounded-[var(--r-6)] skeleton-shimmer flex-shrink-0" />
-                  <div className="min-w-0 flex-1 flex flex-col gap-2">
-                    <div className="h-4 w-56 rounded-[var(--r-4)] skeleton-shimmer" />
-                    <div className="h-3 w-40 rounded-[var(--r-4)] skeleton-shimmer" />
-                  </div>
-                </div>
-                <div className="h-8 w-24 rounded-[var(--r-6)] skeleton-shimmer" />
-              </div>
-            ))}
-          </div>
-        ) : filteredReports.length === 0 ? (
-          <EmptyState
-            quote="No reports found matching your criteria. Upload a clinical panel to expand your knowledge graph."
-            actionLabel="Upload your first report"
-            onAction={() => {
-              setNavDirection(getNavDirection(location.pathname, "/upload"));
-              transitionNavigate(navigate, "/upload");
-            }}
-          />
-        ) : (
-          filteredReports.map((doc, idx) => {
-            const isExiting = exitingIds.includes(doc.id);
-            const isNavigating = navigatingRowId === doc.id;
+    <div data-screen-label="Library" style={pageStyle}>
+      <table className="table" data-testid="library-table">
+        <thead>
+          <tr><th>Report</th><th>Description</th><th>Pages</th><th>Chunks</th><th>SHA-256</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {(reports ?? []).map((r) => {
+            const tag =
+              r.status === "ready" ? { text: "Indexed", css: { background: "var(--color-text)", color: "var(--color-bg)", fontWeight: 800 } }
+              : r.status === "failed" ? { text: "Failed", css: { background: "var(--color-accent-100)", color: "var(--color-accent-800)", fontWeight: 800 } }
+              : { text: r.status.charAt(0).toUpperCase() + r.status.slice(1), css: { background: "var(--color-neutral-200)", color: "var(--color-neutral-800)" } };
             return (
-              <div
-                key={doc.id}
-                data-testid={`library-row-${doc.id}`}
-                style={{ animationDelay: `${Math.min(idx * 24, 240)}ms` }}
-                className={`p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] hover:border-[var(--accent)] transition-colors duration-[120ms] ease-out flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
-                  isExiting || isNavigating ? "m-exit" : "m-enter"
-                }`}
+              <tr
+                key={r.id}
+                onClick={() => setSelId(r.id)}
+                style={{ cursor: "pointer", background: r.id === selId ? "var(--color-accent-100)" : undefined }}
+                aria-selected={r.id === selId}
               >
-                {/* Left: Document Info */}
-                <div className="flex items-start gap-4 min-w-0 w-full md:w-auto flex-1">
-                  <div className="w-10 h-10 rounded-[var(--r-6)] bg-[var(--ink-700)] flex items-center justify-center text-[var(--verdigris)] flex-shrink-0 mt-0.5">
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                      <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
-                    </svg>
-                  </div>
+                <td style={{ fontWeight: 800 }}>{labelOf(r)}</td>
+                <td>{r.original_filename}</td>
+                <td style={{ fontVariantNumeric: "tabular-nums" }}>{r.page_count ?? "—"}</td>
+                <td style={{ fontVariantNumeric: "tabular-nums" }}>{r.chunk_count ?? "—"}</td>
+                <td style={{ fontVariantNumeric: "tabular-nums", color: "var(--color-neutral-700)" }}>
+                  {r.file_hash.length > 8 ? `${r.file_hash.slice(0, 4)}…${r.file_hash.slice(-4)}` : r.file_hash}
+                </td>
+                <td><span className="tag" style={tag.css}>{tag.text}</span></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <h3
-                        style={{
-                          viewTransitionName:
-                            isNavigating && !isT0 ? "report-title" : undefined,
-                        }}
-                        className="type-card-title truncate"
-                      >
-                        {doc.original_filename.replace(/\.pdf$/i, "").replace(/_/g, " ")}
-                      </h3>
-                      {doc.status !== "ready" && <Badge variant="ochre">{doc.status}</Badge>}
-                      {doc.version > 1 && (
-                        <Badge variant="dim">v{doc.version}</Badge>
-                      )}
+      {selected && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "var(--space-4)", flexWrap: "wrap", paddingBottom: "var(--space-2)", borderBottom: "2px solid var(--color-divider)" }}>
+            <h3 style={{ margin: 0, fontSize: "1.5625rem", fontWeight: 800, lineHeight: 1.12, letterSpacing: "-0.015em" }}>{labelOf(selected)} · values</h3>
+            <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>Select a row to see the passage a value came from</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: GRID, gap: "var(--space-4)", padding: "0 var(--space-2) var(--space-2)", borderBottom: "2px solid var(--color-divider)", ...headStyle }}>
+            <span>Biomarker</span><span>Value</span><span>Reference range</span><span>Status</span>
+          </div>
+
+          {rows === null && <div style={{ ...note, padding: "var(--space-4) var(--space-2)" }}>Reading values</div>}
+          {rows !== null && rows.length === 0 && (
+            <div style={{ ...note, padding: "var(--space-4) var(--space-2)" }}>
+              {rowsError ? `Could not read values. ${rowsError}` : "No values were read from this report."}
+            </div>
+          )}
+
+          {(rows ?? []).map((b) => {
+            const st = statusOf(b);
+            const hasBar = b.range_low !== null && b.range_high !== null;
+            const lo = b.range_low ?? 0;
+            const hi = b.range_high ?? 0;
+            const span = hi - lo || 1;
+            const mn = lo - span * 0.35;
+            const mx = hi + span * 0.35;
+            const pc = (v: number) => clamp(((v - mn) / (mx - mn)) * 100, 0, 100);
+            const before = prevRows.find((p) => p.test_name === b.test_name && p.value !== b.value);
+            const open = openTest === b.test_name;
+            const page = pages?.find((p) => p.page_number === b.page_number);
+            const text = page?.extracted_text ?? "";
+            return (
+              <div key={b.test_name} style={{ borderBottom: "1px solid var(--color-divider)" }}>
+                <button
+                  onClick={() => toggle(b.test_name)}
+                  aria-expanded={open}
+                  className="hover:bg-[color-mix(in_srgb,var(--color-text)_4%,transparent)]"
+                  style={{
+                    appearance: "none", width: "100%", textAlign: "left", cursor: "pointer", display: "grid", gridTemplateColumns: GRID,
+                    gap: "var(--space-4)", alignItems: "center", padding: "var(--space-4) var(--space-2)", border: 0, background: "transparent", color: "var(--color-text)",
+                  }}
+                >
+                  <span>
+                    <span style={{ display: "block", fontWeight: 800 }}>{b.test_name}</span>
+                    <span style={{ display: "block", fontSize: "0.75rem", color: "var(--color-neutral-700)" }}>Page {b.page_number}</span>
+                  </span>
+                  <span>
+                    <span style={{ fontSize: "1.375rem", fontWeight: 800, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>{num(b.value)}</span>
+                    <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-700)", marginLeft: 4 }}>{b.unit}</span>
+                    {before && previous && (
+                      <span style={{ display: "block", fontSize: "0.75rem", color: "var(--color-neutral-700)" }}>{num(before.value)} in {labelOf(previous)}</span>
+                    )}
+                  </span>
+                  <span>
+                    {hasBar ? (
+                      <>
+                        <span style={{ display: "block", position: "relative", height: 8, background: "var(--color-neutral-200)" }}>
+                          <span style={{ position: "absolute", top: 0, bottom: 0, left: `${pc(lo)}%`, width: `${pc(hi) - pc(lo)}%`, background: "var(--color-neutral-500)" }} />
+                          <span style={{ position: "absolute", top: -6, width: 4, height: 20, marginLeft: -2, background: "var(--color-accent)", left: `${pc(b.value)}%` }} />
+                        </span>
+                        <span style={{ display: "flex", justifyContent: "space-between", marginTop: "var(--space-2)", fontSize: "0.6875rem", color: "var(--color-neutral-700)", fontVariantNumeric: "tabular-nums" }}>
+                          <span>{num(lo)}</span><span>{num(hi)}</span>
+                        </span>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-700)" }}>{b.reference_range ?? "No range printed"}</span>
+                    )}
+                  </span>
+                  <span>
+                    <span
+                      className="tag"
+                      style={st.hot
+                        ? { background: "var(--color-accent)", color: "var(--color-bg)", fontWeight: 800 }
+                        : { background: "var(--color-neutral-200)", color: "var(--color-neutral-800)" }}
+                    >
+                      {st.label}
+                    </span>
+                  </span>
+                </button>
+                {open && (
+                  <div style={{ margin: "0 var(--space-2) var(--space-4)", background: "var(--color-surface)", borderTop: "2px solid var(--color-text)", padding: "var(--space-4)" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-4)", ...headStyle }}>
+                      <span>{labelOf(selected)}</span>
+                      <span>Page {b.page_number}</span>
+                      <span>{b.span_exact ? "Characters" : "Chunk"} {b.char_start}–{b.char_end}</span>
                     </div>
-
-                    <div className="type-mono-sm text-[var(--dim)] truncate">{doc.original_filename}</div>
-
-                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1 mt-2.5 text-[13px]">
-                      <span className="text-[var(--dim)]">
-                        <strong className="text-[var(--bone)] font-semibold tabular-nums">{doc.page_count || 1}</strong> {doc.page_count === 1 ? "page" : "pages"}
-                      </span>
-                      <span className="text-[var(--dim)]">
-                        <strong className="text-[var(--bone)] font-semibold tabular-nums">{doc.chunk_count ?? 1}</strong> {doc.chunk_count === 1 ? "chunk" : "chunks"}
-                      </span>
-                      <span className="text-[var(--dim)]">
-                        Dated <strong className="text-[var(--bone)] font-semibold">{doc.report_date || doc.upload_time.split("T")[0]}</strong>
-                      </span>
-                      <span className="type-mono-sm text-[var(--dim)] flex items-center gap-1">
-                        SHA256 {doc.file_hash.substring(0, 12)}…
-                        {copiedHash === doc.file_hash ? (
-                          <span className="text-[var(--verdigris)] text-[12px] flex items-center gap-1 font-mono">
-                            <svg className="w-3 h-3 text-[var(--verdigris)] animate-draw-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            Copied
-                          </span>
-                        ) : (
-                          <IconButton
-                            size={18}
-                            title="Copy SHA256"
-                            onClick={() => handleCopyHash(doc.file_hash)}
-                            className="border-transparent bg-transparent hover:bg-[var(--ink-700)] text-[var(--dim)] hover:text-[var(--bone)]"
-                            data-testid={`copy-sha-${doc.id}`}
-                          >
-                            <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                            </svg>
-                          </IconButton>
-                        )}
-                      </span>
-                    </div>
+                    {pages === null ? (
+                      <div style={{ marginTop: "var(--space-3)", fontSize: "0.9375rem" }}>Loading the page</div>
+                    ) : (
+                      <div style={{ marginTop: "var(--space-3)", whiteSpace: "pre-wrap", fontSize: "0.9375rem", lineHeight: 1.75, fontVariantNumeric: "tabular-nums" }}>
+                        <span>{text.slice(Math.max(0, b.char_start - 80), b.char_start)}</span>
+                        <mark style={{ background: "var(--color-accent-200)", color: "var(--color-text)", boxShadow: "inset 0 -2px 0 var(--color-accent)", padding: "0 2px" }}>
+                          {text.slice(b.char_start, b.char_end)}
+                        </mark>
+                        <span>{text.slice(b.char_end, b.char_end + 80)}</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-
-                {/* Right: Actions */}
-                <div className="flex items-center gap-2 flex-shrink-0 w-full md:w-auto justify-end pt-2 md:pt-0 border-t md:border-t-0 border-[var(--line-faint)]">
-                  <Button
-                    variant="ghost"
-                    className="h-8 text-xs"
-                    onClick={() => handleNavigateRow("/compare", doc.id)}
-                    data-testid={`library-compare-btn-${doc.id}`}
-                  >
-                    Compare
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="h-8 text-xs"
-                    onClick={() => handleNavigateRow("/graph", doc.id)}
-                    data-testid={`library-graph-btn-${doc.id}`}
-                  >
-                    Graph
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="h-8 text-xs"
-                    onClick={() => handleNavigateRow("/ask", doc.id)}
-                    data-testid={`library-ask-btn-${doc.id}`}
-                  >
-                    Ask RAG
-                  </Button>
-                </div>
+                )}
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
     </div>
   );
 };

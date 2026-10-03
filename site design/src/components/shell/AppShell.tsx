@@ -28,7 +28,7 @@ const ROUTE_TITLES: Record<string, string> = {
 };
 
 // routes already converted to the exact reference layout; each page task adds its route here
-const OWN_LAYOUT = new Set<string>(["/upload", "/compare", "/insights"]);
+const OWN_LAYOUT = new Set<string>(["/upload", "/compare", "/insights", "/library"]);
 
 interface AppShellProps {
   children?: React.ReactNode;

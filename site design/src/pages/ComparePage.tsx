@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { reportsApi, type ComparisonData } from "../api/reports";
 import { useActiveUser } from "../context/UserContext";
 import { transitionNavigate } from "../motion/navigation";
+import { makeLabeler, sortReports } from "../lib/reportLabels";
 import type { Report } from "../types";
 
 type Cell = string | number | null | undefined;
@@ -21,12 +22,6 @@ const fmt = (v: Cell): string => {
 };
 const fmtDelta = (d: number): string =>
   `${d > 0 ? "+" : ""}${Math.abs(d) < 10 ? d.toFixed(1) : Math.round(d).toLocaleString("en-US")}`;
-
-const reportDate = (r: Report): string => r.report_date ?? r.upload_time;
-const monthLabel = (r: Report): string => {
-  const d = new Date(reportDate(r));
-  return Number.isNaN(d.getTime()) ? reportDate(r) : d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-};
 
 const arrow = (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"
@@ -59,7 +54,7 @@ export const ComparePage: React.FC = () => {
       .list(userId)
       .then((list) => {
         if (cancelled) return;
-        const sorted = [...list].sort((a, b) => reportDate(a).localeCompare(reportDate(b)));
+        const sorted = sortReports(list);
         setReports(sorted);
         if (sorted.length >= 2) {
           setBaselineId(sorted[0].id);
@@ -89,11 +84,7 @@ export const ComparePage: React.FC = () => {
     return () => { cancelled = true; };
   }, [userId, baselineId, followupId]);
 
-  const labelOf = useMemo(() => {
-    const counts: Record<string, number> = {};
-    (reports ?? []).forEach((r) => { counts[monthLabel(r)] = (counts[monthLabel(r)] ?? 0) + 1; });
-    return (r: Report) => (counts[monthLabel(r)] > 1 ? `${monthLabel(r)} · ${r.original_filename}` : monthLabel(r));
-  }, [reports]);
+  const labelOf = useMemo(() => makeLabeler(reports ?? []), [reports]);
 
   const pairs: [Report, Report][] = useMemo(() => {
     const list = reports ?? [];
