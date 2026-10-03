@@ -1,492 +1,225 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { DeltaChip, Button, ErrorState, EmptyState } from "../components/gallery";
-import { Odometer } from "../motion/fx/Odometer";
-import { flip, flipFrom } from "../motion/flip";
-import { DrawPath } from "../motion/fx/DrawPath";
-import { governor } from "../motion/quality";
-import { isReducedMotion } from "../motion/features";
-import { getNavDirection, setNavDirection } from "../motion/navigation";
-import { DetentPress } from "../motion/fx/DetentPress";
-import { playDetent } from "../motion/audio";
-import { useActiveUser } from "../context/UserContext";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { reportsApi, type ComparisonData } from "../api/reports";
+import { useActiveUser } from "../context/UserContext";
+import { transitionNavigate } from "../motion/navigation";
 import type { Report } from "../types";
 
+type Cell = string | number | null | undefined;
+
+const num = (v: Cell): number | null => {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v === "string") {
+    const n = parseFloat(v.replace(/,/g, ""));
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+};
+const fmt = (v: Cell): string => {
+  if (v === null || v === undefined || v === "") return "—";
+  return typeof v === "number" ? v.toLocaleString("en-US") : String(v);
+};
+const fmtDelta = (d: number): string =>
+  `${d > 0 ? "+" : ""}${Math.abs(d) < 10 ? d.toFixed(1) : Math.round(d).toLocaleString("en-US")}`;
+
+const reportDate = (r: Report): string => r.report_date ?? r.upload_time;
+const monthLabel = (r: Report): string => {
+  const d = new Date(reportDate(r));
+  return Number.isNaN(d.getTime()) ? reportDate(r) : d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+};
+
+const arrow = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"
+    style={{ strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", verticalAlign: "-2px" }}>
+    <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+  </svg>
+);
+
 export const ComparePage: React.FC = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   const { user } = useActiveUser();
-  const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
+  const userId = user?.id ?? null;
 
-  const [reports, setReports] = useState<Report[]>([]);
-  const [baselineId, setBaselineId] = useState<string>("");
-  const [followupId, setFollowupId] = useState<string>("");
-  const [compData, setCompData] = useState<ComparisonData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const rowsRef = useRef<HTMLTableSectionElement>(null);
-  const prevWidthsRef = useRef<Record<string, number>>({});
-  const segImpRef = useRef<HTMLDivElement>(null);
-  const segDecRef = useRef<HTMLDivElement>(null);
-  const segStbRef = useRef<HTMLDivElement>(null);
-  const segUnkRef = useRef<HTMLDivElement>(null);
-
-  const isT0 = isReducedMotion() || governor.getState().tier === "T0";
-
+  const [reports, setReports] = useState<Report[] | null>(null);
+  const [baselineId, setBaselineId] = useState("");
+  const [followupId, setFollowupId] = useState("");
+  const [data, setData] = useState<ComparisonData | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
 
-  // Load user's reports first
-  const loadReports = useCallback(() => {
+  // Load the persona's reports
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    setReports(null);
+    setData(null);
     setError(null);
-    reportsApi.list(effectiveUserId)
-      .then((reps) => {
-        setReports(reps);
-        if (reps.length > 0) {
-          // Earliest as baseline, latest as followup
-          const sorted = [...reps].sort((a, b) => a.upload_time.localeCompare(b.upload_time));
+    reportsApi
+      .list(userId)
+      .then((list) => {
+        if (cancelled) return;
+        const sorted = [...list].sort((a, b) => reportDate(a).localeCompare(reportDate(b)));
+        setReports(sorted);
+        if (sorted.length >= 2) {
           setBaselineId(sorted[0].id);
           setFollowupId(sorted[sorted.length - 1].id);
+        } else {
+          setBaselineId("");
+          setFollowupId("");
         }
       })
-      .catch((err: any) => {
-        console.warn("Failed to load reports:", err);
-        setError("Failed to load reports: " + (err.message || "Network error"));
+      .catch((err: unknown) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       });
-  }, [effectiveUserId]);
+    return () => { cancelled = true; };
+  }, [userId, reloadTick]);
 
+  // Load the comparison for the chosen pair
   useEffect(() => {
-    loadReports();
-  }, [loadReports]);
-
-  // Load comparison data when baselineId or followupId is ready
-  const loadComparison = useCallback(async () => {
-    if (!baselineId && !followupId && reports.length === 0) {
-      setLoading(false);
-      return;
-    }
+    if (!userId || !baselineId || !followupId) return;
+    let cancelled = false;
     setLoading(true);
     setError(null);
-    try {
-      const data = await reportsApi.compare(effectiveUserId, baselineId, followupId);
-      setCompData(data);
-    } catch (err: any) {
-      console.warn("Failed to load report comparison:", err);
-      setError("Failed to load report comparison: " + (err.message || "Network error"));
-    } finally {
-      setLoading(false);
-    }
-  }, [effectiveUserId, baselineId, followupId, reports.length]);
+    reportsApi
+      .compare(userId, baselineId, followupId)
+      .then((res) => { if (!cancelled) setData(res); })
+      .catch((err: unknown) => { if (!cancelled) setError(err instanceof Error ? err.message : String(err)); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [userId, baselineId, followupId]);
 
-  useEffect(() => {
-    loadComparison();
-  }, [loadComparison]);
+  const labelOf = useMemo(() => {
+    const counts: Record<string, number> = {};
+    (reports ?? []).forEach((r) => { counts[monthLabel(r)] = (counts[monthLabel(r)] ?? 0) + 1; });
+    return (r: Report) => (counts[monthLabel(r)] > 1 ? `${monthLabel(r)} · ${r.original_filename}` : monthLabel(r));
+  }, [reports]);
 
-  const summary = compData?.summary || {
-    improved: 0,
-    declined: 0,
-    stable: 0,
-    unavailable: 0,
-    total: 0,
+  const pairs: [Report, Report][] = useMemo(() => {
+    const list = reports ?? [];
+    const out: [Report, Report][] = [];
+    for (let i = 0; i < list.length - 1; i += 1) out.push([list[i], list[i + 1]]);
+    if (list.length > 2) out.push([list[0], list[list.length - 1]]);
+    return out;
+  }, [reports]);
+
+  const base = reports?.find((r) => r.id === baselineId);
+  const follow = reports?.find((r) => r.id === followupId);
+  const pageStyle: React.CSSProperties = {
+    maxWidth: 1280, margin: "0 auto", padding: "var(--space-8)", display: "flex", flexDirection: "column", gap: "var(--space-6)",
   };
+  const noteStyle: React.CSSProperties = { fontSize: "0.9375rem", fontWeight: 600 };
 
-  const totalCount =
-    (summary.improved + summary.declined + summary.stable + summary.unavailable) || summary.total || 0;
+  if (!userId || (reports === null && !error)) {
+    return <div data-screen-label="Compare" style={pageStyle}><div style={noteStyle}>Loading reports</div></div>;
+  }
+  if (error && reports === null) {
+    return (
+      <div data-screen-label="Compare" style={pageStyle}>
+        <div style={noteStyle}>Could not load reports. {error}</div>
+        <div><button className="btn btn-secondary" onClick={() => setReloadTick((t) => t + 1)}>Try again</button></div>
+      </div>
+    );
+  }
+  if ((reports ?? []).length < 2) {
+    return (
+      <div data-screen-label="Compare" style={pageStyle}>
+        <div style={noteStyle}>Comparing needs at least two reports. This persona has {(reports ?? []).length}.</div>
+        <div>
+          <button className="btn btn-primary" onClick={() => transitionNavigate(navigate, "/upload", { direction: "back" })}>
+            Upload a report
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-  const rows = compData?.rows || [];
-
-  // WAAPI scaleX tween for proportion segments (§M4.1)
-  useEffect(() => {
-    if (!compData || totalCount === 0) return;
-    if (isT0) return;
-
-    const segments: [React.RefObject<HTMLDivElement | null>, string, number][] = [
-      [segImpRef, "improved", summary.improved],
-      [segDecRef, "declined", summary.declined],
-      [segStbRef, "stable", summary.stable],
-      [segUnkRef, "unavailable", summary.unavailable],
-    ];
-
-    segments.forEach(([ref, key, val]) => {
-      const el = ref.current;
-      if (!el) return;
-      const newWidth = (val / totalCount) * 100;
-      const oldWidth = prevWidthsRef.current[key] !== undefined ? prevWidthsRef.current[key] : newWidth;
-      prevWidthsRef.current[key] = newWidth;
-
-      if (oldWidth !== newWidth && newWidth > 0) {
-        const ratio = Math.max(0.01, oldWidth / newWidth);
-        el.animate(
-          [
-            { transform: `scaleX(${ratio})` },
-            { transform: "scaleX(1)" },
-          ],
-          {
-            duration: 360,
-            easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-            fill: "forwards",
-          }
-        );
-      }
-    });
-  }, [compData, totalCount, summary, isT0]);
+  const usePairButtons = (reports ?? []).length <= 4;
+  const rows = data?.rows ?? [];
 
   return (
-    <div className="flex flex-col gap-6 w-full">
-      {/* Top row with summary and marginalia */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2
-            style={{ viewTransitionName: !isT0 ? "report-title" : undefined }}
-            className="type-title text-[var(--bone)]"
-          >
-            Compare reports over time
-          </h2>
-          <p className="type-meta text-[var(--dim)] mt-0.5">
-            Side-by-side comparative analysis of {user?.display_label || "Arjun R"} ({effectiveUserId}) across panels.
-          </p>
+    <div data-screen-label="Compare" style={pageStyle}>
+      {usePairButtons ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+          {pairs.map(([a, b]) => {
+            const on = a.id === baselineId && b.id === followupId;
+            return (
+              <button
+                key={`${a.id}-${b.id}`}
+                className={`btn ${on ? "btn-primary" : "btn-secondary"}`}
+                aria-pressed={on}
+                onClick={() => { setBaselineId(a.id); setFollowupId(b.id); }}
+              >
+                {labelOf(a)} → {labelOf(b)}
+              </button>
+            );
+          })}
         </div>
-      </div>
-
-      {error && (
-        <ErrorState
-          message={error}
-          onRetry={() => {
-            setError(null);
-            loadReports();
-            loadComparison();
-          }}
-          className="mb-2"
-        />
+      ) : (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-4)", alignItems: "flex-end" }}>
+          <div className="field" style={{ minWidth: 260 }}>
+            <label htmlFor="cmp-base">Baseline</label>
+            <select id="cmp-base" className="input" value={baselineId} onChange={(e) => setBaselineId(e.target.value)}>
+              {(reports ?? []).map((r) => <option key={r.id} value={r.id}>{labelOf(r)}</option>)}
+            </select>
+          </div>
+          <span aria-hidden="true" style={{ paddingBottom: 8 }}>{arrow}</span>
+          <div className="field" style={{ minWidth: 260 }}>
+            <label htmlFor="cmp-follow">Follow-up</label>
+            <select id="cmp-follow" className="input" value={followupId} onChange={(e) => setFollowupId(e.target.value)}>
+              {(reports ?? []).map((r) => <option key={r.id} value={r.id}>{labelOf(r)}</option>)}
+            </select>
+          </div>
+        </div>
       )}
 
-      {/* Selectors for Baseline and Follow-up panels with FLIP-swap (§M7.7, M4.1) */}
-      <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto min-w-0">
-          <div id="baseline-chip-container" className="flex flex-wrap items-center gap-2 w-full sm:w-auto max-w-full min-w-0 transition-transform duration-[80ms] active:scale-[0.99]">
-            <label htmlFor="baseline-select" className="type-label text-[var(--dim)] text-xs">
-              Baseline panel:
-            </label>
-            <select
-              id="baseline-select"
-              value={baselineId}
-              onChange={(e) => {
-                const val = e.target.value;
-                playDetent();
-                if (rowsRef.current && !isT0) {
-                  flip(rowsRef.current, () => setBaselineId(val), { spring: "weighted", capMs: 240 });
-                } else {
-                  setBaselineId(val);
-                }
-              }}
-              className="h-9 px-2.5 w-full sm:w-auto max-w-full min-w-0 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)] focus:ring-1 focus:ring-[var(--verdigris)]/50 focus:shadow-[0_0_8px_rgba(71,119,95,0.25)] transition-all duration-[120ms] ease-out cursor-pointer"
-            >
-              {reports.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.report_date || r.upload_time.split("T")[0]}: {r.original_filename}
-                </option>
-              ))}
-            </select>
-          </div>
+      {error && <div style={noteStyle}>Could not load the comparison. {error}</div>}
+      {loading && !data && <div style={noteStyle}>Comparing</div>}
 
-          <DetentPress>
-            <button
-              type="button"
-              onClick={() => {
-                playDetent();
-                const bEl = document.getElementById("baseline-chip-container");
-                const fEl = document.getElementById("followup-chip-container");
-                if (bEl && fEl) {
-                  const bRect = bEl.getBoundingClientRect();
-                  const fRect = fEl.getBoundingClientRect();
-                  const temp = baselineId;
-                  setBaselineId(followupId);
-                  setFollowupId(temp);
-                  flipFrom(bEl, fRect, { spring: "weighted", capMs: 240 });
-                  flipFrom(fEl, bRect, { spring: "weighted", capMs: 240 });
-                } else {
-                  const temp = baselineId;
-                  setBaselineId(followupId);
-                  setFollowupId(temp);
-                }
-              }}
-              title="Swap baseline and follow-up panels"
-              className="px-2.5 py-1 rounded-[var(--r-4)] bg-[var(--ink-900)] hover:bg-[var(--ink-700)] text-[var(--dim)] hover:text-[var(--bone)] border border-[var(--line-strong)] cursor-pointer text-xs font-mono transition-colors"
-            >
-              ⇄ Swap
-            </button>
-          </DetentPress>
-
-          <div id="followup-chip-container" className="flex items-center gap-2 transition-transform duration-[80ms] active:scale-[0.99]">
-            <label htmlFor="followup-select" className="type-label text-[var(--dim)] text-xs">
-              Follow-up panel:
-            </label>
-            <select
-              id="followup-select"
-              value={followupId}
-              onChange={(e) => {
-                const val = e.target.value;
-                playDetent();
-                if (rowsRef.current && !isT0) {
-                  flip(rowsRef.current, () => setFollowupId(val), { spring: "weighted", capMs: 240 });
-                } else {
-                  setFollowupId(val);
-                }
-              }}
-              className="h-9 px-2.5 w-full sm:w-auto max-w-full min-w-0 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-strong)] text-[var(--bone)] type-mono-sm text-xs focus:outline-none focus:border-[var(--verdigris)] focus:ring-1 focus:ring-[var(--verdigris)]/50 focus:shadow-[0_0_8px_rgba(71,119,95,0.25)] transition-all duration-[120ms] ease-out cursor-pointer"
-            >
-              {reports.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.report_date || r.upload_time.split("T")[0]}: {r.original_filename}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link
-            to="/upload"
-            viewTransition
-            onClick={() => setNavDirection(getNavDirection(location.pathname, "/upload"))}
-          >
-            <Button variant="ghost" className="h-8 text-xs">
-              + Upload panel
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Summary Strip (§9.6, §M7.7: counts odometer, segment widths scaleX to real proportions) */}
-      <div className="p-4 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <span className="type-label text-[var(--bone)]">Longitudinal shifts</span>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[var(--verdigris)]/12 text-[var(--verdigris)] border border-[var(--verdigris)]/25 type-mono-sm flex items-center gap-1">
-                <Odometer value={summary.improved} duration={480} testId="odo-improved" /> improved
-              </span>
-              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[var(--madder)]/12 text-[var(--madder)] border border-[var(--madder)]/25 type-mono-sm flex items-center gap-1">
-                <Odometer value={summary.declined} duration={480} testId="odo-declined" /> declined
-              </span>
-              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] text-[var(--dim)] border border-[var(--line-strong)] type-mono-sm flex items-center gap-1">
-                <Odometer value={summary.stable} duration={480} testId="odo-stable" /> stable
-              </span>
-              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[var(--ochre)]/12 text-[var(--ochre-ink)] border border-[var(--ochre)]/25 type-mono-sm flex items-center gap-1">
-                <Odometer value={summary.unavailable} duration={480} testId="odo-unavailable" /> unavailable
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 type-mono-sm text-xs text-[var(--dim)]">
-            <span>
-              Baseline: <strong>{compData?.baseline_date || "n/a"}</strong>
-            </span>
-            <span>→</span>
-            <span>
-              Follow-up: <strong>{compData?.followup_date || "n/a"}</strong>
-            </span>
-          </div>
-        </div>
-
-        {/* Proportional summary segments scaleX to real proportions (§M7.7, M4.1 WAAPI) */}
-        {totalCount > 0 && (
-          <div className="w-full h-1.5 rounded-full bg-[var(--ink-900)] flex overflow-hidden gap-0.5">
-            {summary.improved > 0 && (
-              <div
-                ref={segImpRef}
-                style={{ width: `${(summary.improved / totalCount) * 100}%`, transformOrigin: "left" }}
-                className="h-full bg-[var(--verdigris)] rounded-full animate-scale-x"
-                data-testid="summary-segment-improved"
-              />
+      {data && (
+        <table className="table" data-testid="compare-table">
+          <thead>
+            <tr>
+              <th>Biomarker</th>
+              <th>{base ? labelOf(base) : "Baseline"}</th>
+              <th>{follow ? labelOf(follow) : "Follow-up"}</th>
+              <th>Change</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr><td colSpan={5} style={{ color: "var(--color-neutral-700)" }}>These two reports share no extracted values.</td></tr>
             )}
-            {summary.declined > 0 && (
-              <div
-                ref={segDecRef}
-                style={{ width: `${(summary.declined / totalCount) * 100}%`, transformOrigin: "left" }}
-                className="h-full bg-[var(--madder)] rounded-full animate-scale-x"
-                data-testid="summary-segment-declined"
-              />
-            )}
-            {summary.stable > 0 && (
-              <div
-                ref={segStbRef}
-                style={{ width: `${(summary.stable / totalCount) * 100}%`, transformOrigin: "left" }}
-                className="h-full bg-[var(--dim)] rounded-full animate-scale-x"
-                data-testid="summary-segment-stable"
-              />
-            )}
-            {summary.unavailable > 0 && (
-              <div
-                ref={segUnkRef}
-                style={{ width: `${(summary.unavailable / totalCount) * 100}%`, transformOrigin: "left" }}
-                className="h-full bg-[var(--ochre)] rounded-full animate-scale-x"
-                data-testid="summary-segment-unavailable"
-              />
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Comparison Diff Table */}
-      <div className="rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] overflow-hidden">
-        {loading ? (
-          <div className="p-5 flex flex-col gap-3 animate-pulse">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-center justify-between py-3 border-b border-[var(--line-faint)] last:border-0">
-                <div className="flex flex-col gap-1.5 w-44">
-                  <div className="h-4 w-32 rounded-[var(--r-4)] skeleton-shimmer" />
-                  <div className="h-3 w-20 rounded-[var(--r-4)] skeleton-shimmer" />
-                </div>
-                <div className="h-4 w-24 rounded-[var(--r-4)] skeleton-shimmer" />
-                <div className="h-4 w-24 rounded-[var(--r-4)] skeleton-shimmer" />
-                <div className="h-6 w-28 rounded-[var(--r-4)] skeleton-shimmer" />
-                <div className="h-4 w-16 rounded-[var(--r-4)] skeleton-shimmer" />
-              </div>
-            ))}
-          </div>
-        ) : rows.length === 0 ? (
-          <EmptyState
-            quote="No comparable lab observations found in the selected reports."
-            actionLabel="+ Upload panel"
-            onAction={() => {
-              setNavDirection("forward");
-              navigate("/upload");
-            }}
-            className="border-0 bg-transparent py-12"
-          />
-        ) : (
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-[var(--line-faint)] bg-[var(--ink-700)]/20">
-                <th className="type-label text-[var(--dim)] py-3 px-4">Biomarker / Test</th>
-                <th className="type-label text-[var(--dim)] py-3 px-4">
-                  Baseline ({compData?.baseline_date || "Baseline"})
-                </th>
-                <th className="type-label text-[var(--dim)] py-3 px-4">
-                  Follow-up ({compData?.followup_date || "Follow-up"})
-                </th>
-                <th className="type-label text-[var(--dim)] py-3 px-4">Change and trend</th>
-                <th className="type-label text-[var(--dim)] py-3 px-4 text-right">Provenance</th>
-              </tr>
-            </thead>
-            <tbody ref={rowsRef} data-testid="compare-rows" className="divide-y divide-[var(--line-faint)]">
-              {rows.map((row, i) => {
-                const staggerMs = Math.min(i * 24, 240);
-                const bVal = typeof row.baseline === "number" ? row.baseline : parseFloat(String(row.baseline));
-                const fVal = typeof row.followup === "number" ? row.followup : parseFloat(String(row.followup));
-                const hasNums = !isNaN(bVal) && !isNaN(fVal);
-                let y1 = 8;
-                let y2 = 8;
-                if (hasNums) {
-                  if (fVal > bVal) {
-                    y1 = 12;
-                    y2 = 4;
-                  } else if (fVal < bVal) {
-                    y1 = 4;
-                    y2 = 12;
-                  }
-                }
-                const sparkD = `M 2 ${y1} L 38 ${y2}`;
-                const sparkColor =
-                  row.delta_type === "improving"
-                    ? "var(--verdigris)"
-                    : row.delta_type === "decrease"
-                    ? "var(--ochre)"
-                    : row.delta_type === "increase"
-                    ? "var(--madder)"
-                    : "var(--cornflower)";
-
-                const rowSlug = (row as any).id || row.test.toLowerCase().replace(/[^a-z0-9]/g, "-");
-
-                return (
-                  <tr
-                    key={i}
-                    data-testid={`diff-row-${i}`}
-                    className="hover:bg-[var(--ink-700)]/40 transition-colors duration-[120ms] ease-out m-enter"
-                    style={{
-                      animationDelay: `${staggerMs}ms`,
-                      viewTransitionName: i === 0 && !isT0 ? "compare-row-timeline" : undefined,
-                    }}
-                  >
-                    <td className="py-3 px-4">
-                      <span className="type-body font-medium text-[var(--bone)] block">
-                        {row.test}
-                      </span>
-                      <span className="type-meta text-[var(--dim)] text-[12px]">
-                        {row.category} · {row.unit}
-                      </span>
-                    </td>
-                    <td
-                      className="py-3 px-4 type-mono text-sm text-[var(--dim)] animate-diff-baseline"
-                      style={{ animationDelay: `${staggerMs}ms` }}
-                      data-testid={`diff-baseline-${i}`}
+            {rows.map((r) => {
+              const a = num(r.baseline);
+              const b = num(r.followup);
+              const d = a !== null && b !== null ? b - a : null;
+              const status = d === null ? "One report" : d === 0 ? "Unchanged" : d > 0 ? "Higher" : "Lower";
+              return (
+                <tr key={`${r.test}-${r.unit}`}>
+                  <td style={{ fontWeight: 800 }}>
+                    {r.test} <span style={{ fontWeight: 400, color: "var(--color-neutral-700)" }}>{r.unit}</span>
+                  </td>
+                  <td style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(r.baseline)}</td>
+                  <td style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(r.followup)}</td>
+                  <td style={{ fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>{d === null ? "—" : fmtDelta(d)}</td>
+                  <td>
+                    <span
+                      className="tag"
+                      style={d === null
+                        ? { background: "var(--color-neutral-200)", color: "var(--color-neutral-800)" }
+                        : { background: "var(--color-accent-100)", color: "var(--color-accent-800)", fontWeight: 800 }}
                     >
-                      {row.baseline}{" "}
-                      {row.baseline !== "—" && (
-                        <span className="type-mono-sm text-[12px] text-[var(--faint)]">
-                          {row.unit}
-                        </span>
-                      )}
-                    </td>
-                    <td
-                      className="py-3 px-4 type-mono text-sm text-[var(--bone)] font-medium animate-diff-followup"
-                      style={{ animationDelay: `${staggerMs}ms` }}
-                      data-testid={`diff-followup-${i}`}
-                    >
-                      {row.followup}{" "}
-                      {row.followup !== "—" && (
-                        <span className="type-mono-sm text-[12px] text-[var(--dim)]">
-                          {row.unit}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <DeltaChip type={row.delta_type} label={row.delta_label} pop />
-                        <svg
-                          data-testid={`delta-spark-${rowSlug}`}
-                          className="w-10 h-4 overflow-visible inline-block flex-shrink-0"
-                          viewBox="0 0 40 16"
-                        >
-                          <DrawPath
-                            d={sparkD}
-                            durationMs={480}
-                            stroke={sparkColor}
-                            strokeWidth={1.5}
-                            strokeLinecap="round"
-                          />
-                          <circle cx="2" cy={y1} r="1.5" fill={sparkColor} />
-                          <circle cx="38" cy={y2} r="1.5" fill={sparkColor} />
-                        </svg>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right type-mono-sm text-[var(--faint)]">
-                      Ref: {row.citation}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-
-        {/* Table Footer */}
-        <div className="p-3 bg-[var(--ink-900)] border-t border-[var(--line-faint)] flex items-center justify-between">
-          <span className="type-quote-sm italic text-[var(--dim)] text-xs">
-            "Automated clinical difference extraction verified against ground truth PDFs."
-          </span>
-          <Link
-            to="/timeline"
-            viewTransition
-            onClick={() => setNavDirection(getNavDirection(location.pathname, "/timeline"))}
-          >
-            <Button variant="ghost" className="h-7 text-xs">
-              Return to timeline spine
-            </Button>
-          </Link>
-        </div>
-      </div>
+                      {status}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 };
