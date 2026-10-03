@@ -169,6 +169,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
                   aria-current={isActive ? "page" : undefined}
                   className={`relative flex items-center justify-center lg:justify-start gap-3 w-full px-2 lg:px-6 py-2 text-left ${isActive ? "" : "hover:bg-[var(--color-surface)]"}`}
                   style={{
+                    lineHeight: "normal",
                     textDecoration: "none",
                     background: isActive ? "var(--color-text)" : "transparent",
                     color: isActive ? "var(--color-bg)" : "var(--color-text)",
