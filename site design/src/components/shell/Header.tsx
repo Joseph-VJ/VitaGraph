@@ -176,7 +176,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
 
   return (
     <header
-      className={`min-h-[64px] px-4 sm:px-8 py-2.5 bg-[var(--ink-900)] border-b border-[var(--line-strong)] flex flex-wrap items-center justify-between gap-x-6 gap-y-3 flex-shrink-0 select-none ${className}`}
+      className={`min-h-[76px] px-4 sm:px-8 py-3 bg-[var(--color-bg)] border-b-2 border-[var(--color-divider)] flex flex-wrap items-center justify-between gap-x-6 gap-y-3 flex-shrink-0 select-none ${className}`}
     >
       {/* Left: Title block or Breadcrumb */}
       <div className="flex flex-col justify-center min-w-0 flex-1 basis-[260px]">
@@ -184,7 +184,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
           <div>
             <Breadcrumb items={config.breadcrumb} className="mb-0.5" />
             <h1
-              className="type-display text-[22px] leading-[28px] sm:text-[24px] sm:leading-[30px]"
+              className="text-[22px] leading-[28px] sm:text-[24px] sm:leading-[30px] font-extrabold tracking-[-0.015em] text-[var(--color-text)]"
               style={{
                 viewTransitionName:
                   supportsViewTransitions() && governor.getState().tier !== "T0"
@@ -194,14 +194,14 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
             >
               {config.title}
             </h1>
-            <p className="type-screen-sub mt-1 max-w-[62ch]">
+            <p className="mt-1 max-w-[62ch] text-[14px] leading-[20px] text-[var(--faint)]">
               {config.sub}
             </p>
           </div>
         ) : (
           <div>
             <h1
-              className="type-display text-[22px] leading-[28px] sm:text-[24px] sm:leading-[30px]"
+              className="text-[22px] leading-[28px] sm:text-[24px] sm:leading-[30px] font-extrabold tracking-[-0.015em] text-[var(--color-text)]"
               style={{
                 viewTransitionName:
                   supportsViewTransitions() && governor.getState().tier !== "T0"
@@ -211,7 +211,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
             >
               {config.title}
             </h1>
-            <p className="type-screen-sub mt-1 max-w-[62ch]">
+            <p className="mt-1 max-w-[62ch] text-[14px] leading-[20px] text-[var(--faint)]">
               {config.sub}
             </p>
           </div>
@@ -236,35 +236,35 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
 
         {/* Search input (300px). Hidden on /ask, where the composer is the input. */}
         {path !== "/ask" && (
-        <div data-boot-target="header-search" className="relative w-full sm:w-[300px] flex items-center order-last sm:order-none">
-          <span className="absolute left-3 text-[var(--dim)] pointer-events-none">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-          </span>
-          <input
-            ref={searchRef}
-            type="text"
-            value={query}
-            aria-label="Ask a question about your reports"
-            placeholder={SEARCH_PLACEHOLDER}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              onSearch?.(e.target.value);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                submitSearch();
-              }
-            }}
-            className="w-full h-10 pl-9 pr-14 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-control)] text-[var(--bone)] placeholder-[var(--faint)] text-[13px] transition-colors duration-[120ms] focus-visible:outline-2 focus-visible:outline-[var(--focus)] focus-visible:outline-offset-1 hover:border-[var(--dim)]"
-          />
-          <span className="absolute right-2.5 px-1.5 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--line-strong)] text-[var(--dim)] type-mono-sm pointer-events-none hidden sm:inline">
-            {isMac ? "⌘K" : "Ctrl K"}
-          </span>
-        </div>
+          <div data-boot-target="header-search" className="relative w-full sm:w-[300px] flex items-center order-last sm:order-none">
+            <span className="absolute left-3 text-[var(--faint)] pointer-events-none">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </span>
+            <input
+              ref={searchRef}
+              type="text"
+              value={query}
+              aria-label="Ask a question about your reports"
+              placeholder={SEARCH_PLACEHOLDER}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                onSearch?.(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  submitSearch();
+                }
+              }}
+              className="w-full h-9 pl-9 pr-14 bg-[var(--color-surface)] border border-[var(--color-divider)] text-[var(--color-text)] placeholder:text-[var(--faint)] text-[14px] transition-colors duration-[120ms] hover:border-[color-mix(in_srgb,var(--color-text)_45%,transparent)] focus-visible:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-0"
+            />
+            <span className="absolute right-2.5 px-1.5 py-0.5 bg-[var(--color-bg)] border border-[var(--color-divider)] text-[var(--faint)] text-[11px] font-semibold pointer-events-none hidden sm:inline">
+              {isMac ? "⌘K" : "Ctrl K"}
+            </span>
+          </div>
         )}
 
         {/* User Chip (§5.2) */}
@@ -272,20 +272,20 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
           <button
             type="button"
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center text-left gap-2.5 sm:pl-3 sm:border-l border-[var(--line-faint)] hover:opacity-90 transition-opacity cursor-pointer"
+            className="flex items-center text-left gap-2.5 sm:pl-3 sm:border-l-2 sm:border-[var(--color-divider)] hover:bg-[color-mix(in_srgb,var(--color-text)_7%,transparent)] transition-colors cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-full bg-[var(--accent)] text-[var(--on-accent)] flex items-center justify-center font-semibold text-[14px]">
+            <div className="w-8 h-8 bg-[var(--accent)] text-[var(--on-accent)] flex items-center justify-center font-extrabold text-[14px]">
               {user?.display_label ? user.display_label.charAt(0).toUpperCase() : "V"}
             </div>
             <div className="hidden sm:flex flex-col">
-              <span className="type-body text-[13px] font-medium leading-none text-[var(--bone)]">
+              <span className="text-[14px] font-extrabold leading-none text-[var(--color-text)]">
                 {user?.display_label || "Connecting..."}
               </span>
-              <span className="type-meta leading-none mt-1.5">
+              <span className="mt-1.5 text-[12px] leading-none text-[var(--faint)]">
                 {user ? `Persona ${user.id.slice(0, 6)}` : "No persona"}
               </span>
             </div>
-            <svg className="w-3.5 h-3.5 text-[var(--dim)] ml-1" viewBox="0 0 20 20" fill="currentColor">
+            <svg className="w-3.5 h-3.5 text-[var(--faint)] ml-1" viewBox="0 0 20 20" fill="currentColor">
               <path
                 fillRule="evenodd"
                 d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
@@ -295,8 +295,8 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
           </button>
 
           {showUserMenu && users.length > 0 && (
-            <div className="absolute right-0 mt-2 w-56 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-strong)] shadow-[var(--shadow-float)] py-1 z-50">
-              <div className="px-3 py-1.5 text-[12px] font-medium text-[var(--dim)] border-b border-[var(--line-faint)]">
+            <div className="absolute right-0 mt-2 w-56 bg-[var(--color-neutral-100)] border-2 border-[var(--color-divider)] shadow-[var(--shadow-md)] py-1 z-50">
+              <div className="px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--faint)] border-b border-[var(--line-faint)]">
                 Switch persona
               </div>
               {users.map((u) => (
@@ -307,12 +307,12 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
                     setUser(u);
                     setShowUserMenu(false);
                   }}
-                  className={`w-full text-left px-3 py-2 text-[12px] flex items-center justify-between hover:bg-[var(--ink-700)] ${
-                    u.id === user?.id ? "text-[var(--verdigris)] font-medium" : "text-[var(--bone)]"
+                  className={`w-full text-left px-3 py-2 text-[13px] flex items-center justify-between hover:bg-[color-mix(in_srgb,var(--color-text)_7%,transparent)] ${
+                    u.id === user?.id ? "text-[var(--verdigris)] font-semibold" : "text-[var(--color-text)]"
                   }`}
                 >
                   <span className="truncate">{u.display_label}</span>
-                  {u.id === user?.id && <span className="text-[11.5px] type-mono-sm">active</span>}
+                  {u.id === user?.id && <span className="text-[11px] font-semibold">active</span>}
                 </button>
               ))}
             </div>

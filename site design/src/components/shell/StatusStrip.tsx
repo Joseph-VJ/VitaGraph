@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LED } from "../gallery/LED";
 import { useMotionGovernor } from "../../motion";
 import { transitionNavigate } from "../../motion/navigation";
 import { BASE_URL } from "../../api/client";
@@ -8,7 +7,6 @@ import { BASE_URL } from "../../api/client";
 interface HealthState {
   online: boolean;
   latencyMs: number | null;
-  configVersion: string;
   allowApi: boolean;
 }
 
@@ -22,8 +20,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
 
   const [health, setHealth] = useState<HealthState>({
     online: backendOnline,
-    latencyMs: backendOnline ? 24 : null,
-    configVersion: "gen-service v2 · cfg 2026-08",
+    latencyMs: null,
     allowApi: true,
   });
   const [probeTick, setProbeTick] = useState(0);
@@ -51,7 +48,6 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
           setHealth({
             online: true,
             latencyMs: duration,
-            configVersion: "gen-service v2 · cfg 2026-08",
             allowApi: data.allow_api ?? true,
           });
           setProbeTick((t) => t + 1);
@@ -113,7 +109,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
     </div>
   );
 
-  // Right: privacy statement, plus the (not yet wired) docs, feedback and theme controls.
+  // Right: privacy statement (Local mode).
   const renderRightControls = () => (
     <div className="flex items-center gap-3 text-[var(--dim)]">
       <div className="flex items-center gap-1">
@@ -123,49 +119,26 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
         </svg>
         <span>Local mode</span>
       </div>
-      {path !== "/graph" && path !== "/ask" && (
-        <>
-          <span className="text-[var(--line-strong)]" aria-hidden="true">|</span>
-          <a href="#" className="hover:text-[var(--bone)] transition-colors">Docs</a>
-          <span className="text-[var(--line-strong)]" aria-hidden="true">|</span>
-          <a href="#" className="hover:text-[var(--bone)] transition-colors">Feedback</a>
-          <span className="text-[var(--line-strong)]" aria-hidden="true">|</span>
-          <button
-            title="Toggle paper theme"
-            aria-label="Toggle paper theme"
-            className="text-[var(--dim)] hover:text-[var(--bone)] transition-colors cursor-pointer"
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <circle cx="12" cy="12" r="5" />
-              <line x1="12" y1="1" x2="12" y2="3" />
-              <line x1="12" y1="21" x2="12" y2="23" />
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-              <line x1="1" y1="12" x2="3" y2="12" />
-              <line x1="21" y1="12" x2="23" y2="12" />
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-            </svg>
-          </button>
-        </>
-      )}
     </div>
   );
 
   return (
     <footer
-      className="chrome-dark h-8 px-3 sm:px-4 bg-[var(--chrome)] border-t border-[var(--chrome-line)] whitespace-nowrap overflow-hidden flex items-center justify-between type-mono-sm select-none flex-shrink-0 z-30"
+      className="h-10 px-3 sm:px-4 bg-[var(--color-bg)] border-t-2 border-[var(--color-divider)] whitespace-nowrap overflow-hidden flex items-center justify-between type-mono-sm select-none flex-shrink-0 z-30"
     >
-      {/* Left: System LED + Status + allow_api status */}
+      {/* Left: System indicator + Status + allow_api status */}
       <div data-boot-target="status-led" className="flex items-center gap-2.5">
-        <LED color={health.online ? "verdigris" : "madder"} live={health.online} />
-        <span className={health.online ? "text-[var(--bone)]" : "text-[var(--madder)] font-medium"}>
+        <span
+          aria-hidden="true"
+          className={`block w-[10px] h-[10px] flex-shrink-0 ${health.online ? "bg-[var(--color-text)]" : "bg-[var(--color-accent)]"}`}
+        />
+        <span className={health.online ? "text-[var(--bone)]" : "text-[var(--accent)] font-semibold"}>
           {health.online ? "System online" : "System offline"}
         </span>
         {!health.allowApi && (
           <>
             <span className="text-[var(--line-strong)]">|</span>
-            <span className="text-[var(--dim)] text-[12px]">allow_api=false (offline core)</span>
+            <span className="text-[var(--dim)] text-[12px]">AI explanations off</span>
           </>
         )}
       </div>
@@ -175,7 +148,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
         {renderMiddleSegments()}
       </div>
 
-      {/* Right: Version + links + theme toggle */}
+      {/* Right: Local mode */}
       <div className="hidden sm:flex items-center">
         {renderRightControls()}
       </div>

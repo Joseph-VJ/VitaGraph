@@ -65,6 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
       id: "upload",
       path: "/upload",
       label: "Upload & Ingest",
+      sublabel: "Add a report",
       icon: (
         <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
@@ -94,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
       id: "ask",
       path: "/ask",
       label: "Ask",
-      sublabel: "Get evidence-backed answers",
+      sublabel: "Questions with evidence",
       icon: (
         <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <circle cx="11" cy="11" r="8" />
@@ -106,7 +107,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
     {
       id: "timeline",
       path: "/timeline",
-      label: "Patient Timeline",
+      label: "Timeline",
+      sublabel: "Changes over time",
       icon: (
         <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -118,10 +120,40 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
       live: true,
     },
     {
+      id: "compare",
+      path: "/compare",
+      label: "Compare",
+      sublabel: "Two reports side by side",
+      icon: (
+        <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+          <circle cx="18" cy="18" r="3" />
+          <circle cx="6" cy="6" r="3" />
+          <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+          <path d="M11 18H8a2 2 0 0 1-2-2V9" />
+        </svg>
+      ),
+      live: true,
+    },
+    {
+      id: "insights",
+      path: "/insights",
+      label: "Insights",
+      sublabel: "Graph analytics",
+      icon: (
+        <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+          <path d="M3 3v18h18" />
+          <path d="M18 17V9" />
+          <path d="M13 17V5" />
+          <path d="M8 17v-3" />
+        </svg>
+      ),
+      live: true,
+    },
+    {
       id: "library",
       path: "/library",
       label: "Library",
-      sublabel: "Your documents",
+      sublabel: "Your reports",
       icon: (
         <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
@@ -175,130 +207,132 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
       id: "settings",
       path: "/settings",
       label: "Settings",
-      sublabel: "Preferences",
+      sublabel: "Ingestion, privacy",
       icon: (
         <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
         </svg>
       ),
       live: true,
     },
   ];
 
-  // Context list according to active screen (§5.1)
-  // The per-screen context lists (recent sessions, questions, personas) were hardcoded demo
-  // content, not user data, so they are no longer rendered. Persona switching lives in the header menu.
+  const navGroups: { label: string; ids: string[] }[] = [
+    { label: "Workspace", ids: ["upload", "library", "datasets"] },
+    { label: "Analyze", ids: ["ask", "graph", "timeline", "compare", "insights"] },
+    { label: "Reference", ids: ["ontology", "notebooks"] },
+    { label: "System", ids: ["settings"] },
+  ];
+
   return (
     <aside
       aria-label="Primary navigation"
-      className={`chrome-dark w-[60px] lg:w-[240px] h-screen bg-[var(--chrome)] border-r border-[var(--chrome-line)] flex flex-col justify-between flex-shrink-0 select-none overflow-y-auto overflow-x-hidden ${className}`}
+      className={`w-[60px] lg:w-[244px] h-screen bg-[var(--color-bg)] border-r-2 border-[var(--color-divider)] flex flex-col justify-between flex-shrink-0 select-none overflow-y-auto overflow-x-hidden ${className}`}
     >
       <div>
-        {/* Brand Block (§5.1) */}
-        <div className="p-3 lg:p-5 pb-3 lg:pb-4 border-b border-[var(--chrome-line)]">
+        {/* Brand Block */}
+        <div className="h-[76px] px-3 lg:px-5 flex items-center justify-center lg:justify-start border-b-2 border-[var(--color-divider)]">
           <Link
             to="/upload"
             viewTransition={supportsViewTransitions() && governor.getState().tier !== "T0"}
             onClick={() => setNavDirection(getNavDirection(currentPath, "/upload"))}
-            className="flex items-center justify-center lg:justify-start gap-2.5 rounded-[var(--r-6)]"
+            className="flex items-center gap-3"
           >
-            {/* Leaf glyph (verdigris hand-drawn SVG) */}
-            <svg
+            <span
               data-boot-target="sidebar-leaf"
-              className="w-5 h-5 text-[var(--verdigris)] flex-shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              aria-hidden="true"
+              className="block w-4 h-4 bg-[var(--color-accent)] flex-shrink-0"
               style={{
                 viewTransitionName: supportsViewTransitions() && governor.getState().tier !== "T0" ? "sidebar-leaf" : "none",
               }}
-            >
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
-            <span className="hidden lg:inline font-['Spectral'] text-[20px] leading-tight font-semibold text-[var(--bone)] tracking-tight">
+            />
+            <span className="hidden lg:inline text-[20px] leading-none font-extrabold tracking-[-0.015em] text-[var(--color-text)]">
               VitaGraph
             </span>
           </Link>
-          <p className="hidden lg:block type-meta text-[var(--dim)] mt-1 pl-7">
-            Evidence for a healthier tomorrow
-          </p>
         </div>
 
         {/* Navigation list */}
-        <nav ref={navRef} className="p-2 space-y-0.5 relative" aria-label="Main Navigation">
+        <nav ref={navRef} className="relative py-2" aria-label="Main Navigation">
           {/* FLIP animated active-rule indicator (§M6.2) */}
           <div
             ref={indicatorRef}
             data-testid="sidebar-active-indicator"
-            className="absolute left-2 w-[3px] bg-[var(--accent)] rounded-r pointer-events-none z-10"
+            className="absolute left-0 w-[5px] bg-[var(--color-accent)] pointer-events-none z-10"
             style={{ top: 0, height: 0, display: "none" }}
           />
 
-          {navItems.map((item) => {
-            const isActive = currentPath === item.path;
-            const useVT = supportsViewTransitions() && governor.getState().tier !== "T0";
+          {navGroups.map((group, groupIdx) => {
+            const items = group.ids
+              .map((id) => navItems.find((n) => n.id === id))
+              .filter((n): n is NavItem => n !== undefined);
+
             return (
-              <Link
-                key={item.id}
-                to={item.path}
-                viewTransition={useVT}
-                onClick={() => setNavDirection(getNavDirection(currentPath, item.path))}
-                data-active={isActive ? "true" : "false"}
-                data-boot-target="nav-item"
-                title={item.label}
-                aria-label={item.label}
-                aria-current={isActive ? "page" : undefined}
-                className={`flex items-center justify-center lg:justify-start gap-3 px-2 lg:px-3 py-2 rounded-[var(--r-6)] transition-colors duration-[120ms] ease-out group relative border-l-2 ${
-                  isActive
-                    ? "bg-[var(--ink-800)] text-[var(--bone)] border-l-[var(--accent)] shadow-[var(--shadow-3d)]"
-                    : "text-[var(--dim)] hover:text-[var(--bone)] hover:bg-[var(--ink-800)]/60 border-l-transparent"
-                }`}
-              >
-                <span
-                  className={`flex-shrink-0 ${
-                    isActive ? "text-[var(--bone)]" : "text-[var(--dim)] group-hover:text-[var(--bone)]"
-                  }`}
-                >
-                  {item.icon}
-                </span>
-                <div className="hidden lg:block min-w-0 flex-1">
-                  <div className="type-body text-[14px] leading-tight font-medium text-current">
-                    {item.label}
-                  </div>
-                  {item.sublabel && (
-                    <div className="type-label text-[12px] text-[var(--dim)] truncate leading-tight mt-0.5 font-normal">
-                      {item.sublabel}
-                    </div>
-                  )}
+              <React.Fragment key={group.label}>
+                <div className="hidden lg:block px-5 pt-5 pb-2 text-[11px] leading-none font-extrabold uppercase tracking-[0.08em] text-[var(--faint)]">
+                  {group.label}
                 </div>
-              </Link>
+                {groupIdx > 0 && (
+                  <div className="lg:hidden mx-3 my-2 border-t border-[var(--line-faint)]" aria-hidden="true" />
+                )}
+                {items.map((item) => {
+                  const isActive = currentPath === item.path;
+                  const useVT = supportsViewTransitions() && governor.getState().tier !== "T0";
+                  return (
+                    <Link
+                      key={item.id}
+                      to={item.path}
+                      viewTransition={useVT}
+                      onClick={() => setNavDirection(getNavDirection(currentPath, item.path))}
+                      data-active={isActive ? "true" : "false"}
+                      data-boot-target="nav-item"
+                      title={item.label}
+                      aria-label={item.label}
+                      aria-current={isActive ? "page" : undefined}
+                      className={`flex items-center justify-center lg:justify-start gap-3 px-2 lg:px-5 py-2.5 relative group transition-colors duration-[120ms] ease-out ${
+                        isActive
+                          ? "bg-[var(--color-text)] text-[var(--color-bg)]"
+                          : "text-[var(--color-text)] hover:bg-[color-mix(in_srgb,var(--color-text)_7%,transparent)]"
+                      }`}
+                    >
+                      <span className="flex-shrink-0">{item.icon}</span>
+                      <div className="hidden lg:block min-w-0 flex-1">
+                        <div className="text-[15px] leading-tight font-extrabold">{item.label}</div>
+                        {item.sublabel && (
+                          <div
+                            className={`text-[12px] leading-tight mt-0.5 font-normal truncate ${
+                              isActive ? "text-[var(--color-neutral-400)]" : "text-[var(--faint)]"
+                            }`}
+                          >
+                            {item.sublabel}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </React.Fragment>
             );
           })}
         </nav>
 
         {/* Gallery Link (§7): developer tool, not a product screen, so it is dev-build only. The route stays reachable. */}
         {import.meta.env.DEV && (
-        <div className="mt-4 pt-3 border-t border-[var(--chrome-line)]">
-          <Link
-            to="/gallery"
-            title="Component gallery"
-            viewTransition={supportsViewTransitions() && governor.getState().tier !== "T0"}
-            onClick={() => setNavDirection(getNavDirection(currentPath, "/gallery"))}
-            className="flex items-center justify-center lg:justify-start gap-2.5 px-2 lg:px-3 py-1.5 mx-2 rounded-[var(--r-6)] text-[var(--dim)] hover:text-[var(--bone)] hover:bg-[var(--ink-800)]/60 transition-colors duration-[120ms]"
-          >
-            <span className="type-mono-sm text-[12px] text-[var(--verdigris)]">§7</span>
-            <span className="hidden lg:inline type-body text-[13px]">Component gallery</span>
-          </Link>
-        </div>
+          <div className="mt-4 pt-3 border-t-2 border-[var(--color-divider)]">
+            <Link
+              to="/gallery"
+              title="Component gallery"
+              viewTransition={supportsViewTransitions() && governor.getState().tier !== "T0"}
+              onClick={() => setNavDirection(getNavDirection(currentPath, "/gallery"))}
+              className="flex items-center justify-center lg:justify-start gap-2.5 px-2 lg:px-5 py-2 text-[var(--faint)] hover:text-[var(--color-text)] hover:bg-[color-mix(in_srgb,var(--color-text)_7%,transparent)] transition-colors duration-[120ms]"
+            >
+              <span className="text-[12px] font-semibold text-[var(--faint)]">§7</span>
+              <span className="hidden lg:inline text-[13px]">Component gallery</span>
+            </Link>
+          </div>
         )}
       </div>
-
     </aside>
   );
 };
