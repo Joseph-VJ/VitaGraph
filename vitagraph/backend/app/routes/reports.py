@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Response, UploadFile
 
-from app.schemas.report import ComparisonOut, PageOut, ReportOut, ReportStatusOut, TrendOut
-from app.services import report_service, user_service
+from app.schemas.report import ComparisonOut, MeasurementOut, PageOut, ReportOut, ReportStatusOut, TrendOut
+from app.services import measurement_service, report_service, user_service
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -80,6 +80,12 @@ def report_status(report_id: str) -> dict:
 @router.get("/{report_id}/pages", response_model=list[PageOut])
 def report_pages(report_id: str) -> list[dict]:
     return report_service.get_pages(report_id)
+
+
+@router.get("/{report_id}/measurements", response_model=list[MeasurementOut])
+def report_measurements(report_id: str) -> list[dict]:
+    """Values read from this report with the report's printed reference range and exact character span."""
+    return measurement_service.list_report_measurements(report_id)
 
 
 @router.get("/{report_id}/pages/{page_number}/image")

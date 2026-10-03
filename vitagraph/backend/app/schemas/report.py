@@ -83,3 +83,20 @@ class ComparisonOut(BaseModel):
     followup_date: str | None = None
     rows: list[ComparisonRow]
     summary: ComparisonSummary
+
+
+class MeasurementOut(BaseModel):
+    """One value read from a report, with the report's own reference range and its exact location."""
+    test_name: str
+    category: str = "General"
+    value: float
+    unit: str = ""
+    reference_range: str | None = None
+    range_low: float | None = None
+    range_high: float | None = None
+    flag: str = "NORMAL"          # NORMAL | LOW | HIGH | ...
+    page_number: int
+    chunk_id: str
+    char_start: int               # offsets into that page's extracted_text
+    char_end: int
+    span_exact: bool = True       # False when only the chunk span could be given
