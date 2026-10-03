@@ -4,6 +4,9 @@ You are the implementer. A senior reviewer (Claude) supervises you. You do ONE t
 
 These rules OVERRIDE `GEMINI.md`, `AGENTS.md` and `CLAUDE.md` wherever they conflict. In particular: the old "DESIGN.md frozen" rule, the graphite palette, Spectral/Plex fonts and rounded corners are being REPLACED by the Modernist system described here. Everything else in those files (no provider/model names in UI, SSE contract, cleanup patterns, backend locked) still applies.
 
+## 0. The one rule above all (added in Task 03)
+The finished live app must look EXACTLY like the reference design: `design/reference/app-v3-source.html` (real markup and inline styles; read it) and `design/reference/screens/*.png` (one screenshot per screen at 1440x900; look at them). Same layout, sizes, spacing, colours, wording and behaviour, with REAL data from the backend instead of the reference's demo data. If the reference and your own taste or an older rule disagree about the LOOK, the reference wins. Never copy into the live app: model/provider names, "Reset demo", "Simulate outage", or any hard-coded demo values (Arjun R, VG-2026-001, 63 chunks, ...). Use the reference's own class names from `src/theme/modernist.css` (`btn btn-primary`, `input`, `tag`, `table`, ...) and its inline-style values (convert to React `style={{ }}` objects verbatim when in doubt).
+
 ## 1. What this project is
 VitaGraph: privacy-aware RAG over longitudinal health reports. Backend `vitagraph/backend` (FastAPI, LOCKED). Frontend `site design/` (React 19, TypeScript, Vite 8, Tailwind 4, react-router). We are re-theming the whole frontend to the **Modernist** design system and adding a real-data rotating 3D graph. Routes, API calls, hooks and data flow stay as they are.
 
@@ -19,8 +22,8 @@ Hard rules:
 1. No border-radius anywhere (0). No gradients. No emoji. No purple. No glass or backdrop-blur.
 2. Shadows only the three tokens `--shadow-sm/md/lg`, and only on things that float (menus, dialogs, toasts, tooltips). Cards are flat with a 2px rule or 1px line.
 3. Use tokens, never raw hex, in components. If a canvas needs a colour, read it from `getComputedStyle(...).getPropertyValue('--token')`.
-4. Font: Archivo 400/600/800, self-hosted through npm (`@fontsource/archivo`), no Google Fonts link. Hashes, ids, JSON and code may use the system monospace stack (`ui-monospace, "Cascadia Mono", Consolas, monospace`), no webfont for it.
-5. Text contrast must be at least 4.5:1. The brand red `#ec3013` on the light ground is only about 3.9:1, so: red is for fills of marks, bars, markers, rules, focus rings and graph highlights. **Text in red and primary-button fills use `--accent-ink` (#ae1800, accent-700)**. Never put body-size text in `--accent`.
+4. Font: Archivo 400/600/800 only, everywhere, self-hosted through npm (`@fontsource/archivo`). Hashes, ids and numbers are ALSO Archivo, with `font-variant-numeric: tabular-nums`, exactly as in the reference. No monospace font in the UI.
+5. Colour: use the reference's exact colours. The brand red `--color-accent` (#ec3013) is used for button fills (white-ish `--color-bg` text on it), bars, marks, rules, focus rings and graph highlights, exactly as in the reference. Small red TEXT (links, kickers, citation chips, 'Q1' labels) uses `--color-accent-700` (#ae1800), exactly as in the reference. Secondary text uses `--color-neutral-700`.
 6. Sentence case copy. No trailing arrows on buttons. No em dashes in UI text.
 7. Keep every existing `data-testid` and every ARIA label/role. Do not rename routes.
 8. Respect `prefers-reduced-motion`. No `setTimeout` for animation; no `backdrop-filter`. Keep 60 fps.
@@ -76,8 +79,9 @@ Use arbitrary-value utilities with CSS variables, the way the existing code does
 | Secondary text (>= 4.5:1) | `var(--faint)` (= #605d5d) or `var(--dim)` (= #444141) |
 | Strong rule between sections | `border-2 border-[var(--color-divider)]` |
 | Light rule inside a table or list | `border border-[var(--line-faint)]` |
-| Primary button fill, red text, links, active states | `var(--accent)` (= #ae1800, the contrast-safe red) with `var(--on-accent)` text |
-| Bright brand red, ONLY for non-text marks: bars, squares, left edge of active nav, focus ring, graph highlights | `var(--color-accent)` (= #ec3013) |
+| Primary button fill (reference look) | `className="btn btn-primary"` (bright red fill, `--color-bg` text) |
+| Small red text, links, kickers, citation chips | `var(--color-accent-700)` (= #ae1800) |
+| Bright brand red: button fills, bars, squares, left edge of active nav, focus ring, graph highlights, range-bar markers | `var(--color-accent)` (= #ec3013) |
 | Tints | `var(--color-accent-100)` (pale red fill), `var(--color-accent-200)`, `var(--color-neutral-300)` |
 | Verified / success | `var(--verdigris)`; caution `var(--ochre)` fill/border, `var(--ochre-ink)` text; failure `var(--madder)` |
 | Hover tint on a transparent surface | `hover:bg-[color-mix(in_srgb,var(--color-text)_7%,transparent)]` |

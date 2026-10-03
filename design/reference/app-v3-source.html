@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="7ccf559e-e74b-4aab-a3eb-d00dccc51f6d"></script>
+</head>
+<body>
+
+
+<x-dc>
+<helmet>
+<style>/* Modernist — design-system tokens and component classes. This file is the source of truth for the system's look; retune it here and see readme.md. */
+/* vietnamese */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 400;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("5d982962-4391-4306-adf6-365b7b2c0a61") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 400;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("8c260b2e-222b-4e60-bef8-b8c8bf02a737") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 400;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("fb4e7ccf-504c-4ff2-bfb7-0df4e8992e38") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("5d982962-4391-4306-adf6-365b7b2c0a61") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("8c260b2e-222b-4e60-bef8-b8c8bf02a737") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("fb4e7ccf-504c-4ff2-bfb7-0df4e8992e38") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("5d982962-4391-4306-adf6-365b7b2c0a61") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("8c260b2e-222b-4e60-bef8-b8c8bf02a737") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("fb4e7ccf-504c-4ff2-bfb7-0df4e8992e38") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+
+:root {
+  --color-bg: #f3f2f2;
+  --color-surface: #eae9e9;
+  --color-text: #201e1d;
+  --color-accent: #ec3013;
+  --color-accent-2: #e15b47;
+  --color-divider: color-mix(in srgb, #201e1d 40%, transparent);
+
+  /* Tonal ramps — generated in OKLCH on one shared lightness scale, so the
+     same step of any role matches the others in visual value. */
+  --color-neutral-100: #f8f4f4;
+  --color-neutral-200: #eae7e7;
+  --color-neutral-300: #d7d3d3;
+  --color-neutral-400: #bab6b6;
+  --color-neutral-500: #9b9797;
+  --color-neutral-600: #7d7979;
+  --color-neutral-700: #605d5d;
+  --color-neutral-800: #444141;
+  --color-neutral-900: #2d2b2b;
+
+  --color-accent-100: #fff2ef;
+  --color-accent-200: #ffe0d9;
+  --color-accent-300: #ffc4b8;
+  --color-accent-400: #ff9783;
+  --color-accent-500: #ff563c;
+  --color-accent-600: #dd2b0f;
+  --color-accent-700: #ae1800;
+  --color-accent-800: #7c1405;
+  --color-accent-900: #4d170e;
+
+  --color-accent-2-100: #fff2ef;
+  --color-accent-2-200: #ffe0da;
+  --color-accent-2-300: #ffc4b9;
+  --color-accent-2-400: #ff9784;
+  --color-accent-2-500: #ef6853;
+  --color-accent-2-600: #c94b39;
+  --color-accent-2-700: #9e3526;
+  --color-accent-2-800: #71261b;
+  --color-accent-2-900: #471d16;
+
+  --font-heading: "Archivo", system-ui, sans-serif;
+  --font-heading-weight: 800;
+  --font-body: "Archivo", system-ui, sans-serif;
+
+  --space-1: 4.0px;
+  --space-2: 8.0px;
+  --space-3: 12.0px;
+  --space-4: 16.0px;
+  --space-6: 24.0px;
+  --space-8: 32.0px;
+
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+
+  /* Elevation — derived from the ground: soft ink-tinted shadows on a
+     light theme, a hairline edge + ambient darkness on a dark one. */
+  --shadow-sm: 0 1px 2px color-mix(in srgb, #2d2b2b 14%, transparent);
+  --shadow-md: 0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
+  --shadow-lg: 0 12px 32px color-mix(in srgb, #2d2b2b 22%, transparent);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: var(--font-heading-weight); }
+
+.grayscale{filter:grayscale(1) contrast(1.08)}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Components — built with the tokens above. Plain CSS
+   on plain HTML: no JavaScript, no build step. Each class is documented in
+   readme.md and demonstrated in foundations/ and components/.
+   ══════════════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-size: 15px; line-height: 1.55; font-weight: 400; }
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  line-height: 1.12; letter-spacing: -0.015em; margin: 0 0 var(--space-2);
+}
+h1 { font-size: 42px; }
+h2 { font-size: 32px; }
+h3 { font-size: 25px; }
+h4 { font-size: 20px; }
+h5 { font-size: 16px; }
+h6 { font-size: 13px; }
+h6 { letter-spacing: 0.08em; text-transform: uppercase; }
+p { margin: 0 0 var(--space-3); }
+a { color: var(--color-accent); text-underline-offset: 3px; }
+img { display: block; max-width: 100%; }
+figure { margin: 0; }
+figcaption {
+  font-size: 11px; margin-top: var(--space-1);
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+.text-muted { color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
+
+/* — rules — */
+.hr {
+  height: 2px; border: 0; margin: var(--space-4) 0;
+  background: var(--color-divider);
+}
+
+/* — buttons — */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer; text-decoration: none;
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 14px; line-height: 1.2; color: var(--color-text); /* matches the .input's 14px —
+     the pair sits side by side in sign-up rows */
+  background: transparent; border: 1px solid transparent;
+  padding: var(--space-2) calc(var(--space-3) * 1.2);
+  border-radius: var(--radius-md);
+}
+.btn svg { display: block; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--color-accent); color: var(--color-bg); }
+.btn-primary:hover { background: var(--color-accent-600); }
+.btn-primary:active { background: var(--color-accent-700); }
+.btn-secondary { border-color: var(--color-divider); }
+.btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
+.btn-ghost { color: var(--color-accent); padding-inline: var(--space-1); }
+.btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+.btn-ghost:active { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
+.btn-icon { width: 36px; height: 36px; padding: 0; }
+.btn-block { width: 100%; margin-top: var(--space-2); justify-content: flex-start; text-align: left; }
+
+/* — forms — */
+.field > label {
+  display: block; font-size: 12px; margin-bottom: 5px;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+.input {
+  width: 100%; min-height: 36px; padding: 6px 10px; font: inherit;
+  font-size: 14px; color: var(--color-text); caret-color: var(--color-accent);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
+}
+.input:hover { border-color: color-mix(in srgb, var(--color-text) 45%, transparent); }
+.input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
+textarea.input { min-height: 90px; resize: vertical; }
+.radio { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
+.radio input, .seg-opt input {
+  position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;
+}
+.radio .dot {
+  width: 16px; height: 16px; flex: none; border-radius: 50%;
+  border: 1.5px solid var(--color-divider);
+}
+.radio:hover .dot { border-color: var(--color-accent); }
+.radio input:checked + .dot {
+  border-color: var(--color-accent); background: var(--color-accent);
+  box-shadow: inset 0 0 0 4px var(--color-bg);
+}
+.radio input:focus-visible + .dot { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.seg {
+  display: inline-flex; overflow: hidden;
+  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
+}
+.seg-opt {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; font-size: 13px; cursor: pointer;
+}
+.seg-opt + .seg-opt { border-left: 1px solid var(--color-divider); }
+.seg-opt:has(input:checked) { background: var(--color-accent); color: var(--color-bg); }
+.seg-opt:not(:has(input:checked)):hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.seg-opt:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+
+/* — cards — */
+.card {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-surface);
+}
+.card-kicker { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent); }
+.card-title {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 17px; line-height: 1.2;
+}
+.card-body { margin: 0; font-size: 13px; opacity: 0.8; flex: 1; }
+.card-meta {
+  display: flex; align-items: center; gap: 6px; font-size: 11px;
+  color: color-mix(in srgb, var(--color-text) 50%, transparent);
+}
+.elev-sm { box-shadow: var(--shadow-sm); }
+.elev-md { box-shadow: var(--shadow-md); }
+.elev-lg { box-shadow: var(--shadow-lg); }
+
+/* — tags — */
+.tag {
+  display: inline-flex; align-items: center; font-size: 11px;
+  letter-spacing: 0.02em; padding: 3px 10px;
+  border-radius: calc(var(--radius-md) * 0.75);
+}
+.tag-accent { background: var(--color-accent-100); color: var(--color-accent-800); }
+.tag-accent-2 { background: var(--color-accent-2-100); color: var(--color-accent-2-800); }
+.tag-neutral { background: var(--color-neutral-100); color: var(--color-neutral-800); }
+.tag-outline { border: 1px solid var(--color-accent); color: var(--color-accent); }
+
+/* — navigation — */
+.nav {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 2px solid var(--color-divider);
+}
+.nav-brand {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 18px; margin-right: auto;
+}
+.nav a { color: inherit; text-decoration: none; font-size: 14px; }
+.nav a:hover, .nav a[aria-current='page'] { color: var(--color-accent); }
+
+/* — tables — */
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th {
+  text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  padding: var(--space-2); border-bottom: 2px solid var(--color-divider);
+}
+.table td {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-divider);
+}
+.table tbody tr:hover { background: color-mix(in srgb, var(--color-text) 4%, transparent); }
+
+/* — dialog — */
+.dialog-backdrop {
+  position: fixed; inset: 0; display: grid; place-items: center;
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
+}
+.dialog {
+  width: min(440px, 100%); display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-4); border-radius: var(--radius-lg);
+  background: var(--color-surface); box-shadow: var(--shadow-lg);
+}
+.dialog-title {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 20px;
+}
+.dialog-body { font-size: 14px; opacity: 0.85; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
+
+</style>
+<script src="b6194a64-1fec-487d-9b6d-47973d90042e"></script>
+<style>body{margin:0}button,input{font-family:inherit}a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-600)}</style>
+</helmet>
+<div style="display:flex;height:100vh;overflow:hidden;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body)">
+
+<aside style="width:244px;flex:none;display:flex;flex-direction:column;border-right:2px solid var(--color-divider);box-sizing:border-box">
+  <div style="height:76px;display:flex;align-items:center;gap:var(--space-2);padding:0 var(--space-6);border-bottom:2px solid var(--color-divider);font-weight:800;font-size:1.25rem;letter-spacing:-0.02em"><span style="width:16px;height:16px;background:var(--color-accent);display:inline-block"></span>VitaGraph</div>
+  <nav style="flex:1;overflow:auto;padding:var(--space-3) 0">
+    <sc-for list="{{ navList }}" as="n" hint-placeholder-count="9">
+      <sc-if value="{{ n.isHead }}" hint-placeholder-val="{{ false }}"><div style="padding:var(--space-4) var(--space-6) var(--space-2);font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">{{ n.label }}</div></sc-if>
+      <sc-if value="{{ n.on }}" hint-placeholder-val="{{ false }}">
+        <button style="appearance:none;cursor:default;width:100%;text-align:left;position:relative;display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-6);border:0;background:var(--color-text);color:var(--color-bg)">
+          <span style="position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--color-accent)"></span>
+          <svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none"><path d="{{ n.d }}"></path></svg>
+          <span><span style="display:block;font-size:0.9375rem;font-weight:800;line-height:1.2">{{ n.label }}</span><span style="display:block;font-size:0.75rem;color:var(--color-neutral-400)">{{ n.sub }}</span></span>
+        </button>
+      </sc-if>
+      <sc-if value="{{ n.off }}" hint-placeholder-val="{{ false }}">
+        <button sc-camel-on-click="{{ n.go }}" style="appearance:none;cursor:pointer;width:100%;text-align:left;display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-6);border:0;background:transparent;color:var(--color-text)" style-hover="background:var(--color-surface)">
+          <svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none;color:var(--color-neutral-700)"><path d="{{ n.d }}"></path></svg>
+          <span><span style="display:block;font-size:0.9375rem;font-weight:800;line-height:1.2">{{ n.label }}</span><span style="display:block;font-size:0.75rem;color:var(--color-neutral-700)">{{ n.sub }}</span></span>
+        </button>
+      </sc-if>
+    </sc-for>
+  </nav>
+  <div style="padding:var(--space-4) var(--space-6);border-top:2px solid var(--color-divider);display:flex;flex-direction:column;gap:var(--space-2)">
+    <button class="btn btn-ghost" sc-camel-on-click="{{ resetDemo }}" style="justify-content:flex-start;font-size:0.8125rem">Reset demo</button>
+    <div style="font-size:0.6875rem;line-height:1.4;color:var(--color-neutral-700)">Educational tool. Not a diagnostic service. All data is synthetic.</div>
+  </div>
+</aside>
+
+<div style="flex:1;min-width:0;height:100vh;display:flex;flex-direction:column">
+  <sc-if value="{{ offline }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:none;display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-6);background-color:var(--color-accent-100);background-image:repeating-linear-gradient(45deg,color-mix(in srgb,var(--color-accent) 22%,transparent) 0 6px,transparent 6px 16px);border-bottom:2px solid var(--color-accent);font-size:0.875rem"><span style="background:var(--color-accent-100);padding:2px 8px;color:var(--color-accent-800)"><b>Backend offline.</b> Answers, search and uploads are paused. The graph, library and timeline stay readable.</span></div>
+  </sc-if>
+  <header style="flex:none;min-height:76px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3) var(--space-6);padding:var(--space-3) var(--space-8);border-bottom:2px solid var(--color-divider);box-sizing:border-box">
+    <div style="min-width:0"><h1 style="margin:0;font-size:1.5rem;letter-spacing:-0.02em">{{ title }}</h1><div style="font-size:0.875rem;color:var(--color-neutral-700)">{{ sub }}</div></div>
+    <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap">
+      <form sc-camel-on-submit="{{ headerAsk }}" style="margin:0"><input class="input" value="{{ search }}" sc-camel-on-change="{{ onSearch }}" placeholder="Ask a question about your reports" style="width:300px"></form>
+      <sc-if value="{{ aiOff }}" hint-placeholder-val="{{ false }}"><span class="tag tag-outline">AI explanations off</span></sc-if>
+      <button class="btn btn-secondary" sc-camel-on-click="{{ openAi }}" style="gap:var(--space-3)">{{ providerLabel }}<svg width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m6 9 6 6 6-6"></path></svg></button>
+      <div style="display:flex;align-items:center;gap:var(--space-2);padding-left:var(--space-3);border-left:2px solid var(--color-divider)"><span style="width:32px;height:32px;background:var(--color-accent);color:var(--color-bg);display:grid;place-items:center;font-weight:800">A</span><span style="line-height:1.2"><span style="display:block;font-size:0.875rem;font-weight:800">Arjun R</span><span style="display:block;font-size:0.6875rem;color:var(--color-neutral-700)">VG-2026-001</span></span></div>
+    </div>
+  </header>
+
+  <main id="main" style="flex:1;min-height:0;overflow:auto">
+
+<!-- ===== UPLOAD ===== -->
+<sc-if value="{{ pUpload }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Upload" style="max-width:1280px;margin:0 auto;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-8)">
+  <div style="display:flex;flex-wrap:wrap;gap:var(--space-8);align-items:flex-start">
+    <div style="flex:0 0 320px;max-width:100%;display:flex;flex-direction:column;gap:var(--space-4)">
+      <div sc-camel-on-drag-over="{{ onDragOver }}" sc-camel-on-drag-leave="{{ onDragLeave }}" sc-camel-on-drop="{{ onDrop }}" style="{{ dropCss }}">
+        <svg width="28" height="28" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"></path></svg>
+        <div style="font-size:1.125rem;font-weight:800;letter-spacing:-0.01em">Drop a PDF here</div>
+        <div style="display:flex;flex-wrap:wrap;gap:var(--space-2)">
+          <label class="btn btn-primary" style="cursor:pointer">Choose file<input type="file" accept="application/pdf" sc-camel-on-change="{{ onFile }}" style="display:none"></label>
+          <button class="btn btn-secondary" sc-camel-on-click="{{ useSample }}">Run the full show</button>
+        </div>
+      </div>
+      <sc-if value="{{ hasFile }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;border-top:2px solid var(--color-divider);border-bottom:2px solid var(--color-divider)">
+          <div style="flex:1;min-width:0"><div style="font-weight:800;overflow-wrap:anywhere;font-size:0.9375rem">{{ fileName }}</div><div style="font-size:0.75rem;color:var(--color-neutral-700)">{{ fileMeta }}</div></div>
+          <span class="tag" style="{{ fileTagCss }}">{{ fileTag }}</span>
+        </div>
+      </sc-if>
+      <div>
+        <sc-for list="{{ pipe }}" as="r" hint-placeholder-count="5">
+          <div style="display:grid;grid-template-columns:1.75rem minmax(0,1fr) auto;gap:var(--space-2);align-items:baseline;padding:var(--space-2) 0;border-top:1px solid var(--color-divider)">
+            <span style="font-size:0.75rem;font-weight:800;font-variant-numeric:tabular-nums;color:var(--color-neutral-700)">{{ r.n }}</span>
+            <span style="min-width:0"><span style="display:block;font-weight:800;font-size:0.9375rem">{{ r.name }}</span><span style="display:block;font-size:0.75rem;color:var(--color-neutral-700)">{{ r.out }}</span></span>
+            <span class="tag" style="{{ r.tagCss }}">{{ r.status }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="flex:1 1 560px;min-width:0">
+      <div style="position:relative;width:100%;height:min(74vh,760px);min-height:420px;background:var(--color-surface);border:2px solid var(--color-divider);overflow:hidden;background-image:repeating-linear-gradient(45deg,color-mix(in srgb,var(--color-text) 6%,transparent) 0 8px,transparent 8px 20px)">
+        <canvas ref="{{ setFrameCv }}" style="position:absolute;inset:0;width:100%;height:100%;display:block;cursor:ew-resize"></canvas>
+        <sc-if value="{{ noFrames }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute;left:0;right:0;bottom:0;padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-1);pointer-events:none">
+            <span style="font-size:0.75rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-accent-700)">Interactive stage</span>
+            <span style="font-size:1rem;font-weight:600">Frames go in assets/frames. Move or scroll here to scrub through them.</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{ hasFrames }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;right:var(--space-4);bottom:var(--space-4);pointer-events:none"><span class="tag tag-neutral" style="font-weight:800">Move · Scroll</span></div></sc-if>
+      </div>
+    </div>
+  </div>
+  <sc-if value="{{ ingested }}" hint-placeholder-val="{{ false }}">
+    <div>
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:var(--space-3);padding-bottom:var(--space-2);border-bottom:2px solid var(--color-divider)">
+        <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">Pages</div>
+        <div style="display:flex;gap:var(--space-2)"><button class="btn btn-primary" sc-camel-on-click="{{ goAsk }}" style="gap:var(--space-6)">Ask about this report<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button><button class="btn btn-secondary" sc-camel-on-click="{{ goLibrary }}">Open library</button></div>
+      </div>
+      <sc-raw-table class="table"><sc-raw-thead><sc-raw-tr><sc-raw-th>Page</sc-raw-th><sc-raw-th>Source</sc-raw-th><sc-raw-th>Characters</sc-raw-th><sc-raw-th>Quality</sc-raw-th></sc-raw-tr></sc-raw-thead><sc-raw-tbody>
+        <sc-for list="{{ pageRows }}" as="g" hint-placeholder-count="5"><sc-raw-tr><sc-raw-td style="font-weight:800">p.{{ g.n }}</sc-raw-td><sc-raw-td><span class="tag" style="{{ g.tagCss }}">{{ g.src }}</span></sc-raw-td><sc-raw-td style="font-variant-numeric:tabular-nums">{{ g.chars }}</sc-raw-td><sc-raw-td style="font-variant-numeric:tabular-nums">{{ g.q }}</sc-raw-td></sc-raw-tr></sc-for>
+      </sc-raw-tbody></sc-raw-table>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- ===== LIBRARY ===== -->
+<sc-if value="{{ pLibrary }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Library" style="max-width:1280px;margin:0 auto;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-8)">
+  <sc-raw-table class="table"><sc-raw-thead><sc-raw-tr><sc-raw-th>Report</sc-raw-th><sc-raw-th>Description</sc-raw-th><sc-raw-th>Pages</sc-raw-th><sc-raw-th>Chunks</sc-raw-th><sc-raw-th>SHA-256</sc-raw-th><sc-raw-th>Status</sc-raw-th></sc-raw-tr></sc-raw-thead><sc-raw-tbody>
+    <sc-for list="{{ repRows }}" as="r" hint-placeholder-count="3">
+      <sc-raw-tr sc-camel-on-click="{{ r.pick }}" style="{{ r.css }}"><sc-raw-td style="font-weight:800">{{ r.date }}</sc-raw-td><sc-raw-td>{{ r.desc }}</sc-raw-td><sc-raw-td style="font-variant-numeric:tabular-nums">{{ r.pages }}</sc-raw-td><sc-raw-td style="font-variant-numeric:tabular-nums">{{ r.chunks }}</sc-raw-td><sc-raw-td style="font-variant-numeric:tabular-nums;color:var(--color-neutral-700)">{{ r.sha }}</sc-raw-td><sc-raw-td><span class="tag" style="{{ r.tagCss }}">{{ r.status }}</span></sc-raw-td></sc-raw-tr>
+    </sc-for>
+  </sc-raw-tbody></sc-raw-table>
+  <div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:var(--space-2);border-bottom:2px solid var(--color-divider)"><h3 style="margin:0">{{ selTitle }}</h3><span style="font-size:0.8125rem;color:var(--color-neutral-700)">Select a row to see the passage a value came from</span></div>
+    <div style="display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(90px,0.8fr) minmax(150px,1.6fr) 5.5rem;gap:var(--space-4);padding:0 var(--space-2) var(--space-2);border-bottom:2px solid var(--color-divider);font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">
+      <span>Biomarker</span><span>Value</span><span>Reference range</span><span>Status</span>
+    </div>
+    <sc-for list="{{ bios }}" as="b" hint-placeholder-count="6">
+      <div style="border-bottom:1px solid var(--color-divider)">
+        <button sc-camel-on-click="{{ b.toggle }}" style="appearance:none;width:100%;text-align:left;cursor:pointer;display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(90px,0.8fr) minmax(150px,1.6fr) 5.5rem;gap:var(--space-4);align-items:center;padding:var(--space-4) var(--space-2);border:0;background:transparent;color:var(--color-text)" style-hover="background:color-mix(in srgb,var(--color-text) 4%,transparent)">
+          <span><span style="display:block;font-weight:800">{{ b.name }}</span><span style="display:block;font-size:0.75rem;color:var(--color-neutral-700)">Page {{ b.page }}</span></span>
+          <span><span style="font-size:1.375rem;font-weight:800;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">{{ b.valText }}</span><span style="font-size:0.75rem;color:var(--color-neutral-700);margin-left:4px">{{ b.unit }}</span>
+            <sc-if value="{{ b.note }}" hint-placeholder-val="{{ false }}"><span style="display:block;font-size:0.75rem;color:var(--color-neutral-700)">{{ b.note }}</span></sc-if>
+          </span>
+          <span>
+            <span style="display:block;position:relative;height:8px;background:var(--color-neutral-200)">
+              <span style="{{ b.bandCss }}"></span>
+              <span style="{{ b.markCss }}"></span>
+            </span>
+            <span style="display:flex;justify-content:space-between;margin-top:var(--space-2);font-size:0.6875rem;color:var(--color-neutral-700);font-variant-numeric:tabular-nums"><span>{{ b.lo }}</span><span>{{ b.hi }}</span></span>
+          </span>
+          <span><span class="tag" style="{{ b.tagCss }}">{{ b.status }}</span></span>
+        </button>
+        <sc-if value="{{ b.open }}" hint-placeholder-val="{{ false }}">
+          <div style="margin:0 var(--space-2) var(--space-4);background:var(--color-surface);border-top:2px solid var(--color-text);padding:var(--space-4)">
+            <div style="display:flex;flex-wrap:wrap;gap:var(--space-4);font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)"><span>{{ b.slip.rep }}</span><span>Page {{ b.slip.page }}</span><span>Characters {{ b.slip.start }}–{{ b.slip.end }}</span></div>
+            <div style="margin-top:var(--space-3);white-space:pre-wrap;font-size:0.9375rem;line-height:1.75;font-variant-numeric:tabular-nums"><span>{{ b.slip.pre }}</span><mark style="background:var(--color-accent-200);color:var(--color-text);box-shadow:inset 0 -2px 0 var(--color-accent);padding:0 2px">{{ b.slip.hit }}</mark><span>{{ b.slip.post }}</span></div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== ASK ===== -->
+<sc-if value="{{ pAsk }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Ask" style="min-height:100%;display:flex;flex-direction:column">
+  <div style="flex:1;max-width:960px;width:100%;box-sizing:border-box;margin:0 auto;padding:var(--space-8) var(--space-8) var(--space-4);display:flex;flex-direction:column;gap:var(--space-4)">
+    <sc-if value="{{ noQa }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:var(--space-8) 0;display:flex;flex-direction:column;gap:var(--space-4)">
+        <h2 style="margin:0;font-size:2rem;letter-spacing:-0.03em">What would you like to know?</h2>
+        <div>
+          <sc-for list="{{ suggestions }}" as="q" hint-placeholder-count="4">
+            <button sc-camel-on-click="{{ q.go }}" style="appearance:none;width:100%;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-2);border:0;border-top:1px solid var(--color-divider);background:transparent;color:var(--color-text);font-size:1rem;font-weight:600" style-hover="background:color-mix(in srgb,var(--color-text) 5%,transparent)"><span>{{ q.text }}</span><svg width="16" height="16" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+    <sc-for list="{{ entries }}" as="e" hint-placeholder-count="0">
+      <article style="padding-bottom:var(--space-6)">
+        <div style="display:flex;justify-content:flex-end;padding-bottom:var(--space-3)">
+          <div style="max-width:72%;background:var(--color-surface);border-top:2px solid var(--color-text);padding:var(--space-3) var(--space-4)">
+            <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;color:var(--color-accent-700);font-variant-numeric:tabular-nums">Q{{ e.n }}</div>
+            <div style="font-size:1.125rem;font-weight:800;letter-spacing:-0.01em;line-height:1.3">{{ e.q }}</div>
+          </div>
+        </div>
+        <div style="border:2px solid var(--color-divider);margin-bottom:var(--space-4)">
+          <button sc-camel-on-click="{{ e.toggleSteps }}" style="appearance:none;width:100%;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-4);border:0;background:transparent;color:var(--color-text);font-size:0.9375rem;font-weight:800" style-hover="background:color-mix(in srgb,var(--color-text) 5%,transparent)"><span>{{ e.thoughtLabel }}</span><span style="color:var(--color-accent-700);font-size:0.8125rem">{{ e.stepsToggle }}</span></button>
+          <sc-if value="{{ e.stepsOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="border-top:2px solid var(--color-divider);padding:var(--space-2) var(--space-4)">
+              <sc-for list="{{ e.stages }}" as="t" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) 0;font-size:0.875rem"><span style="{{ t.css }}"></span><span style="font-weight:800">{{ t.label }}</span><span style="color:var(--color-neutral-700)">{{ t.detail }}</span></div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+        <sc-if value="{{ e.isAnswer }}" hint-placeholder-val="{{ false }}">
+          <div style="padding-bottom:var(--space-4)">
+            <p style="margin:0;max-width:62ch;font-size:1.3125rem;line-height:1.5;font-weight:400">
+              <sc-for list="{{ e.segs }}" as="x" hint-placeholder-count="0">
+                <sc-if value="{{ x.isText }}"><span>{{ x.text }}</span></sc-if>
+                <sc-if value="{{ x.isRef }}"><button sc-camel-on-click="{{ x.onClick }}" style="appearance:none;cursor:pointer;display:inline-block;margin:0 2px;padding:0 6px;border:0;background:var(--color-accent-700);color:var(--color-bg);font-size:0.75rem;font-weight:800;line-height:1.5;vertical-align:0.3em;font-variant-numeric:tabular-nums" style-hover="background:var(--color-text)">{{ x.label }}</button></sc-if>
+              </sc-for>
+            </p>
+          </div>
+          <sc-if value="{{ e.showModules }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));border-top:1px solid var(--color-divider)">
+              <div style="padding:var(--space-3) var(--space-4) var(--space-3) 0">
+                <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:var(--space-2)">Evidence</div>
+                <sc-for list="{{ e.refs }}" as="r" hint-placeholder-count="3">
+                  <button sc-camel-on-click="{{ r.onClick }}" style="appearance:none;cursor:pointer;display:flex;gap:var(--space-2);align-items:baseline;width:100%;text-align:left;padding:var(--space-1) 0;border:0;background:transparent;color:var(--color-text);font-size:0.8125rem" style-hover="color:var(--color-accent-700)">
+                    <span style="font-weight:800;font-variant-numeric:tabular-nums;color:var(--color-accent-700)">{{ r.n }}</span>
+                    <span><span style="font-weight:800">{{ r.rep }}</span> · p.{{ r.page }} · chars {{ r.span }}</span>
+                  </button>
+                </sc-for>
+              </div>
+              <div style="padding:var(--space-3) var(--space-4);border-left:1px solid var(--color-divider)">
+                <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:var(--space-2)">Limitations</div>
+                <div style="font-size:0.8125rem;line-height:1.5">{{ e.limits }}</div>
+              </div>
+              <div style="padding:var(--space-3) 0 var(--space-3) var(--space-4);border-left:1px solid var(--color-divider)">
+                <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:var(--space-2)">Safety</div>
+                <div style="font-size:0.8125rem;line-height:1.5">{{ e.safety }}</div>
+              </div>
+            </div>
+            <sc-for list="{{ e.openSlips }}" as="r" hint-placeholder-count="0">
+              <div style="margin-top:var(--space-3);background:var(--color-surface);border-top:2px solid var(--color-text);padding:var(--space-4)">
+                <div style="display:flex;flex-wrap:wrap;gap:var(--space-4);font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)"><span>Reference {{ r.n }}</span><span>{{ r.slip.rep }}</span><span>Page {{ r.slip.page }}</span><span>Characters {{ r.slip.start }}–{{ r.slip.end }}</span></div>
+                <div style="margin-top:var(--space-3);white-space:pre-wrap;font-size:0.9375rem;line-height:1.75;font-variant-numeric:tabular-nums"><span>{{ r.slip.pre }}</span><mark style="background:var(--color-accent-200);color:var(--color-text);box-shadow:inset 0 -2px 0 var(--color-accent);padding:0 2px">{{ r.slip.hit }}</mark><span>{{ r.slip.post }}</span></div>
+              </div>
+            </sc-for>
+          </sc-if>
+        </sc-if>
+        <sc-if value="{{ e.isRefuse }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--color-accent-100);border-top:2px solid var(--color-accent);padding:var(--space-4);margin-bottom:var(--space-4)">
+            <span class="tag tag-accent" style="font-weight:800;background:var(--color-accent-200)">Declined by policy</span>
+            <p style="margin:var(--space-3) 0 0;font-size:1.125rem;line-height:1.5;color:var(--color-accent-800)">VitaGraph does not diagnose, recommend treatment or advise on medication. Please take this question to a clinician.</p>
+          </div>
+        </sc-if>
+        <sc-if value="{{ e.isNone }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--color-surface);padding:var(--space-4);margin-bottom:var(--space-4)">
+            <span class="tag tag-neutral" style="font-weight:800">No supporting passage</span>
+            <p style="margin:var(--space-3) 0 0;font-size:1.0625rem;line-height:1.5">None of the three indexed reports addresses this question, so no answer is given.</p>
+          </div>
+        </sc-if>
+      </article>
+    </sc-for>
+  </div>
+  <form sc-camel-on-submit="{{ submit }}" style="position:sticky;bottom:0;background:var(--color-bg);border-top:2px solid var(--color-divider);padding:var(--space-4) var(--space-8);margin:0">
+    <div style="max-width:960px;margin:0 auto;display:flex;flex-wrap:wrap;gap:var(--space-3)">
+      <input class="input" value="{{ input }}" sc-camel-on-change="{{ onInput }}" placeholder="Ask about a value, a trend or a report" style="flex:1 1 320px;min-height:52px;font-size:1.0625rem;font-weight:600;padding:var(--space-3) var(--space-4)">
+      <button class="btn btn-primary" type="submit" style="min-width:140px;justify-content:space-between">Send<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button>
+    </div>
+  </form>
+</div>
+</sc-if>
+
+<!-- ===== GRAPH ===== -->
+<sc-if value="{{ pGraph }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Graph" style="height:100%;display:flex;flex-wrap:wrap">
+  <div style="flex:1 1 520px;min-width:0;min-height:520px;position:relative;overflow:hidden;background-image:linear-gradient(color-mix(in srgb,var(--color-text) 7%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--color-text) 7%,transparent) 1px,transparent 1px);background-size:48px 48px">
+    <canvas ref="{{ setCanvas }}" style="position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab"></canvas>
+    <div style="position:absolute;top:var(--space-4);left:var(--space-6);pointer-events:none;font-size:0.9375rem;font-weight:800;font-variant-numeric:tabular-nums">{{ gCount }}</div>
+    <div style="position:absolute;top:var(--space-4);right:var(--space-6);display:flex;gap:var(--space-2)"><button class="btn btn-secondary" sc-camel-on-click="{{ replay }}" style="background:var(--color-bg)">Replay build</button><button class="btn btn-secondary" sc-camel-on-click="{{ toggleAuto }}" style="background:var(--color-bg)">{{ autoLabel }}</button></div>
+    <div style="position:absolute;left:var(--space-6);bottom:var(--space-4);font-size:0.8125rem;font-weight:600;color:var(--color-neutral-800);pointer-events:none">Drag to rotate · scroll to zoom · select a node</div>
+  </div>
+  <div style="flex:0 0 340px;max-width:100%;box-sizing:border-box;border-left:2px solid var(--color-divider);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-6);overflow:auto">
+    <sc-if value="{{ notT2g }}" hint-placeholder-val="{{ true }}"><div>
+      <div style="padding-bottom:var(--space-2);border-bottom:2px solid var(--color-divider)"><div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">Subgraph</div></div>
+      <sc-for list="{{ focuses }}" as="f" hint-placeholder-count="5">
+        <sc-if value="{{ f.on }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ f.pick }}" style="appearance:none;width:100%;cursor:pointer;text-align:left;display:flex;justify-content:space-between;gap:var(--space-3);padding:var(--space-2);border:0;border-bottom:1px solid var(--color-divider);background:var(--color-text);color:var(--color-bg);font-size:0.9375rem;font-weight:800"><span>{{ f.label }}</span><span style="font-variant-numeric:tabular-nums">{{ f.count }}</span></button></sc-if>
+        <sc-if value="{{ f.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ f.pick }}" style="appearance:none;width:100%;cursor:pointer;text-align:left;display:flex;justify-content:space-between;gap:var(--space-3);padding:var(--space-2);border:0;border-bottom:1px solid var(--color-divider);background:transparent;color:var(--color-text);font-size:0.9375rem;font-weight:600" style-hover="background:color-mix(in srgb,var(--color-text) 5%,transparent)"><span>{{ f.label }}</span><span style="font-variant-numeric:tabular-nums;color:var(--color-neutral-700)">{{ f.count }}</span></button></sc-if>
+      </sc-for>
+    </div></sc-if>
+    <sc-if value="{{ isT2g }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:var(--space-3)">
+        <div style="padding-bottom:var(--space-2);border-bottom:2px solid var(--color-divider)"><div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">Text</div></div>
+        <div sc-camel-on-drag-over="{{ onDragOver }}" sc-camel-on-drop="{{ onT2gDrop }}" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-3) var(--space-4);border:2px dashed var(--color-divider);background:var(--color-surface)"><span style="font-size:0.9375rem;font-weight:800">Upload a text file</span><label class="btn btn-secondary" style="cursor:pointer">Choose file<input type="file" accept=".txt,.md,text/plain,text/markdown" sc-camel-on-change="{{ onT2gFile }}" style="display:none"></label></div>
+        <textarea class="input" value="{{ t2gText }}" sc-camel-on-change="{{ onT2g }}" style="min-height:190px;font-size:0.875rem;line-height:1.6;font-variant-numeric:tabular-nums"></textarea>
+        <div style="display:flex;flex-wrap:wrap;gap:var(--space-2)"><button class="btn btn-primary" sc-camel-on-click="{{ buildGraph }}" style="gap:var(--space-6)">Build graph <svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button></div>
+        <div style="font-size:0.8125rem;color:var(--color-neutral-700)">{{ t2gSummary }}</div>
+        <sc-raw-table class="table" style="font-size:0.8125rem"><sc-raw-thead><sc-raw-tr><sc-raw-th>Biomarker</sc-raw-th><sc-raw-th>Value</sc-raw-th><sc-raw-th>Characters</sc-raw-th></sc-raw-tr></sc-raw-thead><sc-raw-tbody><sc-for list="{{ t2gRows }}" as="r" hint-placeholder-count="0"><sc-raw-tr><sc-raw-td style="font-weight:800">{{ r.name }}</sc-raw-td><sc-raw-td style="font-variant-numeric:tabular-nums">{{ r.value }} {{ r.unit }}</sc-raw-td><sc-raw-td style="font-variant-numeric:tabular-nums;color:var(--color-neutral-700)">{{ r.span }}</sc-raw-td></sc-raw-tr></sc-for></sc-raw-tbody></sc-raw-table>
+        <button class="btn btn-secondary" sc-camel-on-click="{{ t2gDownload }}">Download JSON</button>
+      </div>
+    </sc-if>
+    <sc-if value="{{ hasNode }}" hint-placeholder-val="{{ false }}">
+      <div style="border-top:2px solid var(--color-text);padding-top:var(--space-3)">
+        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-accent-700)">{{ node.kind }}</span><button class="btn btn-ghost" sc-camel-on-click="{{ clearNode }}" style="font-size:0.8125rem">Clear</button></div>
+        <h3 style="margin:var(--space-1) 0 var(--space-2);font-size:1.5rem">{{ node.label }}</h3>
+        <p style="margin:0 0 var(--space-3);font-size:0.9375rem">{{ node.about }}</p>
+        <div style="display:flex;flex-wrap:wrap;gap:var(--space-2)"><sc-for list="{{ node.nbs }}" as="nb" hint-placeholder-count="0"><button class="btn btn-secondary" sc-camel-on-click="{{ nb.go }}" style="padding:var(--space-1) var(--space-2);font-size:0.8125rem">{{ nb.label }}</button></sc-for></div>
+        <sc-if value="{{ node.slip }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:var(--space-3);background:var(--color-surface);border-top:2px solid var(--color-text);padding:var(--space-3)">
+            <div style="display:flex;flex-wrap:wrap;gap:var(--space-3);font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)"><span>{{ node.slip.rep }}</span><span>Page {{ node.slip.page }}</span><span>Chars {{ node.slip.start }}–{{ node.slip.end }}</span></div>
+            <div style="margin-top:var(--space-2);white-space:pre-wrap;font-size:0.875rem;line-height:1.7;font-variant-numeric:tabular-nums"><span>{{ node.slip.pre }}</span><mark style="background:var(--color-accent-200);color:var(--color-text);box-shadow:inset 0 -2px 0 var(--color-accent);padding:0 2px">{{ node.slip.hit }}</mark><span>{{ node.slip.post }}</span></div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+    <div style="margin-top:auto"><div style="padding-bottom:var(--space-2);border-bottom:2px solid var(--color-divider)"><div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">Legend</div></div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-2) var(--space-3);padding-top:var(--space-3)"><sc-for list="{{ legend }}" as="g" hint-placeholder-count="6"><div style="display:flex;align-items:center;gap:var(--space-2);font-size:0.8125rem"><span style="{{ g.css }}"></span>{{ g.label }}</div></sc-for></div></div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== TIMELINE ===== -->
+<sc-if value="{{ pTimeline }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Timeline" style="display:flex;flex-wrap:wrap;min-height:100%">
+  <div style="flex:0 0 380px;max-width:100%;box-sizing:border-box;border-right:2px solid var(--color-divider);padding:var(--space-8)">
+    <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">Reports</div>
+    <sc-for list="{{ tlRows }}" as="r" hint-placeholder-count="3">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--space-3);align-items:center;padding:var(--space-4) 0;border-bottom:1px solid var(--color-divider)">
+        <div><div style="font-size:1.375rem;font-weight:800;letter-spacing:-0.02em">{{ r.date }}</div><div style="font-size:0.8125rem;color:var(--color-neutral-700)">{{ r.desc }}</div></div>
+        <span class="tag" style="{{ r.tagCss }}">{{ r.status }}</span>
+      </div>
+    </sc-for>
+  </div>
+  <div style="flex:1 1 560px;min-width:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-content:start">
+    <sc-for list="{{ charts }}" as="c" hint-placeholder-count="2">
+      <div style="padding:calc(var(--space-8) + var(--space-4)) var(--space-6) var(--space-6);border-right:2px solid var(--color-divider);border-bottom:2px solid var(--color-divider)">
+        <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">{{ c.name }}</div>
+        <div style="margin:var(--space-1) 0 var(--space-1);font-size:2rem;font-weight:800;letter-spacing:-0.03em;font-variant-numeric:tabular-nums">{{ c.delta }}</div>
+        <div style="font-size:0.8125rem;color:var(--color-neutral-700)">{{ c.range }}</div>
+        <div style="position:relative;margin-top:var(--space-3)">
+        <svg sc-camel-view-box="0 0 400 320" style="width:100%;height:auto;display:block">
+          <polygon points="{{ c.iso.floor }}" style="fill:var(--color-neutral-200);stroke:var(--color-divider);stroke-width:1.5"></polygon>
+          <polygon points="{{ c.iso.back }}" style="fill:var(--color-neutral-100);stroke:var(--color-divider);stroke-width:1.5"></polygon>
+          <polygon points="{{ c.iso.left }}" style="fill:var(--color-neutral-200);stroke:var(--color-divider);stroke-width:1.5"></polygon>
+          <polygon points="{{ c.iso.bandBack }}" style="fill:var(--color-accent-200)"></polygon>
+          <polygon points="{{ c.iso.bandLeft }}" style="fill:var(--color-accent-300)"></polygon>
+          <sc-for list="{{ c.iso.grid }}" as="gl" hint-placeholder-count="0"><line x1="{{ gl.x1 }}" y1="{{ gl.y1 }}" x2="{{ gl.x2 }}" y2="{{ gl.y2 }}" style="stroke:var(--color-divider);stroke-width:0.8"></line></sc-for>
+          <sc-for list="{{ c.iso.bars }}" as="b" hint-placeholder-count="0">
+            <polygon points="{{ b.front }}" style="{{ b.ffCss }}"></polygon>
+            <polygon points="{{ b.right }}" style="{{ b.rfCss }}"></polygon>
+            <polygon points="{{ b.top }}" style="{{ b.tfCss }}"></polygon>
+          </sc-for>
+        </svg>
+        <sc-for list="{{ c.iso.labels }}" as="lb" hint-placeholder-count="0"><span style="{{ lb.css }}">{{ lb.text }}</span></sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== COMPARE ===== -->
+<sc-if value="{{ pCompare }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Compare" style="max-width:1280px;margin:0 auto;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-6)">
+  <div style="display:flex;flex-wrap:wrap;gap:var(--space-2)">
+    <sc-for list="{{ pairs }}" as="p" hint-placeholder-count="3">
+      <sc-if value="{{ p.on }}" hint-placeholder-val="{{ false }}"><button class="btn btn-primary" sc-camel-on-click="{{ p.pick }}">{{ p.label }}</button></sc-if>
+      <sc-if value="{{ p.off }}" hint-placeholder-val="{{ true }}"><button class="btn btn-secondary" sc-camel-on-click="{{ p.pick }}">{{ p.label }}</button></sc-if>
+    </sc-for>
+  </div>
+  <sc-raw-table class="table"><sc-raw-thead><sc-raw-tr><sc-raw-th>Biomarker</sc-raw-th><sc-raw-th>{{ cmpA }}</sc-raw-th><sc-raw-th>{{ cmpB }}</sc-raw-th><sc-raw-th>Change</sc-raw-th><sc-raw-th>Status</sc-raw-th></sc-raw-tr></sc-raw-thead><sc-raw-tbody>
+    <sc-for list="{{ cmpRows }}" as="r" hint-placeholder-count="6"><sc-raw-tr><sc-raw-td style="font-weight:800">{{ r.name }} <span style="font-weight:400;color:var(--color-neutral-700)">{{ r.unit }}</span></sc-raw-td><sc-raw-td style="font-variant-numeric:tabular-nums">{{ r.a }}</sc-raw-td><sc-raw-td style="font-variant-numeric:tabular-nums">{{ r.b }}</sc-raw-td><sc-raw-td style="font-variant-numeric:tabular-nums;font-weight:800">{{ r.d }}</sc-raw-td><sc-raw-td><span class="tag" style="{{ r.tagCss }}">{{ r.status }}</span></sc-raw-td></sc-raw-tr></sc-for>
+  </sc-raw-tbody></sc-raw-table>
+</div>
+</sc-if>
+
+<!-- ===== INSIGHTS ===== -->
+<sc-if value="{{ pInsights }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Insights" style="max-width:1280px;margin:0 auto;padding:var(--space-8);display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:var(--space-8)">
+  <div>
+    <div style="padding-bottom:var(--space-2);border-bottom:2px solid var(--color-divider)"><div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">Graph size</div></div>
+    <sc-for list="{{ sizeRows }}" as="r" hint-placeholder-count="6"><div style="display:flex;justify-content:space-between;padding:var(--space-3) 0;border-bottom:1px solid var(--color-divider)"><span>{{ r.k }}</span><span style="font-size:1.25rem;font-weight:800;font-variant-numeric:tabular-nums">{{ r.v }}</span></div></sc-for>
+  </div>
+  <div>
+    <div style="padding-bottom:var(--space-2);border-bottom:2px solid var(--color-divider)"><div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">Betweenness centrality</div></div>
+    <sc-for list="{{ btwRows }}" as="r" hint-placeholder-count="8"><div style="padding:var(--space-2) 0"><div style="display:flex;justify-content:space-between;font-weight:800"><span>{{ r.label }}</span><span style="font-variant-numeric:tabular-nums">{{ r.v }}</span></div><div style="height:8px;background:var(--color-neutral-200);margin-top:2px"><div style="{{ r.barCss }}"></div></div></div></sc-for>
+  </div>
+  <div>
+    <div style="padding-bottom:var(--space-2);border-bottom:2px solid var(--color-divider)"><div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">Edge types</div></div>
+    <sc-for list="{{ edgeRows }}" as="r" hint-placeholder-count="6"><div style="display:flex;justify-content:space-between;padding:var(--space-2) 0;border-bottom:1px solid var(--color-divider)"><span>{{ r.k }}</span><span style="font-weight:800;font-variant-numeric:tabular-nums">{{ r.v }}</span></div></sc-for>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== IMAGE TO TEXT ===== -->
+<sc-if value="{{ pOcr }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Image to Text" style="max-width:1280px;margin:0 auto;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-6)">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-4);padding:var(--space-4) var(--space-6);border:2px dashed var(--color-divider);background:var(--color-surface)"><div style="flex:1 1 260px;min-width:0"><div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">Input</div><div style="font-size:1.125rem;font-weight:800">Choose an image</div><div style="font-size:0.875rem;color:var(--color-neutral-700)">PNG or JPG. It is read in your browser and never uploaded.</div></div><label class="btn btn-primary" style="cursor:pointer;gap:var(--space-6)">Choose image <svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg><input type="file" accept="image/*" sc-camel-on-change="{{ onOcrFile }}" style="display:none"></label><button class="btn btn-secondary" sc-camel-on-click="{{ ocrSample }}">Use sample scan</button></div>
+<div style="display:flex;align-items:center;gap:var(--space-3);font-size:0.9375rem;font-weight:600"><span>{{ ocrMsg }}</span><sc-if value="{{ ocrBusy }}" hint-placeholder-val="{{ false }}"><span class="tag tag-neutral" style="font-weight:800">{{ ocrPct }}%</span></sc-if></div>
+<sc-if value="{{ ocrHas }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-6);padding:var(--space-3) 0;border-top:2px solid var(--color-divider);border-bottom:2px solid var(--color-divider)"><div><div style="font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums">{{ ocrStats.words }}</div><div style="font-size:0.75rem;color:var(--color-neutral-700)">lines read</div></div><div><div style="font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums">{{ ocrStats.chars }}</div><div style="font-size:0.75rem;color:var(--color-neutral-700)">characters</div></div><div><div style="font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums">{{ ocrStats.conf }}</div><div style="font-size:0.75rem;color:var(--color-neutral-700)">mean confidence</div></div><div style="margin-left:auto;display:flex;gap:var(--space-2)"><button class="btn btn-secondary" sc-camel-on-click="{{ ocrCopy }}">Copy text</button><button class="btn btn-primary" sc-camel-on-click="{{ ocrDownload }}">Download .md</button></div></div></sc-if>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:var(--space-6);align-items:start">
+<div style="min-width:0;display:flex;flex-direction:column;border-top:2px solid var(--color-text)"><div style="display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);padding:var(--space-2) 0 var(--space-3)"><div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">Original</div></div><sc-if value="{{ ocrHas }}" hint-placeholder-val="{{ false }}"><div style="background:var(--color-surface);padding:var(--space-2)"><canvas ref="{{ setOcrCv }}" style="width:100%;height:auto;display:block"></canvas></div></sc-if><sc-if value="{{ ocrNone }}" hint-placeholder-val="{{ true }}"><div style="min-height:420px;background:var(--color-surface);display:flex;align-items:flex-end;padding:var(--space-4);font-size:0.9375rem;color:var(--color-neutral-700)">The original image appears here.</div></sc-if></div>
+<div style="min-width:0;display:flex;flex-direction:column;border-top:2px solid var(--color-text)"><div style="display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);padding:var(--space-2) 0 var(--space-3)"><div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">Text</div></div><sc-if value="{{ ocrHas }}" hint-placeholder-val="{{ false }}"><pre style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:0.9375rem;line-height:1.7;background:var(--color-surface);padding:var(--space-4);min-height:420px;font-variant-numeric:tabular-nums">{{ ocrText }}</pre></sc-if><sc-if value="{{ ocrNone }}" hint-placeholder-val="{{ true }}"><div style="min-height:420px;background:var(--color-surface);display:flex;align-items:flex-end;padding:var(--space-4);font-size:0.9375rem;color:var(--color-neutral-700)">The recognized text appears here.</div></sc-if></div>
+</div>
+</div>
+</sc-if>
+
+<!-- ===== PDF TO TEXT ===== -->
+<sc-if value="{{ pPdf }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="PDF to Text" style="max-width:1280px;margin:0 auto;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-6)">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-4);padding:var(--space-4) var(--space-6);border:2px dashed var(--color-divider);background:var(--color-surface)"><div style="flex:1 1 260px;min-width:0"><div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">Input</div><div style="font-size:1.125rem;font-weight:800">Choose a PDF</div><div style="font-size:0.875rem;color:var(--color-neutral-700)">The text layer is read page by page in your browser.</div></div><label class="btn btn-primary" style="cursor:pointer;gap:var(--space-6)">Choose PDF <svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg><input type="file" accept="application/pdf" sc-camel-on-change="{{ onPdfFile }}" style="display:none"></label><button class="btn btn-secondary" sc-camel-on-click="{{ pdfSample }}">Use sample report</button></div>
+<div style="font-size:0.9375rem;font-weight:600">{{ pdfMsg }}</div>
+<sc-if value="{{ pdfHas }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-6);padding:var(--space-3) 0;border-top:2px solid var(--color-divider);border-bottom:2px solid var(--color-divider)"><div style="font-weight:800;overflow-wrap:anywhere;max-width:340px">{{ pdfName }}</div><div><div style="font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums">{{ pdfChars }}</div><div style="font-size:0.75rem;color:var(--color-neutral-700)">characters</div></div><div><div style="font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums">{{ pdfCount }}</div><div style="font-size:0.75rem;color:var(--color-neutral-700)">pages</div></div><div style="margin-left:auto;display:flex;gap:var(--space-2)"><button class="btn btn-secondary" sc-camel-on-click="{{ pdfCopy }}">Copy all</button><button class="btn btn-primary" sc-camel-on-click="{{ pdfDownload }}">Download .md</button></div></div></sc-if>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:var(--space-6);align-items:start">
+<div style="min-width:0;display:flex;flex-direction:column;border-top:2px solid var(--color-text)"><div style="display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);padding:var(--space-2) 0 var(--space-3)"><div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">Original</div></div><sc-if value="{{ pdfHas }}" hint-placeholder-val="{{ false }}"><div style="max-height:720px;overflow:auto;background:var(--color-surface);padding:var(--space-2);display:flex;flex-direction:column;gap:var(--space-3)"><sc-for list="{{ pdfRows }}" as="g" hint-placeholder-count="0"><div><sc-if value="{{ g.hasImg }}" hint-placeholder-val="{{ false }}"><div style="{{ g.imgCss }}"></div></sc-if><sc-if value="{{ g.noImg }}" hint-placeholder-val="{{ true }}"><div style="height:260px;border:2px solid var(--color-divider);background-color:var(--color-bg);background-image:repeating-linear-gradient(to bottom,color-mix(in srgb,var(--color-text) 30%,transparent) 0 3px,transparent 3px 14px);background-size:calc(100% - 32px) calc(100% - 64px);background-position:16px 40px;background-repeat:no-repeat"></div></sc-if><div style="font-size:0.75rem;font-weight:800;color:var(--color-neutral-700);padding-top:2px">p.{{ g.n }}</div></div></sc-for></div></sc-if><sc-if value="{{ pdfNone }}" hint-placeholder-val="{{ true }}"><div style="min-height:420px;background:var(--color-surface);display:flex;align-items:flex-end;padding:var(--space-4);font-size:0.9375rem;color:var(--color-neutral-700)">The original pages appear here.</div></sc-if></div>
+<div style="min-width:0;display:flex;flex-direction:column;border-top:2px solid var(--color-text)"><div style="display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);padding:var(--space-2) 0 var(--space-3)"><div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">Text</div></div><sc-if value="{{ pdfHas }}" hint-placeholder-val="{{ false }}"><div style="max-height:720px;overflow:auto;background:var(--color-surface);padding:var(--space-2) var(--space-4)"><sc-for list="{{ pdfRows }}" as="g" hint-placeholder-count="0"><div style="padding:var(--space-3) 0;border-bottom:1px solid var(--color-divider)"><div style="display:flex;gap:var(--space-3);align-items:center;margin-bottom:var(--space-2)"><span style="font-size:1.125rem;font-weight:800">p.{{ g.n }}</span><span style="font-size:0.8125rem;color:var(--color-neutral-700);font-variant-numeric:tabular-nums">{{ g.chars }} chars</span><span class="tag" style="{{ g.tagCss }}">{{ g.tag }}</span></div><pre style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:0.9375rem;line-height:1.6;font-variant-numeric:tabular-nums">{{ g.text }}</pre></div></sc-for></div></sc-if><sc-if value="{{ pdfNone }}" hint-placeholder-val="{{ true }}"><div style="min-height:420px;background:var(--color-surface);display:flex;align-items:flex-end;padding:var(--space-4);font-size:0.9375rem;color:var(--color-neutral-700)">The extracted text appears here.</div></sc-if></div>
+</div>
+</div>
+</sc-if>
+
+<!-- ===== SETTINGS ===== -->
+<sc-if value="{{ pSettings }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Settings" style="max-width:960px;margin:0 auto;padding:var(--space-8);display:flex;flex-direction:column">
+  <sc-for list="{{ settingRows }}" as="r" hint-placeholder-count="8">
+    <sc-if value="{{ r.isHead }}" hint-placeholder-val="{{ false }}"><div style="padding:var(--space-6) 0 var(--space-2);border-bottom:2px solid var(--color-text);font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-accent-700)">{{ r.title }}</div></sc-if>
+    <sc-if value="{{ r.isOpts }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-wrap:wrap;gap:var(--space-3) var(--space-6);justify-content:space-between;align-items:center;padding:var(--space-4) 0;border-bottom:1px solid var(--color-divider)">
+        <div style="flex:1 1 300px;min-width:0"><div style="font-size:1.0625rem;font-weight:800">{{ r.title }}</div><div style="font-size:0.875rem;color:var(--color-neutral-700)">{{ r.desc }}</div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:var(--space-2)"><sc-for list="{{ r.opts }}" as="o" hint-placeholder-count="2"><sc-if value="{{ o.on }}" hint-placeholder-val="{{ false }}"><button class="btn btn-primary" sc-camel-on-click="{{ o.pick }}">{{ o.label }}</button></sc-if><sc-if value="{{ o.off }}" hint-placeholder-val="{{ true }}"><button class="btn btn-secondary" sc-camel-on-click="{{ o.pick }}">{{ o.label }}</button></sc-if></sc-for></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ r.isRange }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-wrap:wrap;gap:var(--space-3) var(--space-6);justify-content:space-between;align-items:center;padding:var(--space-4) 0;border-bottom:1px solid var(--color-divider)">
+        <div style="flex:1 1 300px;min-width:0"><div style="font-size:1.0625rem;font-weight:800">{{ r.title }}</div><div style="font-size:0.875rem;color:var(--color-neutral-700)">{{ r.desc }}</div></div>
+        <div style="display:flex;align-items:center;gap:var(--space-3)"><input type="range" min="120" max="600" step="10" value="{{ r.val }}" sc-camel-on-change="{{ r.set }}" style="width:220px;accent-color:var(--color-accent)"><span style="width:5rem;font-weight:800;font-variant-numeric:tabular-nums">{{ r.valText }}</span></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ r.isNote }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;justify-content:space-between;gap:var(--space-6);padding:var(--space-4) 0;border-bottom:1px solid var(--color-divider)"><div style="font-size:1.0625rem;font-weight:800">{{ r.title }}</div><div style="font-size:0.9375rem;color:var(--color-neutral-700);text-align:right">{{ r.desc }}</div></div>
+    </sc-if>
+  </sc-for>
+</div>
+</sc-if>
+
+  </main>
+
+  <footer style="flex:none;height:40px;display:flex;align-items:center;gap:var(--space-6);padding:0 var(--space-8);border-top:2px solid var(--color-divider);font-size:0.75rem;font-variant-numeric:tabular-nums">
+    <span style="display:flex;align-items:center;gap:var(--space-2);font-weight:800"><span style="{{ ledCss }}"></span>{{ backendText }}</span>
+    <span>ChromaDB · {{ chunkCount }} chunks</span>
+    <span>{{ repCount }} reports</span>
+    <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-neutral-700)">{{ lastLog }}</span>
+    <button class="btn btn-ghost" sc-camel-on-click="{{ toggleOffline }}" style="font-size:0.75rem;padding:0 var(--space-2)">{{ outageLabel }}</button>
+  </footer>
+</div>
+
+
+<sc-if value="{{ show }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:70;background:var(--color-text);color:var(--color-bg)">
+    <canvas ref="{{ setShow }}" style="position:absolute;inset:0;width:100%;height:100%;display:block"></canvas>
+    <div style="position:absolute;top:0;left:0;right:0;padding:clamp(20px,3.5vw,56px);display:flex;flex-wrap:wrap;gap:var(--space-6);justify-content:space-between;align-items:flex-start;pointer-events:none">
+      <div>
+        <div style="font-size:clamp(3rem,8vw,8rem);font-weight:800;line-height:0.9;letter-spacing:-0.05em;font-variant-numeric:tabular-nums">{{ showN }}<span style="color:var(--color-neutral-600)">/05</span></div>
+        <div style="font-size:clamp(1.75rem,3.4vw,3.5rem);font-weight:800;letter-spacing:-0.03em;margin-top:var(--space-2)">{{ showName }}</div>
+        <div style="font-size:clamp(1rem,1.5vw,1.5rem);max-width:48ch;color:var(--color-neutral-300);margin-top:var(--space-1)">{{ showDesc }}</div>
+      </div>
+      <div style="text-align:right"><div style="font-size:0.75rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-400)">{{ showCLabel }}</div><div style="font-size:clamp(2.5rem,6vw,6rem);font-weight:800;letter-spacing:-0.04em;line-height:1;font-variant-numeric:tabular-nums;color:var(--color-accent-400)">{{ showCValue }}</div></div>
+    </div>
+    <div style="position:absolute;left:0;right:0;bottom:0;padding:clamp(16px,2.5vw,40px);display:flex;flex-direction:column;gap:var(--space-4)">
+      <div style="display:flex;gap:var(--space-2)"><sc-for list="{{ showSegs }}" as="g" hint-placeholder-count="5"><div style="flex:1"><div style="height:6px;background:color-mix(in srgb,var(--color-bg) 22%,transparent)"><div style="{{ g.css }}"></div></div><div style="margin-top:6px;font-size:0.75rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-400)">{{ g.label }}</div></div></sc-for></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--space-3)">
+        <span style="font-size:0.875rem;color:var(--color-neutral-400)">{{ showFile }}</span>
+        <span style="display:flex;gap:var(--space-2)">
+          <sc-if value="{{ showRunning }}" hint-placeholder-val="{{ true }}"><button class="btn" sc-camel-on-click="{{ skipShow }}" style="border-color:var(--color-neutral-600);color:var(--color-bg)">Skip ahead</button></sc-if>
+          <sc-if value="{{ showDone }}" hint-placeholder-val="{{ false }}"><button class="btn btn-primary" sc-camel-on-click="{{ openAfterShow }}" style="gap:var(--space-6)">Open the report <svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button></sc-if>
+          <button class="btn" sc-camel-on-click="{{ closeShow }}" style="border-color:var(--color-neutral-600);color:var(--color-bg)">Close</button>
+        </span>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+
+<sc-if value="{{ aiOpen }}" hint-placeholder-val="{{ false }}">
+  <div class="dialog-backdrop" style="z-index:50"><div class="dialog" style="width:min(480px,100%)">
+    <div class="dialog-title">Model and API key</div>
+    <div class="dialog-body">Queries send only retrieved passages from VG-2026-001. Keys stay in this browser.</div>
+    <div style="display:flex;flex-direction:column;gap:var(--space-2)"><sc-for list="{{ providers }}" as="p" hint-placeholder-count="5"><label class="radio"><input type="radio" name="prov" checked="{{ p.on }}" sc-camel-on-change="{{ p.pick }}"><span class="dot"></span>{{ p.label }}</label></sc-for></div>
+    <div class="field"><label>API key</label><input class="input" type="password" value="{{ keyDraft }}" sc-camel-on-change="{{ onKey }}" placeholder="Paste a key"></div>
+    <div class="dialog-actions"><button class="btn btn-secondary" sc-camel-on-click="{{ closeAi }}">Cancel</button><button class="btn btn-primary" sc-camel-on-click="{{ saveAi }}">Save</button></div>
+  </div></div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;autoRotate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Graph&quot;},&quot;frameCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:120,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Interactive stage&quot;,&quot;min&quot;:2,&quot;max&quot;:600},&quot;framePath&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;assets/frames/frame_{n}.jpg&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Interactive stage&quot;}}">
+class Component extends DCLogic {
+  t0 = Date.now();
+  timers = [];
+  state = { page: 'upload', framesReady: false, intro: false, introStep: 0, speed: 'normal', cinema: true, ocrLang: 'eng', chunkSize: 210, allowApi: true, reduceMotion: false, show: false, showDone: false, showStage: 0, showTick: 0, pdfPages: [], pdfBusy: false, pdfMsg: 'Choose a PDF to extract its text layer.', pdfName: '', ocrBusy: false, ocrName: '', ocrBoxes: false, ocrMsg: 'Choose an image or a PDF page.', ocrPct: 0, ocrRes: null, t2gText: ['Report date: 14 Feb 2026', 'Hemoglobin 14.0 g/dL (13.0 - 17.0)', 'WBC 6,200 /µL', 'Platelet count 245,000 /µL', 'Vitamin D (25-OH) 32.0 ng/mL', 'Vitamin B12 480 pg/mL', 'Fasting glucose 94 mg/dL'].join('\n'), t2gRes: null, fileName: '', hasFile: false, fileMeta: '', busy: false, ingest: 0, scan: 0, drag: false, uploaded: false, vidSrc: 'assets/pipeline.mp4', vidLoaded: false, selRep: 'feb', bioOpen: null, pair: 2, qa: [], input: '', search: '', evOpen: {}, stepOpen: {}, trace: [], aiOpen: false, provider: 'gemini', pick: 'gemini', keyDraft: '', focus: 'all', node: null, auto: true, offline: false };
+  PIPE = [
+    { name: 'Parse digital text', out: '5 pages, 4 with a text layer' },
+    { name: 'Read scanned pages (OCR)', out: 'Page 5 read by OCR' },
+    { name: 'Chunk with provenance', out: '24 chunks, page and character spans kept' },
+    { name: 'Embed passages', out: '24 vectors, 384 dimensions' },
+    { name: 'Index, scoped to user', out: '24 upserts where user_id = VG-2026-001' }
+  ];
+  PROVIDERS = { gemini: 'Gemini 1.5 Flash', openai: 'OpenAI gpt-4o-mini', groq: 'Groq llama-3.3-70b', openrouter: 'OpenRouter llama-3-8b', custom: 'Custom endpoint' };
+  PG = [{ c: 1284, q: 0.98 }, { c: 1102, q: 0.97 }, { c: 968, q: 0.99 }, { c: 1347, q: 0.96 }, { c: 312, q: 0.92 }];
+  REPS = [
+    { id: 'jan', date: 'Jan 2024', desc: 'Baseline · blood count and vitamins', pages: 5, chunks: 21, sha: '4be1…09d2' },
+    { id: 'aug', date: 'Aug 2024', desc: 'Follow-up review', pages: 4, chunks: 18, sha: 'a71c…3f80' },
+    { id: 'feb', date: 'Feb 2026', desc: 'Latest panel', pages: 5, chunks: 24, sha: '9f2c…e41a' }
+  ];
+  BIO = [
+    { id: 'hb', name: 'Hemoglobin', val: 14.0, disp: '14.0', unit: 'g/dL', lo: 13, hi: 17, page: 1, ev: 'e1' },
+    { id: 'wbc', name: 'White blood cells', val: 6200, disp: '6,200', unit: '/µL', lo: 4500, hi: 11000, page: 1, ev: 'e8' },
+    { id: 'plt', name: 'Platelets', val: 245000, disp: '245,000', unit: '/µL', lo: 150000, hi: 450000, page: 1, ev: 'e7' },
+    { id: 'vd', name: 'Vitamin D (25-OH)', val: 32, disp: '32.0', unit: 'ng/mL', lo: 30, hi: 100, page: 4, ev: 'e4', note: '18 in Jan 2024' },
+    { id: 'b12', name: 'Vitamin B12', val: 480, disp: '480', unit: 'pg/mL', lo: 200, hi: 900, page: 4, ev: 'e6' },
+    { id: 'glu', name: 'Fasting glucose', val: 94, disp: '94', unit: 'mg/dL', lo: 70, hi: 99, page: 2, ev: 'e9' }
+  ];
+  EV = (() => {
+    const mk = (rep, page, start, pre, hit, post) => ({ rep, page, start, end: start + hit.length, pre, hit, post });
+    return {
+      e1: mk('Feb 2026', 1, 412, 'COMPLETE BLOOD COUNT\nHemoglobin        ', '14.0 g/dL', '   13.0 - 17.0 g/dL\nWBC               6,200 /µL'),
+      e2: mk('Aug 2024', 2, 188, 'HEMATOLOGY\nHemoglobin        ', '13.2 g/dL', '   13.0 - 17.0 g/dL'),
+      e3: mk('Jan 2024', 2, 203, 'HEMATOLOGY\nHemoglobin        ', '13.1 g/dL', '   13.0 - 17.0 g/dL'),
+      e4: mk('Feb 2026', 4, 276, 'VITAMINS\n25-OH Vitamin D   ', '32.0 ng/mL', '   30.0 - 100.0 ng/mL\nVitamin B12       480 pg/mL'),
+      e5: mk('Jan 2024', 4, 301, 'VITAMINS\n25-OH Vitamin D   ', '18 ng/mL', '   30.0 - 100.0 ng/mL\nFlag: LOW'),
+      e6: mk('Feb 2026', 4, 351, '25-OH Vitamin D   32.0 ng/mL\nVitamin B12       ', '480 pg/mL', '   200 - 900 pg/mL'),
+      e7: mk('Feb 2026', 1, 498, 'WBC               6,200 /µL\nPlatelet count    ', '245,000 /µL', '   150,000 - 450,000 /µL'),
+      e8: mk('Feb 2026', 1, 455, 'Hemoglobin        14.0 g/dL\nWBC               ', '6,200 /µL', '   4,500 - 11,000 /µL'),
+      e9: mk('Feb 2026', 2, 143, 'METABOLIC PANEL\nFasting glucose  ', '94 mg/dL', '   70 - 99 mg/dL')
+    };
+  })();
+  SAFETY = 'Educational summary of report text. Discuss any decision with a clinician.';
+  TOPICS = {
+    hb: { q: 'What does my hemoglobin trend show over time?', segs: ['Hemoglobin rose across the three indexed visits: 13.1 g/dL in Jan 2024', 1, ', 13.2 g/dL in Aug 2024', 2, ' and 14.0 g/dL in Feb 2026', 3, '. The latest value is inside the 13.0–17.0 g/dL reference range.'], refs: ['e3', 'e2', 'e1'], limits: 'Three data points. Reference ranges are the ones printed on each report.' },
+    vit: { q: 'Are there any low vitamin levels in my records?', segs: ['In Jan 2024, 25-OH Vitamin D was 18 ng/mL, below the 30–100 ng/mL reference range', 1, '. The Feb 2026 report lists 32.0 ng/mL', 2, '. Vitamin B12 is 480 pg/mL, inside its 200–900 pg/mL range', 3, '.'], refs: ['e5', 'e4', 'e6'], limits: 'The reports do not state a cause for the change in Vitamin D.' },
+    feb: { q: 'Summarize my latest Feb 2026 lab report', segs: ['All six values extracted from the Feb 2026 report are inside the printed reference ranges: hemoglobin 14.0 g/dL', 1, ', fasting glucose 94 mg/dL', 2, ', WBC 6,200 /µL', 3, ', platelets 245,000 /µL', 4, ', Vitamin D 32.0 ng/mL', 5, ' and Vitamin B12 480 pg/mL', 6, '.'], refs: ['e1', 'e9', 'e8', 'e7', 'e4', 'e6'], limits: 'Covers the six values extracted from this report.' },
+    plt: { q: 'Is my platelet count in the normal reference range?', segs: ['Platelet count is 245,000 /µL against a reference range of 150,000–450,000 /µL', 1, '. WBC is 6,200 /µL against 4,500–11,000 /µL', 2, '.'], refs: ['e7', 'e8'], limits: 'These values come from the Feb 2026 report only.' }
+  };
+  NODES = [
+    { id: 'p', k: 'person', label: 'Arjun R', pos: [-0.056, -0.097, -0.073], about: 'Subject. Every report and passage is scoped to VG-2026-001.' },
+    { id: 'rj', k: 'report', label: 'Jan 2024', pos: [-0.056, -0.298, 0.32], about: 'Baseline report. 5 pages: blood count and vitamins.' },
+    { id: 'ra', k: 'report', label: 'Aug 2024', pos: [0.064, -0.198, -0.47], about: 'Follow-up report. 4 pages.' },
+    { id: 'rf', k: 'report', label: 'Feb 2026', pos: [-0.028, 0.223, 0.068], about: 'Latest report. 5 pages; page 5 was read by OCR.' },
+    { id: 'sc', k: 'section', label: 'CBC', pos: [0.426, -0.177, -0.1], about: 'Complete blood count section.' },
+    { id: 'sm', k: 'section', label: 'Metabolic', pos: [0.238, 0.525, -0.208], about: 'Metabolic panel section.' },
+    { id: 'sv', k: 'section', label: 'Vitamins', pos: [-0.365, 0.056, 0.398], about: 'Vitamin panel section.' },
+    { id: 'bhb', k: 'bio', label: 'Hemoglobin', pos: [0.317, -0.686, -0.238], about: 'Reference range 13.0–17.0 g/dL.', ev: 'e1' },
+    { id: 'bwbc', k: 'bio', label: 'WBC', pos: [0.751, -0.021, 0.291], about: 'Reference range 4,500–11,000 /µL.', ev: 'e8' },
+    { id: 'bplt', k: 'bio', label: 'Platelets', pos: [0.544, 0.101, -0.588], about: 'Reference range 150,000–450,000 /µL.', ev: 'e7' },
+    { id: 'bvd', k: 'bio', label: 'Vitamin D', pos: [-0.776, -0.111, -0.011], about: 'Reference range 30–100 ng/mL.', ev: 'e4' },
+    { id: 'bb12', k: 'bio', label: 'Vitamin B12', pos: [-0.271, 0.292, 0.778], about: 'Reference range 200–900 pg/mL.', ev: 'e6' },
+    { id: 'bglu', k: 'bio', label: 'Glucose', pos: [0.429, 0.828, -0.08], about: 'Reference range 70–99 mg/dL.', ev: 'e9' },
+    { id: 'mhbj', k: 'meas', label: '13.1', pos: [0.293, -0.77, 0.279], about: 'Hemoglobin, Jan 2024, g/dL.', ev: 'e3' },
+    { id: 'mhba', k: 'meas', label: '13.2', pos: [0.133, -0.571, -0.728], about: 'Hemoglobin, Aug 2024, g/dL.', ev: 'e2' },
+    { id: 'mhbf', k: 'meas', label: '14.0', pos: [-0.141, -0.691, -0.159], about: 'Hemoglobin, Feb 2026, g/dL.', ev: 'e1' },
+    { id: 'mvdj', k: 'meas', label: '18', pos: [-0.792, -0.048, 0.403], about: 'Vitamin D, Jan 2024, ng/mL.', ev: 'e5' },
+    { id: 'mvdf', k: 'meas', label: '32.0', pos: [-0.602, -0.42, 0.241], about: 'Vitamin D, Feb 2026, ng/mL.', ev: 'e4' },
+    { id: 'mb12f', k: 'meas', label: '480', pos: [-0.275, 0.632, 0.5], about: 'Vitamin B12, Feb 2026, pg/mL.', ev: 'e6' },
+    { id: 'mwbcf', k: 'meas', label: '6,200', pos: [0.521, 0.313, 0.514], about: 'WBC, Feb 2026, /µL.', ev: 'e8' },
+    { id: 'mpltf', k: 'meas', label: '245,000', pos: [0.121, 0.386, -0.679], about: 'Platelets, Feb 2026, /µL.', ev: 'e7' },
+    { id: 'mgluf', k: 'meas', label: '94', pos: [-0.008, 0.869, 0.019], about: 'Fasting glucose, Feb 2026, mg/dL.', ev: 'e9' },
+    { id: 'u', k: 'unc', label: 'Cause not stated', pos: [-0.842, -0.273, -0.465], about: 'The reports record the Vitamin D change but do not state a cause.' }
+  ];
+  EDGES = [['p','rj'],['p','ra'],['p','rf'],['rj','sc'],['rj','sv'],['ra','sc'],['rf','sc'],['rf','sm'],['rf','sv'],['sc','bhb'],['sc','bwbc'],['sc','bplt'],['sm','bglu'],['sv','bvd'],['sv','bb12'],['bhb','mhbj'],['bhb','mhba'],['bhb','mhbf'],['bvd','mvdj'],['bvd','mvdf'],['bb12','mb12f'],['bwbc','mwbcf'],['bplt','mpltf'],['bglu','mgluf'],['mhbj','rj'],['mhba','ra'],['mhbf','rf'],['mvdj','rj'],['mvdf','rf'],['mb12f','rf'],['mwbcf','rf'],['mpltf','rf'],['mgluf','rf'],['u','bvd']];
+  FOCUS = {
+    hb: ['bhb', 'mhbj', 'mhba', 'mhbf', 'rj', 'ra', 'rf'],
+    vit: ['bvd', 'mvdj', 'mvdf', 'bb12', 'mb12f', 'rj', 'rf', 'u'],
+    feb: ['rf', 'mhbf', 'mvdf', 'mb12f', 'mwbcf', 'mpltf', 'mgluf', 'bhb', 'bvd', 'bb12', 'bwbc', 'bplt', 'bglu'],
+    plt: ['bplt', 'mpltf', 'bwbc', 'mwbcf', 'rf']
+  };
+  KIND = { person: 'Subject', report: 'Report', section: 'Section', bio: 'Biomarker', meas: 'Measurement', unc: 'Uncertainty' };
+
+
+  stamp() { return ((Date.now() - this.t0) / 1000).toFixed(2); }
+  log(tag, msg) { this.setState(s => ({ trace: [...s.trace, { t: this.stamp(), tag, msg }].slice(-40) })); }
+  later(fn, ms) { const id = setTimeout(fn, ms); this.timers.push(id); return id; }
+  speed() { const v = this.state.speed; return v === 'fast' ? 240 : v === 'slow' ? 1000 : 560; }
+  componentDidMount() { this.N0 = this.NODES; this.E0 = this.EDGES; this.log('session', 'Workspace VG-2026-001 opened'); [150, 800, 2000, 3000].forEach((ms, i) => this.later(() => this.setState({ introStep: i + 1 }), ms)); this.buildGraph(); }
+  componentWillUnmount() { this.timers.forEach(clearTimeout); this.teardown(); }
+
+  nav = (p) => { if (p === 't2g') this.buildGraph(true); else this.restoreGraph(); this.setState({ page: p }); try { const m = document.getElementById('main'); if (m) m.scrollTop = 0; } catch (e) {} };
+  resetDemo = () => { this.timers.forEach(clearTimeout); this.timers = []; this.setState({ page: 'upload', hasFile: false, fileName: '', busy: false, ingest: 0, scan: 0, uploaded: false, selRep: 'feb', bioOpen: null, qa: [], input: '', search: '', evOpen: {}, stepOpen: {}, focus: 'all', node: null, offline: false }); this.log('session', 'Demo reset'); };
+  toggleOffline = () => { this.setState(s => ({ offline: !s.offline })); this.log('health', this.state.offline ? 'Backend restored' : 'Backend outage simulated'); };
+  fmtSize(n) { return n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+  setFile(name, size) { this.setState({ fileName: name, hasFile: true, fileMeta: 'PDF · ' + size + ' · scoped to VG-2026-001', ingest: 0, busy: false }); this.log('file', 'Selected ' + name); this.later(this.startIngest, 200); }
+  onFile = (e) => { const f = e.target.files && e.target.files[0]; if (f) this.setFile(f.name, this.fmtSize(f.size)); };
+  useSample = () => this.setFile('Arjun_Lab_Report_Feb2026.pdf', '2.3 MB');
+  onDragOver = (e) => { e.preventDefault(); if (!this.state.drag) this.setState({ drag: true }); };
+  onDragLeave = () => this.setState({ drag: false });
+  onDrop = (e) => { e.preventDefault(); this.setState({ drag: false }); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) this.setFile(f.name, this.fmtSize(f.size)); };
+  onVidOver = (e) => e.preventDefault();
+  onVidDrop = (e) => { e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f && /video/.test(f.type)) { this.setState({ vidSrc: URL.createObjectURL(f), vidLoaded: false }); this.probeVid(URL.createObjectURL(f)); this.log('video', 'Loaded ' + f.name); } };
+  probeVid(src) { const v = document.createElement('video'); v.muted = true; v.onloadeddata = () => this.setState({ vidLoaded: true }); v.onerror = () => this.setState({ vidLoaded: false }); v.src = src; }
+
+  startIngest = () => {
+    const st = this.state; if (st.busy) return;
+    if (st.offline) { this.log('ingest', 'Blocked: backend offline'); return; }
+    if (st.cinema) { this.launchShow(); return; }
+    const d = this.speed(); this.setState({ busy: true, ingest: 0, scan: 0, uploaded: false });
+    this.log('ingest', 'POST /api/reports/upload ' + st.fileName);
+    let i = 0;
+    const adv = () => {
+      this.log('stage ' + (i + 1), this.PIPE[i].name + ' · ' + this.PIPE[i].out);
+      i++;
+      if (i < 5) { this.setState({ ingest: i }); this.later(adv, d); }
+      else { this.setState({ ingest: 5, busy: false, uploaded: true }); this.log('ingest', 'Report indexed and ready'); }
+    };
+    this.later(adv, d);
+  };
+
+  headerAsk = (e) => { e.preventDefault(); const q = this.state.search.trim(); if (!q) return; this.setState({ search: '', page: 'ask' }); this.ask(q); };
+  onSearch = (e) => this.setState({ search: e.target.value });
+  btw() {
+    const N = this.NODES, n = N.length, idx = {}; N.forEach((x, i) => { idx[x.id] = i; });
+    const adj = N.map(() => []); this.EDGES.forEach(([a, b]) => { adj[idx[a]].push(idx[b]); adj[idx[b]].push(idx[a]); });
+    const C = new Array(n).fill(0);
+    for (let s = 0; s < n; s++) {
+      const S = [], Pp = N.map(() => []), sig = new Array(n).fill(0), d = new Array(n).fill(-1); sig[s] = 1; d[s] = 0; const Q = [s];
+      while (Q.length) { const v = Q.shift(); S.push(v); adj[v].forEach(w => { if (d[w] < 0) { d[w] = d[v] + 1; Q.push(w); } if (d[w] === d[v] + 1) { sig[w] += sig[v]; Pp[w].push(v); } }); }
+      const del = new Array(n).fill(0);
+      while (S.length) { const w = S.pop(); Pp[w].forEach(v => { del[v] += sig[v] / sig[w] * (1 + del[w]); }); if (w !== s) C[w] += del[w]; }
+    }
+    const norm = (n - 1) * (n - 2);
+    return N.map((x, i) => ({ label: x.label, v: C[i] / norm })).sort((a, b) => b.v - a.v);
+  }
+  biosFor(id) {
+    const B = this.BIO;
+    if (id === 'jan') return [Object.assign({}, B[0], { val: 13.1, disp: '13.1', page: 2, ev: 'e3' }), Object.assign({}, B[3], { val: 18, disp: '18', ev: 'e5', note: '' })];
+    if (id === 'aug') return [Object.assign({}, B[0], { val: 13.2, disp: '13.2', page: 2, ev: 'e2' })];
+    return B;
+  }
+
+  toggleEv = (qid, n) => this.setState(s => { const k = qid + ':' + n; return { evOpen: { ...s.evOpen, [k]: !s.evOpen[k] } }; });
+
+  route(q) {
+    const l = q.toLowerCase();
+    if (/diagnos|prescri|medicat|dosage|\bdose\b|should i (take|stop|start)|treat|cure|do i have|am i sick|symptom/.test(l)) return 'refuse';
+    if (/hemoglobin|haemoglobin|\bhb\b|trend/.test(l)) return 'hb';
+    if (/vitamin|b12|\blow\b|deficien/.test(l)) return 'vit';
+    if (/platelet|wbc|white blood|cbc/.test(l)) return 'plt';
+    if (/latest|summar|feb|2026|overall/.test(l)) return 'feb';
+    return 'none';
+  }
+  ask = (text) => {
+    const q = (text || '').trim(); if (!q) return;
+    const key = this.route(q);
+    const id = 'q' + (this.state.qa.length + 1);
+    const kind = key === 'refuse' ? 'refuse' : key === 'none' ? 'none' : 'answer';
+    this.setState(s => ({ qa: [...s.qa, { id, q, key, kind, pend: 0, shown: 0 }], input: '' }));
+    this.log('ask', 'POST /api/questions user_id=VG-2026-001');
+    const upd = (patch) => this.setState(s => ({ qa: s.qa.map(e => e.id === id ? { ...e, ...patch } : e) }));
+    this.later(() => { upd({ pend: 1 }); this.log('retrieve', 'Chroma query top_k=5 where user_id=VG-2026-001'); }, 380);
+    this.later(() => { upd({ pend: 2 }); this.log('rank', key === 'refuse' ? 'Policy check: clinical advice' : 'Ranking passages by similarity'); }, 800);
+    this.later(() => {
+      upd({ shown: 1 });
+      if (key === 'refuse') this.log('refuse', 'Declined by policy (fail-closed)');
+      else if (key === 'none') this.log('answer', 'No supporting passage, no answer');
+      else { this.log('answer', '4-part grounded answer, ' + this.TOPICS[key].refs.length + ' references'); this.setState({ focus: key }); }
+    }, 1300);
+    this.later(() => upd({ shown: 2 }), 1650);
+  };
+  submit = (e) => { e.preventDefault(); this.ask(this.state.input); };
+  onInput = (e) => this.setState({ input: e.target.value });
+
+  teardown() { if (this.raf) cancelAnimationFrame(this.raf); this.raf = 0; if (this.off) this.off(); this.off = null; }
+  replay = () => { if (this.g) this.g.t0 = performance.now(); this.log('graph', 'Replaying ontology reveal'); };
+  toggleAuto = () => this.setState(s => ({ auto: !s.auto }));
+  setFocus = (k) => { this.setState({ focus: k }); this.log('graph', 'Subgraph: ' + k); };
+
+  setCanvas = (el) => {
+    if (this.cv === el) return;
+    this.teardown(); this.cv = el;
+    if (!el) { this.g = null; return; }
+    const css = getComputedStyle(el);
+    const v = (n, d) => css.getPropertyValue(n).trim() || d;
+    this.col = { ink: v('--color-text', '#201e1d'), acc: v('--color-accent', '#ec3013'), bg: v('--color-bg', '#f3f2f2'), n7: v('--color-neutral-700', '#605d5d'), n4: v('--color-neutral-400', '#bab6b6') };
+    const g = this.g = { rx: 0.4, ry: 0.7, zoom: 1, drag: null, moved: false, hover: null, t0: performance.now(), focusT0: -9999, lastFocus: this.state.focus, proj: {} };
+    this.idx = {}; this.NODES.forEach((n, i) => { this.idx[n.id] = i; });
+    const ord = { person: 0, report: 1, section: 2, bio: 3, meas: 4, unc: 5 }, cnt = {};
+    this.NODES.forEach(n => { cnt[n.k] = (cnt[n.k] || 0); n.delay = ord[n.k] * 340 + cnt[n.k] * 50; cnt[n.k]++; });
+    const loc = (e) => { const r = el.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    const hit = (x, y) => { let best = null, bd = 1e9; for (const id in g.proj) { const p = g.proj[id]; const d = Math.hypot(p.x - x, p.y - y); if (d < p.r + 7 && (d < bd || (best && p.z < g.proj[best].z && d < bd + 6))) { bd = d; best = id; } } return best; };
+    const down = (e) => { g.drag = { x: e.clientX, y: e.clientY }; g.moved = false; try { el.setPointerCapture(e.pointerId); } catch (x) {} el.style.cursor = 'grabbing'; };
+    const move = (e) => {
+      if (g.drag) { const dx = e.clientX - g.drag.x, dy = e.clientY - g.drag.y; if (Math.abs(dx) + Math.abs(dy) > 2) g.moved = true; g.ry += dx * 0.008; g.rx = Math.max(-1.2, Math.min(1.2, g.rx + dy * 0.006)); g.drag.x = e.clientX; g.drag.y = e.clientY; }
+      else { const [x, y] = loc(e); g.hover = hit(x, y); el.style.cursor = g.hover ? 'pointer' : 'grab'; }
+    };
+    const up = (e) => {
+      if (g.drag && !g.moved) { const [x, y] = loc(e); const h = hit(x, y); this.setState({ node: h }); if (h) this.log('graph', 'Inspect ' + this.NODES[this.idx[h]].label); }
+      g.drag = null; el.style.cursor = g.hover ? 'pointer' : 'grab';
+    };
+    const wheel = (e) => { e.preventDefault(); g.zoom = Math.max(0.6, Math.min(1.9, g.zoom * (e.deltaY > 0 ? 0.94 : 1.06))); };
+    el.addEventListener('pointerdown', down); el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('wheel', wheel, { passive: false });
+    this.off = () => { el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('wheel', wheel); };
+    const loop = (now) => { this.raf = requestAnimationFrame(loop); this.draw(now); };
+    this.raf = requestAnimationFrame(loop);
+  };
+
+  draw(now) {
+    const g = this.g, el = this.cv; if (!g || !el) return;
+    const r = el.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
+    if (el.width !== Math.round(w * dpr) || el.height !== Math.round(h * dpr)) { el.width = Math.round(w * dpr); el.height = Math.round(h * dpr); }
+    const ctx = el.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+    const c = this.col, st = this.state;
+    if (st.focus !== g.lastFocus) { g.lastFocus = st.focus; g.focusT0 = now; }
+    if (!g.drag && this.props.autoRotate !== false && st.auto) g.ry += 0.0032;
+    const cy = Math.cos(g.ry), sy = Math.sin(g.ry), cx = Math.cos(g.rx), sx = Math.sin(g.rx);
+    const S = Math.min(w, h) * 0.34 * g.zoom, F = 3.4, ox = w / 2, oy = h / 2;
+    const proj = (p) => { const x1 = p[0] * cy + p[2] * sy, z1 = -p[0] * sy + p[2] * cy; const y2 = p[1] * cx - z1 * sx, z2 = p[1] * sx + z1 * cx; const k = F / (F + z2); return [ox + x1 * S * k, oy + y2 * S * k, z2, k]; };
+    const act = st.focus === 'all' ? null : new Set(this.FOCUS[st.focus]);
+    const near = (z) => Math.max(0, Math.min(1, 1 - (z + 1.2) / 2.4));
+    // ground grid
+    ctx.strokeStyle = c.ink; ctx.lineWidth = 1;
+    for (let i = -4; i <= 4; i++) {
+      const t = i * 0.4;
+      [[[t, 1.3, -1.6], [t, 1.3, 1.6]], [[-1.6, 1.3, t], [1.6, 1.3, t]]].forEach(([a, b]) => {
+        const A = proj(a), B = proj(b); ctx.globalAlpha = 0.07 + 0.16 * near((A[2] + B[2]) / 2); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
+      });
+    }
+    const P = {}; this.NODES.forEach(n => { P[n.id] = proj(n.pos); });
+    const vis = (n) => { const t = (now - g.t0 - n.delay) / 420; return t <= 0 ? 0 : t >= 1 ? 1 : 1 - Math.pow(1 - t, 3); };
+    const V = {}; this.NODES.forEach(n => { V[n.id] = vis(n); });
+    // edges
+    this.EDGES.forEach(([a, b]) => {
+      const A = P[a], B = P[b], v = Math.min(V[a], V[b]); if (v <= 0) return;
+      const both = act && act.has(a) && act.has(b);
+      const base = act ? (both ? 0.85 : 0.07) : 0.14 + 0.4 * near((A[2] + B[2]) / 2);
+      ctx.globalAlpha = base * v; ctx.strokeStyle = both ? c.acc : c.ink; ctx.lineWidth = both ? 1.8 : 1;
+      const mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2, dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1;
+      ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.quadraticCurveTo(mx - dy / L * L * 0.08, my + dx / L * L * 0.08, B[0], B[1]); ctx.stroke();
+    });
+    // nodes far -> near
+    const order = this.NODES.slice().sort((a, b) => P[b.id][2] - P[a.id][2]);
+    g.proj = {};
+    const pulseT = (now - g.focusT0) / 1200;
+    order.forEach(n => {
+      const p = P[n.id], v = V[n.id]; if (v <= 0) return;
+      const k = p[3], isAct = !act || act.has(n.id), sel = st.node === n.id, hov = g.hover === n.id;
+      const a = (act ? (isAct ? 1 : 0.4) : 0.55 + 0.45 * near(p[2])) * v;
+      const base = { person: 11, report: 12, section: 7, bio: 9, meas: 5, unc: 9 }[n.k] * k * (0.4 + 0.6 * v);
+      g.proj[n.id] = { x: p[0], y: p[1], r: Math.max(base, 8), z: p[2] };
+      const hot = act && isAct;
+      ctx.globalAlpha = a; ctx.lineWidth = 2.5;
+      ctx.fillStyle = hot ? c.acc : c.ink; ctx.strokeStyle = hot ? c.acc : c.ink;
+      ctx.beginPath();
+      if (n.k === 'person') { ctx.rect(p[0] - base, p[1] - base, base * 2, base * 2); ctx.fill(); }
+      else if (n.k === 'report') { ctx.arc(p[0], p[1], base, 0, 6.2832); ctx.fillStyle = c.bg; ctx.fill(); ctx.stroke(); }
+      else if (n.k === 'section') { ctx.moveTo(p[0], p[1] - base); ctx.lineTo(p[0] + base, p[1]); ctx.lineTo(p[0], p[1] + base); ctx.lineTo(p[0] - base, p[1]); ctx.closePath(); ctx.fillStyle = c.bg; ctx.fill(); ctx.lineWidth = 2; ctx.stroke(); }
+      else if (n.k === 'bio') { ctx.arc(p[0], p[1], base, 0, 6.2832); ctx.fill(); }
+      else if (n.k === 'meas') { ctx.arc(p[0], p[1], base, 0, 6.2832); ctx.fillStyle = hot ? c.acc : c.n7; ctx.fill(); }
+      else { ctx.setLineDash([3, 3]); ctx.arc(p[0], p[1], base, 0, 6.2832); ctx.fillStyle = c.bg; ctx.fill(); ctx.strokeStyle = c.acc; ctx.stroke(); ctx.setLineDash([]); }
+      if (act && isAct && pulseT >= 0 && pulseT < 1) { ctx.globalAlpha = (1 - pulseT) * 0.8; ctx.strokeStyle = c.acc; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p[0], p[1], base + 4 + pulseT * 26, 0, 6.2832); ctx.stroke(); }
+      if (sel || hov) { ctx.globalAlpha = 1; ctx.strokeStyle = sel ? c.acc : c.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p[0], p[1], base + 6, 0, 6.2832); ctx.stroke(); }
+      const showLabel = n.k !== 'meas' ? (!act || isAct || sel || hov) : (sel || hov || (act ? isAct : p[2] < 0.1));
+      if (showLabel && v > 0.6) {
+        const fs = Math.max(10, 12.5 * k); ctx.font = (n.k === 'report' || n.k === 'person' ? '800 ' : '600 ') + fs + 'px Archivo, system-ui, sans-serif';
+        ctx.globalAlpha = Math.max(a, sel || hov ? 1 : 0); ctx.lineWidth = 4; ctx.strokeStyle = c.bg; ctx.lineJoin = 'round';
+        const tx = p[0] + base + 7, ty = p[1] + fs * 0.35; ctx.strokeText(n.label, tx, ty); ctx.fillStyle = hot ? c.acc : c.ink; ctx.fillText(n.label, tx, ty);
+      }
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  iso(bars, o) {
+    const c = 0.866, LX = 260, LY = 70, LZ = 120, ox = 100, oy = 135;
+    const P = (x, y, z) => [ox + (x - y) * c, oy + (x + y) * 0.5 - z];
+    const pt = (a) => a.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' ');
+    const f = (v) => Math.min(1, v / o.max) * LZ;
+    const out = { floor: pt([P(0, 0, 0), P(LX, 0, 0), P(LX, LY, 0), P(0, LY, 0)]), back: pt([P(0, 0, 0), P(LX, 0, 0), P(LX, 0, LZ), P(0, 0, LZ)]), left: pt([P(0, 0, 0), P(0, LY, 0), P(0, LY, LZ), P(0, 0, LZ)]) };
+    const zl = f(o.lo), zh = f(o.hi);
+    out.bandBack = pt([P(0, 0, zl), P(LX, 0, zl), P(LX, 0, zh), P(0, 0, zh)]);
+    out.bandLeft = pt([P(0, 0, zl), P(0, LY, zl), P(0, LY, zh), P(0, 0, zh)]);
+    out.grid = []; for (let i = 1; i < 8; i++) { const x = LX * i / 8, a = P(x, 0, 0), b = P(x, LY, 0); out.grid.push({ x1: a[0], y1: a[1], x2: b[0], y2: b[1] }); }
+    const l1 = P(0, LY, zl), l2 = P(0, LY, zh);
+    const lab = (x, y, text, size, color, tx, ls) => ({ text, css: 'position:absolute;left:' + (x / 400 * 100).toFixed(2) + '%;top:' + (y / 320 * 100).toFixed(2) + '%;transform:translate(' + tx + ',-50%);font-size:' + size + 'px;font-weight:800;line-height:1;white-space:nowrap;pointer-events:none;color:' + color + ';font-variant-numeric:tabular-nums;letter-spacing:' + (ls || 0) + 'em' });
+    out.labels = [lab(l1[0] - 6, l1[1], o.loText, 11, 'var(--color-accent-700)', '-100%'), lab(l2[0] - 6, l2[1], o.hiText, 11, 'var(--color-accent-700)', '-100%')];
+    const bw = 34, bd = 34, y0 = (LY - bd) / 2, y1 = y0 + bd;
+    out.bars = bars.map(b => {
+      const x0 = 20 + b.t * (LX - 40 - bw), x1 = x0 + bw, hh = Math.max(2, f(b.v));
+      const tp = P(x0 + bw / 2, y0 + bd / 2, hh), bp = P(x0 + bw / 2, y1, 0);
+      const ft = b.hot ? 'var(--color-accent-400)' : 'var(--color-neutral-400)', ff = b.hot ? 'var(--color-accent)' : 'var(--color-neutral-700)', rf = b.hot ? 'var(--color-accent-700)' : 'var(--color-neutral-900)';
+      return {
+        top: pt([P(x0, y0, hh), P(x1, y0, hh), P(x1, y1, hh), P(x0, y1, hh)]),
+        front: pt([P(x0, y1, 0), P(x1, y1, 0), P(x1, y1, hh), P(x0, y1, hh)]),
+        right: pt([P(x1, y0, 0), P(x1, y1, 0), P(x1, y1, hh), P(x1, y0, hh)]),
+        tfCss: 'fill:' + ft + ';stroke:var(--color-text);stroke-width:1', ffCss: 'fill:' + ff + ';stroke:var(--color-text);stroke-width:1', rfCss: 'fill:' + rf + ';stroke:var(--color-text);stroke-width:1',
+        _l: [lab(tp[0], tp[1] - 14, b.val, 17, 'var(--color-text)', '-50%'), lab(bp[0] - 10, bp[1] + 24, b.date, 11, 'var(--color-neutral-800)', '-50%', 0.04)]
+      };
+    });
+    out.bars.forEach(b => { out.labels.push(...b._l); });
+    return out;
+  }
+
+
+
+  nChunks() { return Math.max(8, Math.min(40, Math.round(5013 / this.state.chunkSize))); }
+  showMult() { return this.state.reduceMotion ? 0.4 : ({ fast: 0.5, normal: 1, slow: 1.8 })[this.state.speed]; }
+  colors() { const cs = getComputedStyle(document.documentElement), g = (n) => cs.getPropertyValue(n).trim(); return { ink: g('--color-text') || '#201e1d', acc: g('--color-accent') || '#ec3013', bg: g('--color-bg') || '#f3f2f2' }; }
+  loadScript(url) { return new Promise((res, rej) => { this.libs = this.libs || {}; if (this.libs[url]) return res(); const e = document.createElement('script'); e.src = url; e.onload = () => { this.libs[url] = 1; res(); }; e.onerror = () => rej(new Error('load')); document.head.appendChild(e); }); }
+  download(name, text) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' })); a.download = name; a.click(); }
+  copyText(t) { try { navigator.clipboard.writeText(t); this.log('tool', 'Copied to clipboard'); } catch (e) {} }
+  introGo = () => { this.setState({ intro: false, page: 'upload' }); this.later(this.useSample, 350); };
+  introSkip = () => this.setState({ intro: false });
+
+  /* ----- cinematic ingestion ----- */
+  launchShow() { this.sh = { t0: null, stage: -1, fin: false, tick: 0, stats: { label: 'Starting', value: '0' }, segP: [0, 0, 0, 0, 0] }; this.setState({ show: true, showDone: false, showStage: 0, busy: true, ingest: 0, uploaded: false }); this.log('ingest', 'POST /api/reports/upload ' + this.state.fileName); }
+  closeShow = () => { this.shStop(); this.shCv = null; this.setState({ show: false, busy: false }); };
+  openAfterShow = () => { this.closeShow(); this.nav('library'); };
+  showTotal() { const m = this.showMult(); return [8, 9, 8, 9, 8].reduce((a, b) => a + b * m, 0); }
+  skipShow = () => { if (this.sh) this.sh.t0 = performance.now() - this.showTotal() * 1000 - 20; };
+  setShow = (el) => { if (this.shCv === el) return; this.shStop(); this.shCv = el; if (!el) return; const loop = (n) => { this.shRaf = requestAnimationFrame(loop); this.drawShow(n); }; this.shRaf = requestAnimationFrame(loop); };
+  shStop() { if (this.shRaf) cancelAnimationFrame(this.shRaf); this.shRaf = 0; }
+  drawShow(now) {
+    const el = this.shCv, sh = this.sh; if (!el || !sh) return;
+    const r = el.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2), W = Math.max(1, Math.round(r.width)), H = Math.max(1, Math.round(r.height));
+    if (el.width !== Math.round(W * dpr) || el.height !== Math.round(H * dpr)) { el.width = Math.round(W * dpr); el.height = Math.round(H * dpr); }
+    const x = el.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (sh.t0 == null) sh.t0 = now;
+    const m = this.showMult(), BASE = [8, 9, 8, 9, 8], D = BASE.map(b => b * m), t = (now - sh.t0) / 1000;
+    let st = 0, acc = 0; while (st < 5 && t >= acc + D[st]) { acc += D[st]; st++; }
+    const fin = st >= 5, p = fin ? 1 : (t - acc) / D[st], u = fin ? 8 : p * BASE[st];
+    sh.segP = [0, 1, 2, 3, 4].map(i => i < st ? 1 : i === st ? p : 0);
+    if (st !== sh.stage) { sh.stage = st; if (!fin) { this.setState({ ingest: st, showStage: st }); this.log('stage ' + (st + 1), this.PIPE[st].name); } }
+    if (fin && !sh.fin) { sh.fin = true; this.setState({ ingest: 5, busy: false, uploaded: true, showDone: true, showStage: 5 }); this.log('ingest', 'Report indexed and ready'); }
+    const col = this.colors(), cr = col.bg, ink = col.ink, ac = col.acc, k = H / 1000, L = W * 0.06, RW = W * 0.88, T0 = H * 0.32;
+    const cl = (v, a, b) => Math.min(b, Math.max(a, v)), ez = (v) => 1 - Math.pow(1 - cl(v, 0, 1), 3);
+    const txt = (s, X, Y, sz, wt, color, al) => { x.font = wt + ' ' + (sz * k) + 'px Archivo, system-ui, sans-serif'; x.fillStyle = color; x.textAlign = al || 'left'; x.fillText(s, X, Y); };
+    x.globalAlpha = 1; x.fillStyle = ink; x.fillRect(0, 0, W, H);
+    x.strokeStyle = cr; x.lineWidth = 1; x.globalAlpha = 0.06;
+    for (let g = 0; g < W; g += 64 * k) { x.beginPath(); x.moveTo(g, 0); x.lineTo(g, H); x.stroke(); }
+    for (let g = 0; g < H; g += 64 * k) { x.beginPath(); x.moveTo(0, g); x.lineTo(W, g); x.stroke(); }
+    x.globalAlpha = 1;
+    const hatch = (X, Y, w, h, a) => { x.save(); x.beginPath(); x.rect(X, Y, w, h); x.clip(); x.strokeStyle = ac; x.globalAlpha = a; x.lineWidth = 3 * k; for (let g = -h; g < w; g += 16 * k) { x.beginPath(); x.moveTo(X + g, Y + h); x.lineTo(X + g + h, Y); x.stroke(); } x.restore(); x.globalAlpha = 1; };
+    const nC = this.nChunks(), PC = [1284, 1102, 968, 1347, 312], TOT = 5013;
+    if (st === 0) {
+      const pw = RW * 0.15, gap = (RW - 5 * pw) / 4, ph = H * 0.38, y0 = T0 + H * 0.03; let got = 0;
+      for (let i = 0; i < 5; i++) {
+        const e = ez((u - 0.3 - i * 0.3) / 0.8), px = L + i * (pw + gap), py = y0 + (1 - e) * 60 * k, sw = cl((u - (1.2 + i * 1.2)) / 1.0, 0, 1), scan = i === 4, got1 = (scan ? 0 : PC[i]) * sw;
+        x.globalAlpha = e; x.fillStyle = cr; x.fillRect(px, py, pw, ph);
+        x.fillStyle = ink; x.fillRect(px + 12 * k, py + 12 * k, pw * 0.45, 10 * k);
+        for (let j = 0; j < 14; j++) { const ly = py + 44 * k + j * (ph - 70 * k) / 14, lit = j / 14 < sw; x.globalAlpha = e * (lit ? 1 : 0.28); x.fillStyle = lit && !scan ? ac : ink; x.fillRect(px + 12 * k, ly, pw * (0.5 + 0.4 * Math.abs(Math.sin(j * 3.1 + i))) - 20 * k, 5 * k); }
+        if (scan) { x.globalAlpha = e * 0.4; x.fillStyle = ink; for (let a = 0; a < 70; a++) x.fillRect(px + ((a * 37) % 100) / 100 * pw, py + ((a * 61) % 100) / 100 * ph, 2.5 * k, 2.5 * k); if (sw >= 1) { x.globalAlpha = e; hatch(px, py, pw, ph, 0.55); x.fillStyle = ink; x.fillRect(px + pw * 0.08, py + ph * 0.42, pw * 0.84, 40 * k); txt('NO TEXT LAYER', px + pw / 2, py + ph * 0.42 + 28 * k, 19, 800, ac, 'center'); } }
+        if (sw > 0 && sw < 1) { x.globalAlpha = 1; x.fillStyle = ac; x.fillRect(px - 6 * k, py + sw * ph, pw + 12 * k, 4 * k); }
+        x.globalAlpha = e; txt('p.' + (i + 1), px, py + ph + 40 * k, 30, 800, cr);
+        if (sw > 0) txt(scan ? (sw >= 1 ? 'goes to OCR' : 'checking') : Math.round(got1).toLocaleString('en-US') + ' chars', px, py + ph + 74 * k, 22, 600, scan && sw >= 1 ? ac : cr);
+        got += got1;
+      }
+      x.globalAlpha = 0.25; x.fillStyle = cr; x.fillRect(L, H * 0.88, RW, 12 * k); x.globalAlpha = 1; x.fillStyle = ac; x.fillRect(L, H * 0.88, RW * got / TOT, 12 * k);
+      sh.stats = { label: 'Characters from the text layer', value: Math.round(got).toLocaleString('en-US') };
+    } else if (st === 1) {
+      const SW = RW * 0.36, SH = H * 0.56, OL = ['ADDENDUM — SCANNED ATTACHMENT', 'Date of collection 14 Feb 2026', 'Platelet count (manual) 245,000 /µL', 'Reference 150,000 - 450,000 /µL', 'Smear: normocytic, normochromic', 'Verified by: Lab Tech 0412', 'Remarks: no abnormal cells seen', 'End of report'], CF = [0.97, 0.96, 0.95, 0.97, 0.93, 0.68, 0.94, 0.99];
+      const tl = (i) => 1.0 + 6.3 * cl(((0.13 + 0.105 * i) - 0.06) / 0.89, 0, 1); let chars = 0;
+      x.save(); x.translate(L + SW / 2, T0 + SH / 2 + 10 * k); x.rotate(-0.018); x.translate(-SW / 2, -SH / 2);
+      x.globalAlpha = 0.93; x.fillStyle = cr; x.fillRect(0, 0, SW, SH); x.globalAlpha = 0.35; x.fillStyle = ink; for (let a = 0; a < 260; a++) x.fillRect(((a * 53) % 100) / 100 * SW, ((a * 29) % 100) / 100 * SH, 2 * k, 2 * k);
+      OL.forEach((s, i) => { const ly = SH * (0.10 + 0.105 * i), lw = Math.min(SW * 0.9, s.length * 13.5 * k), on = u >= tl(i); x.globalAlpha = 0.6; x.fillStyle = ink; x.fillRect(SW * 0.06, ly + 4 * k, lw, 16 * k); if (on) { x.globalAlpha = 1; x.strokeStyle = ac; x.lineWidth = 3 * k; x.strokeRect(SW * 0.06 - 6 * k, ly - 2 * k, lw + 12 * k, 30 * k); x.fillStyle = i === 5 ? ac : ink; x.fillRect(SW * 0.06 + lw - 36 * k, ly - 24 * k, 48 * k, 22 * k); txt(CF[i].toFixed(2), SW * 0.06 + lw - 12 * k, ly - 8 * k, 15, 800, cr, 'center'); } });
+      const bf = cl((u - 1.0) / 6.3, 0, 1); if (bf > 0 && bf < 1) { x.globalAlpha = 1; x.fillStyle = ac; x.fillRect(-8 * k, SH * (0.06 + 0.89 * bf), SW + 16 * k, 5 * k); }
+      x.restore(); x.globalAlpha = 1;
+      const X2 = L + SW + RW * 0.06;
+      OL.forEach((s, i) => { const n = Math.floor(cl((u - tl(i)) * 34, 0, s.length)); chars += n; const ry = T0 + 36 * k + i * (SH / 8.2); txt(s.slice(0, n), X2, ry, 30, 800, i === 5 ? ac : cr); if (n >= s.length) txt(i === 5 ? 'conf ' + CF[i].toFixed(2) + '  needs review' : 'conf ' + CF[i].toFixed(2), X2, ry + 26 * k, 19, 600, i === 5 ? ac : cr); });
+      sh.stats = { label: 'Characters read by OCR', value: String(chars) };
+    } else if (st === 2) {
+      const cols = 8, rows = Math.ceil(nC / cols), gap = 14 * k, cw = (RW - 7 * gap) / cols, gt = T0 + H * 0.1, chh = Math.min(H * 0.15, (H * 0.9 - gt - (rows - 1) * gap) / rows), len = TOT / nC; let made = 0;
+      x.globalAlpha = 0.9; x.fillStyle = cr; x.fillRect(L, T0, RW, 30 * k); x.globalAlpha = 0.5; x.fillStyle = ink; for (let a = 0; a < RW; a += 7 * k) x.fillRect(L + a, T0 + 6 * k, 2 * k, 18 * k);
+      for (let i = 0; i < nC; i++) {
+        const ti = 0.8 + i * (5 / nC), e = ez((u - ti) / 0.5), col2 = i % cols, row = Math.floor(i / cols), cx0 = L + col2 * (cw + gap), cy0 = gt + row * (chh + gap) - (1 - e) * 50 * k;
+        if (e > 0) made++;
+        if (i < nC - 1 && u >= ti) { x.globalAlpha = 1; x.fillStyle = ac; x.fillRect(L + RW * (i + 1) / nC - 1.5 * k, T0 - 6 * k, 3 * k, 42 * k); }
+        if (e <= 0) continue;
+        x.globalAlpha = e; x.fillStyle = cr; x.fillRect(cx0, cy0, cw, chh);
+        const s0 = Math.round(i * len), s1 = Math.min(TOT - 1, Math.round((i + 1) * len) - 1), pg = s0 < 1284 ? 1 : s0 < 2386 ? 2 : s0 < 3354 ? 3 : s0 < 4701 ? 4 : 5;
+        txt('c' + String(i + 1).padStart(2, '0'), cx0 + 12 * k, cy0 + 34 * k, 26, 800, ink); txt('p.' + pg, cx0 + cw - 12 * k, cy0 + 34 * k, 20, 800, ink, 'right'); txt(s0 + '–' + s1, cx0 + 12 * k, cy0 + 64 * k, 20, 600, ink);
+        if (u > 6) { x.globalAlpha = e; txt((1 + (i * 7) % 4) + ' entities', cx0 + 12 * k, cy0 + chh - 14 * k, 19, 800, ac); }
+      }
+      sh.stats = { label: 'Chunks with page and character spans', value: made + ' / ' + nC };
+    } else if (st === 3) {
+      const cs = Math.min(RW * 0.5 / 48, H * 0.035), sx = L + RW * 0.2, nF = Math.floor(cl((u - 0.8) / 3.0, 0, 1) * 384), hv = (a, b) => { const q = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return (q - Math.floor(q)) * 2 - 1; };
+      txt('c07', L, T0 + 4 * k + cs * 2.2, 54, 800, cr); txt('384 numbers', L, T0 + cs * 2.2 + 40 * k, 22, 600, cr);
+      for (let i = 0; i < 384; i++) { const px = sx + (i % 48) * cs, py = T0 + Math.floor(i / 48) * cs; if (i < nF) { const v = hv(6, i); x.globalAlpha = 0.2 + 0.8 * Math.abs(v); x.fillStyle = v > 0 ? ac : cr; x.fillRect(px, py, cs - 2 * k, cs - 2 * k); } else { x.globalAlpha = 0.12; x.strokeStyle = cr; x.lineWidth = 1; x.strokeRect(px + 0.5, py + 0.5, cs - 3 * k, cs - 3 * k); } }
+      const my = T0 + 8 * cs + H * 0.07, cwm = RW / 96, chm = Math.min(H * 0.022, (H * 0.9 - my) / nC), nM = Math.floor(cl((u - 4.0) / 4.2, 0, 1) * nC * 96);
+      for (let rr = 0; rr < nC; rr++) for (let kk = 0; kk < 96; kk++) { const px = L + kk * cwm, py = my + rr * chm; if (rr * 96 + kk < nM) { const v = hv(rr, kk * 4); x.globalAlpha = 0.15 + 0.85 * Math.abs(v); x.fillStyle = v > 0 ? ac : cr; x.fillRect(px, py, cwm - 1, chm - 1.5); } else { x.globalAlpha = 0.08; x.fillStyle = cr; x.fillRect(px, py, cwm - 1, chm - 1.5); } }
+      sh.stats = { label: 'Floats written', value: (Math.max(nF, 0) + nM * 4).toLocaleString('en-US') };
+    } else if (st === 4) {
+      const gap = 24 * k, bw = (RW - 2 * gap) / 3, bh = H * 0.32; let placed = 0;
+      for (let b = 0; b < 3; b++) {
+        const bx = L + b * (bw + gap), mine = b === 0, n = mine ? nC : 18;
+        x.globalAlpha = 1; x.strokeStyle = mine ? ac : cr; x.lineWidth = (mine ? 5 : 2) * k; if (!mine) x.setLineDash([8 * k, 8 * k]); x.strokeRect(bx, T0, bw, bh); x.setLineDash([]);
+        txt('user_id ' + ['VG-2026-001', 'VG-2026-014', 'VG-2026-027'][b], bx + 16 * k, T0 + 36 * k, 24, 800, mine ? ac : cr);
+        const dc = Math.max(6, Math.floor((bw - 32 * k) / (34 * k)));
+        for (let i = 0; i < n; i++) { const ti = 0.6 + i * (2.6 / n), e = mine ? ez((u - ti) / 0.5) : 1, dx = bx + 24 * k + (i % dc) * 34 * k, dy = T0 + 70 * k + Math.floor(i / dc) * 34 * k - (1 - e) * 120 * k; if (mine && e > 0) placed++; const hit = mine && u > 4.6 && [3, 7, 8, 14, 19].includes(i); x.globalAlpha = (mine ? e : 0.5); x.fillStyle = hit ? ac : (mine ? cr : cr); x.beginPath(); x.arc(dx, dy, hit ? 10 * k : 8 * k, 0, 6.2832); x.fill(); }
+        if (!mine) { hatch(bx, T0, bw, bh, cl((u - 4.2) / 0.6, 0, 1) * 0.35); if (u > 4.6) { x.globalAlpha = 1; x.fillStyle = cr; x.fillRect(bx + 16 * k, T0 + bh - 46 * k, 190 * k, 32 * k); txt('FILTERED OUT', bx + 24 * k, T0 + bh - 23 * k, 20, 800, ink); } }
+      }
+      const qy = T0 + bh + 40 * k; x.globalAlpha = cl((u - 4.0) / 0.5, 0, 1); x.fillStyle = cr; x.fillRect(L, qy, RW, 52 * k); txt('query(where={"user_id": "VG-2026-001"}, n_results=5)', L + 20 * k, qy + 35 * k, 26, 800, ink);
+      const AU = ['audit_log  upload.accepted       sha256 9f2c…e41a', 'audit_log  chunks.indexed        ' + nC + ' · user_id VG-2026-001', 'audit_log  embeddings.upserted   ' + nC + ' × 384']; x.globalAlpha = 1;
+      AU.forEach((s2, i) => { const n = Math.floor(cl((u - (5.2 + i * 0.9)) * 40, 0, s2.length)); txt(s2.slice(0, n), L, qy + 110 * k + i * 40 * k, 24, 600, cr); });
+      sh.stats = { label: 'Vectors in the user collection', value: placed + ' / ' + nC };
+    } else {
+      x.globalAlpha = 1; txt('Indexed.', L, H * 0.7, 230, 800, cr); txt(nC + ' chunks · ' + nC + ' × 384 vectors · scoped to VG-2026-001', L, H * 0.8, 34, 600, ac); txt('Ready for questions, the graph and the timeline.', L, H * 0.87, 28, 600, cr);
+      sh.stats = { label: 'Status', value: 'Ready' };
+    }
+    x.globalAlpha = 1;
+    if (now - sh.tick > 160) { sh.tick = now; this.setState({ showTick: Math.floor(now) }); }
+  }
+
+  /* ----- PDF to text ----- */
+  sampleText(i) { return ['COMPLETE BLOOD COUNT\nHemoglobin        14.0 g/dL   13.0 - 17.0 g/dL\nWBC               6,200 /µL   4,500 - 11,000 /µL\nPlatelet count    245,000 /µL 150,000 - 450,000 /µL', 'METABOLIC PANEL\nFasting glucose   94 mg/dL    70 - 99 mg/dL', 'Report generated by the laboratory information system.\nSample collected 14 Feb 2026.', 'VITAMINS\n25-OH Vitamin D   32.0 ng/mL   30.0 - 100.0 ng/mL\nVitamin B12       480 pg/mL    200 - 900 pg/mL', ''][i]; }
+  pdfSample = () => { const pages = this.PG.map((g, i) => { const t = this.sampleText(i); return { n: i + 1, chars: t.length, native: t.length > 20, text: t }; }); this.setState({ pdfPages: pages, pdfName: 'Arjun_Lab_Report_Feb2026.pdf (sample)', pdfMsg: 'Sample output. Choose your own PDF to extract it live.' }); };
+  onPdfFile = async (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    this.setState({ pdfBusy: true, pdfName: f.name, pdfMsg: 'Loading pdf.js…', pdfPages: [] });
+    try {
+      await this.loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+      const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const doc = await lib.getDocument({ data: new Uint8Array(await f.arrayBuffer()) }).promise, pages = [];
+      for (let i = 1; i <= doc.numPages; i++) { this.setState({ pdfMsg: 'Reading page ' + i + ' of ' + doc.numPages }); const pg = await doc.getPage(i), tc = await pg.getTextContent(), text = tc.items.map(it => it.str + (it.hasEOL ? '\n' : ' ')).join('').trim(); let img = '', ar = 0.77; try { const vp = pg.getViewport({ scale: 0.9 }), cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height; await pg.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise; img = cv.toDataURL('image/jpeg', 0.7); ar = vp.width / vp.height; } catch (e2) {} pages.push({ n: i, chars: text.length, native: text.length > 20, text, img, ar }); this.setState({ pdfPages: pages.slice() }); }
+      this.setState({ pdfBusy: false, pdfMsg: doc.numPages + ' pages read in the browser with pdf.js.' });
+    } catch (err) { this.setState({ pdfBusy: false, pdfMsg: 'pdf.js could not run here (offline?). Showing the sample output.' }); this.pdfSample(); }
+  };
+
+  /* ----- OCR reader ----- */
+  ocrSample = () => {
+    const OL = ['ADDENDUM — SCANNED ATTACHMENT', 'Date of collection 14 Feb 2026', 'Platelet count (manual) 245,000 /µL', 'Reference 150,000 - 450,000 /µL', 'Smear: normocytic, normochromic', 'Verified by: Lab Tech 0412', 'Remarks: no abnormal cells seen', 'End of report'], CF = [0.97, 0.96, 0.95, 0.97, 0.93, 0.68, 0.94, 0.99];
+    const lines = OL.map((t, i) => ({ text: t, x0: 80, y0: 170 + i * 120, x1: 80 + Math.min(840, t.length * 24), y1: 214 + i * 120, conf: CF[i] }));
+    this.ocrImg = null; this.setState({ ocrBusy: false, ocrName: 'sample_scan.png', ocrMsg: 'Sample scan.', ocrRes: { lines, w: 1000, h: 1200, text: OL.join('\n'), mean: CF.reduce((a, b) => a + b, 0) / CF.length, sample: true } }); this.later(this.drawOcr, 80);
+  };
+  onOcrFile = async (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    this.setState({ ocrBusy: true, ocrPct: 0, ocrMsg: 'Preparing image…', ocrRes: null, ocrName: f.name });
+    try {
+      const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = URL.createObjectURL(f); }); this.ocrImg = img;
+      await this.loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
+      const r = await window.Tesseract.recognize(img, 'eng', { logger: (mm) => { if (mm.progress != null) this.setState({ ocrPct: Math.round(mm.progress * 100), ocrMsg: mm.status }); } });
+      const lines = (r.data.lines || []).map(l => ({ text: l.text.trim(), x0: l.bbox.x0, y0: l.bbox.y0, x1: l.bbox.x1, y1: l.bbox.y1, conf: l.confidence / 100 })).filter(l => l.text);
+      this.setState({ ocrBusy: false, ocrMsg: 'Done.', ocrRes: { lines, w: img.width, h: img.height, text: r.data.text.trim(), mean: lines.length ? lines.reduce((q, l) => q + l.conf, 0) / lines.length : 0, sample: false } }); this.later(this.drawOcr, 80);
+    } catch (err) { this.setState({ ocrBusy: false, ocrMsg: 'The reading engine could not run here (offline?). Showing the sample scan.' }); this.ocrSample(); }
+  };
+  setOcrCv = (el) => { this.ocrCv = el; if (el) this.later(this.drawOcr, 30); };
+  drawOcr = () => {
+    const el = this.ocrCv, res = this.state.ocrRes; if (!el || !res) return;
+    const col = this.colors(), cw = Math.min(900, res.w), sc = cw / res.w, ch = Math.round(res.h * sc); el.width = cw; el.height = ch;
+    const x = el.getContext('2d');
+    if (this.ocrImg && !res.sample) x.drawImage(this.ocrImg, 0, 0, cw, ch);
+    else { x.fillStyle = col.bg; x.fillRect(0, 0, cw, ch); x.fillStyle = col.ink; x.globalAlpha = 0.35; for (let a = 0; a < 500; a++) x.fillRect(((a * 53) % 100) / 100 * cw, ((a * 29) % 100) / 100 * ch, 2, 2); x.globalAlpha = 0.6; res.lines.forEach(l => x.fillRect(l.x0 * sc, (l.y0 + 8) * sc, (l.x1 - l.x0) * sc, 22 * sc)); x.globalAlpha = 1; }
+    if (!this.state.ocrBoxes) return; x.lineWidth = Math.max(2, 3 * sc); res.lines.forEach(l => { x.strokeStyle = l.conf < 0.7 ? col.acc : col.ink; x.strokeRect(l.x0 * sc, l.y0 * sc, (l.x1 - l.x0) * sc, (l.y1 - l.y0) * sc); });
+  };
+
+  /* ----- text to graph ----- */
+  onT2g = (e) => this.setState({ t2gText: e.target.value });
+  readT2g(f) { if (!f) return; const rd = new FileReader(); rd.onload = () => { this.setState({ t2gText: String(rd.result || '') }); this.later(() => this.buildGraph(true), 40); this.log('graph', 'Loaded ' + f.name); }; rd.readAsText(f); }
+  onT2gFile = (e) => this.readT2g(e.target.files && e.target.files[0]);
+  onT2gDrop = (e) => { e.preventDefault(); this.readT2g(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]); };
+  t2gSample = () => { this.setState({ t2gText: ['Report date: 14 Feb 2026', 'Hemoglobin 14.0 g/dL (13.0 - 17.0)', 'WBC 6,200 /µL', 'Platelet count 245,000 /µL', 'Vitamin D (25-OH) 32.0 ng/mL', 'Vitamin B12 480 pg/mL', 'Fasting glucose 94 mg/dL'].join('\n') }); this.later(this.buildGraph, 30); };
+  buildGraph = (force) => {
+    const text = this.state.t2gText, re = /([A-Za-z][A-Za-z0-9 ()\-]{1,34}?)\s*[:=]?\s*(\d[\d,]*\.?\d*)\s*(g\/dL|mg\/dL|ng\/mL|pg\/mL|\/µL|\/uL|mmol\/L|U\/L|IU\/L|fL|pg|%)/g;
+    const dm = text.match(/\b(\d{1,2}\s+[A-Z][a-z]{2,8}\s+\d{4}|[A-Z][a-z]{2,8}\s+\d{4})\b/), rows = [];
+    let pos = 0; text.split('\n').forEach(line => { re.lastIndex = 0; let m; while ((m = re.exec(line))) { const nm = m[1].replace(/^\s+|\s+$/g, ''); if (/^(report|date|reference|ref|range)/i.test(nm)) continue; rows.push({ name: nm, value: m[2], unit: m[3], span: (pos + m.index) + '–' + (pos + m.index + m[0].length - 1) }); } pos += line.length + 1; });
+    const N = [{ id: 'd', k: 'person', label: 'Document', pos: [0, 0, 0], about: 'The text you pasted.' }], E = [];
+    if (dm) { N.push({ id: 'dt', k: 'report', label: dm[0], pos: [0.05, -0.45, 0.25], about: 'Date found in the text.' }); E.push(['d', 'dt']); }
+    const n = rows.length;
+    rows.forEach((r, i) => { const y = n > 1 ? 1 - 2 * (i + 0.5) / n : 0, rad = Math.sqrt(Math.max(0, 1 - y * y)), th = i * 2.399963 + 0.4, ux = Math.cos(th) * rad, uz = Math.sin(th) * rad;
+      N.push({ id: 'b' + i, k: 'bio', label: r.name, pos: [ux * 0.52, y * 0.52, uz * 0.52], about: r.name + ' at characters ' + r.span + '.' });
+      N.push({ id: 'v' + i, k: 'meas', label: r.value + ' ' + r.unit, pos: [ux * 0.85, y * 0.85, uz * 0.85], about: r.name + ' = ' + r.value + ' ' + r.unit + '.' });
+      E.push(['d', 'b' + i]); E.push(['b' + i, 'v' + i]); });
+    this.t2gData = { N, E, rows, date: dm ? dm[0] : null };
+    this.setState({ t2gRes: { rows, date: dm ? dm[0] : null, nodes: N.length, edges: E.length } });
+    if (force === true || this.state.page === 't2g') this.applyGraph(N, E);
+    this.log('graph', 'Built ' + N.length + ' nodes from text');
+  };
+  applyGraph(N, E) { this.NODES = N; this.EDGES = E; this.idx = {}; N.forEach((q, i) => { this.idx[q.id] = i; }); const ord = { person: 0, report: 1, section: 2, bio: 3, meas: 4, unc: 5 }, cnt = {}; N.forEach(q => { cnt[q.k] = cnt[q.k] || 0; q.delay = ord[q.k] * 340 + cnt[q.k] * 50; cnt[q.k]++; }); if (this.g) this.g.t0 = performance.now(); this.setState({ node: null, focus: 'all' }); }
+  restoreGraph() { if (this.N0 && this.NODES !== this.N0) this.applyGraph(this.N0, this.E0); }
+
+  frameUrl(i) { return (this.props.framePath || 'assets/frames/frame_{n}.jpg').replace('{n}', String(i + 1).padStart(4, '0')); }
+  loadFrames() { const N = Math.max(2, +this.props.frameCount || 120); this.frames = []; const first = new Image(); first.onload = () => { this.frames[0] = first; this.setState({ framesReady: true }); for (let i = 1; i < N; i++) { const im = new Image(); im.src = this.frameUrl(i); this.frames[i] = im; } this.fdirty = 1; }; first.onerror = () => { this.frames = null; this.setState({ framesReady: false }); }; first.src = this.frameUrl(0); }
+  paintFrame() {
+    const el = this.fCv; if (!el || !this.frames || !this.frames.length) return;
+    let j = Math.round(this.fcur * (this.frames.length - 1)), im = this.frames[j]; while ((!im || !im.complete || !im.naturalWidth) && j > 0) { j--; im = this.frames[j]; }
+    if (!im || !im.naturalWidth) return;
+    const r = el.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2), W = Math.max(1, Math.round(r.width)), H = Math.max(1, Math.round(r.height));
+    if (el.width !== Math.round(W * dpr) || el.height !== Math.round(H * dpr)) { el.width = Math.round(W * dpr); el.height = Math.round(H * dpr); }
+    const x = el.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); const sc = Math.max(W / im.naturalWidth, H / im.naturalHeight), w = im.naturalWidth * sc, h = im.naturalHeight * sc; x.drawImage(im, (W - w) / 2, (H - h) / 2, w, h);
+  }
+  setFrameCv = (el) => {
+    if (this.fCv === el) return;
+    if (this.fOff) this.fOff(); this.fOff = null; this.fCv = el; if (!el) return;
+    this.ftar = this.ftar || 0; this.fcur = this.fcur || 0;
+    const mv = (e) => { const r = el.getBoundingClientRect(); this.ftar = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); };
+    const wh = (e) => { if (!this.frames) return; e.preventDefault(); this.ftar = Math.min(1, Math.max(0, this.ftar + e.deltaY * 0.0009)); };
+    const dov = (e) => e.preventDefault();
+    const drp = (e) => { e.preventDefault(); const fs = Array.from(e.dataTransfer.files || []).filter(f => /^image\//.test(f.type)).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })); if (fs.length > 1) { this.frames = fs.map(f => { const im = new Image(); im.src = URL.createObjectURL(f); return im; }); this.setState({ framesReady: true }); this.fdirty = 1; this.log('stage', fs.length + ' frames loaded'); } };
+    let raf = 0; const loop = () => { raf = requestAnimationFrame(loop); const d = this.ftar - this.fcur; if (Math.abs(d) > 0.0004) { this.fcur += d * 0.14; this.paintFrame(); } else if (this.fdirty) { this.fdirty = 0; this.paintFrame(); } };
+    el.addEventListener('pointermove', mv); el.addEventListener('wheel', wh, { passive: false }); el.addEventListener('dragover', dov); el.addEventListener('drop', drp);
+    raf = requestAnimationFrame(loop); this.fdirty = 1; if (!this.frames) this.loadFrames();
+    this.fOff = () => { cancelAnimationFrame(raf); el.removeEventListener('pointermove', mv); el.removeEventListener('wheel', wh); el.removeEventListener('dragover', dov); el.removeEventListener('drop', drp); };
+  };
+
+  extraVals() {
+    const s = this.state, mk = (title, desc, arr, cur, set) => ({ isOpts: true, isHead: false, isRange: false, isNote: false, title, desc, opts: arr.map(o => ({ label: o[1], on: cur === o[0], off: cur !== o[0], pick: () => set(o[0]) })) });
+    const head = (t) => ({ isHead: true, isOpts: false, isRange: false, isNote: false, title: t }), note = (t, d) => ({ isNote: true, isHead: false, isOpts: false, isRange: false, title: t, desc: d });
+    const yn = [[true, 'On'], [false, 'Off']];
+    const settingRows = [head('Ingestion'),
+      mk('Cinematic ingestion', 'Run the full-screen show when a report is ingested.', yn, s.cinema, (v) => this.setState({ cinema: v })),
+      mk('Process speed', 'Fast is about 20 s, Normal about 42 s, Real-time about 75 s for the full pipeline.', [['fast', 'Fast'], ['normal', 'Normal'], ['slow', 'Real-time']], s.speed, (v) => this.setState({ speed: v })),
+      { isRange: true, isHead: false, isOpts: false, isNote: false, title: 'Chunk size', desc: 'Characters per chunk. Smaller chunks mean more chunks.', val: s.chunkSize, valText: s.chunkSize + ' chars', set: (e) => this.setState({ chunkSize: +e.target.value }) },
+      note('Chunks for a 5-page report', this.nChunks() + ' chunks'),
+      head('Reading'),
+      note('Embedding model', 'all-MiniLM-L6-v2 · 384 dimensions · runs locally'),
+      head('Privacy and answers'),
+      mk('Send retrieved passages to the AI model', 'Off keeps answers to quoted report text only.', yn, s.allowApi, (v) => this.setState({ allowApi: v })),
+      note('Vector filter', 'Every query is filtered to user_id VG-2026-001. This cannot be turned off.'),
+      head('Display'),
+      mk('Reduce motion', 'Shortens the ingestion show and stops graph rotation.', yn, s.reduceMotion, (v) => this.setState({ reduceMotion: v, auto: v ? false : s.auto })),
+      mk('Model provider', 'Change the model and key from the top bar.', [[s.provider, this.PROVIDERS[s.provider]]], s.provider, () => this.setState({ aiOpen: true, pick: s.provider }))];
+    const names = ['Parse', 'OCR', 'Chunk', 'Embed', 'Index', 'Done'], descs = ['Each page is tested for a real text layer before anything else touches it.', 'The scanned page has no text layer, so a second engine reads the image.', 'The text is cut at sentence boundaries and every piece keeps its address.', 'Each chunk becomes 384 numbers, so similar passages sit close together.', 'Vectors go to a user-scoped index. Facts and history go to a database.', 'The report is searchable.'];
+    const sh = this.sh || { stats: { label: '', value: '' }, segP: [0, 0, 0, 0, 0] }, si = Math.min(5, s.showStage);
+    const showSegs = ['Parse', 'OCR', 'Chunk', 'Embed', 'Index'].map((label, i) => ({ label, css: 'height:6px;background:var(--color-accent);width:' + Math.round((sh.segP[i] || 0) * 100) + '%' }));
+    const wi = s.introStep, tr = 'transition:opacity .8s ease, transform .9s cubic-bezier(.2,.8,.2,1), clip-path 1.2s cubic-bezier(.7,0,.2,1), width 1s cubic-bezier(.2,.8,.2,1);';
+    const chips = ['Parse', 'OCR', 'Chunk', 'Embed', 'Index'].map((label, i) => ({ n: String(i + 1).padStart(2, '0'), label, css: 'border:2px solid var(--color-neutral-600);padding:8px 16px;font-size:clamp(0.875rem,1.4vw,1.25rem);font-weight:800;' + tr + 'opacity:' + (wi >= 4 ? 1 : 0) + ';transform:translateY(' + (wi >= 4 ? 0 : 24) + 'px);transition-delay:' + (i * 0.12) + 's;' }));
+    const res = s.ocrRes, pdf = s.pdfPages, t2g = s.t2gRes;
+    return {
+      settingRows, aiOff: !s.allowApi,
+      pOcr: s.page === 'ocr', pPdf: s.page === 'pdf', noFrames: !s.framesReady, hasFrames: s.framesReady, setFrameCv: this.setFrameCv, pSettings: s.page === 'settings',
+      show: s.show, showN: String(Math.min(5, si + 1)).padStart(2, '0'), showName: names[si], showDesc: descs[si], showCLabel: sh.stats.label, showCValue: sh.stats.value, showSegs, showFile: s.fileName, showDone: s.showDone, showRunning: !s.showDone, setShow: this.setShow, skipShow: this.skipShow, closeShow: this.closeShow, openAfterShow: this.openAfterShow,
+      intro: s.intro, introSkip: this.introSkip, introGo: this.introGo, introChips: chips,
+      kickCss: tr + 'opacity:' + (wi >= 1 ? 1 : 0) + ';',
+      wordCss: tr + 'font-size:clamp(5rem,19vw,19rem);font-weight:800;line-height:0.86;letter-spacing:-0.06em;clip-path:inset(0 ' + (wi >= 2 ? 0 : 100) + '% 0 0);',
+      barCss: tr + 'height:clamp(6px,0.8vw,14px);background:var(--color-accent);margin:clamp(12px,2vw,28px) 0;width:' + (wi >= 2 ? 34 : 0) + '%;',
+      tagCss: tr + 'font-size:clamp(1.125rem,2.4vw,2.5rem);font-weight:600;letter-spacing:-0.02em;max-width:30ch;opacity:' + (wi >= 3 ? 1 : 0) + ';transform:translateY(' + (wi >= 3 ? 0 : 20) + 'px);',
+      ctaCss: tr + 'opacity:' + (wi >= 4 ? 1 : 0) + ';transition-delay:.5s;',
+      langs: [['eng', 'English'], ['hin', 'Hindi'], ['tam', 'Tamil']].map(o => ({ label: o[1], on: s.ocrLang === o[0], off: s.ocrLang !== o[0], pick: () => this.setState({ ocrLang: o[0] }) })),
+      onOcrFile: this.onOcrFile, ocrSample: this.ocrSample, ocrMsg: s.ocrMsg, ocrBusy: s.ocrBusy, ocrPct: s.ocrPct, ocrHas: !!res, setOcrCv: this.setOcrCv,
+      ocrStats: res ? { words: res.lines.length, chars: res.text.length, conf: res.mean.toFixed(2) } : { words: 0, chars: 0, conf: '' }, ocrText: res ? res.text : '',
+      ocrCopy: () => res && this.copyText(res.text), ocrDownload: () => res && this.download('image-to-text.md', '# Image to text\n\nSource: ' + (s.ocrName || 'image') + '  \nLines: ' + res.lines.length + '  \nMean confidence: ' + res.mean.toFixed(2) + '\n\n' + res.text + '\n'), ocrNone: !res, pdfNone: pdf.length === 0,
+      onPdfFile: this.onPdfFile, pdfSample: this.pdfSample, pdfMsg: s.pdfMsg, pdfHas: pdf.length > 0, pdfName: s.pdfName, pdfChars: pdf.reduce((a, g) => a + g.chars, 0).toLocaleString('en-US'), pdfCount: pdf.length,
+      pdfRows: pdf.map(g => ({ n: g.n, chars: g.chars.toLocaleString('en-US'), tag: g.native ? 'Native text' : 'No text layer', tagCss: g.native ? 'background:var(--color-neutral-200);color:var(--color-neutral-800)' : 'background:var(--color-accent);color:var(--color-bg);font-weight:800', text: g.text || '(no text layer: send this page to Image to Text)', imgCss: 'width:100%;aspect-ratio:' + (g.ar || 0.77) + ';background:url(' + (g.img || '') + ') center/cover no-repeat;border:2px solid var(--color-divider)', hasImg: !!g.img, noImg: !g.img })),
+      pdfCopy: () => this.copyText(pdf.map(g => g.text).join('\n\n')), pdfDownload: () => this.download('pdf-to-text.md', '# ' + (s.pdfName || 'PDF') + '\n\n' + pdf.map(g => '## Page ' + g.n + '\n\n' + (g.text || '(no text layer)')).join('\n\n') + '\n'),
+      t2gText: s.t2gText, onT2g: this.onT2g, onT2gFile: this.onT2gFile, onT2gDrop: this.onT2gDrop, buildGraph: this.buildGraph, t2gSample: this.t2gSample, t2gRows: t2g ? t2g.rows : [],
+      t2gSummary: t2g ? (t2g.rows.length + ' biomarkers' + (t2g.date ? ' · ' + t2g.date : '') + ' · ' + t2g.nodes + ' nodes, ' + t2g.edges + ' edges') : '', t2gDownload: () => this.t2gData && this.download('graph.json', JSON.stringify({ nodes: this.t2gData.N.map(q => ({ id: q.id, type: q.k, label: q.label })), edges: this.t2gData.E, measurements: this.t2gData.rows }, null, 2))
+    };
+  }
+
+  renderVals() {
+    const s = this.state, p = this.props, pg = s.page;
+    // 04 ask
+    const asked = new Set(s.qa.map(e => e.q));
+    const suggestions = ['hb', 'vit', 'feb', 'plt'].map(k => ({ text: this.TOPICS[k].q, go: () => this.ask(this.TOPICS[k].q) }));
+    const entries = s.qa.map(e => {
+      const T = this.TOPICS[e.key], isA = e.kind === 'answer';
+      const refs = isA ? T.refs.map((id, i) => { const ev = this.EV[id], o = !!s.evOpen[e.id + ':' + (i + 1)]; return { n: i + 1, rep: ev.rep, page: ev.page, span: ev.start + '–' + ev.end, open: o, slip: ev, onClick: () => this.toggleEv(e.id, i + 1) }; }) : [];
+      const fin = e.shown >= 1, det = ['Chroma top_k=5 where user_id = VG-2026-001', e.kind === 'refuse' ? 'Policy check: clinical advice' : 'Cosine similarity', e.kind === 'refuse' ? 'Declined, fail-closed' : e.kind === 'none' ? 'No supporting passage' : '4-part answer with citations'];
+      const stg = ['Retrieve', 'Rank', 'Compose'].map((label, i) => ({ label, detail: det[i], css: 'width:12px;height:12px;flex:none;box-sizing:border-box;border:2px solid ' + (fin || i < e.pend ? 'var(--color-text)' : i === e.pend ? 'var(--color-accent)' : 'var(--color-divider)') + ';background:' + (fin || i < e.pend ? 'var(--color-text)' : i === e.pend ? 'var(--color-accent)' : 'transparent') }));
+      const so = s.stepOpen && s.stepOpen[e.id] != null ? s.stepOpen[e.id] : !fin;
+      return {
+        n: s.qa.indexOf(e) + 1, q: e.q, pending: e.shown < 1, stages: stg,
+        thoughtLabel: fin ? 'Thought for 1.3 s · 3 steps' : 'Thinking…', stepsOpen: so, stepsToggle: so ? 'Hide' : 'Show',
+        toggleSteps: () => this.setState(x => ({ stepOpen: { ...(x.stepOpen || {}), [e.id]: !so } })),
+        isAnswer: isA && e.shown >= 1, isRefuse: e.kind === 'refuse' && e.shown >= 1, isNone: e.kind === 'none' && e.shown >= 1,
+        segs: isA ? T.segs.map(x => typeof x === 'number' ? { isRef: true, isText: false, label: String(x), onClick: () => this.toggleEv(e.id, x) } : { isRef: false, isText: true, text: x }) : [],
+        showModules: e.shown >= 2, refs, openSlips: refs.filter(r => r.open), limits: isA ? T.limits : '', safety: this.SAFETY
+      };
+    });
+
+
+    // 05 graph
+    const cnt = (k) => k === 'all' ? 23 : this.FOCUS[k].length;
+    const focuses = [['all', 'All nodes'], ['hb', 'Hemoglobin trend'], ['vit', 'Vitamin D and B12'], ['feb', 'Feb 2026 summary'], ['plt', 'Platelets and WBC']].map(([k, label]) => ({ label, count: cnt(k), on: s.focus === k, off: s.focus !== k, pick: () => this.setFocus(k) }));
+    const nd = s.node ? this.NODES.find(n => n.id === s.node) : null;
+    const node = nd ? { kind: (this.state.page === 't2g' ? { person: 'Document', report: 'Date', section: 'Section', bio: 'Biomarker', meas: 'Value', unc: 'Uncertainty' } : this.KIND)[nd.k], label: nd.label, about: nd.about, slip: nd.ev ? this.EV[nd.ev] : null, nbs: this.EDGES.filter(e => e[0] === nd.id || e[1] === nd.id).map(e => { const o = this.NODES.find(n => n.id === (e[0] === nd.id ? e[1] : e[0])); return { label: o.label, go: () => this.setState({ node: o.id }) }; }) } : { kind: '', label: '', about: '', slip: null, nbs: [] };
+    const legend = [[this.state.page === 't2g' ? 'Document' : 'Subject', 'width:12px;height:12px;background:var(--color-text);display:inline-block'], [this.state.page === 't2g' ? 'Date' : 'Report', 'width:12px;height:12px;border-radius:50%;border:2.5px solid var(--color-text);display:inline-block'], ['Section', 'width:9px;height:9px;border:2px solid var(--color-text);transform:rotate(45deg);display:inline-block;margin:2px'], ['Biomarker', 'width:12px;height:12px;border-radius:50%;background:var(--color-text);display:inline-block'], [this.state.page === 't2g' ? 'Value' : 'Measurement', 'width:8px;height:8px;border-radius:50%;background:var(--color-neutral-700);display:inline-block;margin:2px'], ['Uncertainty', 'width:12px;height:12px;border-radius:50%;border:2px dashed var(--color-accent);display:inline-block']].map(([label, css]) => ({ label, css }));
+
+
+    // 06 record
+    const saved = s.save === 'now';
+    const reports = [
+      { date: 'Jan 2024', desc: 'Baseline · blood count and vitamins · 5 pages', status: 'Archived', tagCss: 'background:var(--color-neutral-200);color:var(--color-neutral-800)' },
+      { date: 'Aug 2024', desc: 'Follow-up review · 4 pages', status: 'Archived', tagCss: 'background:var(--color-neutral-200);color:var(--color-neutral-800)' },
+      { date: 'Feb 2026', desc: 'Latest · version 3 · 5 pages', status: saved ? 'Sealed' : s.save === 'preview' ? 'Preview' : 'Pending', tagCss: saved ? 'background:var(--color-text);color:var(--color-bg);font-weight:800' : 'background:var(--color-accent-100);color:var(--color-accent-800);font-weight:800' }
+    ];
+    const charts = [
+      { name: 'Hemoglobin · g/dL', delta: '13.1 → 14.0', range: 'Reference 13.0–17.0. Three reports, Jan 2024 to Feb 2026.', iso: this.iso([{ t: 0, v: 13.1, val: '13.1', date: 'Jan 2024' }, { t: 7 / 25, v: 13.2, val: '13.2', date: 'Aug 2024' }, { t: 1, v: 14.0, val: '14.0', date: 'Feb 2026', hot: true }], { max: 18, lo: 13, hi: 17, loText: '13', hiText: '17' }) },
+      { name: 'Vitamin D (25-OH) · ng/mL', delta: '18 → 32.0', range: 'Reference 30–100. Two reports with a value; axis cut at 40.', iso: this.iso([{ t: 0, v: 18, val: '18', date: 'Jan 2024' }, { t: 1, v: 32, val: '32.0', date: 'Feb 2026', hot: true }], { max: 40, lo: 30, hi: 40, loText: '30', hiText: '100' }) }
+    ];
+
+
+    const D = { up: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12', lib: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z', ask: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', gr: 'M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98', tl: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', cmp: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM12 3v18', ins: 'M3 3v18h18M18 17V9M13 17V5M8 17v-3' };
+    const NAVS = [['h', 'Workspace'], ['upload', 'Upload & Ingest', 'Add a report', D.up], ['library', 'Library', 'Your reports', D.lib], ['h', 'Analyze'], ['ask', 'Ask', 'Questions with evidence', D.ask], ['graph', 'Knowledge Graph', 'Explore connections', D.gr], ['timeline', 'Timeline', 'Changes over time', D.tl], ['compare', 'Compare', 'Two reports side by side', D.cmp], ['insights', 'Insights', 'Graph analytics', D.ins], ['h', 'Tools'], ['ocr', 'Image to Text', 'Picture to text', 'M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h8M7 12h10M7 16h6'], ['pdf', 'PDF to Text', 'Digital text layer', 'M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7ZM14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8M10 9H8'], ['t2g', 'Text to Graph', 'Entities and links', D.gr], ['h', 'System'], ['settings', 'Settings', 'Ingestion, privacy', 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6']];
+    const navList = NAVS.map(n => n[0] === 'h' ? { isHead: true, on: false, off: false, label: n[1] } : { isHead: false, label: n[1], sub: n[2], d: n[3], on: pg === n[0], off: pg !== n[0], go: () => this.nav(n[0]) });
+    const META = { upload: ['Upload & Ingest', 'Add a report and watch it become searchable.'], library: ['Library', 'Your reports and the values extracted from them.'], ask: ['Ask', 'Ask about a value, a trend or a report.'], graph: ['Knowledge Graph', 'How reports, sections and values connect.'], timeline: ['Timeline', 'Reports and key values over time.'], compare: ['Compare', 'Change between two reports.'], insights: ['Insights', 'Structure and key nodes of the graph.'], ocr: ['Image to Text', 'Read the text in a picture.'], pdf: ['PDF to Text', 'Extract the text layer of a PDF, page by page.'], t2g: ['Text to Graph', 'Turn plain text into linked entities.'], settings: ['Settings', 'Ingestion, reading, privacy and display.'] };
+
+    // upload
+    const busy = s.busy, ing = s.ingest, done = ing >= 5;
+    const pipe = this.PIPE.map((x0, i) => { const x = i === 2 ? Object.assign({}, x0, { out: this.nChunks() + ' chunks, page and character spans kept' }) : i === 3 ? Object.assign({}, x0, { out: this.nChunks() + ' vectors, 384 dimensions' }) : x0; const run = busy && ing === i, dn = i < ing; return { n: String(i + 1).padStart(2, '0'), name: x.name, out: x.out, status: dn ? 'Done' : run ? 'Running' : 'Waiting', tagCss: dn ? 'background:var(--color-text);color:var(--color-bg);font-weight:800' : run ? 'background:var(--color-accent);color:var(--color-bg);font-weight:800' : 'background:var(--color-neutral-200);color:var(--color-neutral-800)' }; });
+    const dropCss = 'display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:var(--space-3);padding:var(--space-4) var(--space-6);min-height:0;box-sizing:border-box;border:2px dashed ' + (s.drag ? 'var(--color-accent)' : 'var(--color-divider)') + ';background:' + (s.drag ? 'var(--color-accent-100)' : 'var(--color-surface)') + ';';
+    const pageRows = this.PG.map((g, i) => ({ n: i + 1, src: i === 4 ? 'OCR' : 'Native text', tagCss: i === 4 ? 'background:var(--color-accent);color:var(--color-bg);font-weight:800' : 'background:var(--color-neutral-200);color:var(--color-neutral-800)', chars: g.c.toLocaleString('en-US'), q: g.q.toFixed(2) }));
+    const vidCss = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:' + (s.vidLoaded ? 1 : 0) + ';';
+
+    // library
+    const reps = this.REPS.concat(s.uploaded ? [{ id: 'new', date: 'Uploaded', desc: s.fileName, pages: 5, chunks: 24, sha: 'c03d…77be' }] : []);
+    const repRows = reps.map(r => ({ date: r.date, desc: r.desc, pages: r.pages, chunks: r.chunks, sha: r.sha, status: 'Indexed', tagCss: 'background:var(--color-text);color:var(--color-bg);font-weight:800', css: 'cursor:pointer;' + (s.selRep === r.id ? 'background:var(--color-accent-100);' : ''), pick: () => this.setState({ selRep: r.id, bioOpen: null }) }));
+    const selR = reps.find(r => r.id === s.selRep) || reps[reps.length - 1];
+    const bios = this.biosFor(selR.id).map(b => {
+      const span = b.hi - b.lo, mn = b.lo - span * 0.35, mx = b.hi + span * 0.35, pc = (v) => ((v - mn) / (mx - mn) * 100).toFixed(1);
+      const inR = b.val >= b.lo && b.val <= b.hi, isOpen = s.bioOpen === b.id;
+      return { name: b.name, page: b.page, unit: b.unit, note: b.note || '', valText: b.disp, lo: b.lo.toLocaleString('en-US'), hi: b.hi.toLocaleString('en-US'),
+        bandCss: 'position:absolute;top:0;bottom:0;left:' + pc(b.lo) + '%;width:' + (pc(b.hi) - pc(b.lo)).toFixed(1) + '%;background:var(--color-neutral-500)',
+        markCss: 'position:absolute;top:-6px;width:4px;height:20px;margin-left:-2px;background:var(--color-accent);left:' + pc(b.val) + '%',
+        status: inR ? 'In range' : 'Below range', tagCss: inR ? 'background:var(--color-neutral-200);color:var(--color-neutral-800)' : 'background:var(--color-accent);color:var(--color-bg);font-weight:800',
+        open: isOpen, slip: isOpen ? this.EV[b.ev] : null, toggle: () => this.setState({ bioOpen: isOpen ? null : b.id }) };
+    });
+
+    // timeline
+    const tlRows = reps.map(r => ({ date: r.date === 'Uploaded' ? 'New upload' : r.date, desc: r.desc, status: 'Indexed', tagCss: 'background:var(--color-neutral-200);color:var(--color-neutral-800)' }));
+
+    // compare
+    const PAIRS = [['jan', 'aug'], ['aug', 'feb'], ['jan', 'feb']], nm = { jan: 'Jan 2024', aug: 'Aug 2024', feb: 'Feb 2026' };
+    const pr = PAIRS[s.pair], A = this.biosFor(pr[0]), Bb = this.biosFor(pr[1]);
+    const ids = []; A.concat(Bb).forEach(b => { if (!ids.includes(b.id)) ids.push(b.id); });
+    const cmpRows = ids.map(id => { const a = A.find(b => b.id === id), b = Bb.find(x => x.id === id), ref = a || b; const d = a && b ? b.val - a.val : null;
+      return { name: ref.name, unit: ref.unit, a: a ? a.disp : '—', b: b ? b.disp : '—', d: d == null ? '—' : (d > 0 ? '+' : '') + (Math.abs(d) < 10 ? d.toFixed(1) : Math.round(d).toLocaleString('en-US')), status: d == null ? 'One report' : d === 0 ? 'Unchanged' : d > 0 ? 'Higher' : 'Lower', tagCss: d == null ? 'background:var(--color-neutral-200);color:var(--color-neutral-800)' : 'background:var(--color-accent-100);color:var(--color-accent-800);font-weight:800' }; });
+    const pairs = PAIRS.map((q, i) => ({ label: nm[q[0]] + ' → ' + nm[q[1]], on: s.pair === i, off: s.pair !== i, pick: () => this.setState({ pair: i }) }));
+
+    // insights
+    const bt = this.btw(), top = bt.slice(0, 8), kc = {}; this.NODES.forEach(n => { kc[n.k] = (kc[n.k] || 0) + 1; });
+    const kn = this.KIND, sizeRows = [{ k: 'Nodes', v: this.NODES.length }, { k: 'Edges', v: this.EDGES.length }].concat(Object.keys(kc).map(k => ({ k: kn[k], v: kc[k] })));
+    const ec = {}; this.EDGES.forEach(e => { const a = kn[this.NODES.find(n => n.id === e[0]).k], b = kn[this.NODES.find(n => n.id === e[1]).k], key = [a, b].sort().join(' – '); ec[key] = (ec[key] || 0) + 1; });
+    const edgeRows = Object.keys(ec).map(k => ({ k, v: ec[k] })).sort((a, b) => b.v - a.v);
+    const btwRows = top.map((r, i) => ({ label: r.label, v: r.v.toFixed(2), barCss: 'height:8px;width:' + (r.v / top[0].v * 100).toFixed(0) + '%;background:var(--color-' + (i === 0 ? 'accent' : 'text') + ')' }));
+
+    const last = s.trace[s.trace.length - 1];
+    return {
+      ...this.extraVals(),
+      navList, title: (META[pg] || META.upload)[0], sub: (META[pg] || META.upload)[1], search: s.search, onSearch: this.onSearch, headerAsk: this.headerAsk, offline: s.offline,
+      pUpload: pg === 'upload', pLibrary: pg === 'library', pAsk: pg === 'ask', pGraph: pg === 'graph' || pg === 't2g', isT2g: pg === 't2g', notT2g: pg !== 't2g', gCount: this.NODES.length + ' nodes · ' + this.EDGES.length + ' edges', pTimeline: pg === 'timeline', pCompare: pg === 'compare', pInsights: pg === 'insights',
+      providerLabel: this.PROVIDERS[s.provider], openAi: () => this.setState({ aiOpen: true, pick: s.provider, keyDraft: '' }), closeAi: () => this.setState({ aiOpen: false }),
+      saveAi: () => { this.setState({ provider: s.pick, aiOpen: false }); this.log('model', 'Provider set to ' + this.PROVIDERS[s.pick]); },
+      aiOpen: s.aiOpen, keyDraft: s.keyDraft, onKey: (e) => this.setState({ keyDraft: e.target.value }), providers: Object.keys(this.PROVIDERS).map(k => ({ label: this.PROVIDERS[k], on: s.pick === k, pick: () => this.setState({ pick: k }) })),
+      resetDemo: this.resetDemo, toggleOffline: this.toggleOffline, outageLabel: s.offline ? 'Restore backend' : 'Simulate outage',
+      dropCss, onDragOver: this.onDragOver, onDragLeave: this.onDragLeave, onDrop: this.onDrop, onFile: this.onFile, useSample: this.useSample, hasFile: s.hasFile, fileName: s.fileName, fileMeta: s.fileMeta,
+      fileTag: busy ? 'Ingesting' : done ? 'Indexed' : 'Ready', fileTagCss: busy ? 'background:var(--color-accent);color:var(--color-bg);font-weight:800' : done ? 'background:var(--color-text);color:var(--color-bg);font-weight:800' : 'background:var(--color-neutral-200);color:var(--color-neutral-800)',
+      pipe, pageRows, ingested: done, goAsk: () => this.nav('ask'), goLibrary: () => this.nav('library'),
+      vidSrc: s.vidSrc, vidLoaded: s.vidLoaded, noVid: !s.vidLoaded, onVidOver: this.onVidOver, onVidDrop: this.onVidDrop,
+      repRows, selTitle: selR.date === 'Uploaded' ? s.fileName : selR.date + ' · values', bios,
+      suggestions, entries, noQa: s.qa.length === 0, input: s.input, onInput: this.onInput, submit: (e) => { e.preventDefault(); if (this.state.offline) { this.log('ask', 'Blocked: backend offline'); return; } this.ask(this.state.input); },
+      setCanvas: this.setCanvas, focuses, hasNode: !!nd, node, clearNode: () => this.setState({ node: null }), legend, replay: this.replay, toggleAuto: this.toggleAuto, autoLabel: s.auto ? 'Pause rotation' : 'Rotate',
+      tlRows, charts, pairs, cmpRows, cmpA: nm[pr[0]], cmpB: nm[pr[1]], sizeRows, btwRows, edgeRows,
+      ledCss: 'width:10px;height:10px;display:inline-block;background:' + (s.offline ? 'var(--color-accent)' : 'var(--color-text)'), backendText: s.offline ? 'Backend offline' : 'Backend online', chunkCount: 63 + (s.uploaded ? 24 : 0), repCount: reps.length, lastLog: last ? last.tag + ' · ' + last.msg : ''
+    };
+  }
+}
+</script>
+
+
+</body></html>
