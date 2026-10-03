@@ -124,7 +124,7 @@ const SectionView = memo(function SectionView({
               onClick={() => onCite(token)}
               data-testid="citation-chip"
               title="Open in Evidence Span Viewer"
-              className="inline-flex items-center gap-1 align-baseline mx-0.5 px-2 py-[1px] rounded-[var(--r-4)] bg-[var(--verdigris)] text-[var(--text-on-primary)] text-[12.5px] font-medium leading-[20px] hover:brightness-110 cursor-pointer"
+              className="inline-flex items-center gap-1 align-baseline mx-0.5 px-2 py-[1px] rounded-[var(--r-4)] border border-[var(--link)]/40 bg-transparent text-[var(--link)] text-[12.5px] font-medium leading-[20px] hover:bg-[var(--link)]/10 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
             >
               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
                 <path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z" />
@@ -135,7 +135,7 @@ const SectionView = memo(function SectionView({
           );
         }
         return (
-          <a href={href} target="_blank" rel="noreferrer noopener" className="text-[var(--deep-petrol)] underline">
+          <a href={href} target="_blank" rel="noreferrer noopener" className="text-[var(--link)] underline">
             {children}
           </a>
         );
@@ -148,9 +148,7 @@ const SectionView = memo(function SectionView({
   return (
     <section
       data-testid={`answer-section-${section.kind}`}
-      className={`rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] px-5 py-4 ${
-        isSafety ? "border-l-[4px] border-l-[var(--solar-bronze)]" : ""
-      }`}
+      className={`px-5 py-4 ${isSafety ? "bg-[var(--ochre)]/10" : ""}`}
     >
       <div className="paper-md">
         <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={(u) => u} components={components}>
@@ -164,11 +162,16 @@ const SectionView = memo(function SectionView({
 export const PaperAnswer: React.FC<PaperAnswerProps> = ({ markdown, citations, onCite, isStreaming }) => {
   const sections = useMemo(() => splitSections(markdown), [markdown]);
   return (
-    <div className="flex flex-col gap-4" data-testid="paper-answer" aria-live="polite" aria-busy={isStreaming}>
+    <div
+      className="flex flex-col overflow-hidden rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] divide-y divide-[var(--line-faint)]"
+      data-testid="paper-answer"
+      aria-live="polite"
+      aria-busy={isStreaming}
+    >
       {sections.map((s) => (
         <SectionView key={s.key} section={s} citations={citations} onCite={onCite} />
       ))}
-      {isStreaming && <span className="vg-caret self-start" aria-hidden="true" />}
+      {isStreaming && <span className="vg-caret self-start mx-5 my-3" aria-hidden="true" />}
     </div>
   );
 };

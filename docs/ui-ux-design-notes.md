@@ -106,3 +106,32 @@ Open items: the page selects the first node on load and keeps static placeholder
 touch-action is none on the canvas so one-finger drags pan the graph, not the page; the page loads the graph twice on
 first visit (before and after the persona resolves), which doubles that cost and resets a selection made in between
 to the first node.
+
+## Neutral grey + graphite (supersedes the blue-grey values above)
+
+Why: canvas, sidebar, header and cards were four near-identical blue-greys, so layers did not separate
+and the product looked unfinished. One token (`--deep-petrol`) was also primary button, focus ring, link and
+heading colour. Decided by the product owner: graphite frame, graphite primary, colour only for meaning.
+
+| Decision | Reason |
+|---|---|
+| Neutral greys: canvas `#ECECEA`, paper `#FBFBFA`, wells `#F2F2F0` / `#E3E3E0`; flat canvas (no body gradient) | Hue-free surfaces let the few real colours carry meaning; value still encodes role (paper = read, canvas = bench). |
+| Graphite frame `#1C1F22` for sidebar, status strip and Ask side panel, via a `.chrome-dark` token scope | The Instrument voice gets its own material and the page gets a clear layer step; it matches the dark graph viewport. Components are not edited: the scope re-skins tokens. |
+| Primary = `--accent` graphite (near-white inside the dark scope); focus = `--focus` | One neutral primary; the accent no longer competes with state colours. Contrast on-accent 14.7:1 (13.5:1 in the dark scope). |
+| Petrol `--link` only for links and citation chips; jade, bronze, madder unchanged in role | Colour appears only where it means something (cite, verified, caution, refused). |
+| Answer is one paper sheet with hairline section breaks; Safety is a tinted section; citations are outline chips; sources are deduped by file and page | Four stacked cards and solid green blocks repeated the same weight; one sheet reads as one answer and the dedupe removes noise (5 passages became 2 chips). |
+| Header search works (Enter opens Ask with the text, Ctrl/Cmd+K focuses it) and is hidden on Ask | It looked interactive on every page and did nothing, with a false shortcut hint. |
+| Plain-language agent labels, no emoji, long reasoning clamped to 3 lines | Patients and reviewers do not need "ChromaDB"; the raw tool name stays on the mono argument line. |
+| "AI explanations off" instead of `allow_api=false . Local Composer` | Same state, readable by a patient; the exact meaning is in the tooltip. |
+| No success toast after an answer | The answer on screen is the confirmation; failures still toast. |
+| Component gallery link only in dev builds | A developer tool is not a product screen; the route stays reachable. |
+
+Measured contrast (WCAG formula): all text tokens at least 4.5:1 on canvas, paper, wells and (in `.chrome-dark`) graphite
+surfaces; control borders at least 3:1 on canvas and paper. Exceptions: `--line-control` on `--ink-600` (a skeleton
+fill, never a control surface).
+
+Fixed on the way: header breadcrumb hardcoded "Arjun R" (now the active persona); header search was a dead
+control; Upload showed a literal `{pages.length === 1 ? ...}` string in the page-quality badge.
+
+Open (pre-existing, not changed): Timeline overflows horizontally by about 41px at 390px width (also at the
+commit before this work).

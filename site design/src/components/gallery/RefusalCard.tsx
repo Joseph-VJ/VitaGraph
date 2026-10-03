@@ -32,7 +32,7 @@ export const RefusalCard: React.FC<RefusalCardProps> = ({
             {initial}
           </div>
           {/* Shield icon */}
-          <div className="w-7 h-7 rounded-full bg-[rgba(176,82,94,0.2)] border border-[var(--madder)] text-[var(--madder)] flex items-center justify-center flex-shrink-0 mt-0.5">
+          <div className="w-7 h-7 rounded-full bg-[var(--madder)]/20 border border-[var(--madder)] text-[var(--madder)] flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg className="w-4 h-4 text-[var(--madder)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
@@ -51,7 +51,7 @@ export const RefusalCard: React.FC<RefusalCardProps> = ({
       </div>
 
       {/* Refusal explanation body (§9.4 verbatim) */}
-      <div className="rounded-[var(--r-6)] bg-[rgba(176,82,94,0.06)] border border-[rgba(176,82,94,0.2)] p-3.5 ml-10">
+      <div className="rounded-[var(--r-6)] bg-[var(--madder)]/6 border border-[var(--madder)]/20 p-3.5 ml-10">
         <p className="type-reading text-[var(--dim)] leading-[21px]">
           {refusalText}
         </p>

@@ -234,7 +234,7 @@ export const LibraryPage: React.FC = () => {
 
       {/* Search Input Filter & Action */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex-1 min-w-[220px] flex items-center gap-2 px-3 py-2 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-control)] focus-within:border-[var(--deep-petrol)] transition-colors duration-[120ms]">
+        <div className="flex-1 min-w-[220px] flex items-center gap-2 px-3 py-2 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-control)] focus-within:border-[var(--focus)] transition-colors duration-[120ms]">
           <svg className="w-4 h-4 text-[var(--dim)] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -311,7 +311,7 @@ export const LibraryPage: React.FC = () => {
                 key={doc.id}
                 data-testid={`library-row-${doc.id}`}
                 style={{ animationDelay: `${Math.min(idx * 24, 240)}ms` }}
-                className={`p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] hover:border-[var(--deep-petrol)] transition-colors duration-[120ms] ease-out flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
+                className={`p-5 rounded-[var(--r-10)] bg-[var(--ink-800)] border border-[var(--line-strong)] hover:border-[var(--accent)] transition-colors duration-[120ms] ease-out flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
                   isExiting || isNavigating ? "m-exit" : "m-enter"
                 }`}
               >

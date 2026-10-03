@@ -154,7 +154,7 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
 
   return (
     <footer
-      className="h-8 px-3 sm:px-4 bg-[var(--chrome)] border-t border-[var(--chrome-line)] whitespace-nowrap overflow-hidden flex items-center justify-between type-mono-sm select-none flex-shrink-0 z-30"
+      className="chrome-dark h-8 px-3 sm:px-4 bg-[var(--chrome)] border-t border-[var(--chrome-line)] whitespace-nowrap overflow-hidden flex items-center justify-between type-mono-sm select-none flex-shrink-0 z-30"
     >
       {/* Left: System LED + Status + allow_api status */}
       <div data-boot-target="status-led" className="flex items-center gap-2.5">

@@ -9,6 +9,10 @@ interface AgentThoughtTreeProps {
   isStreaming: boolean;
   error: string | null;
   diagnostic: string | null;
+  /** Layout classes from the host (width, border, visibility). */
+  className?: string;
+  /** The question these steps belong to. */
+  subtitle?: string;
 }
 
 type Node =
@@ -17,8 +21,8 @@ type Node =
   | { kind: "tool"; seq: number; call: ToolCall };
 
 const TOOL_LABELS: Record<string, { pending: string; done: string }> = {
-  search_chroma: { pending: "🔍 Searching ChromaDB…", done: "🔍 Searched ChromaDB" },
-  query_networkx_graph: { pending: "🕸️ Querying knowledge graph…", done: "🕸️ Queried knowledge graph" },
+  search_chroma: { pending: "Searching your reports", done: "Searched your reports" },
+  query_networkx_graph: { pending: "Checking the knowledge graph", done: "Checked the knowledge graph" },
 };
 
 const RAIL_W = 20;
@@ -32,7 +36,9 @@ const Rail: React.FC<{ tone: "dim" | "pending" | "done" | "failed"; last: boolea
   const color =
     tone === "done" ? "var(--jade-slate)" : tone === "pending" ? "var(--solar-bronze)" : tone === "failed" ? "var(--madder)" : "var(--faint)";
   return (
-    <svg width={RAIL_W} className="h-full min-h-[24px] flex-shrink-0" aria-hidden="true">
+    // An <svg> with no height attribute defaults to 150px, which stretched every row. Size it from the row instead.
+    <div className="relative flex-shrink-0 min-h-[24px]" style={{ width: RAIL_W }} aria-hidden="true">
+    <svg width={RAIL_W} className="absolute inset-0 h-full">
       {!last && (
         <line
           x1={RAIL_W / 2}
@@ -48,17 +54,46 @@ const Rail: React.FC<{ tone: "dim" | "pending" | "done" | "failed"; last: boolea
       )}
       <circle cx={RAIL_W / 2} cy={10} r={tone === "dim" ? 3 : 4.5} fill={color} stroke="var(--chrome)" strokeWidth={2} />
     </svg>
+    </div>
+  );
+};
+
+const THINKING_CLAMP_CHARS = 240;
+
+// Reasoning can run to paragraphs; show the opening and let the reader expand it.
+const ThinkingLine: React.FC<{ text: string }> = ({ text }) => {
+  const [open, setOpen] = useState(false);
+  const long = text.length > THINKING_CLAMP_CHARS;
+  return (
+    <div className="pt-0.5" data-testid="thinking-log">
+      <p
+        className={`m-0 text-[13px] italic leading-[20px] text-[var(--dim)] whitespace-pre-wrap break-words ${long && !open ? "line-clamp-3" : ""}`}
+      >
+        {text}
+      </p>
+      {long && (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="mt-0.5 text-[12.5px] text-[var(--link)] underline underline-offset-2 hover:no-underline cursor-pointer min-h-[24px]"
+        >
+          {open ? "Show less" : "Show more"}
+        </button>
+      )}
+    </div>
   );
 };
 
 const ToolCard: React.FC<{ call: ToolCall }> = ({ call }) => {
   const [open, setOpen] = useState(false);
-  const labels = TOOL_LABELS[call.tool] ?? { pending: `⚙️ Running ${call.tool}…`, done: `⚙️ Ran ${call.tool}` };
+  const labels = TOOL_LABELS[call.tool] ?? { pending: "Running a lookup", done: "Ran a lookup" };
   const done = call.status === "completed";
   const failed = call.status === "failed";
-  const argSummary = Object.entries(call.arguments)
-    .map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`)
-    .join(" · ");
+  const argSummary = [
+    call.tool,
+    ...Object.entries(call.arguments).map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`),
+  ].join(" · ");
 
   return (
     <div
@@ -85,7 +120,7 @@ const ToolCard: React.FC<{ call: ToolCall }> = ({ call }) => {
             type="button"
             onClick={() => setOpen((o) => !o)}
             aria-expanded={open}
-            className="text-[12.5px] text-[var(--deep-petrol)] underline underline-offset-2 hover:no-underline cursor-pointer min-h-[24px]"
+            className="text-[12.5px] text-[var(--link)] underline underline-offset-2 hover:no-underline cursor-pointer min-h-[24px]"
           >
             {open ? "Hide result" : "Show result"}
           </button>
@@ -108,6 +143,8 @@ export const AgentThoughtTree: React.FC<AgentThoughtTreeProps> = ({
   isStreaming,
   error,
   diagnostic,
+  className = "",
+  subtitle,
 }) => {
   const nodes = useMemo<Node[]>(() => {
     const all: Node[] = [
@@ -124,21 +161,29 @@ export const AgentThoughtTree: React.FC<AgentThoughtTreeProps> = ({
     <aside
       aria-label="Agent telemetry"
       data-testid="agent-telemetry"
-      className="w-full lg:w-[400px] flex-shrink-0 lg:sticky lg:top-0 lg:max-h-[calc(100vh-7rem)] overflow-y-auto rounded-[var(--r-10)] bg-[var(--chrome)] border border-[var(--chrome-line)] p-4 text-[var(--bone)]"
+      className={`overflow-y-auto bg-[var(--chrome)] p-4 text-[var(--bone)] ${className}`}
     >
-      <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--chrome-line)]">
-        <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${isStreaming ? "bg-[var(--solar-bronze)] animate-pulse" : error ? "bg-[var(--madder)]" : "bg-[var(--jade-slate)]"}`} />
-          <h2 className="type-card-title text-[16px] leading-[22px] m-0">Agent activity</h2>
+      <div className="flex items-start justify-between gap-3 pb-3 mb-3 border-b border-[var(--chrome-line)]">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            {/* Dot marks the live state: working, failed, or finished. */}
+            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isStreaming ? "bg-[var(--solar-bronze)]" : error ? "bg-[var(--madder)]" : nodes.length ? "bg-[var(--jade-slate)]" : "bg-[var(--faint)]"}`} />
+            <h2 className="sr-only">Agent activity</h2>
+            <span className="type-label font-semibold">{isStreaming ? "Working" : error ? "Stopped" : nodes.length ? "Done" : "Idle"}</span>
+          </div>
+          {subtitle && (
+            <p className="m-0 mt-1 type-meta truncate" title={subtitle}>
+              {subtitle}
+            </p>
+          )}
         </div>
-        <span className="type-meta">{isStreaming ? "Working" : error ? "Stopped" : nodes.length ? "Done" : "Idle"}</span>
       </div>
 
       {modelFallbacks.map((fb) => (
         <div
           key={fb.id}
           role="status"
-          className="mb-3 rounded-[var(--r-6)] border border-[var(--solar-bronze)] bg-[#F3E6D2] px-3 py-2 type-body text-[13px] text-[var(--bone)]"
+          className="mb-3 rounded-[var(--r-6)] border border-[var(--solar-bronze)] bg-[var(--ochre)]/15 px-3 py-2 type-body text-[13px] text-[var(--bone)]"
           data-testid="fallback-banner"
         >
           <strong className="font-semibold">Switched engines.</strong> {fb.reason}
@@ -146,7 +191,7 @@ export const AgentThoughtTree: React.FC<AgentThoughtTreeProps> = ({
       ))}
 
       {error && (
-        <div role="alert" className="mb-3 rounded-[var(--r-6)] border border-[var(--madder)] bg-[#F2DDE0] px-3 py-2 type-body text-[13px] text-[var(--bone)]">
+        <div role="alert" className="mb-3 rounded-[var(--r-6)] border border-[var(--madder)] bg-[var(--madder)]/15 px-3 py-2 type-body text-[13px] text-[var(--bone)]">
           <div className="font-semibold">{error}</div>
           {diagnostic && <div className="opacity-80 mt-0.5">{diagnostic}</div>}
         </div>
@@ -174,9 +219,7 @@ export const AgentThoughtTree: React.FC<AgentThoughtTreeProps> = ({
                       {n.stage.detail && <div className="text-[var(--dim)] break-words">{n.stage.detail}</div>}
                     </div>
                   ) : n.kind === "thinking" ? (
-                    <p className="m-0 pt-0.5 text-[13px] italic leading-[20px] text-[var(--dim)] whitespace-pre-wrap break-words" data-testid="thinking-log">
-                      {n.log.text}
-                    </p>
+                    <ThinkingLine text={n.log.text} />
                   ) : (
                     <ToolCard call={n.call} />
                   )}

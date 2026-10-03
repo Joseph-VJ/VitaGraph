@@ -91,11 +91,11 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="cinematic-popup-title"
-        className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[rgba(40,50,58,0.55)] backdrop-blur-md ${
+        className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[rgba(20,22,25,0.55)] backdrop-blur-md ${
           !isT0 ? "animate-fade-in" : ""
         }`}
       >
-        <div className="relative w-full max-w-4xl rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] shadow-[0_24px_64px_rgba(40,50,58,0.35)] overflow-hidden flex flex-col max-h-[92vh]">
+        <div className="relative w-full max-w-4xl rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] shadow-[0_24px_64px_rgba(20,22,25,0.35)] overflow-hidden flex flex-col max-h-[92vh]">
           <div className="flex items-center justify-between gap-3 p-5 border-b border-[var(--line-faint)]">
             <div className="min-w-0">
               <h2 id="cinematic-popup-title" className="font-['Spectral'] font-semibold text-[var(--bone)] text-[17px] leading-tight">
@@ -151,12 +151,12 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
       aria-modal="true"
       aria-labelledby="cinematic-popup-title"
       aria-live="polite"
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[rgba(40,50,58,0.55)] backdrop-blur-md ${
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[rgba(20,22,25,0.55)] backdrop-blur-md ${
         !isT0 ? "animate-fade-in" : ""
       }`}
     >
       {/* 3D Glass Frame */}
-      <div className="relative w-full max-w-2xl rounded-[var(--r-14)] bg-[var(--ink-800)]/95 border border-[var(--line-strong)] shadow-[0_24px_64px_rgba(40,50,58,0.35),0_0_0_1px_rgba(255,255,255,0.4)_inset] overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl rounded-[var(--r-14)] bg-[var(--ink-800)]/95 border border-[var(--line-strong)] shadow-[0_24px_64px_rgba(20,22,25,0.35),0_0_0_1px_rgba(255,255,255,0.4)_inset] overflow-hidden flex flex-col max-h-[90vh]">
         {/* Subtle bevel line at the top */}
         <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-[var(--bone)]/20 to-transparent pointer-events-none" />
 
@@ -223,7 +223,7 @@ export const CinematicPipelinePopup: React.FC<CinematicPipelinePopupProps> = ({
           <div className="relative z-10 w-full max-w-md flex flex-col items-center">
             {/* 3D Paper Simulation Box */}
             <div
-              className={`relative w-72 h-40 rounded-[var(--r-10)] bg-[var(--ink-900)] border p-4 shadow-[inset_0_2px_12px_rgba(40,50,58,0.18),0_4px_16px_rgba(40,50,58,0.15)] flex flex-col justify-between overflow-hidden transition-colors duration-300 ${
+              className={`relative w-72 h-40 rounded-[var(--r-10)] bg-[var(--ink-900)] border p-4 shadow-[inset_0_2px_12px_rgba(20,22,25,0.18),0_4px_16px_rgba(20,22,25,0.15)] flex flex-col justify-between overflow-hidden transition-colors duration-300 ${
                 isError
                   ? "border-[var(--madder)]/60 bg-[var(--madder)]/[0.04]"
                   : "border-[var(--line-strong)]"

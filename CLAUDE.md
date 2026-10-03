@@ -28,15 +28,14 @@ The frontend MUST consume this exact event sequence from `POST /api/questions/st
 6. `completed`: `{ "status": "answered", "model": "...", "evidence_count": N }`
 7. `error`: `{ "message": "...", "diagnostic": "..." }`
 
-## 4. Design System: "Titanium Lagoon" Palette
-Apply these hex codes for the Phase 3 UI re-theme. This **supersedes** the old "DESIGN.md tokens frozen" rule (decided by the user for Phase 3). Tokens live in `site design/src/theme/tokens.css`.
-- Titanium Mist (canvas BG): `#DFE3E6`
-- Alloy Surface (cards/panels): `#CED5DA`
-- Steel Fog (secondary/depth/instrument BG): `#BAC3CA`
-- Deep Petrol (primary/instrument text): `#2E6270`
-- Jade Slate (success): `#47775F`
-- Solar Bronze (warning/accent): `#C58A43`
-- Main text: `#28323A` · Muted text: `#55636E` · Text on primary: `#F3F6F6`
+## 4. Design System: neutral grey + graphite ("Instrument & Paper")
+Decided by the user, replacing the earlier blue-grey "Titanium Lagoon" palette. This **supersedes** the old "DESIGN.md tokens frozen" rule. Tokens live in `site design/src/theme/tokens.css`; use the semantic tokens, never hex, in components.
+- Canvas / bench `--ink-900` `#ECECEA` · Paper (cards, answers, inputs) `--ink-800` `#FBFBFA` · Wells `--ink-700/600` `#F2F2F0` / `#E3E3E0`
+- Text `--bone` `#1F2328` · Muted `--dim` `#4F545A` · Tertiary `--faint` `#5C6167`
+- **Primary action / active nav / focus / user bubble: `--accent` `#1F2328` (graphite)** with `--on-accent` `#F7F7F5`, `--focus`. Colour is reserved for meaning:
+  `--link` `#2E6270` (links, citation chips), `--verdigris` `#3B6A53` (verified), `--ochre` `#C58A43` / `--ochre-ink` `#7F5416` (caution), `--madder` `#9E4552` (refused/failed).
+- **Graphite frame:** the sidebar, status strip and Ask side panel use the `.chrome-dark` scope (tokens re-skinned to graphite `#1C1F22`, text `#EDEDEB`, `--accent` flips to near-white); the knowledge graph uses `.graph-dark`. Never hard-code dark hex in a component, wrap it in a scope.
+- Every text pair measured at least 4.5:1 (see `docs/ui-ux-design-notes.md`).
 
 ## 5. Rules for Claude Code
 - **DO NOT** break the 60fps performance budget. Avoid heavy `backdrop-blur` on streaming text elements.

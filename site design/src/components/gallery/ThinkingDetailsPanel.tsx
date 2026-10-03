@@ -292,7 +292,7 @@ export const ThinkingDetailsPanel: React.FC<ThinkingDetailsPanelProps> = ({
           {streamError && (
             <div
               data-testid="error-frozen-row"
-              className="relative flex items-center justify-between py-2 text-[12.5px] border-l-2 border-[var(--madder)] bg-[rgba(176,82,94,0.06)] pl-3 pr-2 rounded-r-[var(--r-4)] my-1 overflow-hidden animate-detent-impulse"
+              className="relative flex items-center justify-between py-2 text-[12.5px] border-l-2 border-[var(--madder)] bg-[var(--madder)]/6 pl-3 pr-2 rounded-r-[var(--r-4)] my-1 overflow-hidden animate-detent-impulse"
             >
               <WashSweep color="var(--madder)" testId="error-wash-sweep" />
               <div className="flex items-center gap-3 min-w-0 flex-1 mr-3 z-20">

@@ -1,21 +1,30 @@
-/* VitaGraph design tokens: "steel bench + paper".
-   Value encodes role: paper (lightest) is where people read, the canvas is the bench,
-   steel (darkest) is machine chrome. Legacy token names are kept so every screen re-themes. */
+/* VitaGraph design tokens: neutral grey "instrument and paper".
+   Value encodes role: paper (lightest) is where people read, the grey canvas is the bench,
+   graphite is machine chrome (sidebar, status strip, side panel). Colour appears only where it
+   means something: link/citation (petrol), verified (jade), caution (bronze), refused (madder).
+   Legacy token names are kept so every screen re-themes. */
 :root {
   /* Surfaces */
-  --ink-900: #DFE3E6; /* canvas: the bench */
-  --ink-800: #F3F6F6; /* paper: cards, answers, forms (lightest) */
-  --ink-700: #E6EBED; /* well: inset areas, hover on paper */
-  --ink-600: #D5DCE0; /* well, stronger */
+  --ink-900: #ECECEA; /* canvas: the bench */
+  --ink-800: #FBFBFA; /* paper: cards, answers, forms (lightest) */
+  --ink-700: #F2F2F0; /* well: inset areas, hover on paper */
+  --ink-600: #E3E3E0; /* well, stronger */
 
-  --line-strong: #B4BFC6; /* card and divider borders */
-  --line-faint: #D0D7DC;
-  --line-control: #7C8B95; /* input and control borders, 3:1 on paper */
+  --line-strong: #D3D3D0; /* card and divider borders */
+  --line-faint: #E2E2DF;
+  --line-control: #858581; /* input and control borders, 3:1 on paper */
 
   /* Text. Every pair below is >= 4.5:1 on canvas and on paper. */
-  --bone: #28323A;
-  --dim: #4A5762;
-  --faint: #566470;
+  --bone: #1F2328;
+  --dim: #4F545A;
+  --faint: #5C6167;
+
+  /* Primary action and focus. Graphite on light, near-white inside .chrome-dark. */
+  --accent: #1F2328;
+  --accent-hover: #33383E;
+  --on-accent: #F7F7F5;
+  --focus: #1F2328;
+  --link: #2E6270; /* links and citation chips */
 
   /* State hues: text-safe values. Raw fills live in the named palette below. */
   --verdigris: #3B6A53; /* verified / success */
@@ -25,27 +34,27 @@
   --lilac: #5F5290;
   --madder: #9E4552; /* refusal / failure */
 
-  --paper: #F6F8F8;
-  --paper-ink: #28323A;
-  --paper-fold: #D5DCE0;
+  --paper: #FBFBFA;
+  --paper-ink: #1F2328;
+  --paper-fold: #E3E3E0;
 
-  --text-main: #28323A;
-  --text-muted: #4A5762;
-  --text-on-primary: #F3F6F6;
+  --text-main: #1F2328;
+  --text-muted: #4F545A;
+  --text-on-primary: #F7F7F5;
 
-  /* Chrome (sidebar, status strip, instrument pane) */
-  --chrome: #CDD4D9;
-  --chrome-line: #AEB9C0;
+  /* Chrome (sidebar, status strip, instrument pane): graphite. Re-skinned by .chrome-dark. */
+  --chrome: #1C1F22;
+  --chrome-line: #33383E;
 
   /* Elevation: flat at rest. Shadow marks only what floats above the page. */
-  --shadow-3d: 0 1px 0 rgba(255,255,255,.7) inset, 0 1px 1px rgba(40,50,58,.06);
+  --shadow-3d: 0 1px 0 rgba(255,255,255,.7) inset, 0 1px 1px rgba(20,22,25,.06);
   --shadow-3d-sm: 0 1px 0 rgba(255,255,255,.6) inset;
-  --shadow-float: 0 10px 28px rgba(40,50,58,.20), 0 2px 6px rgba(40,50,58,.12);
+  --shadow-float: 0 10px 28px rgba(20,22,25,.20), 0 2px 6px rgba(20,22,25,.12);
 
-  /* Titanium Lagoon Palette */
-  --titanium-mist: #DFE3E6;
-  --alloy-surface: #CED5DA;
-  --steel-fog: #BAC3CA;
+  /* Legacy palette names, now neutral. --deep-petrol stays a data/colour-meaning hue. */
+  --titanium-mist: #ECECEA;
+  --alloy-surface: #E3E3E0;
+  --steel-fog: #D6D6D3;
   --deep-petrol: #2E6270;
   --jade-slate: #47775F;
   --solar-bronze: #C58A43;
@@ -81,7 +90,7 @@
   --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-ink: cubic-bezier(0, 0, 0.2, 1);
 
-  --shadow-floating: 0 10px 28px rgba(40, 50, 58, 0.20), 0 2px 6px rgba(40, 50, 58, 0.12);
+  --shadow-floating: 0 10px 28px rgba(20, 22, 25, 0.20), 0 2px 6px rgba(20, 22, 25, 0.12);
 }
 
 /* Paper theme (§4.2) */
@@ -122,4 +131,37 @@
     --m-ambient: 0ms;
     --m-ring: 0ms;
   }
+}
+
+/* Graphite frame: re-skins every token inside it so shared components work unchanged
+   (same pattern as .graph-dark). Used on the sidebar, status strip and Ask side panel. */
+.chrome-dark {
+  color-scheme: dark;
+  --ink-900: #16181B;
+  --ink-800: #26292D; /* raised / active */
+  --ink-700: #2E3237; /* hover */
+  --ink-600: #383C42;
+  --line-strong: #3A3F45;
+  --line-faint: #2A2E32;
+  --line-control: #7A8088;
+  --bone: #EDEDEB;
+  --dim: #A7ACB2;
+  --faint: #A6ABB1;
+  --text-main: #EDEDEB;
+  --text-muted: #A7ACB2;
+  --accent: #EDEDEB;
+  --accent-hover: #FFFFFF;
+  --on-accent: #1F2328;
+  --text-on-primary: #1F2328;
+  --focus: #EDEDEB;
+  --link: #8CC4D1;
+  --verdigris: #86CDA4;
+  --madder: #F2959F;
+  --ochre-ink: #F0C88A;
+  --deep-petrol: #8CC4D1;
+  --steel-fog: #383C42;
+  --shadow-3d: 0 1px 0 rgba(255,255,255,.04) inset;
+  --shadow-3d-sm: 0 1px 0 rgba(255,255,255,.04) inset;
+  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+  color: var(--bone);
 }

@@ -1768,7 +1768,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         ctx.font = font;
         ctx.textAlign = lalign;
         ctx.globalAlpha = alphaLabel;
-        ctx.strokeStyle = "rgba(8,12,15,0.88)"; // halo keeps text legible over edges
+        ctx.strokeStyle = "rgba(12,14,16,0.88)"; // halo keeps text legible over edges
         ctx.lineWidth = 3.5;
         ctx.strokeText(text, lx, ly);
         ctx.fillStyle = emphasised ? "#FFFFFF" : "#F3F6F6";
@@ -1798,7 +1798,7 @@ export const GraphStage: React.FC<GraphStageProps> = ({
         if (overlays.some((r) => box.x0 < r.x1 && box.x1 > r.x0 && box.y0 < r.y1 && box.y1 > r.y0)) continue;
         placed.push(box);
         ctx.globalAlpha = n.a * reveal;
-        ctx.fillStyle = "rgba(14,20,24,0.94)";
+        ctx.fillStyle = "rgba(18,20,22,0.94)";
         roundedRect(ctx, cx, cy, cw, ch, 5);
         ctx.fill();
         ctx.strokeStyle = "rgba(240,200,138,0.55)";

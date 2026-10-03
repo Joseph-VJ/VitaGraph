@@ -45,8 +45,7 @@
 /* Base resets & typography defaults per DESIGN.md §3 & Titanium Lagoon */
 body {
   font-family: var(--font-sans);
-  background: linear-gradient(180deg, #E5E9EC 0%, #DFE3E6 38%, #D9DEE2 100%);
-  background-color: var(--titanium-mist);
+  background-color: var(--ink-900);
   color: var(--text-main);
   margin: 0;
   padding: 0;
@@ -185,7 +184,7 @@ select:focus-visible,
 textarea:focus-visible,
 a:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid var(--deep-petrol);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -201,7 +200,7 @@ a:focus-visible,
 }
 
 .canvas-grid {
-  background-image: radial-gradient(rgba(46,98,112,0.10) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(31,35,40,0.08) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
@@ -539,8 +538,8 @@ button:not(:disabled):active,
 }
 
 @keyframes cornflowerFlash {
-  0%   { filter: brightness(1.7); box-shadow: 0 0 10px rgba(46,98,112, 0.6); }
-  50%  { filter: brightness(1.3); box-shadow: 0 0 5px rgba(46,98,112, 0.3); }
+  0%   { filter: brightness(1.7); box-shadow: 0 0 10px rgba(31,35,40, 0.5); }
+  50%  { filter: brightness(1.3); box-shadow: 0 0 5px rgba(31,35,40, 0.25); }
   100% { filter: brightness(1); box-shadow: none; }
 }
 .animate-cornflower-flash {
@@ -940,7 +939,7 @@ button:not(:disabled):active,
 }
 .paper-md h1, .paper-md h2, .paper-md h3 {
   font-family: var(--font-serif);
-  color: var(--deep-petrol);
+  color: var(--text-main);
   font-weight: 600;
   font-size: 16px;
   line-height: 22px;
@@ -952,7 +951,7 @@ button:not(:disabled):active,
 .paper-md ul, .paper-md ol { margin: 0 0 10px; padding-left: 1.25rem; }
 .paper-md li { margin-bottom: 4px; }
 .paper-md strong { font-weight: 600; }
-.paper-md code { font-family: var(--font-mono); font-size: 12.5px; background: var(--steel-fog); padding: 1px 5px; border-radius: 4px; }
+.paper-md code { font-family: var(--font-mono); font-size: 12.5px; background: var(--ink-600); padding: 1px 5px; border-radius: 4px; }
 .paper-table-wrap {
   overflow-x: auto;
   margin: 6px 0 12px;
@@ -980,7 +979,7 @@ button:not(:disabled):active,
 
 .vg-caret {
   width: 8px; height: 16px; border-radius: 2px;
-  background: var(--deep-petrol);
+  background: var(--accent);
   animation: vg-caret 1s steps(2, start) infinite;
 }
 @keyframes vg-caret { to { visibility: hidden; } }

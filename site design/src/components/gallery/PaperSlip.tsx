@@ -59,8 +59,8 @@ export const PaperSlip: React.FC<PaperSlipProps> = ({
       </blockquote>
 
       {/* Footer row: Attribution, Similarity, Cite button */}
-      <div className="flex items-center justify-between gap-2 pt-2 border-t border-[rgba(40,50,58,0.12)]">
-        <div className="flex items-center gap-1.5 text-[12px] text-[rgba(40,50,58,0.75)]">
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-[rgba(20,22,25,0.12)]">
+        <div className="flex items-center gap-1.5 text-[12px] text-[rgba(20,22,25,0.75)]">
           <span className="font-medium font-['IBM_Plex_Sans']">{authors}</span>
           {journal && <span className="font-['Spectral'] italic font-medium">{journal}</span>}
         </div>
@@ -68,7 +68,7 @@ export const PaperSlip: React.FC<PaperSlipProps> = ({
         <div className="flex items-center gap-3">
           {similarity !== undefined && (
             <div className="flex items-center gap-2">
-              <span className="type-meta text-[rgba(40,50,58,0.65)]">Similarity</span>
+              <span className="type-meta text-[rgba(20,22,25,0.65)]">Similarity</span>
               <div className="w-24 h-1 bg-[var(--paper-fold)] rounded-[2px] overflow-hidden">
                 <div
                   style={{ width: `${similarity * 100}%` }}
@@ -83,7 +83,7 @@ export const PaperSlip: React.FC<PaperSlipProps> = ({
 
           <button
             onClick={onCite}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[var(--r-4)] border border-[rgba(40,50,58,0.30)] hover:bg-[rgba(40,50,58,0.06)] active:bg-[rgba(40,50,58,0.12)] transition-colors duration-[120ms] text-[var(--paper-ink)] text-[12px] font-medium font-['IBM_Plex_Sans'] cursor-pointer"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[var(--r-4)] border border-[rgba(20,22,25,0.30)] hover:bg-[rgba(20,22,25,0.06)] active:bg-[rgba(20,22,25,0.12)] transition-colors duration-[120ms] text-[var(--paper-ink)] text-[12px] font-medium font-['IBM_Plex_Sans'] cursor-pointer"
           >
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
               <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />

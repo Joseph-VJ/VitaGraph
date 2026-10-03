@@ -20,6 +20,7 @@ interface BadgeProps {
   children?: React.ReactNode;
   className?: string;
   testId?: string;
+  title?: string;
 }
 
 export const Badge: React.FC<BadgeProps> = ({
@@ -27,6 +28,7 @@ export const Badge: React.FC<BadgeProps> = ({
   children,
   className = "",
   testId,
+  title,
 }) => {
   if (variant === "completed") {
     return (
@@ -40,7 +42,7 @@ export const Badge: React.FC<BadgeProps> = ({
   if (variant === "ingesting") {
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-[var(--r-4)] px-2 py-0.5 text-[12px] leading-[16px] font-medium bg-[rgba(71,119,95,0.12)] text-[var(--verdigris)] border border-[rgba(71,119,95,0.25)] ${className}`}
+        className={`inline-flex items-center gap-1.5 rounded-[var(--r-4)] px-2 py-0.5 text-[12px] leading-[16px] font-medium bg-[var(--verdigris)]/12 text-[var(--verdigris)] border border-[var(--verdigris)]/25 ${className}`}
       >
         <svg
           className="animate-spin w-3 h-3 text-[var(--verdigris)]"
@@ -69,23 +71,23 @@ export const Badge: React.FC<BadgeProps> = ({
 
   const styles: Record<BadgeVariant, string> = {
     answered:
-      "bg-[rgba(71,119,95,0.12)] text-[var(--verdigris)] border border-[rgba(71,119,95,0.25)]",
+      "bg-[var(--verdigris)]/12 text-[var(--verdigris)] border border-[var(--verdigris)]/25",
     educational:
-      "bg-[rgba(71,119,95,0.12)] text-[var(--verdigris)] border border-[rgba(71,119,95,0.25)]",
+      "bg-[var(--verdigris)]/12 text-[var(--verdigris)] border border-[var(--verdigris)]/25",
     verdigris:
-      "bg-[rgba(71,119,95,0.12)] text-[var(--verdigris)] border border-[rgba(71,119,95,0.25)]",
+      "bg-[var(--verdigris)]/12 text-[var(--verdigris)] border border-[var(--verdigris)]/25",
     refused:
-      "bg-[rgba(176,82,94,0.12)] text-[var(--madder)] border border-[rgba(176,82,94,0.25)]",
+      "bg-[var(--madder)]/12 text-[var(--madder)] border border-[var(--madder)]/25",
     rejected:
-      "bg-[rgba(176,82,94,0.12)] text-[var(--madder)] border border-[rgba(176,82,94,0.25)]",
+      "bg-[var(--madder)]/12 text-[var(--madder)] border border-[var(--madder)]/25",
     madder:
-      "bg-[rgba(176,82,94,0.12)] text-[var(--madder)] border border-[rgba(176,82,94,0.25)]",
+      "bg-[var(--madder)]/12 text-[var(--madder)] border border-[var(--madder)]/25",
     insufficient_evidence:
-      "bg-[rgba(197,138,67,0.12)] text-[var(--ochre-ink)] border border-[rgba(197,138,67,0.25)]",
+      "bg-[var(--ochre)]/12 text-[var(--ochre-ink)] border border-[var(--ochre)]/25",
     ochre:
-      "bg-[rgba(197,138,67,0.12)] text-[var(--ochre-ink)] border border-[rgba(197,138,67,0.25)]",
+      "bg-[var(--ochre)]/12 text-[var(--ochre-ink)] border border-[var(--ochre)]/25",
     cornflower:
-      "bg-[rgba(134,169,217,0.12)] text-[var(--cornflower)] border border-[rgba(134,169,217,0.25)]",
+      "bg-[var(--cornflower)]/12 text-[var(--cornflower)] border border-[var(--cornflower)]/25",
     dim:
       "bg-[var(--ink-700)] text-[var(--dim)] border border-[var(--line-strong)]",
     completed: "",
@@ -103,6 +105,7 @@ export const Badge: React.FC<BadgeProps> = ({
   return (
     <span
       data-testid={testId}
+      title={title}
       className={`inline-flex items-center rounded-[var(--r-4)] px-2 py-0.5 text-[12px] leading-[16px] font-medium ${styles[variant]} ${className}`}
     >
       {children || defaultText[variant] || ""}

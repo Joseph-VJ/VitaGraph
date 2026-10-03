@@ -173,7 +173,7 @@ const Dot: React.FC<{ color: string }> = ({ color }) => (
 );
 
 const rowClass =
-  "w-full text-left px-2.5 py-2 rounded-[var(--r-6)] text-[var(--bone)] cursor-pointer hover:bg-[var(--ink-700)] focus-visible:outline-2 focus-visible:outline-[var(--deep-petrol)] focus-visible:outline-offset-0 transition-colors duration-[120ms]";
+  "w-full text-left px-2.5 py-2 rounded-[var(--r-6)] text-[var(--bone)] cursor-pointer hover:bg-[var(--ink-700)] focus-visible:outline-2 focus-visible:outline-[var(--focus)] focus-visible:outline-offset-0 transition-colors duration-[120ms]";
 
 export const GraphConceptsPanel: React.FC<GraphConceptsPanelProps> = ({
   compact = false,
@@ -205,7 +205,7 @@ export const GraphConceptsPanel: React.FC<GraphConceptsPanelProps> = ({
         onClick={() => onToggle(true)}
         className="absolute bottom-3 right-14 z-20 h-9 pl-2.5 pr-3.5 inline-flex items-center gap-2 rounded-[var(--r-6)] bg-[var(--ink-800)] border border-[var(--line-control)] text-[var(--bone)] type-body text-[13px] cursor-pointer hover:bg-[var(--ink-700)] shadow-[var(--shadow-float)]"
       >
-        <svg className="w-3.5 h-3.5 text-[var(--deep-petrol)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+        <svg className="w-3.5 h-3.5 text-[var(--link)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
           <line x1="8" y1="6" x2="21" y2="6" />
           <line x1="8" y1="12" x2="21" y2="12" />
           <line x1="8" y1="18" x2="21" y2="18" />
@@ -237,9 +237,9 @@ export const GraphConceptsPanel: React.FC<GraphConceptsPanelProps> = ({
               aria-selected={tab === t.id}
               aria-controls="graph-panel-body"
               onClick={() => onTab(t.id)}
-              className={`px-2.5 h-9 text-[13px] font-medium cursor-pointer border-b-2 -mb-px transition-colors duration-[120ms] focus-visible:outline-2 focus-visible:outline-[var(--deep-petrol)] ${
+              className={`px-2.5 h-9 text-[13px] font-medium cursor-pointer border-b-2 -mb-px transition-colors duration-[120ms] focus-visible:outline-2 focus-visible:outline-[var(--focus)] ${
                 tab === t.id
-                  ? "text-[var(--bone)] border-[var(--deep-petrol)]"
+                  ? "text-[var(--bone)] border-[var(--accent)]"
                   : "text-[var(--dim)] border-transparent hover:text-[var(--bone)]"
               }`}
             >
@@ -252,7 +252,7 @@ export const GraphConceptsPanel: React.FC<GraphConceptsPanelProps> = ({
           aria-label="Hide concepts panel"
           aria-expanded={true}
           onClick={() => onToggle(false)}
-          className="w-8 h-8 inline-flex items-center justify-center rounded-[var(--r-4)] text-[var(--dim)] hover:text-[var(--bone)] cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--deep-petrol)]"
+          className="w-8 h-8 inline-flex items-center justify-center rounded-[var(--r-4)] text-[var(--dim)] hover:text-[var(--bone)] cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
         >
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18" />
@@ -343,7 +343,7 @@ export const GraphConceptsPanel: React.FC<GraphConceptsPanelProps> = ({
                 <button
                   type="button"
                   onClick={() => onFocusCommunity(null)}
-                  className="text-[13px] text-[var(--deep-petrol)] underline cursor-pointer min-h-[24px]"
+                  className="text-[13px] text-[var(--link)] underline cursor-pointer min-h-[24px]"
                 >
                   Show all groups
                 </button>

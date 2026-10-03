@@ -192,7 +192,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   return (
     <aside
       aria-label="Primary navigation"
-      className={`w-[60px] lg:w-[240px] h-screen bg-[var(--chrome)] border-r border-[var(--chrome-line)] shadow-[2px_0_10px_rgba(40,50,58,0.08)] flex flex-col justify-between flex-shrink-0 select-none overflow-y-auto overflow-x-hidden ${className}`}
+      className={`chrome-dark w-[60px] lg:w-[240px] h-screen bg-[var(--chrome)] border-r border-[var(--chrome-line)] flex flex-col justify-between flex-shrink-0 select-none overflow-y-auto overflow-x-hidden ${className}`}
     >
       <div>
         {/* Brand Block (§5.1) */}
@@ -236,7 +236,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
           <div
             ref={indicatorRef}
             data-testid="sidebar-active-indicator"
-            className="absolute left-2 w-[3px] bg-[var(--deep-petrol)] rounded-r pointer-events-none z-10"
+            className="absolute left-2 w-[3px] bg-[var(--accent)] rounded-r pointer-events-none z-10"
             style={{ top: 0, height: 0, display: "none" }}
           />
 
@@ -256,7 +256,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
                 aria-current={isActive ? "page" : undefined}
                 className={`flex items-center justify-center lg:justify-start gap-3 px-2 lg:px-3 py-2 rounded-[var(--r-6)] transition-colors duration-[120ms] ease-out group relative border-l-2 ${
                   isActive
-                    ? "bg-[var(--ink-800)] text-[var(--bone)] border-l-[var(--deep-petrol)] shadow-[var(--shadow-3d)]"
+                    ? "bg-[var(--ink-800)] text-[var(--bone)] border-l-[var(--accent)] shadow-[var(--shadow-3d)]"
                     : "text-[var(--dim)] hover:text-[var(--bone)] hover:bg-[var(--ink-800)]/60 border-l-transparent"
                 }`}
               >
@@ -282,7 +282,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
           })}
         </nav>
 
-        {/* Gallery Link (§7) */}
+        {/* Gallery Link (§7): developer tool, not a product screen, so it is dev-build only. The route stays reachable. */}
+        {import.meta.env.DEV && (
         <div className="mt-4 pt-3 border-t border-[var(--chrome-line)]">
           <Link
             to="/gallery"
@@ -295,6 +296,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
             <span className="hidden lg:inline type-body text-[13px]">Component gallery</span>
           </Link>
         </div>
+        )}
       </div>
 
     </aside>

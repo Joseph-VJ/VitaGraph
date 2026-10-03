@@ -6,3 +6,4 @@ Verify commands (Windows):
   frontend: cd "site design" && npm run build   (and npm run dev + browser check for UI stories)
 Iron laws: one story per iteration · no placeholders · no fake timers/static mock where an endpoint exists · no commit while red · no completion claim without fresh command output · DESIGN.md tokens frozen · never name a provider/model in UI · never edit backend tests to pass · keep 38/38 pytest green.
 Learnings: append gotchas/conventions here (brief) at end of each iteration.
+Learning (palette): primary = `--accent` (graphite), petrol = `--link` only; dark surfaces use the `.chrome-dark` / `.graph-dark` token scopes, never hex in components. Header search is real: Enter -> `/ask?q=`, Ctrl/Cmd+K focuses it.

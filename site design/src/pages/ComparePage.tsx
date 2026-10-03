@@ -263,16 +263,16 @@ export const ComparePage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <span className="type-label text-[var(--bone)]">Longitudinal shifts</span>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(71,119,95,0.12)] text-[var(--verdigris)] border border-[rgba(71,119,95,0.25)] type-mono-sm flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[var(--verdigris)]/12 text-[var(--verdigris)] border border-[var(--verdigris)]/25 type-mono-sm flex items-center gap-1">
                 <Odometer value={summary.improved} duration={480} testId="odo-improved" /> improved
               </span>
-              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(176,82,94,0.12)] text-[var(--madder)] border border-[rgba(176,82,94,0.25)] type-mono-sm flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[var(--madder)]/12 text-[var(--madder)] border border-[var(--madder)]/25 type-mono-sm flex items-center gap-1">
                 <Odometer value={summary.declined} duration={480} testId="odo-declined" /> declined
               </span>
               <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] text-[var(--dim)] border border-[var(--line-strong)] type-mono-sm flex items-center gap-1">
                 <Odometer value={summary.stable} duration={480} testId="odo-stable" /> stable
               </span>
-              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[rgba(197,138,67,0.12)] text-[var(--ochre-ink)] border border-[rgba(197,138,67,0.25)] type-mono-sm flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-[var(--r-4)] bg-[var(--ochre)]/12 text-[var(--ochre-ink)] border border-[var(--ochre)]/25 type-mono-sm flex items-center gap-1">
                 <Odometer value={summary.unavailable} duration={480} testId="odo-unavailable" /> unavailable
               </span>
             </div>

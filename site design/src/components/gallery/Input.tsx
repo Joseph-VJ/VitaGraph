@@ -24,7 +24,7 @@ export const Input: React.FC<InputProps> = ({
       )}
       <input
         disabled={disabled}
-        className={`w-full h-10 bg-[var(--ink-800)] border border-[var(--line-control)] text-[var(--bone)] placeholder-[var(--faint)] rounded-[var(--r-6)] type-body pl-3 pr-3 transition-colors duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--deep-petrol)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] disabled:opacity-40 disabled:cursor-not-allowed ${
+        className={`w-full h-10 bg-[var(--ink-800)] border border-[var(--line-control)] text-[var(--bone)] placeholder-[var(--faint)] rounded-[var(--r-6)] type-body pl-3 pr-3 transition-colors duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] disabled:opacity-40 disabled:cursor-not-allowed ${
           icon ? "pl-9" : ""
         } ${shortcut ? "pr-12" : ""} ${className}`}
         {...props}
@@ -79,7 +79,7 @@ export const Select: React.FC<SelectProps> = ({
         disabled={disabled}
         aria-label="Choose an option"
         onChange={handleChange}
-        className={`appearance-none h-9 w-full bg-[var(--ink-800)] border border-[var(--line-control)] text-[var(--bone)] rounded-[var(--r-6)] pl-3 pr-7 type-body transition-all duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--deep-petrol)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] focus-visible:border-[var(--deep-petrol)] disabled:opacity-40 disabled:cursor-not-allowed hover:border-[var(--dim)] cursor-pointer ${className}`}
+        className={`appearance-none h-9 w-full bg-[var(--ink-800)] border border-[var(--line-control)] text-[var(--bone)] rounded-[var(--r-6)] pl-3 pr-7 type-body transition-all duration-[120ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-900)] focus-visible:border-[var(--focus)] disabled:opacity-40 disabled:cursor-not-allowed hover:border-[var(--dim)] cursor-pointer ${className}`}
         {...props}
       >
         {options.map((opt) => (

@@ -99,7 +99,7 @@ export const JourneyRail: React.FC = () => {
             onClick={retreat}
             title={`Previous: ${prevStep.label}`}
             aria-label={`Previous step: ${prevStep.label}`}
-            className="w-6 h-6 rounded-full bg-[var(--ink-700)] flex items-center justify-center text-[var(--bone)] hover:bg-[var(--line-strong)] hover:text-[var(--bone)] transition-all duration-[var(--m-micro)] hover:-translate-x-0.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--deep-petrol)] focus-visible:outline-offset-2"
+            className="w-6 h-6 rounded-full bg-[var(--ink-700)] flex items-center justify-center text-[var(--bone)] hover:bg-[var(--line-strong)] hover:text-[var(--bone)] transition-all duration-[var(--m-micro)] hover:-translate-x-0.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--focus)] focus-visible:outline-offset-2"
           >
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="15 18 9 12 15 6" />
@@ -127,15 +127,15 @@ export const JourneyRail: React.FC = () => {
                 if (isAudioEnabled()) playDetent();
                 transitionNavigate(navigate, step.path, { direction: dir });
               }}
-              className="relative w-6 h-6 rounded-full cursor-pointer flex items-center justify-center focus-visible:outline-2 focus-visible:outline-[var(--deep-petrol)] focus-visible:outline-offset-0"
+              className="relative w-6 h-6 rounded-full cursor-pointer flex items-center justify-center focus-visible:outline-2 focus-visible:outline-[var(--focus)] focus-visible:outline-offset-0"
             >
               <span
                 aria-hidden="true"
                 className={`relative rounded-full transition-all duration-[var(--m-quick)] flex items-center justify-center ${
                   isCurrent
-                    ? "w-3 h-3 bg-[var(--deep-petrol)] ring-2 ring-[var(--deep-petrol)]/30 scale-110"
+                    ? "w-3 h-3 bg-[var(--accent)] ring-2 ring-[var(--focus)]/30 scale-110"
                     : isCompleted
-                    ? "w-2.5 h-2.5 bg-[var(--deep-petrol)]/70"
+                    ? "w-2.5 h-2.5 bg-[var(--accent)]/70"
                     : "w-2.5 h-2.5 bg-[var(--line-control)]"
                 }`}
               >
@@ -155,13 +155,13 @@ export const JourneyRail: React.FC = () => {
           type="button"
           data-testid="journey-next-btn"
           onClick={advance}
-          className="flex items-center gap-2 text-left cursor-pointer group/btn focus-visible:outline-2 focus-visible:outline-[var(--deep-petrol)] focus-visible:outline-offset-2 rounded"
+          className="flex items-center gap-2 text-left cursor-pointer group/btn focus-visible:outline-2 focus-visible:outline-[var(--focus)] focus-visible:outline-offset-2 rounded"
         >
           <div className="flex flex-col w-[150px] sm:w-[220px] min-w-0">
             <span className="type-meta truncate">
               Next step, {nextStepIndex + 1} of 5
             </span>
-            <span className="type-label text-[13px] text-[var(--bone)] group-hover/btn:text-[var(--deep-petrol)] transition-colors truncate">
+            <span className="type-label text-[13px] text-[var(--bone)] group-hover/btn:text-[var(--link)] transition-colors truncate">
               {currentStep.reason}
             </span>
           </div>

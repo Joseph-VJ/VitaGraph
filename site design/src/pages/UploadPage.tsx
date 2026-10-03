@@ -352,7 +352,7 @@ export const UploadPage: React.FC = () => {
                 </p>
               </div>
               <Badge variant={pages.length > 0 ? "verdigris" : "dim"}>
-                {pages.length > 0 ? `${pages.length} {pages.length === 1 ? "page" : "pages"} analyzed` : "Standby"}
+                {pages.length > 0 ? `${pages.length} ${pages.length === 1 ? "page" : "pages"} analyzed` : "Standby"}
               </Badge>
             </div>
 

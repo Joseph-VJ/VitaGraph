@@ -167,7 +167,7 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-[rgba(40,50,58,0.72)] backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fade-in"
+      className="fixed inset-0 z-50 bg-[rgba(20,22,25,0.72)] backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose();
       }}
@@ -307,11 +307,11 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
                 </div>
               ) : (
                 <div className="w-full max-w-2xl bg-[var(--paper)] text-[var(--paper-ink)] rounded-[var(--r-6)] p-6 sm:p-8 paper-slip-grain shadow-md border border-[var(--paper-fold)] select-text">
-                  <div className="flex items-center justify-between pb-3 mb-4 border-b border-[rgba(40,50,58,0.14)] text-[12px]">
-                    <span className="font-['IBM_Plex_Sans'] font-medium text-[rgba(40,50,58,0.65)] text-[11.5px]">
+                  <div className="flex items-center justify-between pb-3 mb-4 border-b border-[rgba(20,22,25,0.14)] text-[12px]">
+                    <span className="font-['IBM_Plex_Sans'] font-medium text-[rgba(20,22,25,0.65)] text-[11.5px]">
                       Extracted laboratory text, page {activePage?.page_number || 1}
                     </span>
-                    <span className="type-mono-sm text-[rgba(40,50,58,0.65)]">
+                    <span className="type-mono-sm text-[rgba(20,22,25,0.65)]">
                       {activePage?.text_length || pageText.length} characters
                     </span>
                   </div>
@@ -383,7 +383,7 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
                             data-testid="evidence-interior-wash"
                             className={`absolute inset-0 rounded-[var(--r-4)] pointer-events-none ${
                               isReducedMotion() || governor.getState().tier === "T0"
-                                ? "bg-[rgba(71,119,95,0.10)]"
+                                ? "bg-[var(--verdigris)]/10"
                                 : "animate-wash-hold"
                             }`}
                             style={{ animationDelay: "360ms" }}

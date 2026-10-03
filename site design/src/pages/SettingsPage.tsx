@@ -139,7 +139,7 @@ export const SettingsPage: React.FC = () => {
                 aria-label="Enforce diagnostic refusal boundary"
                 onClick={() => setDiagnosticGuard(!diagnosticGuard)}
                 className={`w-11 h-6 rounded-full transition-colors duration-[120ms] p-1 flex items-center cursor-pointer ${
-                  diagnosticGuard ? "bg-[var(--deep-petrol)]" : "bg-[var(--line-control)]"
+                  diagnosticGuard ? "bg-[var(--accent)]" : "bg-[var(--line-control)]"
                 }`}
               >
                 <div
@@ -168,7 +168,7 @@ export const SettingsPage: React.FC = () => {
                 aria-label="Local-only execution mode"
                 onClick={() => setLocalOnly(!localOnly)}
                 className={`w-11 h-6 rounded-full transition-colors duration-[120ms] p-1 flex items-center cursor-pointer ${
-                  localOnly ? "bg-[var(--deep-petrol)]" : "bg-[var(--line-control)]"
+                  localOnly ? "bg-[var(--accent)]" : "bg-[var(--line-control)]"
                 }`}
               >
                 <div
@@ -197,7 +197,7 @@ export const SettingsPage: React.FC = () => {
                 aria-label="External API fallback"
                 onClick={() => setAllowApi(!allowApi)}
                 className={`w-11 h-6 rounded-full transition-colors duration-[120ms] p-1 flex items-center cursor-pointer ${
-                  allowApi ? "bg-[var(--deep-petrol)]" : "bg-[var(--line-control)]"
+                  allowApi ? "bg-[var(--accent)]" : "bg-[var(--line-control)]"
                 }`}
               >
                 <div
@@ -405,7 +405,7 @@ export const SettingsPage: React.FC = () => {
                   }
                 }}
                 className={`w-11 h-6 rounded-full transition-colors duration-[120ms] p-1 flex items-center cursor-pointer ${
-                  soundEnabled ? "bg-[var(--deep-petrol)]" : "bg-[var(--line-control)]"
+                  soundEnabled ? "bg-[var(--accent)]" : "bg-[var(--line-control)]"
                 }`}
               >
                 <div

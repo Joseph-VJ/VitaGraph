@@ -17,27 +17,27 @@ export const DeltaChip: React.FC<DeltaChipProps> = ({
 }) => {
   const styles: Record<DeltaType, { bg: string; text: string; border: string; defaultLabel: string }> = {
     improving: {
-      bg: "bg-[rgba(71,119,95,0.12)]",
+      bg: "bg-[var(--verdigris)]/12",
       text: "text-[var(--verdigris)]",
-      border: "border-[rgba(71,119,95,0.25)]",
+      border: "border-[var(--verdigris)]/25",
       defaultLabel: "+0.1 improving",
     },
     decrease: {
-      bg: "bg-[rgba(197,138,67,0.12)]",
+      bg: "bg-[var(--ochre)]/12",
       text: "text-[var(--ochre-ink)]",
-      border: "border-[rgba(197,138,67,0.25)]",
+      border: "border-[var(--ochre)]/25",
       defaultLabel: "−6 slight decrease",
     },
     increase: {
-      bg: "bg-[rgba(176,82,94,0.12)]",
+      bg: "bg-[var(--madder)]/12",
       text: "text-[var(--madder)]",
-      border: "border-[rgba(176,82,94,0.25)]",
+      border: "border-[var(--madder)]/25",
       defaultLabel: "+0.3 increase",
     },
     new: {
-      bg: "bg-[rgba(134,169,217,0.12)]",
+      bg: "bg-[var(--cornflower)]/12",
       text: "text-[var(--cornflower)]",
-      border: "border-[rgba(134,169,217,0.25)]",
+      border: "border-[var(--cornflower)]/25",
       defaultLabel: "new result",
     },
     stable: {

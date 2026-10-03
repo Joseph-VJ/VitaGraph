@@ -33,6 +33,10 @@ vitagraph/.git_old/
 Thumbs.db
 .DS_Store
 
-# Temporary test recordings
+# Temporary test recordings & debug
 design-board/motion/recordings/
 design-board/motion/recordings_ms07/
+.claude/
+*.png.tmp
+fix.png
+harness.png

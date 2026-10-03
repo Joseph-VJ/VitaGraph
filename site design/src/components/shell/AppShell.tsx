@@ -160,7 +160,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           data-nav-dir={navDir}
           className={`flex-1 overflow-y-auto p-4 sm:p-6 relative ${routeAnimClass}`}
         >
-          <div className="max-w-[1440px] mx-auto min-h-full flex flex-col">
+          {/* /ask is a fixed-height workspace that scrolls inside itself; every other route flows and scrolls the page. */}
+          <div className={`max-w-[1440px] mx-auto flex flex-col ${location.pathname === "/ask" ? "h-full" : "min-h-full"}`}>
             {children || <Outlet />}
           </div>
         </main>
