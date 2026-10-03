@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.routes import ai, demo, graph, jobs, questions, reports, timeline, tools, users
+from app.routes import ai, chat, demo, graph, jobs, questions, reports, timeline, tools, users
 
 
 @asynccontextmanager
@@ -49,6 +49,7 @@ app.add_middleware(
 app.include_router(users.router)
 app.include_router(reports.router)
 app.include_router(questions.router)
+app.include_router(chat.router)
 app.include_router(timeline.router)
 app.include_router(graph.router)
 app.include_router(ai.router)
