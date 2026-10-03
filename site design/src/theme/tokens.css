@@ -53,13 +53,13 @@
   --line-faint: color-mix(in srgb, #201e1d 18%, transparent);
   --line-control: #7d7979;           /* 3:1 on bg */
   --bone: var(--color-text);
-  --dim: var(--color-neutral-800);   /* must be >=4.5:1 */
+  --dim: var(--color-neutral-700);
   --faint: var(--color-neutral-700);
-  --accent: var(--accent-ink);       /* PRIMARY ACTION fill + link/active text: the text-safe red */
-  --accent-hover: var(--color-accent-800);
+  --accent: var(--color-accent);       /* primary action fill: the brand red, as in the reference. Red TEXT uses --accent-ink / --color-accent-700 */
+  --accent-hover: var(--color-accent-600);
   --on-accent: var(--color-bg);
   --focus: var(--color-accent);      /* focus ring uses the bright red */
-  --link: var(--accent-ink);
+  --link: var(--color-accent-700);
   --verdigris: #3B6A53;
   --ochre: #C58A43;
   --ochre-ink: #7F5416;
@@ -70,7 +70,7 @@
   --paper-ink: var(--color-text);
   --paper-fold: var(--color-neutral-300);
   --text-main: var(--color-text);
-  --text-muted: var(--color-neutral-800);
+  --text-muted: var(--color-neutral-700);
   --text-on-primary: var(--color-bg);
   --chrome: var(--color-surface);
   --chrome-line: var(--color-divider);

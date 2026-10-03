@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./theme/tokens.css";
+@import "./theme/modernist.css";
 
 @theme {
   --color-ink-900: var(--ink-900);

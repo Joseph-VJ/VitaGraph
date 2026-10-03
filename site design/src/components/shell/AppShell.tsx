@@ -3,7 +3,6 @@ import { useLocation, Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { StatusStrip } from "./StatusStrip";
-import { LED } from "../gallery/LED";
 import {
   runBoot,
   supportsViewTransitions,
@@ -27,6 +26,9 @@ const ROUTE_TITLES: Record<string, string> = {
   "/settings": "Settings and System Configuration",
   "/gallery": "Component Gallery",
 };
+
+// routes already converted to the exact reference layout; each page task adds its route here
+const OWN_LAYOUT = new Set<string>([]);
 
 interface AppShellProps {
   children?: React.ReactNode;
@@ -115,6 +117,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   }, []);
 
   // Dual-path route transitions (§M6.2, WS-1)
+  const ownLayout = OWN_LAYOUT.has(location.pathname);
   const vtActive = supportsViewTransitions() && motion.tier !== "T0";
   const isFallback = !vtActive && motion.tier !== "T0";
   const routeAnimClass = isFallback ? "m-route-enter" : "";
@@ -140,15 +143,17 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         {!backendOnline && (
           <div
             data-testid="backend-down-banner"
-            className="bg-madder-hatch text-[var(--bone)] px-4 py-2.5 type-label text-[13px] flex items-center justify-between gap-3 z-40 border-b-2 border-[var(--color-accent)] animate-banner-drop flex-shrink-0"
+            className="animate-banner-drop"
+            style={{
+              flex: "none", display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-2) var(--space-6)",
+              backgroundColor: "var(--color-accent-100)",
+              backgroundImage: "repeating-linear-gradient(45deg, color-mix(in srgb, var(--color-accent) 22%, transparent) 0 6px, transparent 6px 16px)",
+              borderBottom: "2px solid var(--color-accent)", fontSize: "0.875rem",
+            }}
           >
-            <div className="flex items-center gap-2.5">
-              <LED status="offline" size={8} />
-              <span>
-                <strong>Backend offline.</strong> No connection to {BASE_URL.replace(/^https?:\/\//, "")}. Answers, search and uploads are paused; the graph and timeline stay readable.
-              </span>
-            </div>
-            <span className="type-mono-sm text-[12px] font-medium hidden sm:inline">fail-closed</span>
+            <span style={{ background: "var(--color-accent-100)", padding: "2px 8px", color: "var(--color-accent-800)" }}>
+              <b>Backend offline.</b> Answers, search and uploads are paused. The graph, library and timeline stay readable.
+            </span>
           </div>
         )}
 
@@ -158,12 +163,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           id="main-content"
           key={location.pathname}
           data-nav-dir={navDir}
-          className={`flex-1 overflow-y-auto p-4 sm:p-8 relative ${routeAnimClass}`}
+          className={`flex-1 min-h-0 overflow-y-auto relative ${ownLayout ? "" : "p-4 sm:p-8"} ${routeAnimClass}`}
         >
-          {/* /ask is a fixed-height workspace that scrolls inside itself; every other route flows and scrolls the page. */}
-          <div className={`${location.pathname === "/ask" || location.pathname === "/graph" ? "max-w-[1440px]" : "max-w-[1280px]"} mx-auto flex flex-col ${location.pathname === "/ask" ? "h-full" : "min-h-full"}`}>
-            {children || <Outlet />}
-          </div>
+          {ownLayout ? (
+            children || <Outlet />
+          ) : (
+            <div className={`mx-auto flex flex-col ${location.pathname === "/ask" || location.pathname === "/graph" ? "max-w-[1440px]" : "max-w-[1280px]"} ${location.pathname === "/ask" ? "h-full" : "min-h-full"}`}>
+              {children || <Outlet />}
+            </div>
+          )}
         </main>
         <StatusStrip backendOnline={backendOnline} />
       </div>
