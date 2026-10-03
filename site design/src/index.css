@@ -14,6 +14,31 @@
   --color-dim: var(--dim);
   --color-faint: var(--faint);
 
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-surface: var(--color-surface);
+  --color-divider: var(--color-divider);
+
+  --color-neutral-100: var(--color-neutral-100);
+  --color-neutral-200: var(--color-neutral-200);
+  --color-neutral-300: var(--color-neutral-300);
+  --color-neutral-400: var(--color-neutral-400);
+  --color-neutral-500: var(--color-neutral-500);
+  --color-neutral-600: var(--color-neutral-600);
+  --color-neutral-700: var(--color-neutral-700);
+  --color-neutral-800: var(--color-neutral-800);
+  --color-neutral-900: var(--color-neutral-900);
+
+  --color-accent-100: var(--color-accent-100);
+  --color-accent-200: var(--color-accent-200);
+  --color-accent-300: var(--color-accent-300);
+  --color-accent-400: var(--color-accent-400);
+  --color-accent-500: var(--color-accent-500);
+  --color-accent-600: var(--color-accent-600);
+  --color-accent-700: var(--color-accent-700);
+  --color-accent-800: var(--color-accent-800);
+  --color-accent-900: var(--color-accent-900);
+
   --color-verdigris: var(--verdigris);
   --color-ochre: var(--ochre);
   --color-cornflower: var(--cornflower);
@@ -31,26 +56,42 @@
   --color-jade-slate: var(--jade-slate);
   --color-solar-bronze: var(--solar-bronze);
 
-  --font-serif: "Spectral", Georgia, serif;
-  --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "IBM Plex Mono", monospace;
+  --font-serif: var(--font-heading);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-data);
 
-  --radius-chip: 4px;
-  --radius-input: 6px;
-  --radius-card: 10px;
-  --radius-frame: 14px;
-  --radius-full: 999px;
+  --radius-chip: 0px;
+  --radius-input: 0px;
+  --radius-card: 0px;
+  --radius-frame: 0px;
+  --radius-full: 0px;
 }
 
-/* Base resets & typography defaults per DESIGN.md §3 & Titanium Lagoon */
+/* Base resets & typography defaults per Modernist system */
 body {
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
   background-color: var(--ink-900);
   color: var(--text-main);
   margin: 0;
   padding: 0;
-  line-height: 1.5;
   min-height: 100vh;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--color-accent-200);
+  color: var(--color-text);
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  opacity: .45;
 }
 
 /* Tabular numbers for all machine data, counts, timestamps */
@@ -62,27 +103,27 @@ body {
 
 /* Typography classes live in the components layer so explicit utilities (text-*, font-*) override them. */
 @layer components {
-/* Exact typography classes per DESIGN.md §3 */
+/* Exact typography classes per Modernist system */
 .type-display {
-  font-family: "Spectral", Georgia, serif;
-  font-size: 30px;
-  line-height: 36px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: var(--font-heading);
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
   color: var(--bone);
 }
 
 .type-title {
-  font-family: "Spectral", Georgia, serif;
+  font-family: var(--font-heading);
   font-size: 20px;
   line-height: 28px;
-  font-weight: 600;
-  letter-spacing: -0.005em;
+  font-weight: 800;
+  letter-spacing: -0.015em;
   color: var(--bone);
 }
 
 .type-screen-sub {
-  font-family: "Spectral", Georgia, serif;
+  font-family: var(--font-heading);
   font-size: 15px;
   line-height: 22px;
   font-weight: 400;
@@ -90,25 +131,25 @@ body {
 }
 
 .type-card-title {
-  font-family: "Spectral", Georgia, serif;
-  font-size: 18px;
-  line-height: 26px;
-  font-weight: 600;
-  letter-spacing: -0.005em;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
   color: var(--bone);
 }
 
 .type-reading {
-  font-family: "IBM Plex Sans", sans-serif;
-  font-size: 14.5px;
-  line-height: 24px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 22px;
   font-weight: 400;
   max-width: 68ch;
   color: var(--bone);
 }
 
 .type-body {
-  font-family: "IBM Plex Sans", sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
   line-height: 22px;
   font-weight: 400;
@@ -116,14 +157,14 @@ body {
 }
 
 .type-label {
-  font-family: "IBM Plex Sans", sans-serif;
+  font-family: var(--font-body);
   font-size: 13px;
   line-height: 18px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .type-meta {
-  font-family: "IBM Plex Sans", sans-serif;
+  font-family: var(--font-body);
   font-size: 12px;
   line-height: 16px;
   font-weight: 400;
@@ -132,7 +173,7 @@ body {
 }
 
 .type-quote {
-  font-family: "Spectral", Georgia, serif;
+  font-family: var(--font-heading);
   font-size: 14px;
   line-height: 22px;
   font-weight: 400;
@@ -140,7 +181,7 @@ body {
 }
 
 .type-mono {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-data);
   font-size: 12px;
   line-height: 16px;
   font-weight: 400;
@@ -149,7 +190,7 @@ body {
 }
 
 .type-mono-sm {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-data);
   font-size: 11.5px;
   line-height: 16px;
   font-weight: 400;
@@ -158,7 +199,7 @@ body {
 }
 
 .type-stat {
-  font-family: "IBM Plex Sans", sans-serif;
+  font-family: var(--font-body);
   font-size: 30px;
   line-height: 34px;
   font-weight: 600;
@@ -167,7 +208,7 @@ body {
 }
 
 .type-marginalia {
-  font-family: "Spectral", Georgia, serif;
+  font-family: var(--font-heading);
   font-size: 15px;
   line-height: 22px;
   font-weight: 500;
@@ -193,10 +234,10 @@ a:focus-visible,
   outline: none;
 }
 
-/* Texture overlays (§4.7) */
+/* Texture overlays */
 .grain-overlay {
+  display: none;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
 }
 
 .canvas-grid {
@@ -717,13 +758,13 @@ button:not(:disabled):active,
 
 /* Static 45° madder hatch (CSS repeating-linear-gradient, frozen colors, never animated per §M7.10) */
 .bg-madder-hatch {
-  background-color: #F2DDE0;
+  background-color: var(--color-accent-100);
   background-image: repeating-linear-gradient(
     45deg,
-    #F2DDE0,
-    #F2DDE0 10px,
-    #EBD0D4 10px,
-    #EBD0D4 20px
+    var(--color-accent-100),
+    var(--color-accent-100) 10px,
+    var(--color-accent-200) 10px,
+    var(--color-accent-200) 20px
   );
 }
 
@@ -923,7 +964,7 @@ button:not(:disabled):active,
 }
 ::-webkit-scrollbar-thumb {
   background: var(--line-strong);
-  border-radius: 9999px;
+  border-radius: 0;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--dim);
@@ -951,12 +992,12 @@ button:not(:disabled):active,
 .paper-md ul, .paper-md ol { margin: 0 0 10px; padding-left: 1.25rem; }
 .paper-md li { margin-bottom: 4px; }
 .paper-md strong { font-weight: 600; }
-.paper-md code { font-family: var(--font-mono); font-size: 12.5px; background: var(--ink-600); padding: 1px 5px; border-radius: 4px; }
+.paper-md code { font-family: var(--font-mono); font-size: 12.5px; background: var(--ink-600); padding: 1px 5px; border-radius: 0; }
 .paper-table-wrap {
   overflow-x: auto;
   margin: 6px 0 12px;
   border: 1px solid var(--line-strong);
-  border-radius: 8px;
+  border-radius: 0;
 }
 .paper-md table {
   width: 100%;
@@ -967,7 +1008,7 @@ button:not(:disabled):active,
 .paper-md th {
   background: var(--ink-700);
   color: var(--bone);
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 600;
   text-align: left;
@@ -978,7 +1019,7 @@ button:not(:disabled):active,
 
 
 .vg-caret {
-  width: 8px; height: 16px; border-radius: 2px;
+  width: 8px; height: 16px; border-radius: 0;
   background: var(--accent);
   animation: vg-caret 1s steps(2, start) infinite;
 }

@@ -1,69 +1,94 @@
-/* VitaGraph design tokens: neutral grey "instrument and paper".
-   Value encodes role: paper (lightest) is where people read, the grey canvas is the bench,
-   graphite is machine chrome (sidebar, status strip, side panel). Colour appears only where it
-   means something: link/citation (petrol), verified (jade), caution (bronze), refused (madder).
+/* VitaGraph Modernist design tokens.
+   Character: flat, architectural, Archivo only, ink on light ground, red accent, zero radii.
    Legacy token names are kept so every screen re-themes. */
 :root {
-  /* Surfaces */
-  --ink-900: #ECECEA; /* canvas: the bench */
-  --ink-800: #FBFBFA; /* paper: cards, answers, forms (lightest) */
-  --ink-700: #F2F2F0; /* well: inset areas, hover on paper */
-  --ink-600: #E3E3E0; /* well, stronger */
+  /* New canonical tokens */
+  --color-bg: #f3f2f2;
+  --color-surface: #eae9e9;
+  --color-text: #201e1d;
+  --color-accent: #ec3013;
+  --color-divider: color-mix(in srgb, #201e1d 40%, transparent);
+  --color-neutral-100: #f8f4f4;
+  --color-neutral-200: #eae7e7;
+  --color-neutral-300: #d7d3d3;
+  --color-neutral-400: #bab6b6;
+  --color-neutral-500: #9b9797;
+  --color-neutral-600: #7d7979;
+  --color-neutral-700: #605d5d;
+  --color-neutral-800: #444141;
+  --color-neutral-900: #2d2b2b;
+  --color-accent-100: #fff2ef;
+  --color-accent-200: #ffe0d9;
+  --color-accent-300: #ffc4b8;
+  --color-accent-400: #ff9783;
+  --color-accent-500: #ff563c;
+  --color-accent-600: #dd2b0f;
+  --color-accent-700: #ae1800;
+  --color-accent-800: #7c1405;
+  --color-accent-900: #4d170e;
+  --font-body: "Archivo", system-ui, sans-serif;
+  --font-heading: "Archivo", system-ui, sans-serif;
+  --font-heading-weight: 800;
+  --font-data: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --shadow-sm: 0 1px 2px color-mix(in srgb, #2d2b2b 14%, transparent);
+  --shadow-md: 0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
+  --shadow-lg: 0 12px 32px color-mix(in srgb, #2d2b2b 22%, transparent);
+  --accent-ink: #ae1800;
 
-  --line-strong: #D3D3D0; /* card and divider borders */
-  --line-faint: #E2E2DF;
-  --line-control: #858581; /* input and control borders, 3:1 on paper */
-
-  /* Text. Every pair below is >= 4.5:1 on canvas and on paper. */
-  --bone: #1F2328;
-  --dim: #4F545A;
-  --faint: #5C6167;
-
-  /* Primary action and focus. Graphite on light, near-white inside .chrome-dark. */
-  --accent: #1F2328;
-  --accent-hover: #33383E;
-  --on-accent: #F7F7F5;
-  --focus: #1F2328;
-  --link: #2E6270; /* links and citation chips */
-
-  /* State hues: text-safe values. Raw fills live in the named palette below. */
-  --verdigris: #3B6A53; /* verified / success */
-  --ochre: #C58A43; /* warning fill and border only */
-  --ochre-ink: #7F5416; /* warning text */
-  --cornflower: #2E6270;
-  --lilac: #5F5290;
-  --madder: #9E4552; /* refusal / failure */
-
-  --paper: #FBFBFA;
-  --paper-ink: #1F2328;
-  --paper-fold: #E3E3E0;
-
-  --text-main: #1F2328;
-  --text-muted: #4F545A;
-  --text-on-primary: #F7F7F5;
-
-  /* Chrome (sidebar, status strip, instrument pane): graphite. Re-skinned by .chrome-dark. */
-  --chrome: #1C1F22;
-  --chrome-line: #33383E;
-
-  /* Elevation: flat at rest. Shadow marks only what floats above the page. */
-  --shadow-3d: 0 1px 0 rgba(255,255,255,.7) inset, 0 1px 1px rgba(20,22,25,.06);
-  --shadow-3d-sm: 0 1px 0 rgba(255,255,255,.6) inset;
-  --shadow-float: 0 10px 28px rgba(20,22,25,.20), 0 2px 6px rgba(20,22,25,.12);
-
-  /* Legacy palette names, now neutral. --deep-petrol stays a data/colour-meaning hue. */
-  --titanium-mist: #ECECEA;
-  --alloy-surface: #E3E3E0;
-  --steel-fog: #D6D6D3;
-  --deep-petrol: #2E6270;
-  --jade-slate: #47775F;
+  /* Legacy names, remapped (these are the ones existing components read) */
+  --ink-900: var(--color-bg);        /* canvas */
+  --ink-800: var(--color-neutral-100);/* reading surface: cards, inputs */
+  --ink-700: var(--color-surface);   /* well */
+  --ink-600: var(--color-neutral-300);/* stronger well */
+  --line-strong: var(--color-divider);
+  --line-faint: color-mix(in srgb, #201e1d 18%, transparent);
+  --line-control: #7d7979;           /* 3:1 on bg */
+  --bone: var(--color-text);
+  --dim: var(--color-neutral-800);   /* must be >=4.5:1 */
+  --faint: var(--color-neutral-700);
+  --accent: var(--accent-ink);       /* PRIMARY ACTION fill + link/active text: the text-safe red */
+  --accent-hover: var(--color-accent-800);
+  --on-accent: var(--color-bg);
+  --focus: var(--color-accent);      /* focus ring uses the bright red */
+  --link: var(--accent-ink);
+  --verdigris: #3B6A53;
+  --ochre: #C58A43;
+  --ochre-ink: #7F5416;
+  --madder: var(--accent-ink);
+  --cornflower: var(--color-neutral-700);
+  --lilac: var(--color-neutral-700);
+  --paper: var(--color-neutral-100);
+  --paper-ink: var(--color-text);
+  --paper-fold: var(--color-neutral-300);
+  --text-main: var(--color-text);
+  --text-muted: var(--color-neutral-800);
+  --text-on-primary: var(--color-bg);
+  --chrome: var(--color-surface);
+  --chrome-line: var(--color-divider);
+  --titanium-mist: var(--color-bg);
+  --alloy-surface: var(--color-surface);
+  --steel-fog: var(--color-neutral-300);
+  --deep-petrol: var(--accent-ink);
+  --jade-slate: #3B6A53;
   --solar-bronze: #C58A43;
-
-  --r-4: 4px;
-  --r-6: 6px;
-  --r-10: 10px;
-  --r-14: 14px;
-  --r-pill: 999px;
+  --r-4: 0;
+  --r-6: 0;
+  --r-10: 0;
+  --r-14: 0;
+  --r-pill: 0;
+  --shadow-3d: none;
+  --shadow-3d-sm: none;
+  --shadow-float: var(--shadow-lg);
+  --shadow-floating: var(--shadow-lg);
 
   --t-fast: 120ms;
   --t-med: 240ms;
@@ -89,33 +114,6 @@
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-ink: cubic-bezier(0, 0, 0.2, 1);
-
-  --shadow-floating: 0 10px 28px rgba(20, 22, 25, 0.20), 0 2px 6px rgba(20, 22, 25, 0.12);
-}
-
-/* Paper theme (§4.2) */
-[data-theme="paper"] {
-  --ink-900: #F2F3F1;
-  --ink-800: #FAFAF8;
-  --ink-700: #F3F6F6;
-  --ink-600: #EAECE8;
-
-  --line-strong: #D8DBD6;
-  --line-faint: #E7E9E5;
-
-  --bone: #16181D;
-  --dim: #5A6470;
-  --faint: #8E98A5;
-
-  --verdigris: #4E8F7F;
-  --ochre: #B88528;
-  --cornflower: #5D82B5;
-  --lilac: #8068A8;
-  --madder: #B85664;
-
-  --paper: #F6F8F8;
-  --paper-ink: #16181D;
-  --paper-fold: #D8DBD6;
 }
 
 /* Reduced motion token collapse (§M2.1) */
@@ -133,35 +131,7 @@
   }
 }
 
-/* Graphite frame: re-skins every token inside it so shared components work unchanged
-   (same pattern as .graph-dark). Used on the sidebar, status strip and Ask side panel. */
+/* Graphite frame: Modernist has no dark chrome; inherits light tokens. */
 .chrome-dark {
-  color-scheme: dark;
-  --ink-900: #16181B;
-  --ink-800: #26292D; /* raised / active */
-  --ink-700: #2E3237; /* hover */
-  --ink-600: #383C42;
-  --line-strong: #3A3F45;
-  --line-faint: #2A2E32;
-  --line-control: #7A8088;
-  --bone: #EDEDEB;
-  --dim: #A7ACB2;
-  --faint: #A6ABB1;
-  --text-main: #EDEDEB;
-  --text-muted: #A7ACB2;
-  --accent: #EDEDEB;
-  --accent-hover: #FFFFFF;
-  --on-accent: #1F2328;
-  --text-on-primary: #1F2328;
-  --focus: #EDEDEB;
-  --link: #8CC4D1;
-  --verdigris: #86CDA4;
-  --madder: #F2959F;
-  --ochre-ink: #F0C88A;
-  --deep-petrol: #8CC4D1;
-  --steel-fog: #383C42;
-  --shadow-3d: 0 1px 0 rgba(255,255,255,.04) inset;
-  --shadow-3d-sm: 0 1px 0 rgba(255,255,255,.04) inset;
-  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
-  color: var(--bone);
+  color-scheme: light;
 }
