@@ -6,7 +6,7 @@ import asyncio
 
 import httpx
 from fastapi.testclient import TestClient
-from openai import RateLimitError
+from openai import BadRequestError, RateLimitError
 
 from app.core.config import settings
 from app.main import app
@@ -171,6 +171,33 @@ def test_model_fallback_moves_to_next_model_before_any_text(monkeypatch):
     kinds = [k for k, _ in events]
     assert "model_fallback" in kinds and kinds[-1] == "completed"
     assert len(used) == 2 and used[0] != used[1]
+
+
+def test_random_content_block_is_retried_on_the_same_model(monkeypatch):
+    _enable_ai(monkeypatch)
+    monkeypatch.setattr(asyncio, "sleep", lambda *_a, **_k: _noop())
+    user = _persona_with_report()
+    used: list[str] = []
+
+    async def fake_call(client_, messages, model, tools=None):
+        used.append(model)
+        if len(used) == 1:
+            req = httpx.Request("POST", "http://gateway/v1/chat/completions")
+            raise BadRequestError("content-blocked (request id: x)", response=httpx.Response(400, request=req), body=None)
+
+        async def s():
+            yield _Chunk(_Delta(content="Here you go."))
+        return s()
+
+    monkeypatch.setattr(llm_service, "_call_agentrouter_stream", fake_call)
+    events = _collect(user["id"], [{"role": "user", "content": "Explain my hemoglobin"}])
+    kinds = [k for k, _ in events]
+    assert kinds[-1] == "completed" and "model_fallback" not in kinds
+    assert used[0] == used[1], "second try uses the same model"
+
+
+async def _noop():
+    return None
 
 
 def test_last_turn_must_be_user():
