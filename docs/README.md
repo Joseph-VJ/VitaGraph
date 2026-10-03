@@ -13,3 +13,5 @@ Root (kept here because tools look for them there):
 `design/reference/`   Modernist redesign export and the build specs (input for the redesign)
 
 `gemini/`  RULES.md + TASK_xx files for the supervised Gemini redesign work
+
+`docs/SESSION_CONTEXT.md`  full handover for the Modernist redesign (what was done, how Gemini is directed, task history, pending work)
