@@ -244,3 +244,81 @@ cd "site design" && npm run dev -- --port 5173
 # stop both (PowerShell)
 Get-NetTCPConnection -LocalPort 5173,8000 -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
 ```
+
+---
+
+## 14. READY-TO-PASTE PROMPTS (the last prompt, exactly as it must be given to Gemini)
+
+### 14.1 THE NEXT PROMPT TO GIVE (Task 07 re-run). Give this first when the session resumes.
+Preconditions: branch `redesign/modernist-app`; `gemini/TASK_07_extractor_fix.md` is the corrected version (test 4 uses "Serum Glucose"; baseline 85 passed; final 89 passed). Commit `5ccfba8` contains it.
+
+```
+TASK 07 is being re-run with a corrected test. Your BLOCKED report was right: test 4 in the old task used a canonical test name (my mistake). Resolution 1 is chosen.
+Re-read gemini/TASK_07_extractor_fix.md completely (it was corrected: test 4 now uses "Serum Glucose", baseline is 85 passed, final is 89 passed) and do TASK 07 again from Step 0, exactly as written. Same rules as before: branch redesign/modernist-app only; edit only vitagraph/backend/app/graph/extractor.py and the NEW file vitagraph/backend/tests/test_extractor_flags.py; never edit an existing test; stage by explicit path; STOP and report BLOCKED if anything fails. Reply only with the report in the format at the end of gemini/RULES.md.
+```
+
+What a correct Gemini reply looks like: STATUS COMPLETE; baseline `85 passed`; Step 1 run shows tests 1 and 3 FAILED, tests 2 and 4 passed; after the edits `4 passed`; full suite `89 passed`; the real-data one-liner prints `{'Vitamin D': 'LOW', 'Total Cholesterol': 'NORMAL', 'HbA1c': 'NORMAL'}` and `{'Weight': (82.0, None)}`; `git show --stat HEAD` lists only `extractor.py` and `tests/test_extractor_flags.py`; branch `redesign/modernist-app`.
+
+### 14.2 The original Task 07 prompt (what was given before it came back BLOCKED), for reference
+```
+Continue the supervised VitaGraph redesign. TASK 06 was reviewed and accepted. This next task is a small BACKEND bug fix: wrong lab flags and a wrong reference range.
+
+Do this, in order:
+1. Read gemini/RULES.md completely (branch guard 3b applies).
+2. Read gemini/TASK_07_extractor_fix.md completely.
+3. Do TASK 07 exactly as written: Step 0, Step 1, Step 2, Step 3, then COMMIT. Do nothing else. Do not start TASK 08.
+
+Non-negotiable:
+- Work only on branch redesign/modernist-app (check with git branch --show-current first). Never touch main. Never git push, merge, rebase or reset.
+- This task is the ONLY exception to the backend rule. Edit exactly these two files: vitagraph/backend/app/graph/extractor.py (three small edits) and the NEW file vitagraph/backend/tests/test_extractor_flags.py. Nothing else. Never edit an existing test file to make it pass.
+- Write the tests first and show that tests 1 and 3 fail before the fix.
+- Stage files by explicit path only. Never git add . or -A.
+- Copy the code from the task exactly. If anything is unclear, or an existing test fails, STOP and report BLOCKED.
+
+When finished, reply with the report in the exact format at the end of gemini/RULES.md, with real pasted command output (baseline pytest line, the failing run, the passing run, the full suite last line, the real-data one-liner output, git show --stat HEAD, git branch --show-current, git log --oneline -3). Reply with nothing else.
+```
+
+### 14.3 The prompt template for every later task (fill in NN, the task file, the reference screenshot and line range)
+```
+Continue the supervised VitaGraph redesign. TASK <NN-1> was reviewed and accepted. Remember: the live app must look EXACTLY like the reference design (design/reference/app-v3-source.html and design/reference/screens/*.png), with REAL data from the backend.
+
+Do this, in order:
+1. Read gemini/RULES.md completely.
+2. Read gemini/TASK_<NN>_<name>.md completely. Open design/reference/screens/<screenshot>.png and look at it. Read design/reference/app-v3-source.html lines <a>-<b>.
+3. Do TASK <NN> exactly as written: Step 0, <parts>, then VERIFY, then COMMIT. Do nothing else. Do not start TASK <NN+1>.
+
+Non-negotiable:
+- Work only on branch redesign/modernist-app (check with git branch --show-current first). Never touch main. Never git push, merge, rebase or reset.
+- Edit ONLY the files listed in the task, plus screenshots in gemini/shots/. Do not edit anything under vitagraph/backend, design/, docs/, hooks, motion files or modernist.css (unless the task says so explicitly).
+- Stage files by explicit path only. Never git add . or -A.
+- Copy the code blocks from the task exactly. Do not restyle or "improve" them. No invented numbers.
+- If something is unclear or the build fails 3 times: STOP and report BLOCKED.
+
+When finished, reply with the report in the exact format at the end of gemini/RULES.md, with real pasted command output (build, the greps, the comparisons with the API output, the measurements, git show --stat HEAD, git branch --show-current, git log --oneline -3). Reply with nothing else.
+```
+
+### 14.4 The very first prompt that was ever given to Gemini (Task 01), for the record
+```
+You are the implementer on a supervised redesign of the VitaGraph frontend. A senior reviewer checks every task you finish.
+
+Do this, in order:
+1. Read gemini/RULES.md completely. Obey every rule in it. It overrides GEMINI.md, AGENTS.md and CLAUDE.md where they conflict.
+2. Read gemini/TASK_01_foundation.md completely.
+3. Do TASK 01 exactly as written, and nothing else. Do not start any other task.
+
+Non-negotiable:
+- Work only on the git branch redesign/modernist-app. Create it as TASK 01 step 1 says. Never touch main. Never git push, merge, rebase or reset.
+- Stage files by explicit path only. Never use git add . or git add -A.
+- Do not edit anything under vitagraph/backend, design/, or docs/.
+- Do not read the whole repo. Read only what the task names.
+- If you are stuck after 3 attempts, or the task is unclear, STOP and report BLOCKED. Do not guess or invent.
+
+When finished, reply with the report in the exact format at the end of gemini/RULES.md, with real pasted command output (git branch --show-current, npm run build, git log --oneline -3, git show --stat HEAD). Reply with nothing else.
+```
+(Task files written so far: `gemini/TASK_01_foundation.md`, `TASK_02_shell.md`, `TASK_03_exact_shell.md`, `TASK_04_upload.md`, `TASK_05_compare_insights.md`, `TASK_06_library.md`, `TASK_07_extractor_fix.md`. Next file to write after T07 is accepted: `TASK_08_settings.md`.)
+
+### 14.5 Final state of the session (what exists right now)
+- Last commits on `redesign/modernist-app`: `5ccfba8` (this context + corrected Task 07), `322a722` (Task 07 prompt), `4a4c336` (T06 by Gemini), `4ed843a` (T06 prompt), `8350cdc` (gateway retry), `ab6b2ce` (chat stream), `e52d6a1` (measurements + OCR).
+- Working tree: clean except the harmless `site design/tsconfig.tsbuildinfo` and untracked reference/prototype files.
+- No dev servers are running (both were stopped). Nothing is merged or pushed.
+- Gemini's Task 07 attempt left no changes (it restored the files before stopping).
