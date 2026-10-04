@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import threading
 from typing import Any
 
 from mcp.server.mcpserver import MCPServer
@@ -58,20 +59,32 @@ def _format_json(payload: dict[str, Any]) -> str:
         return text
 
     data = dict(payload)
+    data["truncated"] = True
+
+    # 1. Truncate lists if present
     for key, val in list(data.items()):
         if isinstance(val, list) and val:
             items = list(val)
-            while items and len(json.dumps(data, ensure_ascii=False)) > 11950:
+            while items and len(json.dumps(data, ensure_ascii=False)) > 11900:
                 items.pop()
                 data[key] = items
-                data["truncated"] = True
-            if data.get("truncated"):
-                break
 
     text = json.dumps(data, ensure_ascii=False)
-    if len(text) > 12000:
-        text = text[:11950] + '..."truncated": true}'
-    return text
+    if len(text) <= 12000:
+        return text
+
+    # 2. Truncate large string fields if still over 12000
+    for key, val in list(data.items()):
+        if isinstance(val, str) and len(val) > 500:
+            allowed_len = max(100, 11800 - len(json.dumps({k: v for k, v in data.items() if k != key}, ensure_ascii=False)))
+            data[key] = val[:allowed_len]
+
+    text = json.dumps(data, ensure_ascii=False)
+    if len(text) <= 12000:
+        return text
+
+    # 3. Last-resort fallback: always valid JSON
+    return json.dumps({"error": "Result too large", "truncated": True}, ensure_ascii=False)
 
 
 class _EvidenceRefs:
@@ -80,55 +93,58 @@ class _EvidenceRefs:
     def __init__(self) -> None:
         self.cards: list[dict[str, Any]] = []
         self._by_chunk: dict[str, dict[str, Any]] = {}
+        self._lock = threading.Lock()
 
     def add(self, hit: dict[str, Any]) -> dict[str, Any]:
-        cid = str(hit.get("chunk_id", ""))
-        if cid and cid in self._by_chunk:
-            return self._by_chunk[cid]
+        with self._lock:
+            cid = str(hit.get("chunk_id", ""))
+            if cid and cid in self._by_chunk:
+                return self._by_chunk[cid]
 
-        meta = hit.get("metadata") or {}
-        start = meta.get("char_start")
-        end = meta.get("char_end")
-        page = meta.get("page_number")
+            meta = hit.get("metadata") or {}
+            start = meta.get("char_start")
+            end = meta.get("char_end")
+            page = meta.get("page_number")
 
-        if start in (None, "") or end in (None, ""):
-            from app.core.database import get_db
+            if start in (None, "") or end in (None, ""):
+                from app.core.database import get_db
 
-            with get_db() as db:
-                row = db.execute(
-                    "SELECT char_start, char_end, page_number FROM report_chunks WHERE id = ?",
-                    (cid,),
-                ).fetchone()
-                if row:
-                    start = row["char_start"]
-                    end = row["char_end"]
-                    page = page or row["page_number"]
+                with get_db() as db:
+                    row = db.execute(
+                        "SELECT char_start, char_end, page_number FROM report_chunks WHERE id = ?",
+                        (cid,),
+                    ).fetchone()
+                    if row:
+                        start = row["char_start"]
+                        end = row["char_end"]
+                        page = page or row["page_number"]
 
-        int_start = int(start) if start not in (None, "") else None
-        int_end = int(end) if end not in (None, "") else None
+            int_start = int(start) if start not in (None, "") else None
+            int_end = int(end) if end not in (None, "") else None
 
-        card = {
-            "ref": len(self.cards) + 1,
-            "chunk_id": cid,
-            "report_id": meta.get("report_id") or hit.get("report_id", ""),
-            "report_filename": hit.get("report_filename") or meta.get("report_filename", ""),
-            "report_date": hit.get("report_date") or meta.get("report_date"),
-            "page_number": int(page) if page not in (None, "") else 1,
-            "snippet": (hit.get("document") or "")[:600],
-            "score": round(float(hit.get("score", 0.0)), 3),
-            "char_start": int_start,
-            "char_end": int_end,
-        }
-        self.cards.append(card)
-        if cid:
-            self._by_chunk[cid] = card
-        return card
+            card = {
+                "ref": len(self.cards) + 1,
+                "chunk_id": cid,
+                "report_id": meta.get("report_id") or hit.get("report_id", ""),
+                "report_filename": hit.get("report_filename") or meta.get("report_filename", ""),
+                "report_date": hit.get("report_date") or meta.get("report_date"),
+                "page_number": int(page) if page not in (None, "") else 1,
+                "snippet": (hit.get("document") or "")[:600],
+                "score": round(float(hit.get("score", 0.0)), 3),
+                "char_start": int_start,
+                "char_end": int_end,
+            }
+            self.cards.append(card)
+            if cid:
+                self._by_chunk[cid] = card
+            return card
 
 
 def create_server(persona: str) -> MCPServer:
     """Build and configure the VitaGraph MCP tool server for the given persona."""
     server = MCPServer("vitagraph")
     evidence_refs = _EvidenceRefs()
+    search_lock = threading.Lock()
 
     @server.tool(
         name="list_reports",
@@ -189,12 +205,13 @@ def create_server(persona: str) -> MCPServer:
         try:
             from app.rag import retriever
 
-            hits = retriever.retrieve(
-                user_id=persona,
-                question=query.strip(),
-                top_k=effective_top_k,
-                report_id=filter_report_id or None,
-            )
+            with search_lock:
+                hits = retriever.retrieve(
+                    user_id=persona,
+                    question=query.strip(),
+                    top_k=effective_top_k,
+                    report_id=filter_report_id or None,
+                )
             cards = [evidence_refs.add(hit) for hit in hits]
             return _format_json({"evidence": cards})
         except Exception as exc:
@@ -214,7 +231,7 @@ def create_server(persona: str) -> MCPServer:
 
         Returns structured test names, numeric values, units, reference ranges, and flags
         found in the specified report. Use this to inspect comprehensive laboratory panels
-        after identifying a report ID with list_reports."
+        after identifying a report ID with list_reports.
         """
         clean_id = report_id.strip() if report_id else ""
         if not clean_id:

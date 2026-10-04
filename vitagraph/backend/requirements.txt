@@ -15,6 +15,9 @@ openai>=1.50
 tenacity>=8.0
 # MCP server for the AI Agent (stdio); exact version proven in the harness spikes
 mcp==2.3.0
+# DeepSeek Harness SDK and its native runtime for the AI Agent (pre-release, exact versions proven in the spikes)
+deepseek-harness-sdk==0.1.5rc1
+deepseek-harness-runtime-bin==0.1.5rc1
 
 # NOTE on Haystack: the project plan freezes Haystack as the RAG orchestrator.
 # It is installed optionally (see README). Retrieval is isolated behind

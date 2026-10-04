@@ -269,3 +269,70 @@ def test_the_protocol_survives_the_embedding_model_load(personas):
     res = call_mcp_tool(personas["A"]["user_id"], "search_reports", {"query": "Hemoglobin"})
     assert "evidence" in res
     assert len(res["evidence"]) > 0
+
+
+def test_reference_numbers_stay_unique_under_parallel_searches(personas):
+    """Verify ref numbers remain unique and 1..N continuous under concurrent searches."""
+    async def _action(session: ClientSession):
+        task1 = session.call_tool("search_reports", {"query": "Hemoglobin", "top_k": 8})
+        task2 = session.call_tool("search_reports", {"query": "Glucose", "top_k": 8})
+        res1, res2 = await asyncio.gather(task1, task2)
+
+        cards1 = json.loads(res1.content[0].text).get("evidence", [])
+        cards2 = json.loads(res2.content[0].text).get("evidence", [])
+        all_cards = cards1 + cards2
+        assert len(all_cards) > 0
+
+        # All returned ref values for DIFFERENT chunk_ids are different
+        # Same chunk_id always has the same ref
+        chunk_to_refs: dict[str, int] = {}
+        ref_to_chunks: dict[int, str] = {}
+        for card in all_cards:
+            cid = card["chunk_id"]
+            ref = card["ref"]
+            if cid in chunk_to_refs:
+                assert chunk_to_refs[cid] == ref, f"Chunk {cid} has multiple refs: {chunk_to_refs[cid]} and {ref}"
+            else:
+                chunk_to_refs[cid] = ref
+
+            if ref in ref_to_chunks:
+                assert ref_to_chunks[ref] == cid, f"Ref {ref} assigned to multiple chunks: {ref_to_chunks[ref]} and {cid}"
+            else:
+                ref_to_chunks[ref] = cid
+
+        # Union of refs is 1..N without gaps
+        unique_refs = sorted(set(card["ref"] for card in all_cards))
+        assert unique_refs == list(range(1, len(unique_refs) + 1))
+
+    asyncio.run(_run_mcp_session(personas["A"]["user_id"], _action))
+
+
+def test_format_json_always_returns_valid_json_within_the_limit():
+    """Verify _format_json always produces valid JSON <= 12000 chars, with truncated=true when oversized."""
+    from app.agent.mcp_server import _format_json
+
+    # (a) A payload with three long lists
+    long_list_payload = {
+        "list1": [{"item": i, "data": "x" * 200} for i in range(50)],
+        "list2": [{"item": i, "data": "y" * 200} for i in range(50)],
+        "list3": [{"item": i, "data": "z" * 200} for i in range(50)],
+    }
+    res_a = _format_json(long_list_payload)
+    parsed_a = json.loads(res_a)
+    assert len(res_a) <= 12000
+    assert parsed_a.get("truncated") is True
+
+    # (b) A payload that is one string of 50,000 characters
+    huge_str_payload = {"huge": "a" * 50000}
+    res_b = _format_json(huge_str_payload)
+    parsed_b = json.loads(res_b)
+    assert len(res_b) <= 12000
+    assert parsed_b.get("truncated") is True
+
+    # (c) A small payload
+    small_payload = {"ok": True, "items": [1, 2, 3]}
+    res_c = _format_json(small_payload)
+    parsed_c = json.loads(res_c)
+    assert len(res_c) <= 12000
+    assert parsed_c == small_payload
+    assert "truncated" not in parsed_c
