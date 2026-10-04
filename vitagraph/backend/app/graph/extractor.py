@@ -133,7 +133,7 @@ _INLINE_MEASUREMENT_PATTERN = re.compile(
 
 # Generic measurement pattern for table rows and structured lines (US-16)
 _GENERIC_ROW_PATTERN = re.compile(
-    r"^\s*[-*•]?\s*([A-Za-z][A-Za-z0-9\s,\-_()]{2,32}?)\s*[:=\t\s]\s*([0-9]+(?:\.[0-9]+)?)\s*([a-zA-Z/%μuIU]+(?:/[a-zA-Z]+)?)\b(?:\s*([0-9.<>\s\-–—]+(?:\s*[a-zA-Z/%μuIU]+)?))?(?:\s*[-–—]?\s*(LOW|HIGH|NORMAL|ABNORMAL|CRITICAL|low|high|normal))?",
+    r"^\s*[-*•]?\s*([A-Za-z][A-Za-z0-9 \t,\-_()]{2,32}?)\s*[:=\t\s]\s*([0-9]+(?:\.[0-9]+)?)[ \t]*([a-zA-Z/%μuIU]+(?:/[a-zA-Z]+)?)\b(?:[ \t]*([0-9.<>\-–— \t]+(?:[ \t]*[a-zA-Z/%μuIU]+)?))?(?:[ \t]*[-–—]?[ \t]*(LOW|HIGH|NORMAL|ABNORMAL|CRITICAL|low|high|normal))?",
     re.MULTILINE | re.IGNORECASE,
 )
 
@@ -256,6 +256,8 @@ def extract_entities_from_chunk(
 
         # Filter out common non-test header words
         clean_key = re.sub(r"[^a-z0-9]", "", low_name)
+        if clean_key in {"result", "results", "value", "values", "range"}:
+            continue
         if any(bad in low_name for bad in ("page", "date", "report", "patient", "history", "doctor", "evidence", "provenance", "complaint", "note", "id", "scan", "test data", "after", "repeat")):
             continue
         if any(re.sub(r"[^a-z0-9]", "", canon) == clean_key or re.sub(r"[^a-z0-9]", "", canon) in clean_key for canon in extracted_test_names):
