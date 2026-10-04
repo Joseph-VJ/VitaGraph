@@ -35,6 +35,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1]:
         out_path = sys.argv[1]
         env_snapshot = {
+            "pid": os.getpid(),
             "persona": os.environ.get("VITAGRAPH_USER_ID"),
             "canary": os.environ.get("AG2_CANARY"),
             "deepseek_key": os.environ.get("DEEPSEEK_API_KEY"),

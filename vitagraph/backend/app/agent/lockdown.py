@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
-import os
 import uuid
 from typing import Any
 
-from app.agent.profile import TOOL_NAMES, PersonaProfile, child_environment, profile_for
+from app.agent.profile import TOOL_NAMES, PersonaProfile, profile_for
 
 _lockdown_cache: dict[str, list[str]] = {}
 
@@ -33,8 +33,13 @@ def tool_names_from_events(events: list[dict[str, Any]]) -> list[str]:
         data = event.get("data") if isinstance(event.get("data"), dict) else event
         header = data.get("header") if isinstance(data.get("header"), dict) else {}
 
-        tools = header.get("tools") or data.get("tools") or event.get("tools")
-        if tools and (ev_type == "request/header" or "header" in data or "header" in event):
+        if ev_type == "request/header" or "header" in data or "header" in event:
+            tools = header.get("tools") or data.get("tools") or event.get("tools")
+            if not tools:
+                raise LockdownViolation(
+                    "The request/header event offered NO tools; the tool server did not start."
+                )
+
             names = []
             for t in tools:
                 if isinstance(t, dict):
@@ -45,22 +50,18 @@ def tool_names_from_events(events: list[dict[str, Any]]) -> list[str]:
                         names.append(t["name"])
             if names:
                 return sorted(names)
+
     raise LockdownViolation("No request/header event found with tools in session events.")
 
 
-def verify_lockdown(
+async def verify_lockdown_async(
     persona_id: str,
     *,
     profile: PersonaProfile | None = None,
-    harness_factory: Any = None,
+    runtime_factory: Any = None,
     api_key: str = "probe-token",
 ) -> list[str]:
-    """Verify that the harness runtime for the persona is strictly locked down.
-
-    Starts the harness against the dead probe URL http://127.0.0.1:9/v1, validates
-    that only the four VitaGraph MCP tools are offered in request/header, and closes
-    the harness runtime.
-    """
+    """Verify that the harness runtime for the persona is strictly locked down (async)."""
     prof = profile or profile_for(persona_id, fast_fail=True)
 
     hasher = hashlib.sha256()
@@ -72,41 +73,50 @@ def verify_lockdown(
     if profile is None and patch_hash in _lockdown_cache:
         return list(_lockdown_cache[patch_hash])
 
-    child_env = child_environment()
-    orig_env = dict(os.environ)
+    if runtime_factory is not None:
+        rt = runtime_factory(prof)
+    else:
+        from app.agent.runtime import AgentRuntime
 
+        rt = AgentRuntime(
+            prof,
+            base_url="http://127.0.0.1:9/v1",
+            api_key=api_key,
+        )
+
+    collected_events: list[dict[str, Any]] = []
     try:
-        os.environ.clear()
-        os.environ.update(child_env)
-        os.environ["DSH_HOME"] = str(prof.home.resolve())
-
-        if harness_factory is not None:
-            harness = harness_factory(prof)
-        else:
-            from deepseek_harness import DeepSeekHarness
-
-            harness = DeepSeekHarness(
-                profile="sdk-minimal",
-                patches=tuple(str(p.resolve()) for p in prof.patch_files),
-                dsh_home=str(prof.home.resolve()),
-                cwd=str(prof.workspace.resolve()),
-                api_key=api_key,
-                base_url="http://127.0.0.1:9/v1",
-                env=child_env,
-            )
-        harness.start()
-    finally:
-        os.environ.clear()
-        os.environ.update(orig_env)
-
-    try:
+        rt.start()
         session_id = f"probe-{uuid.uuid4().hex[:8]}"
-        res = harness.run("hello", session_id=session_id)
-        events = getattr(res, "events", []) or []
-        tool_names = tool_names_from_events(events)
+        async for msg in rt.stream_turn(session_id, "hello"):
+            if msg.get("type") == "notification":
+                payload = msg.get("payload") or {}
+                ev = payload.get("event")
+                if isinstance(ev, dict):
+                    collected_events.append(ev)
+
+        tool_names = tool_names_from_events(collected_events)
         assert_locked_down(tool_names)
         if profile is None:
             _lockdown_cache[patch_hash] = list(tool_names)
         return tool_names
     finally:
-        harness.close()
+        rt.close()
+
+
+def verify_lockdown(
+    persona_id: str,
+    *,
+    profile: PersonaProfile | None = None,
+    runtime_factory: Any = None,
+    api_key: str = "probe-token",
+) -> list[str]:
+    """Synchronous entry point for verify_lockdown_async."""
+    return asyncio.run(
+        verify_lockdown_async(
+            persona_id,
+            profile=profile,
+            runtime_factory=runtime_factory,
+            api_key=api_key,
+        )
+    )

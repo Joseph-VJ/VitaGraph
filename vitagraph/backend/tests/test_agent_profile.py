@@ -184,9 +184,28 @@ def test_lockdown_check_accepts_exactly_the_four_tools_and_refuses_anything_else
 
 # Note: Takes about 10-15s as it starts a real dsh runtime with probe against dead URL
 def test_a_real_runtime_is_locked_down_and_the_persona_cannot_be_overridden(tmp_path):
-    """Verify real dsh runtime offers exactly the 4 tools, isolates persona, and leaks no keys."""
+    """Verify real dsh runtime offers exactly the 4 tools, isolates persona, leaves no orphans, and parent env never mutates."""
+    import ctypes
+    import threading
+    import time
     from app.agent.lockdown import verify_lockdown
     from app.agent.profile import profile_for
+
+    def _is_pid_alive(pid: int | None) -> bool:
+        if pid is None or pid <= 0:
+            return False
+        try:
+            kernel32 = ctypes.windll.kernel32
+            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+            if not handle:
+                return False
+            exit_code = ctypes.c_ulong()
+            kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
+            kernel32.CloseHandle(handle)
+            return exit_code.value == 259  # STILL_ACTIVE
+        except Exception:
+            return False
 
     echo_server_path = str(BACKEND_DIR / "tests" / "fixtures" / "echo_mcp_server.py")
     out_json = str(tmp_path / "echo_env.json")
@@ -198,7 +217,29 @@ def test_a_real_runtime_is_locked_down_and_the_persona_cannot_be_overridden(tmp_
         fast_fail=True,
     )
 
+    worker_pids = []
+    def runtime_factory(p):
+        from app.agent.runtime import AgentRuntime
+        rt = AgentRuntime(p, base_url="http://127.0.0.1:9/v1", api_key="AG2-CANARY-KEY-123456")
+        orig_start = rt.start
+        def _start_hook():
+            orig_start()
+            if rt.pid:
+                worker_pids.append(rt.pid)
+        rt.start = _start_hook
+        return rt
+
     orig_env = dict(os.environ)
+    stop_snapping = threading.Event()
+    snapshots: list[dict[str, str]] = []
+
+    def _snapshot_loop():
+        while not stop_snapping.is_set():
+            snapshots.append(dict(os.environ))
+            time.sleep(0.01)
+
+    snap_thread = threading.Thread(target=_snapshot_loop, daemon=True)
+
     try:
         os.environ["VITAGRAPH_USER_ID"] = "ambient_user"
         os.environ["AG2_CANARY"] = "leak"
@@ -206,7 +247,12 @@ def test_a_real_runtime_is_locked_down_and_the_persona_cannot_be_overridden(tmp_
         os.environ["AGENTROUTER_API_KEY"] = "sk-canary2"
 
         canary_key = "AG2-CANARY-KEY-123456"
-        tool_names = verify_lockdown("usr_test_ag2", profile=prof, api_key=canary_key)
+        snap_thread.start()
+
+        tool_names = verify_lockdown("usr_test_ag2", profile=prof, runtime_factory=runtime_factory, api_key=canary_key)
+
+        stop_snapping.set()
+        snap_thread.join(timeout=1.0)
 
         expected_tools = [
             "mcp__vitagraph__get_measurements",
@@ -240,6 +286,29 @@ def test_a_real_runtime_is_locked_down_and_the_persona_cannot_be_overridden(tmp_
                 content = fpath.read_text(encoding="utf-8", errors="ignore")
                 assert canary_key not in content, f"Canary key found in patch file: {fpath}"
 
+        # Parent environment snapshot check: never mutated
+        assert len(snapshots) > 0
+        first_snap = snapshots[0]
+        for s in snapshots:
+            assert s == first_snap, "Parent environment mutated during worker lifecycle!"
+
+        assert dict(os.environ) == orig_env | {
+            "VITAGRAPH_USER_ID": "ambient_user",
+            "AG2_CANARY": "leak",
+            "DEEPSEEK_API_KEY": "sk-canary",
+            "AGENTROUTER_API_KEY": "sk-canary2",
+        }
+
+        # Orphan check: worker and echo mcp server processes are dead
+        time.sleep(1.0)
+        for wpid in worker_pids:
+            assert not _is_pid_alive(wpid), f"Worker pid {wpid} still alive after verify_lockdown"
+
+        echo_pid = dumped.get("pid")
+        if echo_pid:
+            assert not _is_pid_alive(echo_pid), f"Echo MCP server pid {echo_pid} still alive after verify_lockdown"
+
     finally:
+        stop_snapping.set()
         os.environ.clear()
         os.environ.update(orig_env)
