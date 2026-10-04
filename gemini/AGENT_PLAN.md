@@ -25,10 +25,19 @@ Decided by the user on 2026-10-04: the Ask page becomes **"AI Agent"** and runs 
 | Stage | Owner of the work | What |
 |---|---|---|
 | **AG0** | Gemini | **Spike and proof, no repo code.** Install the SDK in a temp folder, prove the lock-down patch, list the tools the model is offered (before/after lock), prove an MCP tool is advertised and persona-bound, capture the real event vocabulary, measure start-up and concurrency, record API status. Deliverable: a factual report. Task file: `TASK_AG0_harness_spike.md`. |
+| **AG0b** | Gemini | **Follow-up spike, no repo code.** Closes the five gaps found in the AG0 review: persona delivery through the harness config (and no ambient leak), live event streaming, per-turn cancel, cost of one runtime per persona (memory, start-up), and configuration facts (supported MCP plugin form, system prompt patch, fast-fail retry patch, session resume and delete). Task file: `TASK_AG0b_harness_followup.md`. |
 | AG1 | Gemini | Backend runner: `app/agent/` module (lock-down profile generator, harness runner, event mapper), `POST /api/agent/stream` SSE, hard gates around it, persistence of the turn, dependency pinned, tests with a fake harness. |
 | AG2 | Gemini | VitaGraph MCP tool server (stdio, persona from env): `search_reports` (evidence cards with ref numbers, as today), `graph_lookup`, `get_measurements`, `compare_reports`; tests; proof that a tool cannot read another persona. |
 | AG3 | Gemini | Frontend: rename Ask to **AI Agent** (route `/agent`, `/ask` redirects and keeps its query string; sidebar label, header title), delete the old Ask components, consume `/api/agent/stream`, harness-style UI: trajectory timeline (turns, steps, tool calls), live stats strip (turns, steps, tool calls, elapsed), tool-call cards with arguments and results; keep citation chips and the highlighted passage slip from Task 09. |
 | AG4 | Gemini | Sessions: list, resume and delete the persona's agent sessions, session titles from the harness. |
 | AG5 | Gemini + Claude review | Safety test suite (no shell tool offered, persona isolation, boundary refusal before the model, diagnostic phrase after), docs update (`CLAUDE.md`, `AGENTS.md`, `docs/`), final QA with the paid API when the user has switched. |
+
+## Design consequences found by the AG0 review (binding for AG1 and AG2)
+- **One runtime per persona.** The persona id reaches the VitaGraph MCP server through that server's process environment, which is fixed when a runtime starts. A single shared "warm" runtime can therefore serve only one persona. AG1 must use a small keyed pool: one runtime (own `dsh_home`, own patch with `env: VITAGRAPH_USER_ID`) per persona, started lazily, closed when idle or when the persona is deleted. Whether that is affordable is measured in AG0b (memory and start-up numbers).
+- **Lock-down is proven by `request/header` -> `data.header.tools`.** Every harness start in the backend must be followed by a check of that field (only the VitaGraph MCP tools allowed); if anything else is offered the run is refused. Test this in AG1/AG5.
+- **Never `close()` a shared runtime to stop one turn** (it kills the runtime). Use the per-turn cancel found in AG0b, or stop only that persona's runtime.
+- **Patches replace a row's WHOLE config.** The lock patch must restate `name` and `workspaceRoot` (literal absolute path of an empty workspace folder) for the `sandbox-policy` row. Adding a row needs `- insert:`.
+- **Failures take about 15 s** with the default retry policy; AG0b finds the fast-fail patch for tests, and the UI must show the failure state honestly while waiting.
+- The system prompt must be replaced by a patch (the default is "You are a helpful software engineer assistant.") with a health-report assistant prompt that also tells the model to cite evidence numbers.
 
 Task 09b (citations, passage slip) is not wasted: AG3 reuses its components. If Gemini has not yet finished 09b, finish it first.
