@@ -143,7 +143,7 @@ export const SettingsPage: React.FC = () => {
     privacyStatus = "No AI key is set on the backend, so answers use quoted report text only.";
   }
 
-  const unavailable = "Not available while the backend is unreachable.";
+  const unavailable = loadFailed ? "Not available while the backend is unreachable." : "Loading";
   const chunkNote = health
     ? `About ${health.chunk_target_chars} characters per chunk, never more than ${health.chunk_max_chars}.`
     : unavailable;
