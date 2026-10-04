@@ -1018,3 +1018,13 @@ button:not(:disabled):active,
     min-width: 44px;
   }
 }
+
+/* Settings > Reduce motion: switches every CSS animation and transition off. Set on <html> by src/lib/preferences.ts. */
+:root[data-reduce-motion="true"] *,
+:root[data-reduce-motion="true"] *::before,
+:root[data-reduce-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

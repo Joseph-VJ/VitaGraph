@@ -21,6 +21,14 @@ export interface AiConfigUpdatePayload {
   allow_api: boolean;
 }
 
+export interface HealthInfo {
+  status: string;
+  allow_api: boolean;
+  embedding_model: string;
+  chunk_target_chars: number;
+  chunk_max_chars: number;
+}
+
 export interface BiomarkerItem {
   test_name: string;
   value: number;
@@ -46,6 +54,8 @@ export const aiApi = {
   getConfig: () => api.get<AiConfig>("/api/ai/config"),
   setConfig: (payload: AiConfigUpdatePayload) =>
     api.post<AiConfig>("/api/ai/config", payload),
+  setPrivacy: (allowApi: boolean) => api.post<AiConfig>("/api/ai/privacy", { allow_api: allowApi }),
+  getHealth: () => api.get<HealthInfo>("/api/health"),
   analyzeReport: (reportId: string, userId: string) =>
     api.post<ReportAnalysisResponse>("/api/ai/analyze-report", {
       report_id: reportId,

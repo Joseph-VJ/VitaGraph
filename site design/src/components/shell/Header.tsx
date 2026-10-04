@@ -80,6 +80,16 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
     };
   }, [backendOnline]);
 
+  // Settings announces a privacy change so the "AI explanations" tag updates at once
+  useEffect(() => {
+    const onConfig = (event: Event) => {
+      const detail = (event as CustomEvent<{ allow_api?: boolean }>).detail;
+      if (typeof detail?.allow_api === "boolean") setAllowApi(detail.allow_api);
+    };
+    window.addEventListener("vitagraph:ai-config", onConfig);
+    return () => window.removeEventListener("vitagraph:ai-config", onConfig);
+  }, []);
+
   const getHeaderConfig = (): { title: string; sub: string } => {
     switch (path) {
       case "/upload": return { title: "Upload & Ingest", sub: "Add a report and watch it become searchable." };

@@ -1,452 +1,203 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { Badge, LED } from "../components/gallery";
-import {
-  governor,
-  useMotionGovernor,
-  setAudioEnabled,
-  playDetent,
-  isAudioEnabled,
-  transitionNavigate,
-  isReducedMotion,
-  Sequence,
-} from "../motion";
-import { DetentPress } from "../motion/fx/DetentPress";
-import { WashSweep } from "../motion/fx/WashSweep";
-import { Odometer } from "../motion/fx/Odometer";
+import React, { useEffect, useState } from "react";
+import { aiApi, type AiConfig, type HealthInfo } from "../api/ai";
+import { useActiveUser } from "../context/UserContext";
+import { setPreference, usePreferences } from "../lib/preferences";
+
+const rowBox: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "var(--space-3) var(--space-6)",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "var(--space-4) 0",
+  borderBottom: "1px solid var(--color-divider)",
+};
+const rowTitle: React.CSSProperties = { fontSize: "1.0625rem", fontWeight: 800 };
+const rowDesc: React.CSSProperties = { fontSize: "0.875rem", color: "var(--color-neutral-700)" };
+
+const Head: React.FC<{ title: string }> = ({ title }) => (
+  <div
+    style={{
+      padding: "var(--space-6) 0 var(--space-2)",
+      borderBottom: "2px solid var(--color-text)",
+      fontSize: "0.6875rem",
+      fontWeight: 800,
+      letterSpacing: "0.1em",
+      textTransform: "uppercase",
+      color: "var(--color-accent-700)",
+    }}
+  >
+    {title}
+  </div>
+);
+
+interface OptionRowProps {
+  testId: string;
+  title: string;
+  desc: string;
+  current: boolean | null;
+  disabled: boolean;
+  status?: string;
+  onPick: (value: boolean) => void;
+}
+
+const OptionRow: React.FC<OptionRowProps> = ({ testId, title, desc, current, disabled, status, onPick }) => (
+  <div style={rowBox} data-testid={testId}>
+    <div style={{ flex: "1 1 300px", minWidth: 0 }}>
+      <div style={rowTitle}>{title}</div>
+      <div style={rowDesc}>{desc}</div>
+      {status ? (
+        <div role="status" style={{ ...rowDesc, color: "var(--color-accent-700)", fontWeight: 600 }}>
+          {status}
+        </div>
+      ) : null}
+    </div>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+      {[
+        { value: true, label: "On" },
+        { value: false, label: "Off" },
+      ].map((option) => (
+        <button
+          key={option.label}
+          type="button"
+          className={current === option.value ? "btn btn-primary" : "btn btn-secondary"}
+          aria-pressed={current === option.value}
+          disabled={disabled}
+          onClick={() => onPick(option.value)}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
+const NoteRow: React.FC<{ testId: string; title: string; desc: string }> = ({ testId, title, desc }) => (
+  <div
+    data-testid={testId}
+    style={{
+      display: "flex",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+      gap: "var(--space-6)",
+      padding: "var(--space-4) 0",
+      borderBottom: "1px solid var(--color-divider)",
+    }}
+  >
+    <div style={rowTitle}>{title}</div>
+    <div style={{ fontSize: "0.9375rem", color: "var(--color-neutral-700)", textAlign: "right" }}>{desc}</div>
+  </div>
+);
 
 export const SettingsPage: React.FC = () => {
-  const navigate = useNavigate();
-  const motion = useMotionGovernor();
-  const [allowApi, setAllowApi] = useState(false);
-  const [diagnosticGuard, setDiagnosticGuard] = useState(true);
-  const [localOnly, setLocalOnly] = useState(true);
-  const [activeTheme, setActiveTheme] = useState<"instrument" | "paper">("instrument");
-  const [soundEnabled, setSoundEnabled] = useState(() => isAudioEnabled());
-
-  // Tier-switch confirmation (§M5.5)
-  const prevTierRef = useRef(motion.tier);
-  const [tierWash, setTierWash] = useState(false);
-  const [tierPopped, setTierPopped] = useState(false);
+  const { user } = useActiveUser();
+  const prefs = usePreferences();
+  const [config, setConfig] = useState<AiConfig | null>(null);
+  const [health, setHealth] = useState<HealthInfo | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (prevTierRef.current !== motion.tier) {
-      prevTierRef.current = motion.tier;
-      const isT0 = motion.tier === "T0" || isReducedMotion();
-      if (!isT0) {
-        setTierWash(true);
-        setTierPopped(true);
-        new Sequence()
-          .wait(480)
-          .addAction(() => {
-            setTierWash(false);
-            setTierPopped(false);
-          })
-          .play();
-      }
-    }
-  }, [motion.tier]);
+    let alive = true;
+    Promise.all([aiApi.getConfig(), aiApi.getHealth()])
+      .then(([loadedConfig, loadedHealth]) => {
+        if (!alive) return;
+        setConfig(loadedConfig);
+        setHealth(loadedHealth);
+        setLoadFailed(false);
+      })
+      .catch(() => {
+        if (alive) setLoadFailed(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
-  const isT0 = motion.tier === "T0" || isReducedMotion();
+  const changePrivacy = async (allow: boolean) => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const next = await aiApi.setPrivacy(allow);
+      setConfig(next);
+      try {
+        sessionStorage.setItem("vg_allow_api", String(next.allow_api));
+      } catch {
+        /* storage unavailable: the header reads the backend again on its next load */
+      }
+      window.dispatchEvent(new CustomEvent("vitagraph:ai-config", { detail: { allow_api: next.allow_api } }));
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "The change could not be saved.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  let privacyStatus: string | undefined;
+  if (loadFailed) {
+    privacyStatus = "The backend is not reachable, so this setting cannot be read or changed.";
+  } else if (saveError) {
+    privacyStatus = saveError;
+  } else if (config && config.allow_api && !config.has_api_key) {
+    privacyStatus = "No AI key is set on the backend, so answers use quoted report text only.";
+  }
+
+  const unavailable = "Not available while the backend is unreachable.";
+  const chunkNote = health
+    ? `About ${health.chunk_target_chars} characters per chunk, never more than ${health.chunk_max_chars}.`
+    : unavailable;
+  const embeddingNote = health ? `${health.embedding_model.split("/").pop()} · runs locally` : unavailable;
+  const vectorNote = user
+    ? `Every query is filtered to user_id ${user.id}. This cannot be turned off.`
+    : "Every query is filtered to the active persona. This cannot be turned off.";
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-4xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="type-title text-[var(--bone)]">System configuration</h2>
-          <p className="type-meta text-[var(--dim)] mt-0.5">
-            Local generation boundaries, privacy guardrails, and persistent storage paths.
-          </p>
-        </div>
-      </div>
+    <div
+      data-screen-label="Settings"
+      style={{
+        maxWidth: "960px",
+        margin: "0 auto",
+        padding: "var(--space-8)",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <Head title="Ingestion" />
+      <OptionRow
+        testId="setting-cinematic"
+        title="Cinematic ingestion"
+        desc="Run the full-screen show when a report is ingested."
+        current={prefs.cinematic}
+        disabled={false}
+        onPick={(value) => setPreference("cinematic", value)}
+      />
+      <NoteRow testId="setting-chunk-size" title="Chunk size" desc={chunkNote} />
 
-      {/* 1. Model & Inference Engine */}
-      <div
-        data-testid="settings-card-0"
-        className={`p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] ${!isT0 ? "m-enter" : ""}`}
-        style={!isT0 ? { animationDelay: "0ms" } : undefined}
-      >
-        <div className="flex items-center justify-between pb-3 mb-4 border-b border-[var(--line-faint)]">
-          <div>
-            <h3 className="type-title text-[var(--bone)] text-base">
-              Generation & Inference Engine
-            </h3>
-            <p className="type-meta text-[var(--dim)] text-xs mt-0.5">
-              Strictly local open-weights inference engine for biomedical questions
-            </p>
-          </div>
-          <Badge variant="verdigris">Operational</Badge>
-        </div>
+      <Head title="Reading" />
+      <NoteRow testId="setting-embedding" title="Embedding model" desc={embeddingNote} />
 
-        <div className="space-y-3 text-xs">
-          <div className="flex items-center justify-between py-2 border-b border-[var(--line-faint)]">
-            <span className="type-label text-[var(--dim)]">Engine service</span>
-            <span className="type-mono-sm text-[var(--bone)] font-mono">
-              gen-service v2 · cfg 2026-08
-            </span>
-          </div>
+      <Head title="Privacy and answers" />
+      <OptionRow
+        testId="setting-privacy"
+        title="Send retrieved passages to the AI model"
+        desc="Off keeps answers to quoted report text only."
+        current={config ? config.allow_api : null}
+        disabled={saving || config === null}
+        status={privacyStatus}
+        onPick={changePrivacy}
+      />
+      <NoteRow testId="setting-vector-filter" title="Vector filter" desc={vectorNote} />
 
-          <div className="flex items-center justify-between py-2 border-b border-[var(--line-faint)]">
-            <span className="type-label text-[var(--dim)]">Inference endpoint</span>
-            <span className="type-mono-sm text-[var(--bone)] font-mono">
-              http://localhost:8000/api/ai
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between py-2 border-b border-[var(--line-faint)]">
-            <span className="type-label text-[var(--dim)]">External Proprietary APIs</span>
-            <span className="type-mono-sm text-[var(--ochre-ink)] font-semibold">
-              Disabled by academic policy
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-4 p-3 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
-          <p className="type-quote-sm italic text-[var(--dim)] text-xs">
-            "VitaGraph enforces strict academic reproducibility: no external closed-source LLM calls are permitted in production evaluations."
-          </p>
-        </div>
-      </div>
-
-      {/* 2. Privacy & Diagnostic Boundaries */}
-      <div
-        data-testid="settings-card-1"
-        className={`p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] ${!isT0 ? "m-enter" : ""}`}
-        style={!isT0 ? { animationDelay: "60ms" } : undefined}
-      >
-        <h3 className="type-title text-[var(--bone)] text-base mb-1">
-          Safety & Clinical Boundaries
-        </h3>
-        <p className="type-meta text-[var(--dim)] text-xs mb-4 pb-3 border-b border-[var(--line-faint)]">
-          Automated refusals on prescriptive and direct diagnostic prompts
-        </p>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="type-body font-medium text-[var(--bone)] text-sm block">
-                Enforce Diagnostic Refusal Boundary
-              </span>
-              <span className="type-meta text-[var(--dim)] text-xs">
-                Automatically intercept questions requesting prescription advice or treatment cessation
-              </span>
-            </div>
-            <DetentPress>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={diagnosticGuard}
-                aria-label="Enforce diagnostic refusal boundary"
-                onClick={() => setDiagnosticGuard(!diagnosticGuard)}
-                className={`w-11 h-6 rounded-full transition-colors duration-[120ms] p-1 flex items-center cursor-pointer ${
-                  diagnosticGuard ? "bg-[var(--accent)]" : "bg-[var(--line-control)]"
-                }`}
-              >
-                <div
-                  className={`w-4 h-4 rounded-full bg-[var(--ink-800)] shadow-sm transition-transform duration-[120ms] ${
-                    diagnosticGuard ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </DetentPress>
-          </div>
-
-          <div className="flex items-center justify-between pt-3 border-t border-[var(--line-faint)]">
-            <div>
-              <span className="type-body font-medium text-[var(--bone)] text-sm block">
-                Local-Only Execution Mode (Airgap Guarantee)
-              </span>
-              <span className="type-meta text-[var(--dim)] text-xs">
-                Zero network egress: all vector embeddings and graph queries stay on localhost
-              </span>
-            </div>
-            <DetentPress>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={localOnly}
-                aria-label="Local-only execution mode"
-                onClick={() => setLocalOnly(!localOnly)}
-                className={`w-11 h-6 rounded-full transition-colors duration-[120ms] p-1 flex items-center cursor-pointer ${
-                  localOnly ? "bg-[var(--accent)]" : "bg-[var(--line-control)]"
-                }`}
-              >
-                <div
-                  className={`w-4 h-4 rounded-full bg-[var(--ink-800)] shadow-sm transition-transform duration-[120ms] ${
-                    localOnly ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </DetentPress>
-          </div>
-
-          <div className="flex items-center justify-between pt-3 border-t border-[var(--line-faint)]">
-            <div>
-              <span className="type-body font-medium text-[var(--bone)] text-sm block">
-                External API Fallback (allow_api)
-              </span>
-              <span className="type-meta text-[var(--dim)] text-xs">
-                Allow cloud model fallback when local GPU memory threshold is exceeded
-              </span>
-            </div>
-            <DetentPress>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={allowApi}
-                aria-label="External API fallback"
-                onClick={() => setAllowApi(!allowApi)}
-                className={`w-11 h-6 rounded-full transition-colors duration-[120ms] p-1 flex items-center cursor-pointer ${
-                  allowApi ? "bg-[var(--accent)]" : "bg-[var(--line-control)]"
-                }`}
-              >
-                <div
-                  className={`w-4 h-4 rounded-full bg-[var(--ink-800)] shadow-sm transition-transform duration-[120ms] ${
-                    allowApi ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </DetentPress>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Visual Language */}
-      <div
-        data-testid="settings-card-2"
-        className={`p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] ${!isT0 ? "m-enter" : ""}`}
-        style={!isT0 ? { animationDelay: "120ms" } : undefined}
-      >
-        <h3 className="type-title text-[var(--bone)] text-base mb-1">
-          Visual Language & Theme
-        </h3>
-        <p className="type-meta text-[var(--dim)] text-xs mb-4 pb-3 border-b border-[var(--line-faint)]">
-          Instrument & Paper frozen design tokens (§4, DESIGN.md)
-        </p>
-
-        <div className="flex items-center gap-4">
-          <DetentPress>
-            <button
-              type="button"
-              onClick={() => setActiveTheme("instrument")}
-              className={`p-3 rounded-[var(--r-6)] border flex items-center gap-2.5 transition-all duration-[120ms] cursor-pointer ${
-                activeTheme === "instrument"
-                  ? "bg-[var(--ink-700)] border-[var(--verdigris)] text-[var(--bone)]"
-                  : "border-[var(--line-strong)] text-[var(--dim)] hover:text-[var(--bone)]"
-              }`}
-            >
-              <div className="w-3 h-3 rounded-full bg-[var(--steel-fog)] border border-[var(--verdigris)]" />
-              <span className="type-label">Instrument (Dark)</span>
-            </button>
-          </DetentPress>
-
-          <DetentPress>
-            <button
-              type="button"
-              onClick={() => setActiveTheme("paper")}
-              className={`p-3 rounded-[var(--r-6)] border flex items-center gap-2.5 transition-all duration-[120ms] cursor-pointer ${
-                activeTheme === "paper"
-                  ? "bg-[var(--ink-700)] border-[var(--verdigris)] text-[var(--bone)]"
-                  : "border-[var(--line-strong)] text-[var(--dim)] hover:text-[var(--bone)]"
-              }`}
-            >
-              <div className="w-3 h-3 rounded-full bg-[var(--titanium-mist)] border border-[var(--line-strong)]" />
-              <span className="type-label">Paper (Light)</span>
-            </button>
-          </DetentPress>
-        </div>
-      </div>
-
-      {/* 4. Motion & Adaptive Governor (§M4.4, §M5.5) */}
-      <div
-        data-testid="settings-motion-card"
-        className={`p-6 rounded-[var(--r-14)] bg-[var(--ink-800)] border border-[var(--line-strong)] relative overflow-hidden ${!isT0 ? "m-enter" : ""}`}
-        style={!isT0 ? { animationDelay: "180ms" } : undefined}
-      >
-        {tierWash && (
-          <WashSweep
-            active={tierWash}
-            color="var(--verdigris)"
-            testId="settings-tier-wash"
-          />
-        )}
-
-        <div className="flex items-center justify-between pb-3 mb-4 border-b border-[var(--line-faint)]">
-          <div>
-            <h3 className="type-title text-[var(--bone)] text-base">
-              Motion & Adaptive Governor
-            </h3>
-            <p className="type-meta text-[var(--dim)] text-xs mt-0.5">
-              Four-tier physics engine (§M4.4) with prefers-reduced-motion safety floor
-            </p>
-          </div>
-          <span
-            className={`type-mono-sm px-2 py-0.5 rounded-[var(--r-4)] bg-[var(--ink-700)] border border-[var(--line-strong)] text-[var(--bone)] ${
-              tierPopped ? "animate-chip-pop" : ""
-            }`}
-          >
-            motion {motion.tier}{motion.mode === "manual" ? " · manual" : ""}
-          </span>
-        </div>
-
-        <div className="space-y-4 text-xs">
-          {/* Tier override selector */}
-          <div>
-            <span className="type-label text-[var(--dim)] block mb-2">Quality tier override</span>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-              {[
-                { id: "auto", label: "Auto (Governor)", desc: "Dynamic 60fps scaling" },
-                { id: "T3", label: "T3 Showcase", desc: "Full FX & photons" },
-                { id: "T2", label: "T2 Balanced", desc: "Static ambient" },
-                { id: "T1", label: "T1 Safe", desc: "No glow, ≤240ms" },
-                { id: "T0", label: "T0 Static", desc: "Instant states only" },
-              ].map((opt) => {
-                const isSelected = motion.mode === "manual" ? motion.tier === opt.id : opt.id === "auto";
-                return (
-                  <DetentPress key={opt.id} className="block w-full">
-                    <button
-                      type="button"
-                      onClick={() => governor.setOverride(opt.id as any)}
-                      className={`w-full p-2.5 rounded-[var(--r-6)] border text-left flex flex-col gap-1 transition-all duration-[120ms] cursor-pointer ${
-                        isSelected
-                          ? "bg-[var(--ink-700)] border-[var(--verdigris)] text-[var(--bone)]"
-                          : "border-[var(--line-strong)] text-[var(--dim)] hover:text-[var(--bone)] hover:border-[var(--line-faint)]"
-                      }`}
-                    >
-                      <span className="type-mono-sm font-semibold">{opt.label}</span>
-                      <span className="text-[11.5px] text-[var(--dim)] leading-tight">{opt.desc}</span>
-                    </button>
-                  </DetentPress>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Tier Preview Strip (§M5.5) */}
-          <div
-            data-testid="tier-preview-strip"
-            className="p-3 bg-[var(--ink-900)] rounded-[var(--r-6)] border border-[var(--line-faint)]"
-          >
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--line-faint)]">
-              <span className="type-mono-sm text-[var(--bone)] font-medium">
-                Active Tier Preview ({motion.tier})
-              </span>
-              <span className="type-mono-sm text-[var(--verdigris)]">
-                {isT0 ? "Instant Settle Floor" : "Physical Choreography"}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center items-center">
-              <div className="p-2 bg-[var(--ink-800)] rounded-[var(--r-4)] border border-[var(--line-faint)]">
-                <span className="type-meta text-[11.5px] text-[var(--dim)] block mb-1">LED Breathe</span>
-                <div className="flex justify-center">
-                  <LED color="verdigris" live={!isT0} />
-                </div>
-              </div>
-              <div className="p-2 bg-[var(--ink-800)] rounded-[var(--r-4)] border border-[var(--line-faint)]">
-                <span className="type-meta text-[11.5px] text-[var(--dim)] block mb-1">Odometer roll</span>
-                <span className="type-mono text-xs font-bold text-[var(--bone)]">
-                  <Odometer value={motion.tier === "T3" ? 60 : motion.tier === "T2" ? 30 : 0} duration={360} />
-                </span>
-              </div>
-              <div className="p-2 bg-[var(--ink-800)] rounded-[var(--r-4)] border border-[var(--line-faint)]">
-                <span className="type-meta text-[11.5px] text-[var(--dim)] block mb-1">Canvas particles</span>
-                <span className="type-mono text-[11.5px] text-[var(--verdigris)] font-medium">
-                  {motion.tier === "T3" ? "Active (24)" : "Suppressed"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Telemetry info */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-[var(--line-faint)]">
-            <div className="p-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
-              <span className="type-label text-[var(--dim)] block text-[12px]">Hardware / Governor Mode</span>
-              <span className="type-mono-sm text-[var(--bone)] font-mono">
-                {(motion.mode || "auto").toUpperCase()} ({motion.reducedMotion ? "prefers-reduced-motion active" : "standard display"})
-              </span>
-            </div>
-            <div className="p-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
-              <span className="type-label text-[var(--dim)] block text-[12px]">Active FPS Sample</span>
-              <span className="type-mono-sm text-[var(--bone)] font-mono">
-                {motion.fps} FPS (rolling 2s mean)
-              </span>
-            </div>
-            <div className="p-2.5 rounded-[var(--r-6)] bg-[var(--ink-900)] border border-[var(--line-faint)]">
-              <span className="type-label text-[var(--dim)] block text-[12px]">Canvas DPR Cap</span>
-              <span className="type-mono-sm text-[var(--bone)] font-mono">
-                {motion.dprCap}x resolution
-              </span>
-            </div>
-          </div>
-
-          {/* Optional audio feedback toggle (§M7.9, §M9) */}
-          <div className="flex items-center justify-between pt-3 border-t border-[var(--line-faint)]">
-            <div>
-              <span className="type-body font-medium text-[var(--bone)] text-sm block">
-                Synthesized Audio Detents (§M9)
-              </span>
-              <span className="type-meta text-[var(--dim)] text-xs">
-                WebAudio-synthesized tactile feedback for stepper, chip pops, and answer completion (off by default)
-              </span>
-            </div>
-            <DetentPress>
-              <button
-                type="button"
-                data-testid="sound-toggle-btn"
-                role="switch"
-                aria-checked={soundEnabled}
-                aria-label="Interface sound"
-                onClick={() => {
-                  const next = !soundEnabled;
-                  setSoundEnabled(next);
-                  setAudioEnabled(next);
-                  if (next) {
-                    playDetent();
-                  }
-                }}
-                className={`w-11 h-6 rounded-full transition-colors duration-[120ms] p-1 flex items-center cursor-pointer ${
-                  soundEnabled ? "bg-[var(--accent)]" : "bg-[var(--line-control)]"
-                }`}
-              >
-                <div
-                  className={`w-4 h-4 rounded-full bg-[var(--ink-800)] shadow-sm transition-transform duration-[120ms] ${
-                    soundEnabled ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </DetentPress>
-          </div>
-
-          {/* Replay boot sequence ghost button (§M7.9) */}
-          <div className="flex items-center justify-between pt-3 border-t border-[var(--line-faint)]">
-            <div>
-              <span className="type-body font-medium text-[var(--bone)] text-sm block">
-                Session Boot Sequence
-              </span>
-              <span className="type-meta text-[var(--dim)] text-xs">
-                Replay the instrument ignition animation (§M6.1) on next page visit
-              </span>
-            </div>
-            <DetentPress className="inline-flex">
-              <button
-                type="button"
-                data-testid="replay-boot-btn"
-                onClick={() => {
-                  sessionStorage.removeItem("vg_booted");
-                  window.dispatchEvent(new CustomEvent("vitagraph:replay-boot"));
-                  if (isAudioEnabled()) {
-                    playDetent();
-                  }
-                  transitionNavigate(navigate, "/", { direction: "back" });
-                }}
-                className="px-3 py-1.5 rounded-[var(--r-6)] border border-[var(--line-strong)] hover:border-[var(--verdigris)] text-[var(--bone)] type-mono-sm text-xs transition-colors cursor-pointer"
-              >
-                Replay Boot
-              </button>
-            </DetentPress>
-          </div>
-        </div>
-      </div>
+      <Head title="Display" />
+      <OptionRow
+        testId="setting-reduce-motion"
+        title="Reduce motion"
+        desc="Turns off animations and transitions across the app."
+        current={prefs.reduceMotion}
+        disabled={false}
+        onPick={(value) => setPreference("reduceMotion", value)}
+      />
     </div>
   );
 };

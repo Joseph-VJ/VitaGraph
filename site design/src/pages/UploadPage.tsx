@@ -7,6 +7,7 @@ import type { ReportPage, Report } from "../types";
 import { transitionNavigate } from "../motion/navigation";
 import { useJobStream } from "../hooks/useJobStream";
 import { FrameStage } from "../components/upload/FrameStage";
+import { getPreferences } from "../lib/preferences";
 
 export const UploadPage: React.FC = () => {
   const navigate = useNavigate();
@@ -118,8 +119,8 @@ export const UploadPage: React.FC = () => {
     // 1. Connect to SSE stream
     jobStream.connect(jobId);
 
-    // 2. Open cinematic storytelling popup immediately
-    setIsPopupOpen(true);
+    // 2. Open the full-screen show immediately, unless the user turned "Cinematic ingestion" off in Settings
+    if (getPreferences().cinematic) setIsPopupOpen(true);
 
     // 3. Dispatch file upload to background pipeline
     try {
