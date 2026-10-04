@@ -119,6 +119,11 @@ _FLAG_PATTERN = re.compile(
     r"(?:Flag|Status|Interpretation|[-–—])[ \t]*(LOW|HIGH|NORMAL|ABNORMAL|CRITICAL)",
     re.IGNORECASE,
 )
+# A flag on a LATER line only counts when it is labelled ("Flag: LOW"); a bare "-low" belongs to its own line.
+_LABELLED_FLAG_PATTERN = re.compile(
+    r"^[ \t]*(?:Flag|Status|Interpretation)[ \t]*:[ \t]*(LOW|HIGH|NORMAL|ABNORMAL|CRITICAL)",
+    re.IGNORECASE | re.MULTILINE,
+)
 
 # Inline pattern: e.g. ": 14.0 g/dL" or " 94 mg/dL"
 _INLINE_MEASUREMENT_PATTERN = re.compile(
@@ -184,7 +189,7 @@ def extract_entities_from_chunk(
         result_match = _RESULT_PATTERN.search(sub)
         range_match = _RANGE_PATTERN.search(sub)
         first_line = sub.split("\n")[0]
-        flag_match = _FLAG_PATTERN.search(first_line) or _FLAG_PATTERN.search(sub)
+        flag_match = _FLAG_PATTERN.search(first_line) or _LABELLED_FLAG_PATTERN.search(sub)
 
         value: float | None = None
         unit: str = test_def["default_unit"]
@@ -263,6 +268,8 @@ def extract_entities_from_chunk(
 
         unit = match.group(3).strip()
         ref_r = match.group(4).strip() if match.group(4) else None
+        if ref_r and not re.search(r"\d", ref_r):
+            ref_r = None  # a reference range always contains a number; trailing words are not a range
         flag_str = match.group(5).upper() if match.group(5) else "NORMAL"
         if ref_r and not match.group(5):
             flag_str = _infer_flag(val, ref_r)
