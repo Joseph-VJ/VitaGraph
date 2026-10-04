@@ -1,0 +1,31 @@
+# Review of TASK AG2c (reviewer: Claude)
+
+**Verdict: ACCEPTED, with one real bug and four weaknesses that are fixed first in AG3 (Part 0).** Commit `18f49c7` on `redesign/modernist-app`.
+
+## What I checked (read the code and report; re-ran the suite myself)
+- `git show --stat HEAD` and `git diff --numstat HEAD~1 HEAD`: exactly the closed list (`pool.py` 276, `runtime.py` 56/12, `lockdown.py` 8/2, `worker.py` 7/3, `fake_worker.py` +5, `test_agent_runtime.py` +107, `test_agent_pool.py` 480, the report). Line counts in your report are correct. No other file touched.
+- `.env` untouched (same last-write time); `backend/data` has no `agent` folder; no `deepseek`/`dsh`/worker/echo process left; ports free; `app/agent` contains no write to `os.environ`.
+- Part 0 is implemented as ordered: blocking calls moved to `asyncio.to_thread` (`astart`, `acancel`, `aclose`, `akill`; the heartbeat gap measured 1.108 s before and 0.063 s after); every reader thread checks `self._proc is proc` before touching shared state; `idle_timeout` kills a silent turn and yields `The agent took too long to answer.`; the worker's `send` is under `_send_lock`.
+- The pool follows the design: per-persona `asyncio.Lock` so two simultaneous first turns start ONE worker; the second turn is refused with `RuntimeBusy`; start-up lock-down check once per persona and remembered; LRU eviction of idle runtimes at capacity, `PoolFull` when all are busy; `reap_idle`; `cancel` drops the entry; `forget_persona` validates the id and deletes only inside `agent_root()`; `close_all`, `close_all_sync` with `atexit`; `snapshot`; `get_pool()` singleton.
+- Your smoke test with the real harness against the dead URL shows the real message stream (15 notifications, then `result`) and a clean deletion of the persona folder under the REAL `backend/data/agent` (`Test-Path` False afterwards).
+- I re-ran the whole backend suite (result recorded in the session context; your figure is 147 passed in 223 s).
+
+## The bug (fix first in AG3)
+**A failed start poisons the persona.** In `RuntimePool.stream_turn`, the entry is created with `running=True` and stored in `_entries`, and only AFTER that does the code start the worker (`astart()`) and close an evicted runtime. Those lines are outside the `try/finally` that resets `running`. If the worker fails to start (for example the harness binary is missing, a bad patch, a timeout), the exception leaves the entry in the pool with `running=True` and a dead runtime for ever. Every later turn of that persona then raises `RuntimeBusy`, and `reap_idle` never removes it because it only reaps entries that are not running. Fix: wrap the eviction-close and the start in a `try/except BaseException` that removes the entry (only if it is still the same object), closes/kills its runtime, and re-raises. Test: a factory whose worker uses the fake-worker mode `crash_on_start`: the first turn raises `RuntimeStartError`, `pool.snapshot()` is empty, and a second attempt raises `RuntimeStartError` again, NOT `RuntimeBusy`.
+
+## Weaknesses (also Part 0 of AG3)
+1. **The stale-thread race test is toothless.** Your own failing-first run printed `3 failed, 1 passed` for the four Part 0 tests: `test_cancel_then_immediate_new_turn_always_works` already PASSED before the fix, so it cannot prove the fix. (Your acceptance line says all four failed first; the output says otherwise: say what the output says.) Replace it by a deterministic test: build an `AgentRuntime`, set `rt._proc` to a new process object, set `rt._active_queue` to a fresh queue, then run `rt._drain_stdout` for an OLD, different process object whose `stdout` is an in-memory text stream ending after one line; assert that the new queue stays empty, that `rt._start_event` and `rt._is_ready` are unchanged, and that the call returns without raising. Check that this test FAILS if you temporarily remove the `self._proc is proc` guards (describe that check in the report; do not commit the removal).
+2. **The default factory and `get_pool()` are untested.** `_default_runtime_factory` is the code the real server will use (API key, base URL and model come from `settings.effective_api_key`, `effective_base_url`, `effective_model`, which do exist). Add a test that monkeypatches those three settings, calls the factory with a profile and asserts the returned `AgentRuntime` has exactly those values and has NOT started a process; and a test that `get_pool()` returns the same object twice.
+3. **`forget_persona` can fail on Windows.** `shutil.rmtree(..., ignore_errors=False)` right after a process-tree kill may raise `PermissionError` while `dsh.exe` still holds a file handle. Retry up to 5 times, 200 ms apart, on `PermissionError`/`OSError`, then raise. Test with a monkeypatched `shutil.rmtree` that fails twice and then succeeds.
+4. **Capacity accounting counts a dead own entry.** If a persona's runtime died, its dead entry still counts toward `max_runtimes`, so another persona's healthy idle runtime can be evicted for no reason. Count only the entries of OTHER personas plus live ones, or drop the dead entry first. Test accordingly.
+
+## Notes for the next stage (no change needed now)
+- The first turn of a persona costs two process starts: the lock-down probe runtime (dead URL) and then the real runtime, about 4 s each. AG3 must send an immediate status event to the browser before the first model event so the page never looks frozen.
+- The full suite now takes about 220 s. A `slow` marker for the real-harness tests will be introduced in the final QA stage (AG6); keep new tests light.
+- `forget_persona` leaves the persona in `_verified_personas` and its lock in `_persona_locks`; harmless (ids are random), but clear them for tidiness while fixing item 3.
+
+## Notes on how you worked
+Very good engineering: tests first for the pool (12 failed with the import error before the module existed), clear reasoning about the busy rule, an honest smoke test with the real harness. Two requests: (1) when your own output contradicts your checklist, believe the output; (2) before you declare a failure path covered, ask "what happens if the start itself raises?". The bug above lives exactly in that path.
+
+## Must fix
+The bug and items 1 to 4, as Part 0 of AG3.
