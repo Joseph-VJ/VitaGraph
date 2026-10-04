@@ -89,6 +89,12 @@ Rules for the report file:
 - If you are BLOCKED, still write the report file, but do NOT commit code; commit only the report (`docs`-style message `chore(redesign): <id> blocked report`) so the reviewer can read it.
 - The reviewer answers in `gemini/reviews/TASK_<id>_review.md`. At the start of the next task, read the review of the previous task (if the file exists) and obey every "must fix" item in it before starting the new task.
 
+## 5d. When the AI API does not work (user decision, 2026-10-04)
+The AI gateway (AgentRouter) is a free test gateway and may reject requests ("unauthorized client", "content-blocked", rate limits, timeouts). The user will switch to a PAID API later. Therefore:
+- If the AI API does not work, do NOT build workarounds (no proxies, no fake User-Agent tricks, no mock servers pretending to be the API, no retry loops beyond what the task text says). Paste the raw error (key redacted) in your report, write `API blocked` next to that check, and carry on with every check that does not need the model.
+- A check that needs the real model and could not run because of the API is `not run (API blocked)`; the task status may then be COMPLETE if everything else passed, or PARTIAL if the task text says the model check is essential. Say which in section 8 of the report.
+- Never put a real API key in a file inside the repo, in a report, in a screenshot or in a patch file that is committed.
+
 ## 5c. Quality bar (the user wants a perfect, fully working project)
 A task is only COMPLETE when ALL of these are true, and you have proof for each in the report file:
 1. `npm run build` exits 0 (frontend tasks), or the full backend suite passes with the exact count the task states (backend tasks).
