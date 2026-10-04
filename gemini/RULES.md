@@ -68,6 +68,38 @@ OPEN QUESTIONS: <or "none">
 ```
 Never claim COMPLETE without pasted fresh command output. The reviewer will diff your work and re-run the build.
 
+## 5b. Work report file (mandatory, added after Task 07; this is how you and the reviewer talk)
+Besides the chat reply, you WRITE A FILE for every task: `gemini/reports/TASK_<id>_report.md` (for example `gemini/reports/TASK_07b_report.md`). Create the folder if it does not exist. The reviewer reads this file first, so it must be complete, plain and honest. Use exactly these headings, in this order:
+
+```
+# TASK <id> report
+## 1. What I was asked to do        (2 to 4 sentences in your own words)
+## 2. What I actually did           (numbered list, one line per step, in the order you did it)
+## 3. Files changed                 (path, +added/-removed, one-sentence reason each)
+## 4. Commands and their output     (each verify command, then its real final lines, verbatim in a code block)
+## 5. Acceptance checklist          (each acceptance item, PASS or FAIL, one line of evidence)
+## 6. Things that surprised me      (anything unexpected, a failing test, a file that differed from the task text, a number that did not match)
+## 7. Deviations from the task      (or "none")
+## 8. Open questions for the reviewer (or "none")
+## 9. How the reviewer can double-check (3 to 6 exact commands or URLs)
+```
+Rules for the report file:
+- Write it BEFORE the final commit and stage it by explicit path together with the task files, so it lands in the same commit. Do not put the commit hash in it (the reviewer reads it from `git log`).
+- Never write "should work" or "probably". Only what you ran and saw. If you did not run something, say "not run".
+- If you are BLOCKED, still write the report file, but do NOT commit code; commit only the report (`docs`-style message `chore(redesign): <id> blocked report`) so the reviewer can read it.
+- The reviewer answers in `gemini/reviews/TASK_<id>_review.md`. At the start of the next task, read the review of the previous task (if the file exists) and obey every "must fix" item in it before starting the new task.
+
+## 5c. Quality bar (the user wants a perfect, fully working project)
+A task is only COMPLETE when ALL of these are true, and you have proof for each in the report file:
+1. `npm run build` exits 0 (frontend tasks), or the full backend suite passes with the exact count the task states (backend tasks).
+2. You ran the page in the browser against the REAL backend (both servers up) and the browser console has ZERO errors and ZERO warnings from our code. Paste the console check result.
+3. Every number, label and row you can see on the page equals what the API returns (compare at least three values, paste both).
+4. Every button, link, input and toggle you added or restyled was actually clicked or typed into once and did what the reference does. List what you clicked.
+5. Empty, loading and error states exist and were looked at (for example: persona with no reports, backend stopped, a failed upload).
+6. No text overflows or wraps wrongly at 1440x900 and 820x1100 (paste a screenshot path under `gemini/shots/`).
+7. No leftover debug code, no `console.log`, no commented-out code, no TODO, no unused file.
+If any item is false, the status is PARTIAL or BLOCKED, never COMPLETE.
+
 ## 6. Token cheat-sheet and gotchas (learned in Task 01; read before touching any component)
 Use arbitrary-value utilities with CSS variables, the way the existing code does: `bg-[var(--color-bg)]`, `text-[var(--color-text)]`, `border-[var(--color-divider)]`. Do NOT use Tailwind colour names such as `bg-accent`, `text-accent`, `bg-surface`; they are not registered and must not be added.
 
