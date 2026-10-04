@@ -95,6 +95,23 @@ def get_ai_config() -> dict:
     }
 
 
+class AiPrivacyRequest(BaseModel):
+    allow_api: bool
+
+
+@router.post("/privacy", response_model=AiConfigResponse)
+def set_ai_privacy(payload: AiPrivacyRequest) -> dict:
+    """Turn sending retrieved passages to the AI service on or off. No network call, so Off can never fail."""
+    settings.update_ai_config(
+        allow_api=payload.allow_api,
+        url=settings.ai_service_url,
+        key="",
+        model=settings.ai_service_model,
+        persist=True,
+    )
+    return get_ai_config()
+
+
 @router.post("/config", response_model=AiConfigResponse)
 def set_ai_config(payload: AiConfigRequest) -> dict:
     """Test and update AI service configuration."""

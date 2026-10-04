@@ -153,6 +153,8 @@ class Settings(BaseSettings):
                 if k not in handled_keys:
                     new_lines.append(f"{k}={v}")
 
+            env_file.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+
     def validate_models(self) -> None:
         """Log warning if effective_model is not in the allowed AgentRouter set."""
         if self.effective_model not in ALLOWED_AGENTROUTER_MODELS:

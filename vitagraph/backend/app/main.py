@@ -61,6 +61,7 @@ app.include_router(tools.router)
 @app.get("/api/health")
 def health() -> dict:
     """Local-core health: retrieval store reachable and service mode label."""
+    from app.ingestion import chunker
     from app.rag import vector_store
 
     store_status = vector_store.store_health()
@@ -73,4 +74,6 @@ def health() -> dict:
         "ai_service": "enabled" if settings.allow_api else "disabled (offline mode)",
         "ai_service_model": settings.ai_service_model if settings.allow_api else "offline-fallback-composer",
         "embedding_model": settings.embedding_model_name,
+        "chunk_target_chars": chunker.CHUNK_TARGET_CHARS,
+        "chunk_max_chars": chunker.CHUNK_MAX_CHARS,
     }
