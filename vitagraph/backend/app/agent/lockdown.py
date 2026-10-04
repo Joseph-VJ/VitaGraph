@@ -86,7 +86,10 @@ async def verify_lockdown_async(
 
     collected_events: list[dict[str, Any]] = []
     try:
-        rt.start()
+        if hasattr(rt, "astart"):
+            await rt.astart()
+        else:
+            await asyncio.to_thread(rt.start)
         session_id = f"probe-{uuid.uuid4().hex[:8]}"
         async for msg in rt.stream_turn(session_id, "hello"):
             if msg.get("type") == "notification":
@@ -101,7 +104,10 @@ async def verify_lockdown_async(
             _lockdown_cache[patch_hash] = list(tool_names)
         return tool_names
     finally:
-        rt.close()
+        if hasattr(rt, "aclose"):
+            await rt.aclose()
+        else:
+            await asyncio.to_thread(rt.close)
 
 
 def verify_lockdown(

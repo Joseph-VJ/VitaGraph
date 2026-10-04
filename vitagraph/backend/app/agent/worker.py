@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import threading
 
 # Stdout hygiene: duplicate wire stdout, redirect fd 1 to stderr
 real_stdout_fd = os.dup(1)
@@ -14,11 +15,14 @@ try:
 except Exception:
     pass
 
+_send_lock = threading.Lock()
+
 
 def send(msg: dict) -> None:
-    line = json.dumps(msg, ensure_ascii=False, default=str)
-    wire_stdout.write(line + "\n")
-    wire_stdout.flush()
+    with _send_lock:
+        line = json.dumps(msg, ensure_ascii=False, default=str)
+        wire_stdout.write(line + "\n")
+        wire_stdout.flush()
 
 
 def main() -> None:

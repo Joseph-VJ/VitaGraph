@@ -41,6 +41,7 @@ class AgentRuntime:
         model: str = "deepseek-v4-flash",
         worker_command: list[str] | None = None,
         start_timeout: float = 60.0,
+        idle_timeout: float = 180.0,
     ) -> None:
         self.profile = profile
         self.api_key = api_key
@@ -48,6 +49,7 @@ class AgentRuntime:
         self.model = model
         self.worker_command = worker_command
         self.start_timeout = start_timeout
+        self.idle_timeout = idle_timeout
 
         self._proc: subprocess.Popen[str] | None = None
         self._write_lock = threading.Lock()
@@ -156,6 +158,8 @@ class AgentRuntime:
             return
         try:
             for raw_line in proc.stderr:
+                if self._proc is not proc:
+                    return
                 self._stderr_lines.append(raw_line.rstrip())
         except Exception:
             pass
@@ -166,6 +170,8 @@ class AgentRuntime:
             return
         try:
             for raw_line in proc.stdout:
+                if self._proc is not proc:
+                    return
                 line = raw_line.strip()
                 if not line:
                     continue
@@ -173,6 +179,9 @@ class AgentRuntime:
                     msg = json.loads(line)
                 except Exception:
                     continue
+
+                if self._proc is not proc:
+                    return
 
                 self.last_used = time.monotonic()
                 mtype = msg.get("type")
@@ -186,24 +195,41 @@ class AgentRuntime:
                         self._start_event.set()
                     continue
 
-                if self._active_queue is not None:
+                if self._proc is proc and self._active_queue is not None:
                     loop, q = self._active_queue
                     loop.call_soon_threadsafe(q.put_nowait, msg)
         except Exception:
             pass
         finally:
-            if not self._is_ready:
-                self._start_event.set()
-            if self._active_queue is not None:
-                loop, q = self._active_queue
-                loop.call_soon_threadsafe(q.put_nowait, {"type": "worker_stopped"})
+            if self._proc is proc:
+                if not self._is_ready:
+                    self._start_event.set()
+                if self._active_queue is not None:
+                    loop, q = self._active_queue
+                    loop.call_soon_threadsafe(q.put_nowait, {"type": "worker_stopped"})
+
+    async def astart(self) -> None:
+        """Start worker process in a worker thread."""
+        await asyncio.to_thread(self.start)
+
+    async def acancel(self) -> None:
+        """Cancel worker process in a worker thread."""
+        await asyncio.to_thread(self.cancel)
+
+    async def aclose(self, timeout: float = 3.0) -> None:
+        """Close worker process in a worker thread."""
+        await asyncio.to_thread(self.close, timeout)
+
+    async def akill(self) -> None:
+        """Kill worker process in a worker thread."""
+        await asyncio.to_thread(self.kill)
 
     async def stream_turn(
         self, session_id: str, text: str, *, run_id: str | None = None
     ) -> AsyncIterator[dict]:
         """Stream a turn from the worker process with live lockdown monitoring."""
         if not self.is_alive:
-            self.start()
+            await asyncio.to_thread(self.start)
 
         if self._is_running:
             raise RuntimeBusy("A turn is already active on this runtime.")
@@ -225,16 +251,32 @@ class AgentRuntime:
         finished = False
         try:
             while not finished:
-                msg = await q.get()
+                try:
+                    msg = await asyncio.wait_for(q.get(), timeout=self.idle_timeout)
+                except asyncio.TimeoutError:
+                    await self.akill()
+                    finished = True
+                    self._is_running = False
+                    self._active_queue = None
+                    yield {
+                        "type": "run_error",
+                        "run_id": rid,
+                        "message": "The agent took too long to answer.",
+                    }
+                    break
+
                 self.last_used = time.monotonic()
                 mtype = msg.get("type")
 
                 if mtype == "worker_stopped":
+                    finished = True
+                    self._is_running = False
                     yield {"type": "run_error", "message": "The agent runtime stopped."}
                     break
 
                 if mtype in ("result", "run_error"):
                     finished = True
+                    self._is_running = False
                     yield msg
                     break
 
@@ -251,7 +293,7 @@ class AgentRuntime:
                             tool_names = tool_names_from_events([event])
                             assert_locked_down(tool_names)
                         except LockdownViolation as lv:
-                            self.kill()
+                            await self.akill()
                             # Extract offered tools for the notification before raising
                             tools_found: list[str] = []
                             header = data.get("header") if isinstance(data.get("header"), dict) else {}
@@ -264,14 +306,16 @@ class AgentRuntime:
                                     elif "name" in t:
                                         tools_found.append(t["name"])
                             yield {"type": "lockdown_violation", "tools": tools_found}
+                            finished = True
                             raise lv
 
                     yield msg
         finally:
+            if self._active_queue is not None and self._active_queue[1] is q:
+                self._active_queue = None
+                self._is_running = False
             if not finished:
-                self.kill()
-            self._active_queue = None
-            self._is_running = False
+                await self.acancel()
 
     def cancel(self) -> None:
         """Kill the worker process tree immediately."""

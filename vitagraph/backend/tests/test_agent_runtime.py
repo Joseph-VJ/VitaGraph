@@ -378,3 +378,110 @@ def test_killing_the_runtime_kills_the_whole_process_tree(tmp_path):
         asyncio.run(_run())
     finally:
         rt.close()
+
+
+def test_starting_a_runtime_never_blocks_the_event_loop():
+    """While a worker starts (slow_start mode takes 1.0s), an event loop heartbeat ticking every 50ms is not blocked."""
+    prof = profile_for("usr_test_p0_1")
+    cmd = [sys.executable, FAKE_WORKER_PATH, "--mode", "slow_start"]
+    rt = AgentRuntime(prof, worker_command=cmd)
+
+    async def _main():
+        heartbeats: list[float] = []
+        stop_heartbeat = asyncio.Event()
+
+        async def _ticker():
+            loop = asyncio.get_running_loop()
+            while not stop_heartbeat.is_set():
+                heartbeats.append(loop.time())
+                await asyncio.sleep(0.05)
+
+        ticker_task = asyncio.create_task(_ticker())
+        await asyncio.sleep(0.01)
+        try:
+            async for msg in rt.stream_turn("s-slow-start", "hello"):
+                if msg.get("type") == "result":
+                    break
+        finally:
+            stop_heartbeat.set()
+            await ticker_task
+            if hasattr(rt, "aclose"):
+                await rt.aclose()
+            else:
+                rt.close()
+
+        assert len(heartbeats) >= 5, f"Expected multiple heartbeats, got {len(heartbeats)}"
+        gaps = [heartbeats[i + 1] - heartbeats[i] for i in range(len(heartbeats) - 1)]
+        max_gap = max(gaps) if gaps else 0.0
+        assert max_gap < 0.3, f"Heartbeat gap too large: {max_gap:.3f} s (event loop was blocked during start)"
+
+    asyncio.run(_main())
+
+
+def test_cancel_then_immediate_new_turn_always_works():
+    """Canceling a turn and immediately starting a new turn 20 times never triggers stale-thread races."""
+    prof = profile_for("usr_test_p0_2")
+    cmd = [sys.executable, FAKE_WORKER_PATH, "--mode", "slow"]
+    rt = AgentRuntime(dummy_profile if "dummy_profile" in globals() else prof, worker_command=cmd)
+
+    async def _main():
+        try:
+            for round_idx in range(20):
+                gen = rt.stream_turn(f"s-race-{round_idx}", "hello")
+                first_msg_task = asyncio.create_task(gen.__anext__())
+                await asyncio.sleep(0.1)
+                rt.cancel()
+                try:
+                    await first_msg_task
+                except (StopAsyncIteration, Exception):
+                    pass
+                try:
+                    await gen.aclose()
+                except Exception:
+                    pass
+
+                gen2 = rt.stream_turn(f"s-race-new-{round_idx}", "hello-again")
+                msg = await gen2.__anext__()
+                assert msg.get("type") in ("notification", "result", "run_error")
+                await gen2.aclose()
+        finally:
+            rt.close()
+
+    asyncio.run(_main())
+
+
+def test_a_turn_that_never_answers_times_out():
+    """A silent worker times out if no message is received within idle_timeout."""
+    prof = profile_for("usr_test_p0_3")
+    cmd = [sys.executable, FAKE_WORKER_PATH, "--mode", "silent"]
+    rt = AgentRuntime(prof, worker_command=cmd, idle_timeout=1.0)
+
+    async def _main():
+        messages = []
+        t0 = time.time()
+        try:
+            async for msg in rt.stream_turn("s-silent", "hello"):
+                messages.append(msg)
+        finally:
+            elapsed = time.time() - t0
+            if hasattr(rt, "aclose"):
+                await rt.aclose()
+            else:
+                rt.close()
+
+        assert elapsed < 3.0, f"Turn took too long to time out: {elapsed:.2f} s"
+        assert any(
+            m.get("type") == "run_error" and "The agent took too long to answer." in m.get("message", "")
+            for m in messages
+        ), f"Expected timeout error message, got: {messages}"
+        assert not rt.is_alive, "Runtime process should have been terminated after timeout"
+
+    asyncio.run(_main())
+
+
+def test_the_worker_output_is_written_under_a_lock():
+    """Static check: worker.py must guard send writes with a threading.Lock (with _send_lock:)."""
+    worker_file = Path(__file__).resolve().parent.parent / "app" / "agent" / "worker.py"
+    text = worker_file.read_text(encoding="utf-8")
+    assert "with _send_lock:" in text, "worker.py send() must execute under 'with _send_lock:'"
+

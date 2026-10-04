@@ -76,8 +76,13 @@ def main():
 
         cmd = req.get("cmd")
         if cmd == "start":
+            if mode == "slow_start":
+                time.sleep(1.0)
             send({"type": "ready"})
         elif cmd == "run":
+            if mode == "silent":
+                while True:
+                    time.sleep(0.5)
             run_id = req.get("run_id", "run-1")
             session_id = req.get("session_id", "s-1")
 
