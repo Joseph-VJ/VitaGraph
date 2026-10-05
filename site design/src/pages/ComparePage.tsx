@@ -4,6 +4,7 @@ import { reportsApi, type ComparisonData } from "../api/reports";
 import { useActiveUser } from "../context/UserContext";
 import { transitionNavigate } from "../motion/navigation";
 import { makeLabeler, sortReports } from "../lib/reportLabels";
+import { PageFrame, PageState, PersonaState, Tag } from "../components/ui";
 import type { Report } from "../types";
 
 type Cell = string | number | null | undefined;
@@ -32,7 +33,7 @@ const arrow = (
 
 export const ComparePage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useActiveUser();
+  const { user, loading: personaLoading, refreshUsers } = useActiveUser();
   const userId = user?.id ?? null;
 
   const [reports, setReports] = useState<Report[] | null>(null);
@@ -70,7 +71,7 @@ export const ComparePage: React.FC = () => {
     return () => { cancelled = true; };
   }, [userId, reloadTick]);
 
-  // Load the comparison for the chosen pair
+  // Load the comparison for the chosen pair (again after "Try again")
   useEffect(() => {
     if (!userId || !baselineId || !followupId) return;
     let cancelled = false;
@@ -82,7 +83,7 @@ export const ComparePage: React.FC = () => {
       .catch((err: unknown) => { if (!cancelled) setError(err instanceof Error ? err.message : String(err)); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [userId, baselineId, followupId]);
+  }, [userId, baselineId, followupId, reloadTick]);
 
   const labelOf = useMemo(() => makeLabeler(reports ?? []), [reports]);
 
@@ -96,32 +97,52 @@ export const ComparePage: React.FC = () => {
 
   const base = reports?.find((r) => r.id === baselineId);
   const follow = reports?.find((r) => r.id === followupId);
-  const pageStyle: React.CSSProperties = {
-    maxWidth: 1280, margin: "0 auto", padding: "var(--space-8)", display: "flex", flexDirection: "column", gap: "var(--space-6)",
-  };
-  const noteStyle: React.CSSProperties = { fontSize: "0.9375rem", fontWeight: 600 };
 
-  if (!userId || (reports === null && !error)) {
-    return <div data-screen-label="Compare" style={pageStyle}><div style={noteStyle}>Loading reports</div></div>;
-  }
-  if (error && reports === null) {
+  const retry = () => setReloadTick((t) => t + 1);
+
+  if (!userId) {
     return (
-      <div data-screen-label="Compare" style={pageStyle}>
-        <div style={noteStyle}>Could not load reports. {error}</div>
-        <div><button className="btn btn-secondary" onClick={() => setReloadTick((t) => t + 1)}>Try again</button></div>
-      </div>
+      <PageFrame label="Compare" gap="var(--space-6)">
+        <PersonaState loading={personaLoading} onRetry={refreshUsers} />
+      </PageFrame>
     );
   }
-  if ((reports ?? []).length < 2) {
+
+  if (reports === null && !error) {
     return (
-      <div data-screen-label="Compare" style={pageStyle}>
-        <div style={noteStyle}>Comparing needs at least two reports. This persona has {(reports ?? []).length}.</div>
-        <div>
-          <button className="btn btn-primary" onClick={() => transitionNavigate(navigate, "/upload", { direction: "back" })}>
-            Upload a report
-          </button>
-        </div>
-      </div>
+      <PageFrame label="Compare" gap="var(--space-6)">
+        <PageState kind="loading" title="Loading reports" />
+      </PageFrame>
+    );
+  }
+
+  if (error && reports === null) {
+    return (
+      <PageFrame label="Compare" gap="var(--space-6)">
+        <PageState
+          kind="error"
+          title="Could not load reports"
+          detail={error}
+          action={{ label: "Try again", onClick: retry }}
+        />
+      </PageFrame>
+    );
+  }
+
+  if ((reports ?? []).length < 2) {
+    const count = (reports ?? []).length;
+    return (
+      <PageFrame label="Compare" gap="var(--space-6)">
+        <PageState
+          kind="empty"
+          title="Comparing needs two reports"
+          detail={`This persona has ${count} ${count === 1 ? "report" : "reports"}. Upload another one to compare values.`}
+          action={{
+            label: "Upload a report",
+            onClick: () => transitionNavigate(navigate, "/upload", { direction: "back" }),
+          }}
+        />
+      </PageFrame>
     );
   }
 
@@ -129,7 +150,7 @@ export const ComparePage: React.FC = () => {
   const rows = data?.rows ?? [];
 
   return (
-    <div data-screen-label="Compare" style={pageStyle}>
+    <PageFrame label="Compare" gap="var(--space-6)">
       {usePairButtons ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
           {pairs.map(([a, b]) => {
@@ -148,14 +169,14 @@ export const ComparePage: React.FC = () => {
         </div>
       ) : (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-4)", alignItems: "flex-end" }}>
-          <div className="field" style={{ minWidth: 260 }}>
+          <div className="field" style={{ flex: "1 1 260px", minWidth: "min(260px, 100%)" }}>
             <label htmlFor="cmp-base">Baseline</label>
             <select id="cmp-base" className="input" value={baselineId} onChange={(e) => setBaselineId(e.target.value)}>
               {(reports ?? []).map((r) => <option key={r.id} value={r.id}>{labelOf(r)}</option>)}
             </select>
           </div>
           <span aria-hidden="true" style={{ paddingBottom: 8 }}>{arrow}</span>
-          <div className="field" style={{ minWidth: 260 }}>
+          <div className="field" style={{ flex: "1 1 260px", minWidth: "min(260px, 100%)" }}>
             <label htmlFor="cmp-follow">Follow-up</label>
             <select id="cmp-follow" className="input" value={followupId} onChange={(e) => setFollowupId(e.target.value)}>
               {(reports ?? []).map((r) => <option key={r.id} value={r.id}>{labelOf(r)}</option>)}
@@ -164,53 +185,55 @@ export const ComparePage: React.FC = () => {
         </div>
       )}
 
-      {error && <div style={noteStyle}>Could not load the comparison. {error}</div>}
-      {loading && !data && <div style={noteStyle}>Comparing</div>}
+      {error && (
+        <PageState
+          kind="error"
+          title="Could not load the comparison"
+          detail={error}
+          action={{ label: "Try again", onClick: retry }}
+        />
+      )}
+      {loading && !data && <PageState kind="loading" title="Comparing" />}
 
       {data && (
-        <table className="table" data-testid="compare-table">
-          <thead>
-            <tr>
-              <th>Biomarker</th>
-              <th>{base ? labelOf(base) : "Baseline"}</th>
-              <th>{follow ? labelOf(follow) : "Follow-up"}</th>
-              <th>Change</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && (
-              <tr><td colSpan={5} style={{ color: "var(--color-neutral-700)" }}>These two reports share no extracted values.</td></tr>
-            )}
-            {rows.map((r) => {
-              const a = num(r.baseline);
-              const b = num(r.followup);
-              const d = a !== null && b !== null ? b - a : null;
-              const status = d === null ? "One report" : d === 0 ? "Unchanged" : d > 0 ? "Higher" : "Lower";
-              return (
-                <tr key={`${r.test}-${r.unit}`}>
-                  <td style={{ fontWeight: 800 }}>
-                    {r.test} <span style={{ fontWeight: 400, color: "var(--color-neutral-700)" }}>{r.unit}</span>
-                  </td>
-                  <td style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(r.baseline)}</td>
-                  <td style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(r.followup)}</td>
-                  <td style={{ fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>{d === null ? "—" : fmtDelta(d)}</td>
-                  <td>
-                    <span
-                      className="tag"
-                      style={d === null
-                        ? { background: "var(--color-neutral-200)", color: "var(--color-neutral-800)" }
-                        : { background: "var(--color-accent-100)", color: "var(--color-accent-800)", fontWeight: 800 }}
-                    >
-                      {status}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="vg-scroll-x">
+          <table className="table" data-testid="compare-table" style={{ minWidth: 560 }}>
+            <thead>
+              <tr>
+                <th>Biomarker</th>
+                <th>{base ? labelOf(base) : "Baseline"}</th>
+                <th>{follow ? labelOf(follow) : "Follow-up"}</th>
+                <th>Change</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 && (
+                <tr><td colSpan={5} style={{ color: "var(--color-neutral-700)" }}>These two reports share no extracted values.</td></tr>
+              )}
+              {rows.map((r) => {
+                const a = num(r.baseline);
+                const b = num(r.followup);
+                const d = a !== null && b !== null ? b - a : null;
+                const status = d === null ? "One report" : d === 0 ? "Unchanged" : d > 0 ? "Higher" : "Lower";
+                return (
+                  <tr key={`${r.test}-${r.unit}`}>
+                    <td style={{ fontWeight: 800 }}>
+                      {r.test} <span style={{ fontWeight: 400, color: "var(--color-neutral-700)" }}>{r.unit}</span>
+                    </td>
+                    <td style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(r.baseline)}</td>
+                    <td style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(r.followup)}</td>
+                    <td style={{ fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>{d === null ? "—" : fmtDelta(d)}</td>
+                    <td>
+                      <Tag tone={d === null ? "neutral" : "accent"}>{status}</Tag>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
-    </div>
+    </PageFrame>
   );
 };
