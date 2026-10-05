@@ -9,10 +9,17 @@ export interface JobStreamEvent {
   latency?: string;
   status?: string;
   timestamp?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export type StreamStatus = "idle" | "connecting" | "streaming" | "completed" | "error";
+
+export interface FinalJobMetadata {
+  pages?: number | null;
+  chunks?: number | null;
+  reportId?: string | null;
+  [key: string]: unknown;
+}
 
 export interface UseJobStreamReturn {
   status: StreamStatus;
@@ -22,7 +29,7 @@ export interface UseJobStreamReturn {
   latestEvent: JobStreamEvent | null;
   error: string | null;
   eventCount: number;
-  finalMetadata: Record<string, any> | null;
+  finalMetadata: FinalJobMetadata | null;
   activeJobId: string | null;
   connect: (jobId: string) => void;
   disconnect: () => void;
@@ -46,7 +53,7 @@ export function useJobStream(): UseJobStreamReturn {
   const [latestEvent, setLatestEvent] = useState<JobStreamEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [eventCount, setEventCount] = useState(0);
-  const [finalMetadata, setFinalMetadata] = useState<Record<string, any> | null>(null);
+  const [finalMetadata, setFinalMetadata] = useState<FinalJobMetadata | null>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
 
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -120,15 +127,17 @@ export function useJobStream(): UseJobStreamReturn {
     }
 
     // Check for explicit error/failed status in any event
+    const metaError =
+      typeof evt.metadata?.error === "string" ? evt.metadata.error : null;
     const isEventFailure =
       evt.status === "failed" ||
       evt.status === "error" ||
-      evt.metadata?.error ||
-      evt.description?.startsWith("Error:");
+      Boolean(metaError) ||
+      (typeof evt.description === "string" && evt.description.startsWith("Error:"));
 
     if (isEventFailure) {
       const errMsg =
-        evt.metadata?.error ||
+        metaError ||
         evt.description ||
         "Corrupted document structure or unreadable text layers.";
       setError(errMsg);
@@ -146,39 +155,86 @@ export function useJobStream(): UseJobStreamReturn {
       setSteps((prev) => {
         const next = [...prev];
         if (evt.stage === "received") {
-          next[0] = { name: "Received", value: evt.latency || "verified", status: "done" };
-          next[1] = { name: "Extracted", value: "parsing layout…", status: "active" };
+          next[0] = { name: "Received", value: evt.latency || "stored", status: "done" };
+          next[1] = { name: "Extracted", value: "running", status: "active" };
+        } else if (evt.stage === "extracting") {
+          const pageNum = typeof evt.metadata?.page_number === "number" ? evt.metadata.page_number : null;
+          const totalPages = typeof evt.metadata?.total_pages === "number" ? evt.metadata.total_pages : null;
+          const val = pageNum !== null && totalPages !== null ? `page ${pageNum} of ${totalPages}` : "running";
+          next[1] = { name: "Extracted", value: val, status: "active" };
         } else if (evt.stage === "extracted") {
-          next[0] = { name: "Received", value: "verified", status: "done" };
+          const pageCount =
+            typeof evt.metadata?.page_count === "number"
+              ? evt.metadata.page_count
+              : typeof evt.metadata?.pages === "number"
+                ? evt.metadata.pages
+                : Array.isArray(evt.metadata?.pages)
+                  ? evt.metadata.pages.length
+                  : null;
           next[1] = {
             name: "Extracted",
-            value: evt.description?.match(/\d+ pages?/)?.[0] || "extracted",
+            value: pageCount !== null ? `${pageCount} pages` : "running",
             status: "done",
           };
-          next[2] = { name: "Chunked", value: "chunking…", status: "active" };
+          next[2] = { name: "Chunked", value: "running", status: "active" };
         } else if (evt.stage === "chunked") {
-          next[1] = { name: "Extracted", value: "text ready", status: "done" };
+          const totalChunks =
+            typeof evt.metadata?.total_chunks === "number"
+              ? evt.metadata.total_chunks
+              : typeof evt.metadata?.chunks === "number"
+                ? evt.metadata.chunks
+                : null;
           next[2] = {
             name: "Chunked",
-            value: evt.description?.match(/\d+ semantic sections|\d+ chunks/)?.[0] || "chunked",
+            value: totalChunks !== null ? `${totalChunks} chunks` : "running",
             status: "done",
           };
-          next[3] = { name: "Embedded", value: "embedding…", status: "active" };
+          next[3] = { name: "Embedded", value: "running", status: "active" };
         } else if (evt.stage === "embedded") {
-          next[2] = { name: "Chunked", value: "sections ready", status: "done" };
-          next[3] = { name: "Embedded", value: "384-dim", status: "done" };
-          next[4] = { name: "Indexed", value: "indexing…", status: "active" };
+          const count = typeof evt.metadata?.count === "number" ? evt.metadata.count : null;
+          const dim = typeof evt.metadata?.dim === "number" ? evt.metadata.dim : null;
+          const embedVal = count !== null && dim !== null ? `${count} vectors, ${dim} dimensions` : "running";
+          next[3] = { name: "Embedded", value: embedVal, status: "done" };
+          next[4] = { name: "Indexed", value: "running", status: "active" };
         } else if (evt.stage === "indexed") {
-          next[3] = { name: "Embedded", value: "384-dim", status: "done" };
-          next[4] = { name: "Indexed", value: "ChromaDB ok", status: "done" };
-          next[5] = { name: "Graphed", value: "aligning graph…", status: "active" };
+          const indexed = typeof evt.metadata?.indexed === "number" ? evt.metadata.indexed : null;
+          next[4] = {
+            name: "Indexed",
+            value: indexed !== null ? `${indexed} indexed` : "running",
+            status: "done",
+          };
+          next[5] = { name: "Graphed", value: "running", status: "active" };
         } else if (evt.stage === "graphed") {
-          next[4] = { name: "Indexed", value: "ChromaDB ok", status: "done" };
-          next[5] = { name: "Graphed", value: "NetworkX mapped", status: "done" };
+          let graphVal = "running";
+          if (evt.metadata?.error) {
+            graphVal = "graph not built";
+          } else {
+            const nodes = typeof evt.metadata?.total_nodes === "number" ? evt.metadata.total_nodes : null;
+            const edges = typeof evt.metadata?.total_edges === "number" ? evt.metadata.total_edges : null;
+            if (nodes !== null && edges !== null) {
+              graphVal = `${nodes} nodes, ${edges} edges`;
+            }
+          }
+          next[5] = { name: "Graphed", value: graphVal, status: "done" };
         } else if (evt.stage === "done") {
-          const pageCount = evt.metadata?.pages || evt.metadata?.report?.page_count || 1;
-          const chunkCount = evt.metadata?.chunks || evt.metadata?.report?.chunk_count || 1;
-          const reportId = evt.metadata?.report_id || evt.metadata?.report?.id;
+          const reportObj =
+            typeof evt.metadata?.report === "object" && evt.metadata.report !== null
+              ? (evt.metadata.report as Record<string, unknown>)
+              : undefined;
+          const pageCount =
+            typeof evt.metadata?.pages === "number"
+              ? evt.metadata.pages
+              : typeof reportObj?.page_count === "number"
+                ? reportObj.page_count
+                : null;
+          const chunkCount =
+            typeof evt.metadata?.chunks === "number"
+              ? evt.metadata.chunks
+              : typeof reportObj?.chunk_count === "number"
+                ? reportObj.chunk_count
+                : null;
+          const rawReportId = evt.metadata?.report_id ?? reportObj?.id;
+          const reportId = typeof rawReportId === "string" ? rawReportId : (rawReportId ? String(rawReportId) : null);
 
           setFinalMetadata({
             pages: pageCount,
@@ -198,14 +254,7 @@ export function useJobStream(): UseJobStreamReturn {
           } catch {}
 
           disconnect();
-          return [
-            { name: "Received", value: "verified", status: "done" },
-            { name: "Extracted", value: `${pageCount} pages`, status: "done" },
-            { name: "Chunked", value: `${chunkCount} chunks`, status: "done" },
-            { name: "Embedded", value: "384-dim", status: "done" },
-            { name: "Indexed", value: "ChromaDB ok", status: "done" },
-            { name: "Graphed", value: "NetworkX mapped", status: "done" },
-          ];
+          return next.map((s) => ({ ...s, status: "done" as const }));
         }
         return next;
       });
@@ -248,7 +297,7 @@ export function useJobStream(): UseJobStreamReturn {
       isDoneRef.current = false;
 
       setSteps([
-        { name: "Received", value: "uploading…", status: "active" },
+        { name: "Received", value: "running", status: "active" },
         { name: "Extracted", value: "pending", status: "pending" },
         { name: "Chunked", value: "pending", status: "pending" },
         { name: "Embedded", value: "pending", status: "pending" },
@@ -265,12 +314,17 @@ export function useJobStream(): UseJobStreamReturn {
         setStatus("streaming");
       };
 
-      es.onmessage = (e) => {
+      const handleData = (raw: string) => {
         if (!isMountedRef.current) return;
         try {
-          const evt: JobStreamEvent = JSON.parse(e.data);
+          const evt: JobStreamEvent = JSON.parse(raw);
           if (evt && (evt.stage || evt.status)) {
-            if (evt.stage === "done" || evt.status === "completed" || evt.status === "error" || evt.status === "failed") {
+            if (
+              evt.stage === "done" ||
+              evt.status === "completed" ||
+              evt.status === "error" ||
+              evt.status === "failed"
+            ) {
               isDoneRef.current = true;
             }
             eventQueueRef.current.push(evt);
@@ -282,6 +336,24 @@ export function useJobStream(): UseJobStreamReturn {
           // SSE comment or keep-alive
         }
       };
+
+      es.onmessage = (e) => {
+        handleData(e.data);
+      };
+
+      es.addEventListener("page_extracted", (e: Event) => {
+        const me = e as MessageEvent;
+        if (typeof me.data === "string") {
+          handleData(me.data);
+        }
+      });
+
+      es.addEventListener("completed", (e: Event) => {
+        const me = e as MessageEvent;
+        if (typeof me.data === "string") {
+          handleData(me.data);
+        }
+      });
 
       // The SSE socket can drop while the backend is busy extracting/embedding, even though the
       // job keeps running. Before declaring failure, ask the job endpoint what really happened.
@@ -342,7 +414,11 @@ export function useJobStream(): UseJobStreamReturn {
         }, 1500);
       };
 
-      es.onerror = () => {
+      es.onerror = (e: Event) => {
+        if ("data" in e && typeof (e as MessageEvent).data === "string" && (e as MessageEvent).data.length > 0) {
+          handleData((e as MessageEvent).data);
+          return;
+        }
         if (isDoneRef.current) {
           disconnect();
           return;
