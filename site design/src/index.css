@@ -1041,3 +1041,54 @@ button:not(:disabled):active,
 .agent-evidence-row:hover {
   color: var(--color-accent-700);
 }
+
+/* Shared page frame and phone rules (plan task A2). Inline styles cannot hold media queries, which is why the gutters live in CSS. */
+.vg-page {
+  box-sizing: border-box;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding: var(--space-8);
+}
+
+.vg-pad {
+  box-sizing: border-box;
+  padding: var(--space-8);
+}
+
+.vg-gutter {
+  padding-left: var(--space-8);
+  padding-right: var(--space-8);
+}
+
+.vg-header {
+  padding: var(--space-3) var(--space-8);
+}
+
+.vg-footer {
+  padding: 0 var(--space-8);
+}
+
+.vg-scroll-x {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+@media (max-width: 640px) {
+  .vg-page {
+    padding: var(--space-4);
+  }
+  .vg-pad {
+    padding: var(--space-4);
+  }
+  .vg-gutter {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+  .vg-header {
+    padding: var(--space-3) var(--space-4);
+  }
+  .vg-footer {
+    padding: 0 var(--space-4);
+  }
+}
