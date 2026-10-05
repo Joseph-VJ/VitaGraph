@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { CinematicPipelinePopup } from "../components/gallery/CinematicPipelinePopup";
+import { CinematicIngestionShow } from "../components/upload/CinematicIngestionShow";
 import { useToast } from "../components/gallery/Toast";
 import { reportsApi } from "../api/reports";
 import { useActiveUser } from "../context/UserContext";
@@ -597,20 +597,11 @@ export const UploadPage: React.FC = () => {
         </div>
       )}
 
-      <CinematicPipelinePopup
+      <CinematicIngestionShow
         isOpen={isPopupOpen}
         filename={file?.name || "Report"}
         jobStream={jobStream}
         userId={userId ?? undefined}
-        onContinueToAsk={() => {
-          setIsPopupOpen(false);
-          const rid = jobStream.finalMetadata?.reportId;
-          transitionNavigate(
-            navigate,
-            rid ? `/agent?report=${encodeURIComponent(String(rid))}` : "/agent",
-            { direction: "forward" }
-          );
-        }}
         onClose={() => setIsPopupOpen(false)}
         onContinueToLibrary={() => {
           setIsPopupOpen(false);
