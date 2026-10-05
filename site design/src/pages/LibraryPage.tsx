@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { reportsApi, type MeasurementRow } from "../api/reports";
 import { useActiveUser } from "../context/UserContext";
 import { transitionNavigate } from "../motion/navigation";
-import { makeLabeler, sortReports, reportStatus } from "../lib/reportLabels";
+import { makeLabeler, sortReports, reportStatus, parseReportDate } from "../lib/reportLabels";
 import { PageFrame, PageState, PersonaState, Tag, type TagTone } from "../components/ui";
 import type { Report, ReportPage } from "../types";
 
@@ -12,7 +12,7 @@ const num = (v: number) => v.toLocaleString("en-US", { maximumFractionDigits: 3 
 const headStyle: React.CSSProperties = {
   fontSize: "0.6875rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-neutral-700)",
 };
-const GRID = "minmax(120px,1.2fr) minmax(90px,0.8fr) minmax(150px,1.6fr) 8rem";
+const GRID = "minmax(120px,1.2fr) minmax(90px,0.8fr) minmax(150px,1.6fr) 5.5rem";
 
 /** Status from the report's own printed range, else the lab's own flag. Never a judgement of ours. */
 function statusOf(r: MeasurementRow): { label: string; tone: TagTone } {
@@ -57,7 +57,8 @@ export const LibraryPage: React.FC = () => {
         if (cancelled) return;
         const sorted = sortReports(list);
         setReports(sorted);
-        setSelId(sorted.length > 0 ? sorted[sorted.length - 1].id : "");
+        const latestDated = [...sorted].reverse().find((r) => parseReportDate(r) !== null);
+        setSelId(latestDated ? latestDated.id : (sorted.length > 0 ? sorted[sorted.length - 1].id : ""));
       })
       .catch((err: unknown) => { if (!cancelled) setError(err instanceof Error ? err.message : String(err)); });
     return () => { cancelled = true; };
@@ -152,10 +153,6 @@ export const LibraryPage: React.FC = () => {
 
   return (
     <PageFrame label="Library">
-      <style>{`
-        .table th { color: var(--color-neutral-800) !important; }
-        [data-tone="hot"] { background: var(--color-accent-700) !important; color: var(--color-bg) !important; }
-      `}</style>
       <div className="vg-scroll-x">
         <table className="table" data-testid="library-table" style={{ minWidth: 640 }}>
           <thead>
@@ -182,7 +179,7 @@ export const LibraryPage: React.FC = () => {
                   <td style={{ overflowWrap: "anywhere" }}>{r.original_filename}</td>
                   <td style={{ fontVariantNumeric: "tabular-nums" }}>{r.page_count ?? "—"}</td>
                   <td style={{ fontVariantNumeric: "tabular-nums" }}>{r.chunk_count ?? "—"}</td>
-                  <td style={{ fontVariantNumeric: "tabular-nums", color: "var(--color-neutral-700)" }}>
+                  <td style={{ fontVariantNumeric: "tabular-nums", color: "var(--color-neutral-700)", whiteSpace: "nowrap" }}>
                     {r.file_hash.length > 8 ? `${r.file_hash.slice(0, 4)}…${r.file_hash.slice(-4)}` : r.file_hash}
                   </td>
                   <td><Tag tone={st.tone}>{st.label}</Tag></td>

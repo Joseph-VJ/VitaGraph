@@ -6,10 +6,31 @@ import { transitionNavigate } from "../motion/navigation";
 import { PageFrame, PageState, PersonaState, SectionHead } from "../components/ui";
 
 const KIND: Record<string, string> = {
-  person: "Subject", report: "Report", category: "Panel", section: "Document section", test: "Biomarker",
-  measurement: "Measurement", uncertainty: "Uncertain", chunk: "Text fragment", date: "Date",
+  person: "Subject",
+  report: "Report",
+  category: "Panel",
+  section: "Section",
+  test: "Biomarker",
+  bio: "Biomarker",
+  measurement: "Measurement",
+  meas: "Measurement",
+  uncertainty: "Uncertainty",
+  unc: "Uncertainty",
+  chunk: "Text fragment",
+  date: "Date",
 };
 const kindName = (t: string): string => KIND[t] ?? t.charAt(0).toUpperCase() + t.slice(1);
+
+function nodeDisplayLabel(n: { label: string; type?: string; date?: string | null }): string {
+  if (n.type?.toLowerCase() === "report") {
+    if (n.date && n.date.toLowerCase() !== "unknown date" && n.date.trim() !== "") {
+      return n.date.trim();
+    }
+    const clean = n.label.replace(/\.[a-zA-Z0-9]+(\s*\(.*\))?$/, "").replace(/\s*\(.*\)$/, "").trim();
+    return clean || n.label;
+  }
+  return n.label;
+}
 
 export const InsightsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -142,7 +163,7 @@ export const InsightsPage: React.FC = () => {
               <div key={n.id} style={{ padding: "var(--space-2) 0" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", fontWeight: 800 }}>
                   <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={n.label}>
-                    {n.label}
+                    {nodeDisplayLabel(n)}
                   </span>
                   <span style={{ fontVariantNumeric: "tabular-nums" }}>{v.toFixed(2)}</span>
                 </div>

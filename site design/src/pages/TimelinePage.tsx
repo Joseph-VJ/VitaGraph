@@ -561,7 +561,7 @@ export const TimelinePage: React.FC = () => {
                   {r.original_filename}
                 </div>
               </div>
-              <Tag tone={st.tone}>{st.label}</Tag>
+              <Tag tone="neutral">{st.label}</Tag>
             </div>
           );
         })}

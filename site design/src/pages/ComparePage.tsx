@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { reportsApi, type ComparisonData } from "../api/reports";
 import { useActiveUser } from "../context/UserContext";
 import { transitionNavigate } from "../motion/navigation";
-import { makeLabeler, sortReports } from "../lib/reportLabels";
+import { makeLabeler, sortReports, parseReportDate } from "../lib/reportLabels";
 import { PageFrame, PageState, PersonaState, Tag } from "../components/ui";
 import type { Report } from "../types";
 
@@ -58,8 +58,14 @@ export const ComparePage: React.FC = () => {
         const sorted = sortReports(list);
         setReports(sorted);
         if (sorted.length >= 2) {
-          setBaselineId(sorted[0].id);
-          setFollowupId(sorted[sorted.length - 1].id);
+          const dated = sorted.filter((r) => parseReportDate(r) !== null);
+          if (dated.length >= 2) {
+            setBaselineId(dated[0].id);
+            setFollowupId(dated[dated.length - 1].id);
+          } else {
+            setBaselineId(sorted[0].id);
+            setFollowupId(sorted[sorted.length - 1].id);
+          }
         } else {
           setBaselineId("");
           setFollowupId("");
@@ -151,9 +157,6 @@ export const ComparePage: React.FC = () => {
 
   return (
     <PageFrame label="Compare" gap="var(--space-6)">
-      <style>{`
-        .table th { color: var(--color-neutral-800) !important; }
-      `}</style>
       {usePairButtons ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
           {pairs.map(([a, b]) => {
