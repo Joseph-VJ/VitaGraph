@@ -146,9 +146,6 @@ export const SettingsPage: React.FC = () => {
         flexDirection: "column",
       }}
     >
-      <style>{`
-        .btn-primary { background: var(--color-accent-700) !important; color: var(--color-bg) !important; }
-      `}</style>
       {loadFailed ? (
         <PageState
           kind="offline"
