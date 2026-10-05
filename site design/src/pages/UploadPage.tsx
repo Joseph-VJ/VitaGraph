@@ -272,6 +272,11 @@ export const UploadPage: React.FC = () => {
 
   return (
     <PageFrame label="Upload">
+      <style>{`
+        .btn-primary { background: var(--color-accent-700) !important; color: var(--color-bg) !important; }
+        .table th { color: var(--color-neutral-800) !important; }
+        [data-tone="hot"] { background: var(--color-accent-700) !important; color: var(--color-bg) !important; }
+      `}</style>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-8)", alignItems: "flex-start" }}>
         {/* Left column: 320px-720px */}
         <div

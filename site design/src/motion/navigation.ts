@@ -59,11 +59,8 @@ export const ROUTE_INDEX: Record<string, number> = {
   "/compare": 5,
   "/insights": 6,
   "/library": 7,
-  "/datasets": 8,
-  "/ontology": 9,
-  "/notebooks": 10,
-  "/gallery": 11,
-  "/settings": 12,
+  "/gallery": 8,
+  "/settings": 9,
 };
 
 let lastPath = typeof window !== "undefined" ? window.location.pathname : "/";

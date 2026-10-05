@@ -152,6 +152,10 @@ export const LibraryPage: React.FC = () => {
 
   return (
     <PageFrame label="Library">
+      <style>{`
+        .table th { color: var(--color-neutral-800) !important; }
+        [data-tone="hot"] { background: var(--color-accent-700) !important; color: var(--color-bg) !important; }
+      `}</style>
       <div className="vg-scroll-x">
         <table className="table" data-testid="library-table" style={{ minWidth: 640 }}>
           <thead>
