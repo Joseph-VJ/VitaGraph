@@ -3,67 +3,53 @@ import {
   GraphCanvas,
   type GraphCanvasHandle,
   type GEdge,
-  type GNode,
 } from "../components/graph/GraphCanvas";
+import { extractGraph, type Entity, type TextGraphNode } from "../components/graph/textGraph";
 import { usePreferences } from "../lib/preferences";
 
-interface ExtractedRow {
-  name: string;
-  value: string;
-  unit: string;
-  span: string;
-}
+type T2GNode = TextGraphNode;
 
-interface T2GNode extends GNode {
-  about: string;
-}
+const LAB_SAMPLE =
+  "Report date: 12 March 2026\nHemoglobin 13.8 g/dL\nFasting Glucose 96 mg/dL\nTSH 2.4 uIU/mL";
+const FREE_SAMPLE =
+  "Arjun visited Dr. Meera at Apollo Hospital in Chennai on 12 March 2026. He complained of fatigue and headache. Dr. Meera prescribed Metformin and advised a diet change. Apollo Hospital will follow up in April.";
+
+const swatch = (extra: React.CSSProperties): React.CSSProperties => ({
+  width: 12,
+  height: 12,
+  display: "inline-block",
+  flexShrink: 0,
+  ...extra,
+});
 
 const T2G_LEGEND_ITEMS = [
+  { label: "Document", css: swatch({ background: "var(--color-text)" }) },
   {
-    label: "Document",
-    css: {
-      width: 12,
-      height: 12,
-      background: "var(--color-text)",
-      display: "inline-block",
-      flexShrink: 0,
-    },
+    label: "Sentence",
+    css: swatch({ background: "var(--color-text)", transform: "rotate(45deg) scale(0.8)" }),
+  },
+  {
+    label: "Name or term",
+    css: swatch({ borderRadius: "var(--r-circle, 50%)", background: "var(--color-text)" }),
   },
   {
     label: "Date",
-    css: {
-      width: 12,
-      height: 12,
+    css: swatch({
       borderRadius: "var(--r-circle, 50%)",
       border: "2.5px solid var(--color-text)",
       background: "var(--color-bg)",
-      boxSizing: "border-box" as const,
-      display: "inline-block",
-      flexShrink: 0,
-    },
-  },
-  {
-    label: "Biomarker",
-    css: {
-      width: 12,
-      height: 12,
-      borderRadius: "var(--r-circle, 50%)",
-      background: "var(--color-text)",
-      display: "inline-block",
-      flexShrink: 0,
-    },
+      boxSizing: "border-box",
+    }),
   },
   {
     label: "Value",
-    css: {
+    css: swatch({
       width: 8,
       height: 8,
       borderRadius: "var(--r-circle, 50%)",
       background: "var(--color-neutral-700)",
-      display: "inline-block",
       margin: 2,
-      flexShrink: 0,
-    },
+    }),
   },
 ];
 
@@ -74,7 +60,8 @@ export const TextToGraphPage: React.FC = () => {
   const [text, setText] = useState<string>("");
   const [nodes, setNodes] = useState<T2GNode[]>([]);
   const [edges, setEdges] = useState<GEdge[]>([]);
-  const [rows, setRows] = useState<ExtractedRow[]>([]);
+  const [entities, setEntities] = useState<Entity[]>([]);
+  const [message, setMessage] = useState<string>("");
   const [dateStr, setDateStr] = useState<string | null>(null);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -88,88 +75,29 @@ export const TextToGraphPage: React.FC = () => {
   const isReducedMotion = prefs.reduceMotion || systemReduced;
 
   const buildGraphFromText = useCallback((rawText: string) => {
-    const re =
-      /([A-Za-z][A-Za-z0-9 ()\-]{1,34}?)\s*[:=]?\s*(\d[\d,]*\.?\d*)\s*(g\/dL|mg\/dL|ng\/mL|pg\/mL|\/µL|\/uL|mmol\/L|U\/L|IU\/L|fL|pg|%)/g;
-    const dm = rawText.match(
-      /\b(\d{1,2}\s+[A-Z][a-z]{2,8}\s+\d{4}|[A-Z][a-z]{2,8}\s+\d{4})\b/
-    );
-
-    const extracted: ExtractedRow[] = [];
-    let pos = 0;
-    const lines = rawText.split("\n");
-    for (const line of lines) {
-      re.lastIndex = 0;
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(line)) !== null) {
-        const nm = m[1].replace(/^\s+|\s+$/g, "");
-        if (/^(report|date|reference|ref|range)/i.test(nm)) continue;
-        extracted.push({
-          name: nm,
-          value: m[2],
-          unit: m[3],
-          span: `${pos + m.index}–${pos + m.index + m[0].length - 1}`,
-        });
-      }
-      pos += line.length + 1;
+    if (!rawText.trim()) {
+      setNodes([]);
+      setEdges([]);
+      setEntities([]);
+      setDateStr(null);
+      setSelectedId(null);
+      setMessage("Type or paste some text first.");
+      return;
     }
-
-    const nList: T2GNode[] = [
-      {
-        id: "d",
-        k: "person",
-        label: "Document",
-        pos: [0, 0, 0],
-        about: "The text you pasted.",
-      },
-    ];
-    const eList: GEdge[] = [];
-
-    const foundDate = dm ? dm[0] : null;
-    if (foundDate) {
-      nList.push({
-        id: "dt",
-        k: "report",
-        label: foundDate,
-        pos: [0.05, -0.45, 0.25],
-        about: "Date found in the text.",
-      });
-      eList.push(["d", "dt"]);
-    }
-
-    const count = extracted.length;
-    extracted.forEach((r, i) => {
-      const y = count > 1 ? 1 - (2 * (i + 0.5)) / count : 0;
-      const rad = Math.sqrt(Math.max(0, 1 - y * y));
-      const th = i * 2.399963 + 0.4;
-      const ux = Math.cos(th) * rad;
-      const uz = Math.sin(th) * rad;
-
-      nList.push({
-        id: `b${i}`,
-        k: "bio",
-        label: r.name,
-        pos: [ux * 0.52, y * 0.52, uz * 0.52],
-        about: `${r.name} at characters ${r.span}.`,
-      });
-      nList.push({
-        id: `v${i}`,
-        k: "meas",
-        label: `${r.value} ${r.unit}`,
-        pos: [ux * 0.85, y * 0.85, uz * 0.85],
-        about: `${r.name} = ${r.value} ${r.unit}.`,
-      });
-
-      eList.push(["d", `b${i}`]);
-      eList.push([`b${i}`, `v${i}`]);
-    });
-
-    setNodes(nList);
-    setEdges(eList);
-    setRows(extracted);
-    setDateStr(foundDate);
+    const g = extractGraph(rawText);
+    setMessage("");
+    setNodes(g.nodes);
+    setEdges(g.edges);
+    setEntities(g.entities);
+    setDateStr(g.date);
     setSelectedId(null);
     setReplayToken(performance.now());
   }, []);
+
+  const loadExample = (sample: string) => {
+    setText(sample);
+    buildGraphFromText(sample);
+  };
 
   const handleFile = (file: File | undefined | null) => {
     if (!file) return;
@@ -188,7 +116,7 @@ export const TextToGraphPage: React.FC = () => {
       {
         nodes: nodes.map((q) => ({ id: q.id, type: q.k, label: q.label })),
         edges,
-        measurements: rows,
+        entities,
       },
       null,
       2
@@ -210,7 +138,8 @@ export const TextToGraphPage: React.FC = () => {
     let kind = "Node";
     if (nd.k === "person") kind = "Document";
     else if (nd.k === "report") kind = "Date";
-    else if (nd.k === "bio") kind = "Biomarker";
+    else if (nd.k === "section") kind = "Sentence";
+    else if (nd.k === "bio") kind = "Name or term";
     else if (nd.k === "meas") kind = "Value";
 
     const nbs = edges
@@ -235,8 +164,9 @@ export const TextToGraphPage: React.FC = () => {
 
   const summaryText = useMemo(() => {
     if (nodes.length === 0) return "";
-    return `${rows.length} biomarker${rows.length === 1 ? "" : "s"}${dateStr ? ` · ${dateStr}` : ""} · ${nodes.length} nodes, ${edges.length} edges`;
-  }, [nodes.length, edges.length, rows.length, dateStr]);
+    const sentences = nodes.filter((n) => n.k === "section").length;
+    return `${entities.length} entit${entities.length === 1 ? "y" : "ies"} · ${sentences} sentence${sentences === 1 ? "" : "s"}${dateStr ? ` · ${dateStr}` : ""} · ${nodes.length} nodes, ${edges.length} edges`;
+  }, [nodes, edges.length, entities.length, dateStr]);
 
   const countLabel = useMemo(() => {
     if (nodes.length === 0) return "0 nodes · 0 edges";
@@ -299,7 +229,7 @@ export const TextToGraphPage: React.FC = () => {
               No graph built yet
             </div>
             <div>
-              Upload a text file or paste lab results on the right and click Build graph.
+              Paste or type any text on the right and click Build graph.
             </div>
           </div>
         )}
@@ -448,7 +378,7 @@ export const TextToGraphPage: React.FC = () => {
             className="input"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Paste report text here with values (e.g. Hemoglobin 14.0 g/dL)"
+            placeholder="Paste or type any text, such as a report, a note or an email"
             style={{
               minHeight: 190,
               fontSize: "0.875rem",
@@ -484,6 +414,31 @@ export const TextToGraphPage: React.FC = () => {
             </button>
           </div>
 
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => loadExample(LAB_SAMPLE)}
+              style={{ padding: "var(--space-1) var(--space-2)", fontSize: "0.8125rem" }}
+            >
+              Example: lab report
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => loadExample(FREE_SAMPLE)}
+              style={{ padding: "var(--space-1) var(--space-2)", fontSize: "0.8125rem" }}
+            >
+              Example: free text
+            </button>
+          </div>
+
+          {message && (
+            <div role="status" style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>
+              {message}
+            </div>
+          )}
+
           {/* Summary */}
           {summaryText && (
             <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>
@@ -491,35 +446,40 @@ export const TextToGraphPage: React.FC = () => {
             </div>
           )}
 
-          {/* Rows Table */}
-          {rows.length > 0 && (
-            <table className="table" style={{ fontSize: "0.8125rem", width: "100%" }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: "left" }}>Biomarker</th>
-                  <th style={{ textAlign: "left" }}>Value</th>
-                  <th style={{ textAlign: "left" }}>Characters</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r, i) => (
-                  <tr key={i}>
-                    <td style={{ fontWeight: 800 }}>{r.name}</td>
-                    <td style={{ fontVariantNumeric: "tabular-nums" }}>
-                      {r.value} {r.unit}
-                    </td>
-                    <td
-                      style={{
-                        fontVariantNumeric: "tabular-nums",
-                        color: "var(--color-neutral-700)",
-                      }}
-                    >
-                      {r.span}
-                    </td>
+          {/* Entities Table */}
+          {entities.length > 0 && (
+            <>
+              <table className="table" style={{ fontSize: "0.8125rem", width: "100%" }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: "left" }}>Name</th>
+                    <th style={{ textAlign: "left" }}>Kind</th>
+                    <th style={{ textAlign: "left" }}>Mentions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {entities.slice(0, 12).map((r) => (
+                    <tr key={r.id}>
+                      <td style={{ fontWeight: 800 }}>{r.label}</td>
+                      <td>{r.kind}</td>
+                      <td
+                        style={{
+                          fontVariantNumeric: "tabular-nums",
+                          color: "var(--color-neutral-700)",
+                        }}
+                      >
+                        {r.mentions}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {entities.length > 12 && (
+                <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>
+                  + {entities.length - 12} more
+                </div>
+              )}
+            </>
           )}
 
           {/* Download JSON */}
