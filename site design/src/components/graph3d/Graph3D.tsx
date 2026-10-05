@@ -39,6 +39,8 @@ export function Graph3D(props: Graph3DProps) {
   const { onContextLost, onSelect, className = "" } = props;
   const tokenColours = useMemo(() => readTokenColours(), []);
   const containerRef = useRef<HTMLDivElement>(null);
+  const labelsRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   // Background hex / rgb check: readTokenColours returns rgb(...) or rgba(...) strings
   const bgColor = useMemo(() => new THREE.Color(tokenColours.bg), [tokenColours.bg]);
@@ -67,9 +69,25 @@ export function Graph3D(props: Graph3DProps) {
           }}
           onPointerMissed={() => onSelect(null)}
         >
-          <Scene {...props} containerRef={containerRef} />
+          <Scene
+            {...props}
+            containerRef={containerRef}
+            labelsRef={labelsRef}
+            tooltipRef={tooltipRef}
+          />
         </Canvas>
       </div>
+
+      {/* HTML Overlays rendered safely in DOM container outside Canvas */}
+      <div
+        ref={labelsRef}
+        className="absolute inset-0 pointer-events-none overflow-hidden z-10"
+      />
+      <div
+        ref={tooltipRef}
+        className="absolute pointer-events-none z-20 px-2 py-1 text-[12px] font-semibold text-[var(--color-text)] bg-[var(--color-bg)] border border-[var(--color-divider)] shadow-sm"
+        style={{ display: "none", whiteSpace: "nowrap" }}
+      />
     </div>
   );
 }
@@ -78,6 +96,8 @@ export default Graph3D;
 
 interface SceneProps extends Graph3DProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
+  labelsRef: React.RefObject<HTMLDivElement | null>;
+  tooltipRef: React.RefObject<HTMLDivElement | null>;
 }
 
 function Scene({
@@ -89,6 +109,8 @@ function Scene({
   fitSignal = 0,
   autoRotate = true,
   containerRef,
+  labelsRef,
+  tooltipRef,
 }: SceneProps) {
   const { camera, gl } = useThree();
   const preferences = usePreferences();
@@ -100,9 +122,9 @@ function Scene({
   const groupRef = useRef<THREE.Group>(null);
   const pausedRef = useRef(false);
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const vecRef = useRef(new THREE.Vector3());
 
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const hoveredNode = hoveredIdx !== null ? nodes[hoveredIdx] : null;
 
   const tokenColours = useMemo(() => readTokenColours(), []);
 
@@ -307,6 +329,76 @@ function Scene({
       groupRef.current.rotation.y += 0.19 * delta;
       invalidate();
     }
+
+    // 4. Update projected labels DOM
+    const container = containerRef.current;
+    const labelsEl = labelsRef.current;
+    if (container && labelsEl && groupRef.current && nodes.length > 0) {
+      const rect = container.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      if (w > 0 && h > 0) {
+        const groupMatrix = groupRef.current.matrixWorld;
+        const vec = vecRef.current;
+
+        const labelIndices = new Set<number>();
+        if (selectedIdx !== -1) {
+          labelIndices.add(selectedIdx);
+          neighbourIndices.forEach((idx) => labelIndices.add(idx));
+        }
+        const topCount = Math.min(12, nodes.length);
+        for (let i = 0; i < topCount; i++) {
+          labelIndices.add(i);
+        }
+
+        let html = "";
+        labelIndices.forEach((idx) => {
+          const node = nodes[idx];
+          if (!node) return;
+          vec.set(positions[idx * 3 + 0], positions[idx * 3 + 1], positions[idx * 3 + 2]);
+          vec.applyMatrix4(groupMatrix);
+          vec.project(camera);
+
+          if (vec.z < 1.0) {
+            const sx = Math.round((vec.x * 0.5 + 0.5) * w);
+            const sy = Math.round((-vec.y * 0.5 + 0.5) * h);
+            const isSel = idx === selectedIdx;
+            const fw = isSel ? "800" : "600";
+            const labelText = node.label || node.id;
+            html += `<div class="absolute text-[11px] px-1.5 py-0.5 border leading-tight" style="left:${sx + 8}px;top:${sy - 8}px;font-family:Archivo,sans-serif;font-weight:${fw};color:var(--color-text);background-color:var(--color-bg);border-color:var(--color-divider);white-space:nowrap;">${labelText}</div>`;
+          }
+        });
+        labelsEl.innerHTML = html;
+      }
+    }
+
+    // 5. Update hover tooltip DOM
+    const tooltipEl = tooltipRef.current;
+    if (container && tooltipEl && groupRef.current && hoveredIdx !== null && hoveredIdx < nodes.length) {
+      const rect = container.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      if (w > 0 && h > 0) {
+        const node = nodes[hoveredIdx];
+        const vec = vecRef.current;
+        vec.set(positions[hoveredIdx * 3 + 0], positions[hoveredIdx * 3 + 1], positions[hoveredIdx * 3 + 2]);
+        vec.applyMatrix4(groupRef.current.matrixWorld);
+        vec.project(camera);
+
+        if (vec.z < 1.0) {
+          const sx = Math.round((vec.x * 0.5 + 0.5) * w);
+          const sy = Math.round((-vec.y * 0.5 + 0.5) * h);
+          tooltipEl.style.display = "block";
+          tooltipEl.style.left = `${sx + 12}px`;
+          tooltipEl.style.top = `${sy - 12}px`;
+          tooltipEl.textContent = node.label || node.id;
+        } else {
+          tooltipEl.style.display = "none";
+        }
+      }
+    } else if (tooltipEl) {
+      tooltipEl.style.display = "none";
+    }
   });
 
   // Track window resize / visibility change
@@ -356,27 +448,6 @@ function Scene({
           tokenColours={tokenColours}
         />
       </group>
-
-      <Labels
-        nodes={nodes}
-        positions={positions}
-        selectedIdx={selectedIdx}
-        neighbourIndices={neighbourIndices}
-        groupRef={groupRef}
-        camera={camera as THREE.PerspectiveCamera}
-        containerRef={containerRef}
-      />
-
-      {hoveredNode && (
-        <HoverTooltip
-          node={hoveredNode}
-          positions={positions}
-          nodeIdx={hoveredIdx!}
-          groupRef={groupRef}
-          camera={camera as THREE.PerspectiveCamera}
-          containerRef={containerRef}
-        />
-      )}
     </>
   );
 }
@@ -571,7 +642,10 @@ function Edges({ edges, positions, selectedIdx, tokenColours }: EdgesProps) {
   // Build color buffer
   const colorBuffer = useMemo(() => {
     const arr = new Float32Array(edges.length * 2 * 3);
-    const baseColor = new THREE.Color(tokenColours.divider);
+    const dividerColor = tokenColours.divider.includes("color-mix")
+      ? "rgba(32, 30, 29, 0.4)"
+      : tokenColours.divider;
+    const baseColor = new THREE.Color(dividerColor);
     const selectedColor = new THREE.Color(tokenColours.text);
 
     for (let i = 0; i < edges.length; i++) {
@@ -618,183 +692,5 @@ function Edges({ edges, positions, selectedIdx, tokenColours }: EdgesProps) {
       geometry={geometryRef.current ?? undefined}
       material={material}
     />
-  );
-}
-
-// ----------------------------------------------------------------------
-// HTML Labels Overlay
-// ----------------------------------------------------------------------
-interface LabelsProps {
-  nodes: GraphNode[];
-  positions: Float32Array;
-  selectedIdx: number;
-  neighbourIndices: Set<number>;
-  groupRef: React.RefObject<THREE.Group | null>;
-  camera: THREE.PerspectiveCamera;
-  containerRef: React.RefObject<HTMLDivElement | null>;
-}
-
-function Labels({
-  nodes,
-  positions,
-  selectedIdx,
-  neighbourIndices,
-  groupRef,
-  camera,
-  containerRef,
-}: LabelsProps) {
-  const [projectedLabels, setProjectedLabels] = useState<
-    Array<{ id: string; label: string; x: number; y: number; isSelected: boolean }>
-  >([]);
-
-  // Preallocated vector for zero-allocation projections
-  const vecRef = useRef(new THREE.Vector3());
-
-  useFrame(() => {
-    const container = containerRef.current;
-    if (!container || !groupRef.current || nodes.length === 0) {
-      if (projectedLabels.length > 0) setProjectedLabels([]);
-      return;
-    }
-
-    const rect = container.getBoundingClientRect();
-    const w = rect.width;
-    const h = rect.height;
-    if (w <= 0 || h <= 0) return;
-
-    const groupMatrix = groupRef.current.matrixWorld;
-    const vec = vecRef.current;
-    const list: Array<{ id: string; label: string; x: number; y: number; isSelected: boolean }> = [];
-
-    // Filter to selected node, direct neighbours, and top 12 most central nodes
-    const labelIndices = new Set<number>();
-    if (selectedIdx !== -1) {
-      labelIndices.add(selectedIdx);
-      neighbourIndices.forEach((idx) => labelIndices.add(idx));
-    }
-    const topCount = Math.min(12, nodes.length);
-    for (let i = 0; i < topCount; i++) {
-      labelIndices.add(i);
-    }
-
-    labelIndices.forEach((idx) => {
-      const node = nodes[idx];
-      if (!node) return;
-
-      vec.set(
-        positions[idx * 3 + 0],
-        positions[idx * 3 + 1],
-        positions[idx * 3 + 2]
-      );
-      vec.applyMatrix4(groupMatrix);
-      vec.project(camera);
-
-      // Only show if point is in front of camera
-      if (vec.z < 1.0) {
-        const sx = (vec.x * 0.5 + 0.5) * w;
-        const sy = (-vec.y * 0.5 + 0.5) * h;
-        list.push({
-          id: node.id,
-          label: node.label || node.id,
-          x: sx,
-          y: sy,
-          isSelected: idx === selectedIdx,
-        });
-      }
-    });
-
-    setProjectedLabels(list);
-  });
-
-  if (projectedLabels.length === 0) return null;
-
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
-      {projectedLabels.map((lbl) => (
-        <div
-          key={lbl.id}
-          className="absolute text-[11px] px-1.5 py-0.5 border leading-tight"
-          style={{
-            left: lbl.x + 8,
-            top: lbl.y - 8,
-            fontFamily: "Archivo, sans-serif",
-            fontWeight: lbl.isSelected ? 800 : 600,
-            color: "var(--color-text)",
-            backgroundColor: "var(--color-bg)",
-            borderColor: "var(--color-divider)",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {lbl.label}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ----------------------------------------------------------------------
-// Hover Tooltip Overlay
-// ----------------------------------------------------------------------
-interface HoverTooltipProps {
-  node: GraphNode;
-  positions: Float32Array;
-  nodeIdx: number;
-  groupRef: React.RefObject<THREE.Group | null>;
-  camera: THREE.PerspectiveCamera;
-  containerRef: React.RefObject<HTMLDivElement | null>;
-}
-
-function HoverTooltip({
-  node,
-  positions,
-  nodeIdx,
-  groupRef,
-  camera,
-  containerRef,
-}: HoverTooltipProps) {
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
-  const vecRef = useRef(new THREE.Vector3());
-
-  useFrame(() => {
-    const container = containerRef.current;
-    if (!container || !groupRef.current) return;
-
-    const rect = container.getBoundingClientRect();
-    const w = rect.width;
-    const h = rect.height;
-    if (w <= 0 || h <= 0) return;
-
-    const vec = vecRef.current;
-    vec.set(
-      positions[nodeIdx * 3 + 0],
-      positions[nodeIdx * 3 + 1],
-      positions[nodeIdx * 3 + 2]
-    );
-    vec.applyMatrix4(groupRef.current.matrixWorld);
-    vec.project(camera);
-
-    if (vec.z < 1.0) {
-      setPos({
-        x: (vec.x * 0.5 + 0.5) * w,
-        y: (-vec.y * 0.5 + 0.5) * h,
-      });
-    } else {
-      setPos(null);
-    }
-  });
-
-  if (!pos) return null;
-
-  return (
-    <div
-      className="absolute pointer-events-none z-20 px-2 py-1 text-[12px] font-semibold text-[var(--color-text)] bg-[var(--color-bg)] border border-[var(--color-divider)] shadow-sm"
-      style={{
-        left: pos.x + 12,
-        top: pos.y - 12,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {node.label || node.id}
-    </div>
   );
 }

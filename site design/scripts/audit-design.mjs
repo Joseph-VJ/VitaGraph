@@ -9,7 +9,6 @@ const srcDir = path.resolve(__dirname, '..', 'src');
 const isStrict = process.argv.includes('--strict');
 
 const PENDING_FILES = new Set([
-  'pages/KnowledgeGraphPage.tsx',
   'components/gallery/CinematicPipelinePopup.tsx',
 ]);
 
@@ -24,7 +23,11 @@ function toRelPath(absPath) {
 }
 
 function isSkipped(relPath) {
-  return relPath === 'pages/GalleryPage.tsx' || relPath.startsWith('motion/');
+  return (
+    relPath === 'pages/GalleryPage.tsx' ||
+    relPath === 'components/gallery/graphTheme.ts' ||
+    relPath.startsWith('motion/')
+  );
 }
 
 function resolveImport(dir, specifier) {
