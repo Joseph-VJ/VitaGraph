@@ -25,7 +25,7 @@ from app.rag import vector_store
 from app.services import timeline_service
 
 
-def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None = None) -> dict:
+def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None = None, chunk_size: int | None = None) -> dict:
     """Run the full ingestion pipeline for one uploaded file."""
     import time
     from app.services import user_service
@@ -145,7 +145,7 @@ def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None 
         with get_db() as db:
             extractor.persist_pages(db, report_id, pages)
             for page in pages:
-                chunks = chunker.chunk_page(page, report)
+                chunks = chunker.chunk_page(page, report, target_chars=chunk_size)
                 chunker.persist_chunks(db, chunks, report, page)
                 total_chunks += len(chunks)
 

@@ -1,13 +1,22 @@
 import { useSyncExternalStore } from "react";
 import { governor } from "../motion";
 
+export type ProcessSpeed = "fast" | "normal" | "slow";
+
 export interface Preferences {
   cinematic: boolean;
   reduceMotion: boolean;
+  speed: ProcessSpeed;
+  chunkSize: number;
 }
 
 const STORAGE_KEY = "vitagraph_preferences";
-const DEFAULTS: Preferences = { cinematic: true, reduceMotion: false };
+const DEFAULTS: Preferences = {
+  cinematic: true,
+  reduceMotion: false,
+  speed: "normal",
+  chunkSize: 200,
+};
 
 function load(): Preferences {
   try {
@@ -16,9 +25,19 @@ function load(): Preferences {
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== "object" || parsed === null) return DEFAULTS;
     const stored = parsed as Record<string, unknown>;
+    const speed =
+      stored.speed === "fast" || stored.speed === "normal" || stored.speed === "slow"
+        ? (stored.speed as ProcessSpeed)
+        : DEFAULTS.speed;
+    const chunkSize =
+      typeof stored.chunkSize === "number" && stored.chunkSize >= 120 && stored.chunkSize <= 600
+        ? stored.chunkSize
+        : DEFAULTS.chunkSize;
     return {
       cinematic: typeof stored.cinematic === "boolean" ? stored.cinematic : DEFAULTS.cinematic,
       reduceMotion: typeof stored.reduceMotion === "boolean" ? stored.reduceMotion : DEFAULTS.reduceMotion,
+      speed,
+      chunkSize,
     };
   } catch {
     return DEFAULTS;

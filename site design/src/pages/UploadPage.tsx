@@ -148,7 +148,8 @@ export const UploadPage: React.FC = () => {
     // 3. Send the file; the backend runs the pipeline in the background.
     try {
       const isPdf = selectedFile.name.toLowerCase().endsWith(".pdf");
-      const res = await reportsApi.upload(userId, selectedFile, jobId, isPdf);
+      const currentChunkSize = getPreferences().chunkSize;
+      const res = await reportsApi.upload(userId, selectedFile, jobId, isPdf, currentChunkSize);
       if (res.status === "failed") {
         const reason = res.error_message || "Corrupted document structure or unreadable text layers.";
         setQuarantinedFiles((prev) => [
