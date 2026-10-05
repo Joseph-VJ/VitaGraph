@@ -478,3 +478,191 @@ def test_snapshot_describes_the_pool():
         await pool.close_all()
 
     asyncio.run(_main())
+
+
+def test_a_failed_worker_start_does_not_poison_the_persona():
+    from app.agent.pool import RuntimePool
+    from app.agent.runtime import RuntimeStartError
+
+    cmd = [sys.executable, FAKE_WORKER_PATH, "--mode", "crash_on_start"]
+    factory = lambda prof: AgentRuntime(prof, worker_command=cmd, start_timeout=5.0)
+    pool = RuntimePool(runtime_factory=factory, verify=dummy_verify)
+
+    async def _main():
+        with pytest.raises(RuntimeStartError):
+            async for _ in pool.stream_turn("usr_crash", "s1", "turn 1"):
+                pass
+
+        assert pool.snapshot() == []
+
+        # A second attempt raises RuntimeStartError again (NOT RuntimeBusy)
+        with pytest.raises(RuntimeStartError):
+            async for _ in pool.stream_turn("usr_crash", "s2", "turn 2"):
+                pass
+
+        assert pool.snapshot() == []
+        await pool.close_all()
+
+    asyncio.run(_main())
+
+
+def test_the_default_factory_uses_the_configured_credentials_and_starts_nothing(monkeypatch):
+    from app.agent.pool import _default_runtime_factory
+    from app.core.config import Settings
+
+    monkeypatch.setattr(Settings, "effective_api_key", property(lambda self: "sk-test"))
+    monkeypatch.setattr(Settings, "effective_base_url", property(lambda self: "https://test.base.url"))
+    monkeypatch.setattr(Settings, "effective_model", property(lambda self: "test-model-42"))
+
+    rt = _default_runtime_factory(profile_for("usr_factory"))
+    assert rt.api_key == "sk-test"
+    assert rt.base_url == "https://test.base.url"
+    assert rt.model == "test-model-42"
+    assert rt.pid is None
+    assert rt.is_alive is False
+
+
+def test_get_pool_returns_one_shared_pool(monkeypatch):
+    import app.agent.pool
+
+    monkeypatch.setattr(app.agent.pool, "_pool_singleton", None)
+    try:
+        p1 = app.agent.pool.get_pool()
+        p2 = app.agent.pool.get_pool()
+        assert p1 is p2
+    finally:
+        monkeypatch.setattr(app.agent.pool, "_pool_singleton", None)
+
+
+def test_forget_persona_retries_when_a_file_is_still_locked(monkeypatch):
+    import app.agent.pool
+    from app.agent.pool import RuntimePool
+    from app.agent.profile import agent_root
+
+    monkeypatch.setattr(app.agent.pool, "_RMTREE_RETRY_DELAY", 0.0)
+    pool = RuntimePool(runtime_factory=make_factory("normal"), verify=dummy_verify)
+
+    persona_dir = agent_root() / "usr_retry"
+    persona_dir.mkdir(parents=True, exist_ok=True)
+    test_file = persona_dir / "locked.txt"
+    test_file.write_text("locked", encoding="utf-8")
+
+    real_rmtree = app.agent.pool.shutil.rmtree
+    call_count = 0
+
+    def mock_rmtree(path, *args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count < 3:
+            raise PermissionError("Access is denied")
+        return real_rmtree(path, *args, **kwargs)
+
+    monkeypatch.setattr(app.agent.pool.shutil, "rmtree", mock_rmtree)
+
+    async def _main():
+        await pool.forget_persona("usr_retry")
+        assert call_count == 3
+        assert not persona_dir.exists()
+        await pool.close_all()
+
+    asyncio.run(_main())
+
+
+def test_forget_persona_gives_up_after_five_attempts(monkeypatch):
+    import app.agent.pool
+    from app.agent.pool import RuntimePool
+    from app.agent.profile import agent_root
+
+    monkeypatch.setattr(app.agent.pool, "_RMTREE_RETRY_DELAY", 0.0)
+    pool = RuntimePool(runtime_factory=make_factory("normal"), verify=dummy_verify)
+
+    persona_dir = agent_root() / "usr_giveup"
+    persona_dir.mkdir(parents=True, exist_ok=True)
+
+    call_count = 0
+
+    def mock_rmtree(path, *args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        raise PermissionError("Access is denied permanently")
+
+    monkeypatch.setattr(app.agent.pool.shutil, "rmtree", mock_rmtree)
+
+    async def _main():
+        with pytest.raises(PermissionError):
+            await pool.forget_persona("usr_giveup")
+        assert call_count == 5
+        await pool.close_all()
+
+    asyncio.run(_main())
+
+
+def test_forget_persona_clears_its_verified_flag():
+    from app.agent.pool import RuntimePool
+
+    verify_calls = 0
+
+    async def counting_verify(persona_id: str):
+        nonlocal verify_calls
+        verify_calls += 1
+        return await dummy_verify(persona_id)
+
+    pool = RuntimePool(runtime_factory=make_factory("normal"), verify=counting_verify)
+
+    async def _main():
+        async for msg in pool.stream_turn("usr_clear_ver", "s1", "turn 1"):
+            if msg.get("type") == "result":
+                break
+        assert verify_calls == 1
+
+        await pool.forget_persona("usr_clear_ver")
+        assert "usr_clear_ver" not in pool._verified_personas
+        assert "usr_clear_ver" not in pool._persona_locks
+
+        async for msg in pool.stream_turn("usr_clear_ver", "s2", "turn 2"):
+            if msg.get("type") == "result":
+                break
+        assert verify_calls == 2
+
+        await pool.close_all()
+
+    asyncio.run(_main())
+
+
+def test_a_dead_own_entry_does_not_count_toward_capacity():
+    from app.agent.pool import RuntimePool
+
+    spawned = []
+    pool = RuntimePool(max_runtimes=2, runtime_factory=make_factory("normal", spawned), verify=dummy_verify)
+
+    async def _main():
+        async for msg in pool.stream_turn("usr_A", "s1", "hi"):
+            if msg.get("type") == "result":
+                break
+        async for msg in pool.stream_turn("usr_B", "s1", "hi"):
+            if msg.get("type") == "result":
+                break
+
+        assert len(spawned) == 2
+        pid_A = pool._entries["usr_A"].runtime.pid
+        pid_B = pool._entries["usr_B"].runtime.pid
+
+        # Kill A's worker process directly
+        pool._entries["usr_A"].runtime.kill()
+        assert not pool._entries["usr_A"].runtime.is_alive
+
+        # Run a new turn for A
+        async for msg in pool.stream_turn("usr_A", "s2", "hi again"):
+            if msg.get("type") == "result":
+                break
+
+        # B was NOT evicted
+        assert pool._entries["usr_B"].runtime.pid == pid_B
+        assert is_pid_alive(pid_B)
+        # A has a new pid
+        assert pool._entries["usr_A"].runtime.pid != pid_A
+        assert is_pid_alive(pool._entries["usr_A"].runtime.pid)
+
+        await pool.close_all()
+
+    asyncio.run(_main())

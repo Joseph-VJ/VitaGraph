@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import atexit
+import contextlib
 import logging
 import re
 import shutil
@@ -28,6 +29,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 _PERSONA_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+_RMTREE_RETRY_DELAY = 0.2
 
 
 def _validate_persona_id(persona_id: str) -> None:
@@ -116,7 +118,7 @@ class RuntimePool:
                 await verify_fn(persona_id)
                 self._verified_personas.add(persona_id)
 
-            rt_to_close: AgentRuntime | None = None
+            rts_to_close: list[AgentRuntime] = []
 
             async with self._pool_lock:
                 entry = self._entries.get(persona_id)
@@ -124,6 +126,10 @@ class RuntimePool:
                     raise RuntimeBusy(f"Persona '{persona_id}' is already running a turn.")
 
                 if entry is None or not entry.runtime.is_alive:
+                    if entry is not None and not entry.runtime.is_alive:
+                        del self._entries[persona_id]
+                        rts_to_close.append(entry.runtime)
+
                     # Check capacity
                     if len(self._entries) >= self.max_runtimes:
                         idle_candidates = [
@@ -134,7 +140,7 @@ class RuntimePool:
                         # Evict least recently used (lowest last_used timestamp)
                         victim = min(idle_candidates, key=lambda e: e.last_used)
                         del self._entries[victim.persona_id]
-                        rt_to_close = victim.runtime
+                        rts_to_close.append(victim.runtime)
 
                     prof = profile_for(persona_id)
                     factory = self._runtime_factory or _default_runtime_factory
@@ -150,19 +156,30 @@ class RuntimePool:
                     entry.running = True
                     entry.last_used = self.clock()
 
-            # Close evicted runtime outside the lock
-            if rt_to_close is not None:
-                if hasattr(rt_to_close, "aclose"):
-                    await rt_to_close.aclose()
-                else:
-                    await asyncio.to_thread(rt_to_close.close)
+            # Close evicted / dead runtimes outside the lock and start worker
+            try:
+                for old_rt in rts_to_close:
+                    if hasattr(old_rt, "aclose"):
+                        await old_rt.aclose()
+                    else:
+                        await asyncio.to_thread(old_rt.close)
 
-            # Ensure the worker is started
-            if not entry.runtime.is_alive:
-                if hasattr(entry.runtime, "astart"):
-                    await entry.runtime.astart()
-                else:
-                    await asyncio.to_thread(entry.runtime.start)
+                # Ensure the worker is started
+                if not entry.runtime.is_alive:
+                    if hasattr(entry.runtime, "astart"):
+                        await entry.runtime.astart()
+                    else:
+                        await asyncio.to_thread(entry.runtime.start)
+            except BaseException:
+                async with self._pool_lock:
+                    if self._entries.get(persona_id) is entry:
+                        del self._entries[persona_id]
+                with contextlib.suppress(Exception):
+                    if hasattr(entry.runtime, "akill"):
+                        await asyncio.shield(entry.runtime.akill())
+                    else:
+                        await asyncio.to_thread(entry.runtime.kill)
+                raise
 
         # Stream messages from runtime
         try:
@@ -212,6 +229,10 @@ class RuntimePool:
         _validate_persona_id(persona_id)
         await self.cancel(persona_id)
 
+        async with self._pool_lock:
+            self._verified_personas.discard(persona_id)
+            self._persona_locks.pop(persona_id, None)
+
         root = agent_root().resolve()
         persona_dir = (agent_root() / persona_id).resolve()
 
@@ -224,7 +245,18 @@ class RuntimePool:
             raise ValueError("Cannot delete agent root directory")
 
         if persona_dir.exists():
-            shutil.rmtree(persona_dir, ignore_errors=False)
+            last_err: Exception | None = None
+            for attempt in range(5):
+                try:
+                    shutil.rmtree(persona_dir, ignore_errors=False)
+                    last_err = None
+                    break
+                except (PermissionError, OSError) as exc:
+                    last_err = exc
+                    if attempt < 4:
+                        await asyncio.sleep(_RMTREE_RETRY_DELAY)
+            if last_err is not None:
+                raise last_err
 
     async def close_all(self) -> None:
         """Close all runtimes asynchronously."""

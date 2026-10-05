@@ -6,21 +6,45 @@ All behavior lives in the service modules.
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.agent.pool import RuntimePool, get_pool
 from app.core.config import settings
 from app.core.database import init_db
-from app.routes import ai, chat, demo, graph, jobs, questions, reports, timeline, tools, users
+from app.routes import agent, ai, chat, demo, graph, jobs, questions, reports, timeline, tools, users
+
+logger = logging.getLogger(__name__)
+
+
+async def _reap_loop(pool: RuntimePool, interval: float) -> None:
+    """Close idle agent runtimes every `interval` seconds until cancelled."""
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            await pool.reap_idle()
+        except Exception:
+            logger.exception("Reaping idle agent runtimes failed")
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     settings.ensure_dirs()
     init_db()
-    yield
+    pool = get_pool()
+    reaper = asyncio.create_task(_reap_loop(pool, 60.0))
+    try:
+        yield
+    finally:
+        reaper.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await reaper
+        await pool.close_all()
 
 
 app = FastAPI(
@@ -50,6 +74,7 @@ app.include_router(users.router)
 app.include_router(reports.router)
 app.include_router(questions.router)
 app.include_router(chat.router)
+app.include_router(agent.router)
 app.include_router(timeline.router)
 app.include_router(graph.router)
 app.include_router(ai.router)

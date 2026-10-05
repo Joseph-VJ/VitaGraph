@@ -418,36 +418,37 @@ def test_starting_a_runtime_never_blocks_the_event_loop():
     asyncio.run(_main())
 
 
-def test_cancel_then_immediate_new_turn_always_works():
-    """Canceling a turn and immediately starting a new turn 20 times never triggers stale-thread races."""
-    prof = profile_for("usr_test_p0_2")
-    cmd = [sys.executable, FAKE_WORKER_PATH, "--mode", "slow"]
-    rt = AgentRuntime(dummy_profile if "dummy_profile" in globals() else prof, worker_command=cmd)
+def test_a_stale_reader_thread_never_touches_the_new_process_state():
+    import io
+    from types import SimpleNamespace
 
-    async def _main():
-        try:
-            for round_idx in range(20):
-                gen = rt.stream_turn(f"s-race-{round_idx}", "hello")
-                first_msg_task = asyncio.create_task(gen.__anext__())
-                await asyncio.sleep(0.1)
-                rt.cancel()
-                try:
-                    await first_msg_task
-                except (StopAsyncIteration, Exception):
-                    pass
-                try:
-                    await gen.aclose()
-                except Exception:
-                    pass
+    rt = AgentRuntime(profile_for("usr_test_stale"))
+    new_proc = SimpleNamespace(stdout=io.StringIO(""), stderr=io.StringIO(""), stdin=None, poll=lambda: None, pid=1)
+    loop = asyncio.new_event_loop()
+    queue: asyncio.Queue = asyncio.Queue()
 
-                gen2 = rt.stream_turn(f"s-race-new-{round_idx}", "hello-again")
-                msg = await gen2.__anext__()
-                assert msg.get("type") in ("notification", "result", "run_error")
-                await gen2.aclose()
-        finally:
-            rt.close()
+    class _StdoutThatTriggersARestart(io.StringIO):
+        """While the OLD reader is reading its first line, a restart installs the NEW process."""
+        def __iter__(self):
+            rt._proc = new_proc
+            return super().__iter__()
 
-    asyncio.run(_main())
+    old_proc = SimpleNamespace(
+        stdout=_StdoutThatTriggersARestart(json.dumps({"type": "ready"}) + "\n"),
+        stderr=io.StringIO(""), stdin=None, poll=lambda: None, pid=2,
+    )
+    try:
+        rt._proc = old_proc                      # the reader is created while the old process is current
+        rt._active_queue = (loop, queue)
+        rt._is_ready = False
+        rt._start_event.clear()
+        rt._drain_stdout()                       # runs in THIS thread; captures old_proc, then rt._proc becomes new_proc
+        assert rt._proc is new_proc
+        assert rt._is_ready is False
+        assert not rt._start_event.is_set()
+        assert queue.empty()
+    finally:
+        loop.close()
 
 
 def test_a_turn_that_never_answers_times_out():
