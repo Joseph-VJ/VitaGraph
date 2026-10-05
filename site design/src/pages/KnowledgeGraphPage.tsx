@@ -316,7 +316,13 @@ export const KnowledgeGraphPage: React.FC = () => {
   return (
     <div
       data-screen-label="Graph"
-      style={{ height: "100%", display: "flex", flexWrap: "wrap" }}
+      style={{
+        height: "100%",
+        maxHeight: "100%",
+        overflow: "hidden",
+        display: "flex",
+        flexWrap: "wrap",
+      }}
     >
       {/* Left Canvas Area */}
       <div
@@ -464,6 +470,8 @@ export const KnowledgeGraphPage: React.FC = () => {
         style={{
           flex: "0 0 340px",
           maxWidth: "100%",
+          height: "100%",
+          maxHeight: "100%",
           boxSizing: "border-box",
           borderLeft: "2px solid var(--color-divider)",
           padding: "var(--space-6)",
