@@ -48,7 +48,7 @@ export const UploadPage: React.FC = () => {
       const reportId = jobStream.finalMetadata?.reportId;
       if (reportId && userId) {
         reportsApi
-          .pages(reportId)
+          .pages(userId, reportId)
           .then((pgs) => setPages(pgs))
           .catch(() => setPages([]));
         reportsApi
@@ -117,7 +117,7 @@ export const UploadPage: React.FC = () => {
           const first = reportList[0];
           setActiveReport(first);
           try {
-            const pageData = await reportsApi.pages(first.id);
+            const pageData = await reportsApi.pages(userId, first.id);
             if (!cancelled) setPages(pageData);
           } catch {
             if (!cancelled) setPages([]);

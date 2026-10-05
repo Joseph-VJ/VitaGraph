@@ -69,7 +69,7 @@ export const SettingsPage: React.FC = () => {
         }
         const latest = reps[0];
         try {
-          const pgs = await reportsApi.pages(latest.id);
+          const pgs = await reportsApi.pages(user.id, latest.id);
           if (!alive) return;
           if (pgs && pgs.length > 0) {
             const totalChars = pgs.reduce((acc, p) => acc + (p.text_length || 0), 0);

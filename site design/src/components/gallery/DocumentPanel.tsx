@@ -145,7 +145,7 @@ export const DocumentPanel: React.FC<DocumentPanelProps> = ({
       (r) => r.report_date && r.report_date === nodeDate
     );
 
-    if (!testName || dateReports.length === 0) {
+    if (!userId || !testName || dateReports.length === 0) {
       setSourceMatchingDone(true);
       return;
     }
@@ -154,7 +154,7 @@ export const DocumentPanel: React.FC<DocumentPanelProps> = ({
     Promise.all(
       dateReports.map(async (r) => {
         try {
-          const rows = await reportsApi.measurements(r.id);
+          const rows = await reportsApi.measurements(userId, r.id);
           return { report: r, rows };
         } catch {
           return { report: r, rows: [] as MeasurementRow[] };

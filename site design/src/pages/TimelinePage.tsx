@@ -391,7 +391,7 @@ export const TimelinePage: React.FC = () => {
         const measurementsOf = async (reportId: string): Promise<MeasurementRow[]> => {
           if (measurementsCache.has(reportId)) return measurementsCache.get(reportId)!;
           try {
-            const rows = await reportsApi.measurements(reportId);
+            const rows = await reportsApi.measurements(userId, reportId);
             measurementsCache.set(reportId, rows || []);
             return rows || [];
           } catch {

@@ -81,13 +81,19 @@ def report_status(report_id: str) -> dict:
 
 
 @router.get("/{report_id}/pages", response_model=list[PageOut])
-def report_pages(report_id: str) -> list[dict]:
+def report_pages(report_id: str, user_id: str | None = None) -> list[dict]:
+    if user_id is not None:
+        user_service.user_exists(user_id)
+        report_service.assert_report_owner(report_id, user_id)
     return report_service.get_pages(report_id)
 
 
 @router.get("/{report_id}/measurements", response_model=list[MeasurementOut])
-def report_measurements(report_id: str) -> list[dict]:
+def report_measurements(report_id: str, user_id: str | None = None) -> list[dict]:
     """Values read from this report with the report's printed reference range and exact character span."""
+    if user_id is not None:
+        user_service.user_exists(user_id)
+        report_service.assert_report_owner(report_id, user_id)
     return measurement_service.list_report_measurements(report_id)
 
 
@@ -100,8 +106,16 @@ def report_chunk(report_id: str, chunk_id: str, user_id: str) -> dict:
 
 
 @router.get("/{report_id}/pages/{page_number}/image")
-def report_page_image(report_id: str, page_number: int, dpi: int = Query(110, ge=50, le=200)) -> Response:
+def report_page_image(
+    report_id: str,
+    page_number: int,
+    dpi: int = Query(110, ge=50, le=200),
+    user_id: str | None = None,
+) -> Response:
     """Render one stored report page to PNG so the UI can show the user's actual page."""
+    if user_id is not None:
+        user_service.user_exists(user_id)
+        report_service.assert_report_owner(report_id, user_id)
     png = report_service.render_page_png(report_id, page_number, dpi)
     return Response(content=png, media_type="image/png", headers={"Cache-Control": "private, max-age=300"})
 

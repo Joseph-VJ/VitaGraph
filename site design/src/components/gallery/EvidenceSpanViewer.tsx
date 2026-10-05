@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { IconButton, Button, Badge } from "./index";
 import { reportsApi } from "../../api/reports";
+import { useActiveUser } from "../../context/UserContext";
 import type { EvidenceCard, ReportPage } from "../../types";
 import { governor } from "../../motion/quality";
 import { isReducedMotion } from "../../motion/features";
@@ -20,6 +21,8 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
   isOpen,
   onClose,
 }) => {
+  const { user } = useActiveUser();
+  const userId = user?.id || (typeof localStorage !== "undefined" ? localStorage.getItem("vitagraph_user_id") : null) || "";
   const [pages, setPages] = useState<ReportPage[]>([]);
   const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -35,14 +38,14 @@ export const EvidenceSpanViewer: React.FC<EvidenceSpanViewerProps> = ({
 
   // Fetch report pages when evidence card changes
   useEffect(() => {
-    if (!isOpen || !evidence?.report_id) return;
+    if (!isOpen || !evidence?.report_id || !userId) return;
 
     let isMounted = true;
     setIsLoading(true);
     setError(null);
 
     reportsApi
-      .pages(evidence.report_id)
+      .pages(userId, evidence.report_id)
       .then((data) => {
         if (!isMounted) return;
         setPages(data);

@@ -319,12 +319,12 @@ export const AgentPage: React.FC = () => {
   const getPages = useCallback((reportId: string) => {
     let pending = pagesCache.current.get(reportId);
     if (!pending) {
-      pending = reportsApi.pages(reportId);
+      pending = reportsApi.pages(effectiveUserId, reportId);
       pagesCache.current.set(reportId, pending);
       pending.catch(() => pagesCache.current.delete(reportId));
     }
     return pending;
-  }, []);
+  }, [effectiveUserId]);
 
   // Header search hands a question over as ?q=: prefill the composer, then drop q (keep report).
   useEffect(() => {
@@ -341,6 +341,7 @@ export const AgentPage: React.FC = () => {
   useEffect(() => {
     if (prevUserRef.current && prevUserRef.current !== effectiveUserId) {
       chat.reset();
+      pagesCache.current.clear();
       loadedRef.current = null;
       const next = new URLSearchParams(searchParams);
       if (next.has("c")) {

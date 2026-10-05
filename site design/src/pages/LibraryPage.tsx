@@ -70,12 +70,13 @@ export const LibraryPage: React.FC = () => {
   const previous = selIndex > 0 ? (reports ?? [])[selIndex - 1] : null;
 
   const loadMeasurements = useCallback(async (reportId: string): Promise<MeasurementRow[]> => {
+    if (!userId) return [];
     const hit = cache.current.get(reportId);
     if (hit) return hit;
-    const data = await reportsApi.measurements(reportId);
+    const data = await reportsApi.measurements(userId, reportId);
     cache.current.set(reportId, data);
     return data;
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (!selected) return;
@@ -98,9 +99,9 @@ export const LibraryPage: React.FC = () => {
   const toggle = (testName: string) => {
     const next = openTest === testName ? null : testName;
     setOpenTest(next);
-    if (next && selected && pages === null && !pagesFailed) {
+    if (next && selected && userId && pages === null && !pagesFailed) {
       reportsApi
-        .pages(selected.id)
+        .pages(userId, selected.id)
         .then(setPages)
         .catch(() => setPagesFailed(true));
     }

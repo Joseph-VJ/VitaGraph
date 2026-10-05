@@ -113,13 +113,17 @@ export const reportsApi = {
     }
     return api.upload<ReportStatus>("/api/reports/upload", form);
   },
-  list: (userId: string) => api.get<Report[]>(`/api/reports?user_id=${userId}`),
-  pages: (reportId: string) => api.get<ReportPage[]>(`/api/reports/${reportId}/pages`),
+  list: (userId: string) => api.get<Report[]>(`/api/reports?user_id=${encodeURIComponent(userId)}`),
+  pages: (userId: string, reportId: string) =>
+    api.get<ReportPage[]>(`/api/reports/${encodeURIComponent(reportId)}/pages?user_id=${encodeURIComponent(userId)}`),
   chunk: (userId: string, reportId: string, chunkId: string) =>
     api.get<ChunkDetail>(
       `/api/reports/${encodeURIComponent(reportId)}/chunks/${encodeURIComponent(chunkId)}?user_id=${encodeURIComponent(userId)}`
     ),
-  measurements: (reportId: string) => api.get<MeasurementRow[]>(`/api/reports/${reportId}/measurements`),
+  measurements: (userId: string, reportId: string) =>
+    api.get<MeasurementRow[]>(`/api/reports/${encodeURIComponent(reportId)}/measurements?user_id=${encodeURIComponent(userId)}`),
+  pageImageUrl: (userId: string, reportId: string, pageNum: number, dpi: number = 110) =>
+    `/api/reports/${encodeURIComponent(reportId)}/pages/${pageNum}/image?user_id=${encodeURIComponent(userId)}&dpi=${dpi}`,
   trends: (userId: string, test: string = "Hemoglobin") =>
     api.get<TrendData>(`/api/reports/${userId}/trends?test=${encodeURIComponent(test)}`),
   compare: (userId: string, baselineId?: string, followupId?: string) => {
