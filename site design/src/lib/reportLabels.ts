@@ -43,3 +43,16 @@ export function makeLabeler(reports: Report[]): (r: Report) => string {
   });
   return (r: Report) => (counts[base(r)] > 1 ? `${base(r)} · ${r.original_filename}` : base(r));
 }
+
+/** The status tag of a report row: Indexed, Failed, or the pipeline state exactly as stored. */
+export function reportStatus(r: { status: string }): { label: string; tone: "done" | "failed" | "waiting" } {
+  if (r.status === "ready") {
+    return { label: "Indexed", tone: "done" };
+  }
+  if (r.status === "failed") {
+    return { label: "Failed", tone: "failed" };
+  }
+  const s = r.status || "";
+  const label = s ? s.charAt(0).toUpperCase() + s.slice(1) : "Waiting";
+  return { label, tone: "waiting" };
+}
