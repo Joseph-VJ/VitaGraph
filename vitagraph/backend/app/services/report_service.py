@@ -427,6 +427,28 @@ def get_pages(report_id: str) -> list[dict]:
         return [dict(row) for row in rows]
 
 
+def assert_report_owner(report_id: str, user_id: str) -> dict:
+    report = uploader.get_report(report_id)
+    if report.get("user_id") != user_id:
+        raise HTTPException(status_code=404, detail="Report not found.")
+    return report
+
+
+def get_chunk(report_id: str, chunk_id: str) -> dict:
+    uploader.get_report(report_id)  # 404 if unknown
+    with get_db() as db:
+        row = db.execute(
+            "SELECT id, report_id, page_number, sequence, section, char_start, char_end, text "
+            "FROM report_chunks WHERE id = ? AND report_id = ?",
+            (chunk_id, report_id),
+        ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Chunk not found in this report.")
+    d = dict(row)
+    d["chunk_id"] = d.pop("id")
+    return d
+
+
 def get_user_trends(user_id: str, test_name: str = "Hemoglobin") -> dict:
     """Extract longitudinal test trend points across all reports for a user."""
     from app.services import user_service

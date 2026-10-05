@@ -88,6 +88,17 @@ export interface MeasurementRow {
   span_exact: boolean;
 }
 
+export interface ChunkDetail {
+  chunk_id: string;
+  report_id: string;
+  page_number: number;
+  sequence: number;
+  section: string | null;
+  char_start: number;
+  char_end: number;
+  text: string;
+}
+
 export const reportsApi = {
   upload: (userId: string, file: File, jobId?: string, background: boolean = true) => {
     const form = new FormData();
@@ -101,6 +112,10 @@ export const reportsApi = {
   },
   list: (userId: string) => api.get<Report[]>(`/api/reports?user_id=${userId}`),
   pages: (reportId: string) => api.get<ReportPage[]>(`/api/reports/${reportId}/pages`),
+  chunk: (userId: string, reportId: string, chunkId: string) =>
+    api.get<ChunkDetail>(
+      `/api/reports/${encodeURIComponent(reportId)}/chunks/${encodeURIComponent(chunkId)}?user_id=${encodeURIComponent(userId)}`
+    ),
   measurements: (reportId: string) => api.get<MeasurementRow[]>(`/api/reports/${reportId}/measurements`),
   trends: (userId: string, test: string = "Hemoglobin") =>
     api.get<TrendData>(`/api/reports/${userId}/trends?test=${encodeURIComponent(test)}`),

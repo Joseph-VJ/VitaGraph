@@ -100,3 +100,14 @@ class MeasurementOut(BaseModel):
     char_start: int               # offsets into that page's extracted_text
     char_end: int
     span_exact: bool = True       # False when only the chunk span could be given
+
+
+class ChunkOut(BaseModel):
+    chunk_id: str
+    report_id: str
+    page_number: int
+    sequence: int
+    section: str | None = None
+    char_start: int
+    char_end: int
+    text: str

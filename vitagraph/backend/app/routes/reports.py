@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Response, UploadFile
 
-from app.schemas.report import ComparisonOut, MeasurementOut, PageOut, ReportOut, ReportStatusOut, TrendOut
+from app.schemas.report import ChunkOut, ComparisonOut, MeasurementOut, PageOut, ReportOut, ReportStatusOut, TrendOut
 from app.services import measurement_service, report_service, user_service
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
@@ -86,6 +86,14 @@ def report_pages(report_id: str) -> list[dict]:
 def report_measurements(report_id: str) -> list[dict]:
     """Values read from this report with the report's printed reference range and exact character span."""
     return measurement_service.list_report_measurements(report_id)
+
+
+@router.get("/{report_id}/chunks/{chunk_id}", response_model=ChunkOut)
+def report_chunk(report_id: str, chunk_id: str, user_id: str) -> dict:
+    """One stored passage, for the graph inspector."""
+    user_service.user_exists(user_id)
+    report_service.assert_report_owner(report_id, user_id)
+    return report_service.get_chunk(report_id, chunk_id)
 
 
 @router.get("/{report_id}/pages/{page_number}/image")
