@@ -668,7 +668,7 @@ def _migrate(db) -> None:
 
 ALLOW_API=true
 AI_SERVICE_URL=https://agentrouter.org/v1/chat/completions
-AI_SERVICE_API_KEY=sk-Q42nRkkRe7VMDpnaRGGSpYW6GvRAJqoHcnfZkr2OkLB6UUOQ
+AI_SERVICE_API_KEY=<redacted>
 AI_SERVICE_MODEL=deepseek-v4-flash
 AI_SERVICE_TIMEOUT_SECONDS=10
 
