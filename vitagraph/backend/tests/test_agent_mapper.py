@@ -389,3 +389,45 @@ def test_the_api_key_never_appears_in_any_emitted_event():
     raw_json = json.dumps(events)
     assert secret not in raw_json
     assert "***" in raw_json
+
+
+def test_a_failed_result_uses_the_turn_end_error_as_its_diagnostic():
+    mapper = EventMapper()
+    mapper.feed(make_notif("turn/end", {"reason": {"kind": "error", "error": {"status": 429, "message": "rate limited"}}}))
+    events = mapper.feed({"type": "result", "finish_reason": "error", "final_response": ""})
+    assert len(events) == 1
+    etype, payload = events[0]
+    assert etype == "error"
+    assert "rate limited" in payload["diagnostic"]
+    assert payload["diagnostic"] != "error"
+    assert payload["message"] == "The AI Agent could not finish this answer."
+
+
+def test_a_401_in_the_turn_end_error_is_worded_as_a_refusal_on_the_real_path():
+    mapper = EventMapper()
+    mapper.feed(make_notif("turn/end", {"reason": {"kind": "error", "error": {"status": 401, "message": "unauthorized client detected"}}}))
+    events = mapper.feed({"type": "result", "finish_reason": "error", "final_response": ""})
+    assert len(events) == 1
+    etype, payload = events[0]
+    assert etype == "error"
+    assert payload["message"] == "The AI service refused the request. Please try again later."
+
+
+def test_a_failed_result_without_any_detail_falls_back_to_the_finish_reason():
+    mapper = EventMapper()
+    events = mapper.feed({"type": "result", "finish_reason": "error", "final_response": ""})
+    assert len(events) == 1
+    etype, payload = events[0]
+    assert etype == "error"
+    assert payload["diagnostic"] == "error"
+
+
+def test_the_key_is_redacted_from_a_turn_end_error():
+    secret = "sk-secret-key-123"
+    redact = lambda s: s.replace(secret, "***")
+    mapper = EventMapper(redact=redact)
+    mapper.feed(make_notif("turn/end", {"reason": {"kind": "error", "error": {"status": 403, "auth": secret}}}))
+    events = mapper.feed({"type": "result", "finish_reason": "error", "final_response": ""})
+    raw_json = json.dumps(events)
+    assert secret not in raw_json
+    assert "***" in raw_json

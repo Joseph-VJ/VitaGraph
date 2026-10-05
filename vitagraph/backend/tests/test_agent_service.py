@@ -442,3 +442,30 @@ def test_the_last_message_must_come_from_the_user():
 
     events_assistant = _collect("usr_u3", [{"role": "assistant", "content": "Hello"}], pool=pool)
     assert events_assistant == [("error", {"status": "error", "message": "The last message must come from the user.", "diagnostic": ""})]
+
+
+def test_an_offline_composer_error_is_relayed_once(monkeypatch):
+    monkeypatch.setattr(settings, "allow_api", False)
+
+    async def fake_stream_chat(*args, **kwargs):
+        yield ("error", {"status": "error", "message": "boom", "diagnostic": ""})
+
+    monkeypatch.setattr(agent_service.chat_service, "stream_chat", fake_stream_chat)
+
+    with get_db() as db:
+        count_before = db.execute("SELECT count(*) FROM questions").fetchone()[0]
+
+    turns = [{"role": "user", "content": "What was my hemoglobin?"}]
+    pool = FakePool()
+    events = _collect("usr_offline_err", turns, pool=pool)
+
+    # Must yield exactly ONE error event and nothing after it
+    assert len(events) == 1
+    assert events[0][0] == "error"
+    assert events[0][1]["message"] == "boom"
+
+    # Nothing persisted
+    with get_db() as db:
+        count_after = db.execute("SELECT count(*) FROM questions").fetchone()[0]
+    assert count_after == count_before
+

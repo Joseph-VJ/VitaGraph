@@ -225,3 +225,49 @@ def test_the_lifespan_closes_the_pool_on_shutdown(monkeypatch):
         pass
 
     assert fake.closed is True
+
+
+def test_deleting_a_persona_does_not_block_the_event_loop(monkeypatch):
+    import time
+    import app.routes.users as users_route
+
+    class RecordingPool:
+        async def forget_persona(self, pid: str):
+            pass
+
+    monkeypatch.setattr(users_route, "get_pool", lambda: RecordingPool())
+    monkeypatch.setattr(users_route.user_service, "get_user", lambda uid: {})
+
+    def slow_delete(uid: str):
+        time.sleep(0.5)
+        return {"deleted": uid}
+
+    monkeypatch.setattr(users_route.user_service, "delete_user", slow_delete)
+
+    async def runner():
+        loop = asyncio.get_running_loop()
+        heartbeats = []
+        stop_heartbeat = False
+
+        async def heartbeat():
+            while not stop_heartbeat:
+                heartbeats.append(loop.time())
+                await asyncio.sleep(0.05)
+
+        hb_task = asyncio.create_task(heartbeat())
+        await asyncio.sleep(0.06)
+        try:
+            delete_task = asyncio.create_task(users_route.delete_user("usr_x"))
+            await delete_task
+            await asyncio.sleep(0.06)
+        finally:
+            stop_heartbeat = True
+            await hb_task
+
+        gaps = [heartbeats[i] - heartbeats[i - 1] for i in range(1, len(heartbeats))]
+        assert len(gaps) >= 2, f"Not enough heartbeats recorded: {len(heartbeats)}"
+        max_gap = max(gaps)
+        assert max_gap < 0.3, f"Event loop was blocked! Max gap between heartbeats: {max_gap:.3f}s"
+
+    asyncio.run(runner())
+

@@ -39,8 +39,8 @@ def _get_report_hint(user_id: str, report_id: str | None) -> tuple[str, str] | N
             ).fetchone()
         if row and row["original_filename"]:
             return (row["original_filename"], report_id)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Report scope lookup failed: %s", exc)
     return None
 
 
@@ -230,6 +230,9 @@ async def stream_agent(
                 final_offline["conversation_id"] = conv_id
                 final_offline.setdefault("session_title", None)
                 yield (ev_type, final_offline)
+            elif ev_type == "error":
+                yield (ev_type, payload)
+                return
             else:
                 yield (ev_type, payload)
 

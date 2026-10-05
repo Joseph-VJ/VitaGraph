@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter
 
 from app.agent.pool import get_pool
@@ -29,9 +31,9 @@ def accept_consent(user_id: str) -> dict:
 
 @router.delete("/{user_id}")
 async def delete_user(user_id: str) -> dict:
-    user_service.get_user(user_id)               # 404 when the persona does not exist
+    await asyncio.to_thread(user_service.get_user, user_id)     # 404 when the persona does not exist
     try:
-        await get_pool().forget_persona(user_id)  # close its runtime, delete data/agent/<id>
+        await get_pool().forget_persona(user_id)                # close its runtime, delete data/agent/<id>
     except ValueError:
-        pass                                      # an id that can never own an agent folder
-    return user_service.delete_user(user_id)
+        pass                                                    # an id that can never own an agent folder
+    return await asyncio.to_thread(user_service.delete_user, user_id)

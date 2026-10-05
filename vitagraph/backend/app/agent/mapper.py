@@ -82,7 +82,8 @@ class EventMapper:
             finish_reason = msg.get("finish_reason", "stop")
             if finish_reason in ("error", "aborted", "interrupted"):
                 self.outcome = "error"
-                detail = str(msg.get("final_response") or finish_reason)
+                final_resp = str(msg.get("final_response") or "")
+                detail = self._turn_error or final_resp or finish_reason or "error"
                 msg_text, diag = self._failure_message(detail)
                 return [("error", {"status": "error", "message": msg_text, "diagnostic": diag})]
 
@@ -126,7 +127,13 @@ class EventMapper:
         if etype == "turn/end":
             reason = _dict(d.get("reason"))
             if reason.get("kind") == "error":
-                self._turn_error = str(reason.get("error") or "")
+                err = reason.get("error")
+                if isinstance(err, (dict, list)):
+                    self._turn_error = json.dumps(err, ensure_ascii=False, default=str)
+                elif err is not None:
+                    self._turn_error = str(err)
+                else:
+                    self._turn_error = ""
             return []
 
         # 3. step/start
