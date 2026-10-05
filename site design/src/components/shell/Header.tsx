@@ -100,9 +100,6 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
       case "/compare": return { title: "Compare", sub: "Change between two reports." };
       case "/insights": return { title: "Insights", sub: "Structure and key nodes of the graph." };
       case "/settings": return { title: "Settings", sub: "Ingestion, reading, privacy and display." };
-      case "/datasets": return { title: "Datasets", sub: "Manage health sources, FHIR bundles, and clinical guidelines." };
-      case "/ontology": return { title: "Ontology", sub: "Medical concepts, hierarchical mappings, and relationship rules." };
-      case "/notebooks": return { title: "Notebooks", sub: "Computational research scratchpads and analytic protocols." };
       default: return { title: "VitaGraph", sub: "Your reports, evidence and insights in one place." };
     }
   };

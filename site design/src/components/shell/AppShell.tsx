@@ -20,9 +20,6 @@ const ROUTE_TITLES: Record<string, string> = {
   "/compare": "Compare Reports",
   "/insights": "Graph Insights",
   "/library": "Document Library",
-  "/datasets": "Datasets and Knowledge Sources",
-  "/ontology": "Biomedical Ontology",
-  "/notebooks": "Research Notebooks",
   "/settings": "Settings and System Configuration",
   "/gallery": "Component Gallery",
 };
