@@ -80,8 +80,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
     {
       label: "Analyze",
       items: [
-        { id: "ask", path: "/ask", label: "Ask", sublabel: "Questions with evidence", live: true,
-          icon: <Icon d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /> },
+        { id: "agent", path: "/agent", label: "AI Agent", sublabel: "Answers with evidence", live: true,
+          icon: <Icon d="M4 17l6-6-6-6M12 19h8" /> },
         { id: "graph", path: "/graph", label: "Knowledge Graph", sublabel: "Explore connections", live: true,
           icon: <Icon d="M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" /> },
         { id: "timeline", path: "/timeline", label: "Timeline", sublabel: "Changes over time", live: true,

@@ -1033,3 +1033,11 @@ button:not(:disabled):active,
 .ask-suggestion:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-text) 5%, transparent);
 }
+
+/* AI Agent page: hover states of the citation chips and the evidence rows. */
+.agent-cite:hover {
+  background: var(--color-text);
+}
+.agent-evidence-row:hover {
+  color: var(--color-accent-700);
+}

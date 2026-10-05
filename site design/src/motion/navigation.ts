@@ -37,9 +37,9 @@ export const CANONICAL_JOURNEY: JourneyStep[] = [
     reason: "Query longitudinal evidence",
   },
   {
-    id: "ask",
-    path: "/ask",
-    label: "Ask Questions",
+    id: "agent",
+    path: "/agent",
+    label: "AI Agent",
     reason: "Audit chronological timeline",
   },
   {
@@ -54,7 +54,7 @@ export const ROUTE_INDEX: Record<string, number> = {
   "/": 0,
   "/upload": 1,
   "/graph": 2,
-  "/ask": 3,
+  "/agent": 3,
   "/timeline": 4,
   "/compare": 5,
   "/insights": 6,

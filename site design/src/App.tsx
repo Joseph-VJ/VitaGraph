@@ -1,9 +1,9 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AppShell } from "./components/shell/AppShell";
 import { UploadPage } from "./pages/UploadPage";
 import { KnowledgeGraphPage } from "./pages/KnowledgeGraphPage";
-import { AskPage } from "./pages/AskPage";
+import { AgentPage } from "./pages/AgentPage";
 import { TimelinePage } from "./pages/TimelinePage";
 import { LibraryPage } from "./pages/LibraryPage";
 import { DatasetsPage } from "./pages/DatasetsPage";
@@ -15,6 +15,12 @@ import { InsightsPage } from "./pages/InsightsPage";
 import { GalleryPage } from "./pages/GalleryPage";
 import { UserProvider } from "./context/UserContext";
 import { ToastProvider } from "./components/gallery/Toast";
+
+// The old /ask address keeps working: same query string, new route.
+const AskRedirect: React.FC = () => {
+  const { search } = useLocation();
+  return <Navigate to={`/agent${search}`} replace />;
+};
 
 export const App: React.FC = () => {
   return (
@@ -30,7 +36,8 @@ export const App: React.FC = () => {
               <Route path="/" element={<Navigate to="/upload" replace />} />
               <Route path="/upload" element={<UploadPage />} />
               <Route path="/graph" element={<KnowledgeGraphPage />} />
-              <Route path="/ask" element={<AskPage />} />
+              <Route path="/agent" element={<AgentPage />} />
+              <Route path="/ask" element={<AskRedirect />} />
               <Route path="/timeline" element={<TimelinePage />} />
               <Route path="/library" element={<LibraryPage />} />
               <Route path="/datasets" element={<DatasetsPage />} />

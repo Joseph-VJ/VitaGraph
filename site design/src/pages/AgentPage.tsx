@@ -1,12 +1,14 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useActiveUser } from "../context/UserContext";
 import { reportsApi } from "../api/reports";
 import { graphApi } from "../api/graph";
-import type { Report } from "../types";
-import { useChatStream, type ChatEntry } from "../hooks/useChatStream";
-import { AnswerMarkdown } from "../components/ask/AnswerMarkdown";
-import { StepsPanel } from "../components/ask/StepsPanel";
+import type { Report, ReportPage } from "../types";
+import { useAgentChat, type AgentEntry } from "../hooks/useAgentChat";
+import { AnswerMarkdown, citedRefs } from "../components/agent/AnswerMarkdown";
+import { EvidenceModules } from "../components/agent/EvidenceModules";
+import { PassageSlip } from "../components/agent/PassageSlip";
+import { TrajectoryPanel } from "../components/agent/TrajectoryPanel";
 
 const MIN_QUESTION_CHARS = 2;
 const MAX_QUESTION_CHARS = 2000;
@@ -65,12 +67,41 @@ const NoteCard: React.FC<{ tone: "accent" | "neutral"; tag: string; children: Re
   </div>
 );
 
-const EntryView: React.FC<{ n: number; entry: ChatEntry; onRetry: (question: string) => void; canRetry: boolean }> = ({
-  n,
-  entry,
-  onRetry,
-  canRetry,
-}) => {
+interface EntryViewProps {
+  n: number;
+  entry: AgentEntry;
+  onRetry: (question: string) => void;
+  canRetry: boolean;
+  getPages: (reportId: string) => Promise<ReportPage[]>;
+}
+
+const EntryView: React.FC<EntryViewProps> = ({ n, entry, onRetry, canRetry, getPages }) => {
+  const [openRefs, setOpenRefs] = useState<number[]>([]);
+  const slipsRef = useRef<HTMLDivElement>(null);
+  const openedBefore = useRef(0);
+  const byRef = useMemo(() => new Map(entry.evidence.map((card) => [card.ref, card])), [entry.evidence]);
+  const available = useMemo(() => new Set(byRef.keys()), [byRef]);
+  const cited = useMemo(() => citedRefs(entry.answer, available), [entry.answer, available]);
+  const toggleRef = useCallback(
+    (ref: number) => setOpenRefs((current) => (current.includes(ref) ? current.filter((r) => r !== ref) : [...current, ref])),
+    []
+  );
+
+  // A newly opened passage scrolls into view.
+  useEffect(() => {
+    if (openRefs.length > openedBefore.current) slipsRef.current?.lastElementChild?.scrollIntoView({ block: "nearest" });
+    openedBefore.current = openRefs.length;
+  }, [openRefs]);
+
+  const openCards = openRefs.flatMap((ref) => {
+    const card = byRef.get(ref);
+    return card ? [card] : [];
+  });
+  const citedCards = cited.flatMap((ref) => {
+    const card = byRef.get(ref);
+    return card ? [card] : [];
+  });
+
   let body: React.ReactNode = null;
   if (entry.status === "refused") {
     body = (
@@ -92,14 +123,14 @@ const EntryView: React.FC<{ n: number; entry: ChatEntry; onRetry: (question: str
     );
   } else if (entry.answer.trim()) {
     body = (
-      <div style={{ paddingBottom: "var(--space-4)" }} data-testid="ask-answer">
-        <AnswerMarkdown text={entry.answer} />
+      <div style={{ paddingBottom: "var(--space-4)" }} data-testid="agent-answer">
+        <AnswerMarkdown text={entry.answer} refs={available} onCite={toggleRef} />
       </div>
     );
   }
 
   return (
-    <article style={{ paddingBottom: "var(--space-6)" }} data-testid="ask-entry">
+    <article style={{ paddingBottom: "var(--space-6)" }} data-testid="agent-entry">
       <div style={{ display: "flex", justifyContent: "flex-end", paddingBottom: "var(--space-3)" }}>
         <div
           style={{
@@ -125,8 +156,24 @@ const EntryView: React.FC<{ n: number; entry: ChatEntry; onRetry: (question: str
           </div>
         </div>
       </div>
-      <StepsPanel entry={entry} />
+      <TrajectoryPanel entry={entry} />
+      {entry.status === "answered" && entry.aiStatus === "not_used" ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)", alignItems: "baseline", paddingBottom: "var(--space-3)" }}>
+          <span className="tag tag-neutral" style={{ fontWeight: 800 }}>Evidence only</span>
+          <span style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)" }}>{entry.safetyNote ?? "The AI Agent was not used for this answer."}</span>
+        </div>
+      ) : null}
       {body}
+      {entry.status === "answered" && !entry.withheld && citedCards.length > 0 ? (
+        <EvidenceModules cards={citedCards} openRefs={openRefs} onToggle={toggleRef} />
+      ) : null}
+      {openCards.length > 0 ? (
+        <div ref={slipsRef}>
+          {openCards.map((card) => (
+            <PassageSlip key={card.ref} card={card} getPages={getPages} />
+          ))}
+        </div>
+      ) : null}
       {entry.status === "stopped" ? (
         <div style={{ paddingBottom: "var(--space-4)" }}>
           <span className="tag tag-neutral" style={{ fontWeight: 800 }}>
@@ -151,11 +198,11 @@ const EntryView: React.FC<{ n: number; entry: ChatEntry; onRetry: (question: str
   );
 };
 
-export const AskPage: React.FC = () => {
+export const AgentPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useActiveUser();
   const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
-  const chat = useChatStream();
+  const chat = useAgentChat();
   const [searchParams, setSearchParams] = useSearchParams();
   const reportParam = searchParams.get("report");
   const qParam = searchParams.get("q");
@@ -166,6 +213,18 @@ export const AskPage: React.FC = () => {
   const [topTests, setTopTests] = useState<string[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const stickRef = useRef(true);
+  const pagesCache = useRef(new Map<string, Promise<ReportPage[]>>());
+
+  // Each report's pages are fetched once and shared by every passage slip.
+  const getPages = useCallback((reportId: string) => {
+    let pending = pagesCache.current.get(reportId);
+    if (!pending) {
+      pending = reportsApi.pages(reportId);
+      pagesCache.current.set(reportId, pending);
+      pending.catch(() => pagesCache.current.delete(reportId));
+    }
+    return pending;
+  }, []);
 
   // Header search hands a question over as ?q=: prefill the composer, then drop q (keep report).
   useEffect(() => {
@@ -263,10 +322,10 @@ export const AskPage: React.FC = () => {
     if (scroller && stickRef.current) scroller.scrollTop = scroller.scrollHeight;
   }, [chat.entries]);
 
-  const placeholder = composerReady ? "Ask about a value, a trend or a report" : "Upload a report to start asking";
+  const placeholder = composerReady ? "Ask the AI Agent about a value, a trend or a report" : "Upload a report to start asking";
 
   return (
-    <div data-screen-label="Ask" data-testid="ask-page" style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
+    <div data-screen-label="AI Agent" data-testid="agent-page" style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
       <div
         style={{
           flex: 1,
@@ -282,7 +341,7 @@ export const AskPage: React.FC = () => {
       >
         {reportParam ? (
           <div
-            data-testid="scope-chip"
+            data-testid="agent-scope-chip"
             style={{
               background: "var(--color-surface)",
               borderTop: "2px solid var(--color-text)",
@@ -313,7 +372,7 @@ export const AskPage: React.FC = () => {
         ) : null}
 
         {chat.entries.length === 0 ? (
-          <div data-testid="ask-empty" style={{ padding: "var(--space-8) 0", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          <div data-testid="agent-empty" style={{ padding: "var(--space-8) 0", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             {reportsState === "failed" ? (
               <>
                 <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em" }}>Cannot reach the backend</h2>
@@ -332,6 +391,9 @@ export const AskPage: React.FC = () => {
             ) : (
               <>
                 <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em" }}>What would you like to know?</h2>
+                <p style={{ margin: 0, color: "var(--color-neutral-700)", maxWidth: "62ch" }}>
+                  The AI Agent reads only your own reports. It searches them, shows each step it takes, and cites the passages behind every answer.
+                </p>
                 <div>
                   {suggestions.map((q) => (
                     <button
@@ -368,13 +430,13 @@ export const AskPage: React.FC = () => {
             )}
           </div>
         ) : (
-          <div data-testid="conversation-threads">
+          <div data-testid="agent-threads">
             {chat.entries.map((entry, index) => (
-              <EntryView key={entry.id} n={index + 1} entry={entry} onRetry={submit} canRetry={composerReady && !chat.isStreaming} />
+              <EntryView key={entry.id} n={index + 1} entry={entry} onRetry={submit} canRetry={composerReady && !chat.isStreaming} getPages={getPages} />
             ))}
             {!chat.isStreaming ? (
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button type="button" className="btn btn-secondary" onClick={chat.reset} data-testid="ask-new-chat">
+                <button type="button" className="btn btn-secondary" onClick={chat.reset} data-testid="agent-new-chat">
                   New chat
                 </button>
               </div>
@@ -385,7 +447,7 @@ export const AskPage: React.FC = () => {
       </div>
 
       <form
-        data-testid="ask-composer"
+        data-testid="agent-composer"
         onSubmit={(event) => {
           event.preventDefault();
           submit(input);
@@ -401,7 +463,7 @@ export const AskPage: React.FC = () => {
       >
         <div style={{ maxWidth: "960px", margin: "0 auto", display: "flex", flexWrap: "wrap", gap: "var(--space-3)" }}>
           <input
-            data-testid="ask-input"
+            data-testid="agent-input"
             className="input"
             value={input}
             onChange={(event) => setInput(event.target.value)}

@@ -15,7 +15,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/": "Overview",
   "/upload": "Upload and Ingest",
   "/graph": "Knowledge Graph",
-  "/ask": "Ask Questions",
+  "/agent": "AI Agent",
   "/timeline": "Patient Timeline",
   "/compare": "Compare Reports",
   "/insights": "Graph Insights",
@@ -28,7 +28,7 @@ const ROUTE_TITLES: Record<string, string> = {
 };
 
 // routes already converted to the exact reference layout; each page task adds its route here
-const OWN_LAYOUT = new Set<string>(["/upload", "/compare", "/insights", "/library", "/settings", "/ask"]);
+const OWN_LAYOUT = new Set<string>(["/upload", "/compare", "/insights", "/library", "/settings", "/agent"]);
 
 interface AppShellProps {
   children?: React.ReactNode;
@@ -168,7 +168,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           {ownLayout ? (
             children || <Outlet />
           ) : (
-            <div className={`mx-auto flex flex-col ${location.pathname === "/ask" || location.pathname === "/graph" ? "max-w-[1440px]" : "max-w-[1280px]"} ${location.pathname === "/ask" ? "h-full" : "min-h-full"}`}>
+            <div className={`mx-auto flex flex-col ${location.pathname === "/agent" || location.pathname === "/graph" ? "max-w-[1440px]" : "max-w-[1280px]"} ${location.pathname === "/agent" ? "h-full" : "min-h-full"}`}>
               {children || <Outlet />}
             </div>
           )}

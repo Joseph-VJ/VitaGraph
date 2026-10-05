@@ -332,7 +332,7 @@ export const UploadPage: React.FC = () => {
                 className="btn btn-primary"
                 style={{ gap: "var(--space-6)" }}
                 onClick={() =>
-                  transitionNavigate(navigate, activeReport ? `/ask?report=${encodeURIComponent(activeReport.id)}` : "/ask", { direction: "forward" })
+                  transitionNavigate(navigate, activeReport ? `/agent?report=${encodeURIComponent(activeReport.id)}` : "/agent", { direction: "forward" })
                 }
               >
                 Ask about this report
@@ -384,7 +384,7 @@ export const UploadPage: React.FC = () => {
         onContinueToAsk={() => {
           setIsPopupOpen(false);
           const rid = jobStream.finalMetadata?.reportId;
-          transitionNavigate(navigate, rid ? `/ask?report=${encodeURIComponent(String(rid))}` : "/ask", { direction: "forward" });
+          transitionNavigate(navigate, rid ? `/agent?report=${encodeURIComponent(String(rid))}` : "/agent", { direction: "forward" });
         }}
         onClose={() => setIsPopupOpen(false)}
         onContinueToLibrary={() => {
