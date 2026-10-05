@@ -1,155 +1,139 @@
-# VitaGraph (v1.1.0-motion)
+# VitaGraph
 
-**A Privacy-Aware Retrieval-Augmented System for Longitudinal Health-Report Analysis with Evidence-Linked Visualization & Adaptive Motion**  
+**A Privacy-Aware Retrieval-Augmented System for Longitudinal Health-Report Analysis with Evidence-Linked Visualization**  
 *Final-Year B.Tech Computer Science & Engineering Project*
 
 ---
 
 > ### ⚠️ Clinical & Safety Boundary
 > **VitaGraph is an educational, evidence-organization, and provenance-preservation system.**  
-> It is **not** a diagnostic medical tool, clinician replacement, emergency triage service, or prescriptive drug recommender. All clinical advice, treatment decisions, and diagnostic inquiries are refused fail-closed by system policy. All demonstration datasets and persona profiles are entirely synthetic or de-identified.
+> It is **not** a diagnostic medical tool, clinician replacement, emergency triage service, or prescriptive drug recommender. All clinical advice, treatment decisions, and diagnostic inquiries are refused fail-closed by system policy. All demonstration datasets and persona profiles are entirely synthetic or de-identified. Never show provider or model names in the user interface.
 
 ---
 
-## 1. System Architecture
+## 1. What VitaGraph Is
 
-VitaGraph is built on the **"Instrument & Paper"** design paradigm:
-- **The Instrument (Machine Voice):** Dark, dense, precise telemetry rendered with `IBM Plex Mono`, sub-millisecond latencies, NetworkX force-directed graph stages, single-ticker 60fps physics, and real-time Server-Sent Events (SSE).
-- **The Paper (Human Voice):** Clean, serif typography (`Spectral`), notebook-style `PaperSlip` evidence cards with 22px folded corners, and character-accurate bounding-box highlights from raw documents.
+VitaGraph reads longitudinal health reports (PDFs and lab panels), extracts structured biomarkers with exact character-level document provenance, builds a multi-relational Knowledge Graph, and provides an interactive AI Agent that answers questions strictly supported by verifiable citations.
 
-```mermaid
-graph TD
-    PDF[Synthetic Lab PDF] -->|POST /api/reports/upload| Ingest[Ingestion Pipeline]
-    Ingest -->|PyMuPDF / OCR Fallback| Pages[report_pages (SQLite)]
-    Pages -->|Sentence-aware chunker| Chunks[report_chunks (char_start, char_end)]
-    Chunks -->|sentence-transformers/all-MiniLM-L6-v2| Chroma[(ChromaDB Evidence Store)]
-    Chunks -->|Entity extraction| Graph[(NetworkX Knowledge Graph)]
-    
-    User([Researcher / Subject]) -->|Ask Question| RAG[POST /api/questions]
-    RAG -->|Filter user_id| Chroma
-    RAG -->|Activate Subgraph| Graph
-    RAG -->|Live SSE stream| Jobs[/api/jobs/{id}/events]
-    RAG -->|4-Part Grounded Answer| UI[Instrument & Paper UI]
-    
-    UI -->|Click Evidence| SpanViewer[Evidence Span Viewer /api/reports/{id}/pages]
+### Modernist Design Paradigm
+The interface follows a rigorous **Modernist** design system (reference prototype: `VitaGraph-App-v3.html`, source in `design/reference/app-v3-source.html`):
+- **Typography:** Single universal typeface — **Archivo** (400 regular, 600 semi-bold, 800 extra-bold). No serif or decorative fonts.
+- **Geometry:** Pure flat surfaces with zero corner radii (`border-radius: 0px`), structured by 1px and 2px divider lines (`--color-divider: #e0e0e0`).
+- **Color Discipline:** High-contrast neutral palette (pure white background `#ffffff`, off-white surfaces `#f7f7f7`, deep ink `#111111`) accented by a single vivid red (`--color-accent: #e03e1a`).
+- **Tokens:** Defined semantically in `site design/src/theme/tokens.css` and `modernist.css`.
+
+---
+
+## 2. Application Pages (11 Screens)
+
+| Screen | Route | Description |
+|---|---|---|
+| **Upload & Ingest** | `/upload` | Drag-and-drop report ingestion with a live 5-stage pipeline animation (5 s per stage at normal speed), page-by-page quality manifest, and interactive stage. |
+| **Library** | `/library` | Comprehensive document registry showing SHA-256 hashes, page/chunk counts, indexed status, extracted biomarker values with reference ranges, and character-accurate evidence slips. |
+| **AI Agent** | `/agent` | Provenance-grounded question answering powered by real-time Server-Sent Events (`POST /api/agent/stream`). Displays live thinking traces, tool execution, grounded answers, and fail-closed safety refusals. |
+| **Knowledge Graph** | `/graph` | 3D canvas viewport rendering ontology nodes (Subject, Report, Section, Biomarker, Measurement, Uncertainty). Features collision-free readable labels, community subgraphs, rotation/pause, and node inspector. |
+| **Timeline** | `/timeline` | Longitudinal patient ledger showing reports over time alongside 3D isometric charts visualizing biomarker changes across chronological panels. |
+| **Compare** | `/compare` | Side-by-side delta analysis between any two longitudinal panels with computed absolute changes and directional tags. |
+| **Insights** | `/insights` | Graph structural analytics including node/edge counts, Betweenness Centrality rankings, and inter-entity relation distributions. |
+| **Image to Text** | `/tools/ocr` | Standalone optical character recognition tool for scanned health documents and test receipts. |
+| **PDF to Text** | `/tools/pdf` | Digital text layer inspector extracting per-page plain text and layout coordinates. |
+| **Text to Graph** | `/tools/graph` | Clinical text-to-graph extraction playground mapping unstructured notes into interactive entity graphs. |
+| **Settings** | `/settings` | Ingestion pipeline speed multipliers, chunk size tuning slider (120 to 600 tokens), privacy guarantees, and persona management. |
+
+---
+
+## 3. AI Agent Architecture
+
+The AI Agent executes through a secure, grounded multi-step reasoning harness:
+- **Streaming Protocol:** Server-Sent Events over `POST /api/agent/stream`.
+- **Event Lifecycle:**
+  1. `status`: Lifecycle indicators (`starting`, `searching`, `synthesizing`).
+  2. `step`: High-level reasoning stage announcements.
+  3. `thinking`: Raw model chain-of-thought tokens.
+  4. `tool_call`: Read-only tool invocation with JSON arguments.
+  5. `tool_result`: Tool output returned to the harness.
+  6. `text_delta`: Incremental answer markdown stream.
+  7. `stats`: Operational telemetry (latency, token counts, chunks evaluated).
+  8. `completed`: Final structured result with citation indices.
+  9. `error`: Transparent diagnostic error messages.
+- **Read-Only Tool Harness:**
+  - `get_biomarkers`: Query extracted lab values and reference ranges for a report or panel.
+  - `get_trends`: Retrieve longitudinal biomarker progression across dates.
+  - `query_chroma`: Vector search over sentence-aware chunks using cosine similarity.
+  - `query_graph`: Graph traversal querying neighbors, paths, and centralities.
+- **Safety Policy:** Fail-closed boundary; questions seeking clinical diagnosis or prescription trigger an immediate structured refusal card with zero hallucination.
+
+---
+
+## 4. Repository Folder Map
+
+```text
+vitagraph-backend-track/
+├── VitaGraph-App-v3.html      # Frozen reference prototype application
+├── AGENTS.md                  # Autonomous agent loop constitution and rules
+├── CLAUDE.md                  # Developer guidelines and streaming contracts
+├── GEMINI.md                  # Workspace execution rules
+├── README.md                  # Main project introduction and documentation
+├── design/
+│   └── reference/             # Reference source (app-v3-source.html) and 1440x900 screenshots
+├── docs/
+│   └── ui-ux-design-notes.md  # Design architecture and evolution notes
+├── gemini/
+│   ├── DESIGN_LAW.md          # Visual law: reference parity is authoritative
+│   ├── TASK_S4_lite.md        # Session 4 task specification
+│   ├── reports/               # Session summary reports
+│   └── shots/                 # 1440x900 browser evidence screenshots
+├── scripts/
+│   └── plan/                  # Layout verification, a11y, and secret scanning tools
+├── site design/               # Frontend (React 19, TypeScript, Vite, Tailwind 4)
+│   ├── src/
+│   │   ├── api/               # API clients (reports, graph, agent)
+│   │   ├── components/        # Shell, UI primitives, graph canvas, agent stream
+│   │   ├── pages/             # 11 application screen components
+│   │   └── theme/             # Modernist theme tokens and CSS
+│   └── package.json
+└── vitagraph/
+    └── backend/               # FastAPI backend
+        ├── app/               # Routes, core services, RAG pipeline, agent harness
+        └── tests/             # Pytest test suite (213 tests)
 ```
 
-### Core Technology Stack
-- **Backend Core:** FastAPI (Python 3.13), Uvicorn, SQLite3 (foreign key integrity, audit trails), NetworkX (graph topology & Louvain modularity), ChromaDB (cosine vector store), `sentence-transformers/all-MiniLM-L6-v2`.
-- **Streaming Pipeline:** Server-Sent Events (SSE) `text/event-stream` with multi-subscriber broadcast broker and replay buffers.
-- **Frontend Core:** React 19, TypeScript 5.8, Vite 8.2, Tailwind CSS 4, zero-dependency motion engine (ticker, springs, FLIP, adaptive quality governor).
-- **Verification Engine:** Pytest (54 backend unit & integration tests), Playwright browser automated verification.
-
 ---
 
-## 2. Functional User Stories (US-01 — US-19)
-
-| User Story | Title | Acceptance Criteria | Test Status |
-|---|---|---|:---:|
-| **US-01** | Repo & Loop Hygiene | Git repository initialized, `.gitignore`, PRD, progress tracking, backend baseline green. | **PASSED** |
-| **US-02** | Adopt Instrument & Paper | `site design/src` wired against backend CORS `:5174`; legacy 3-column retired. | **PASSED** |
-| **US-03** | HomePage Live Bindings | Live stat tiles, activity feed, latency sparkline from `/api/reports`, `/api/timeline`, `/api/health`. | **PASSED** |
-| **US-04** | Knowledge Graph Stage | Real NetworkX graph on canvas (curved edges, category colors, ≤120 nodes, node card provenance). | **PASSED** |
-| **US-05** | Question Subgraph Activation | Active concepts pulse once (1200ms ring), inactive nodes dim to 40% (`ctx.globalAlpha = 0.40`). | **PASSED** |
-| **US-06** | SSE Job Stream & Trace | `/api/jobs/{id}/events` StreamingResponse drives `ThinkingDetailsPanel` with real events; stopped backend alerts. | **PASSED** |
-| **US-07** | AskPage Real 4-Part Answers | Grounded 4 parts (summary, evidence, limitations, safety); verbatim RefusalCard in madder red. | **PASSED** |
-| **US-08** | UploadPage Real Pipeline | Stepper advances strictly on real SSE events; Page Quality table and File Manifest bound to real report rows. | **PASSED** |
-| **US-09** | TimelinePage Live Spine & Deltas | Chronological spine from `/api/timeline`; deltas from `/api/reports/{uid}/trends`; dynamic report block insertion. | **PASSED** |
-| **US-10** | Library & Compare Live | Reports list with chunk counts & SHA-256 copy; Compare diff table computed from real extracted lab entities. | **PASSED** |
-| **US-11** | Insights Live Analytics | Modularity card (Louvain Q=0.64), Betweenness Centrality rankings, edge predicate frequencies, causality footnote. | **PASSED** |
-| **US-12** | Failure-Injection & Honest States | Global top banner on backend drop; Chroma failure isolates gracefully; `allow_api=false` and `REPLAY MODE` badges. | **PASSED** |
-| **US-13** | Evidence Span Viewer | Clicking evidence opens extracted page text from `/api/reports/{id}/pages` with `char_start–char_end` bounding box. | **PASSED** |
-| **US-14** | QA, Docs, Viva Script, Release Tag | 16 DESIGN gates passed; 43/43 pytest green; `docs/demo-script.md` written per plan §19.1; tagged `v1.0.0`. | **PASSED** |
-| **US-15** | Async Jobs & Paced Live UI | SSE pre-subscription, 280ms presentation dwell queue, skeleton shimmers, toast notification system. | **PASSED** |
-| **US-16** | Extraction Robustness & Dual OCR | PyMuPDF scan detection, rapidocr-onnxruntime fallback, table structure normalization. | **PASSED** |
-| **US-17** | Graph Richness Guarantee | Full Plan §11 ontology (`person`, `report`, `section`, `date`, `chunk`, `uncertainty`), ≥6 nodes guarantee. | **PASSED** |
-| **US-18** | Global Liveliness Pass | Route transitions, active press micro-feedback, dynamic health telemetry, reduced-motion honor. | **PASSED** |
-| **US-19** | One-Click Demo Cohort | `POST /api/demo/cohort` provisions evaluation persona with 2 longitudinal panels (≥25 nodes), viva updates. | **PASSED** |
-
----
-
-## 3. Motion & Adaptive Quality Governor System (MS-01 — MS-12)
-
-| Story | Title | Key Acceptance Criteria | Gates | Status |
-|---|---|---|:---:|:---:|
-| **MS-01** | Motion Foundation | Zero-dependency engine (`ticker`, `spring`, `sequence`, `quality`, `flip`), StatusStrip tier chip, 500ms auto-idle. | 17, 19, 20, 29 | **PASSED** |
-| **MS-02** | Global Grammar & Boot | Dual route transitions (View Transitions + fallback), Sidebar FLIP rule, skippable boot sequence ≤1.6s. | 18, 24, 30, 32 | **PASSED** |
-| **MS-03** | Home Motion Pass | Stat tiles 60ms stagger, needle-curve count-up Odometer, sparkline DrawPath, sequential health LEDs. | 21, 25, 27 | **PASSED** |
-| **MS-04** | Upload Motion Pass | Real-only drag states, SSE-gated stepper, work-dot (0.83 Hz), OCR scanline, quarantine impulse. | 18, 21, 24 | **PASSED** |
-| **MS-05** | GraphStage Engine Pass | Glow sprite cache, DPR tier caps (2.0/1.5/1.0), 1-frame hover response, camera spring, zero-alloc draw loop. | 19, 28, 29 | **PASSED** |
-| **MS-06** | Graph Reveal & Activation FX | Ontology reveal order, dim-to-40% spring, 1200ms ring pulse, photons (speed ∝ 1/latency), dust particles. | 18, 21, 22, 28 | **PASSED** |
-| **MS-07** | Ask Choreography | Real SSE event landing, FLIP input morph, rank chips FLIP reorder, 4-part answer reveal, refusal impulse + wash. | 18, 21, 23, 27 | **PASSED** |
-| **MS-08** | Timeline + Evidence Viewer | Scroll-bound spine (Firefox verified), single-fire card enters, 4-bracket evidence sheet morph, exact char odometers. | 21, 25, 26, 27 | **PASSED** |
-| **MS-09** | Compare + Insights + Library | Converging diff rows, modularity Q ring sweep, centrality FLIP race-sort, clockwise predicates, sketch draw-once. | 21, 25, 27, 32 | **PASSED** |
-| **MS-10** | Failure & Honest States | Banner drop + static 45° hatch, LED fail blink (1.667 Hz ≤ 2.0 Hz), error card rule wipe + wash, static REPLAY badge. | 21, 24 | **PASSED** |
-| **MS-11** | Performance & QA Audit | Performance budgets met (60fps, 0 frames >33ms, JS ≤4ms, CLS 0.00), all Gates 17–32 passed, viva appendix, v1.1.0-motion. | 17–32 | **PASSED** |
-| **MS-12** | Audio Detents & Specimens | WebAudio detents (zero assets, default off, persisted toggle, muted when hidden, disabled at T0), motion specimens. | 31 | *QUEUED* |
-
----
-
-## 4. Quickstart & Verification Guide
+## 5. Quickstart & Verification Guide
 
 ### Prerequisites
-- Python 3.10+ (Python 3.13 recommended)
+- Python 3.10+ (Python 3.13 tested)
 - Node.js 20+ & npm
 
-### Backend Setup & Test Suite
+### Running the Backend
 ```powershell
-# Navigate to backend directory
 cd vitagraph/backend
+# Activate virtual environment if configured:
+# .venv\Scripts\activate
 
-# Activate virtual environment
-.\.venv\Scripts\activate
-
-# Run full backend test suite (54 tests)
+# Run test suite (213 tests):
 python -m pytest tests -q
 
-# Start FastAPI backend server
+# Start FastAPI server on port 8000 (or 8001 for worktree):
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-### Frontend Setup & Production Build
+### Running the Frontend
 ```powershell
-# Navigate to site design directory
 cd "site design"
 
-# Install dependencies (if needed)
-npm install
-
-# Run TypeScript check and production build
+# Production build check:
 npm run build
 
-# Start Vite development server
-npm run dev -- --host 127.0.0.1 --port 5174
+# Start development server on port 5173 (or 5174 for worktree):
+npm run dev
 ```
 
 ---
 
-## 5. API Endpoints Reference
+## 6. Safety & Privacy Guardrails
 
-| Route | Method | Description |
-|---|:---:|---|
-| `/api/health` | `GET` | System operational telemetry, Chroma chunks count, allow_api flag. |
-| `/api/users` | `GET`, `POST` | User persona management, consent registration, deletion cascade. |
-| `/api/reports` | `GET`, `POST` | Report PDF upload, listing with page/chunk counts, SHA-256 validation. |
-| `/api/reports/{id}/pages` | `GET` | Page-by-page extraction quality, OCR flags, and verbatim extracted text. |
-| `/api/reports/{id}/status` | `GET` | Asynchronous processing status, chunk counts, error state. |
-| `/api/reports/{uid}/trends` | `GET` | Longitudinal biomarker trend points across chronological panels. |
-| `/api/reports/compare` | `GET` | Side-by-side delta computations between baseline and follow-up panels. |
-| `/api/questions` | `POST` | User-scoped RAG question answering with 4-part structured output. |
-| `/api/jobs/{id}/events` | `GET` | Real-time Server-Sent Events (SSE) stream for pipeline stage traces. |
-| `/api/graph/{uid}` | `GET` | NetworkX knowledge graph nodes, edges, Louvain modularity, and centrality. |
-| `/api/graph/subgraph` | `POST` | Question-conditioned active subnetwork extraction for evidence chunks. |
-| `/api/timeline/{uid}` | `GET` | Historical event ledger and longitudinal audit trail. |
-
----
-
-## 6. Viva Defense Reference & Demonstration Script
-
-A step-by-step 14-stage viva presentation protocol and Motion Appendix M are documented in [`docs/demo-script.md`](docs/demo-script.md), following Master Plan §19.1 and MOTION.md §M10–M12. It provides exact talking points, interaction steps, expected UI responses, and model answers for typical examiner inquiries.
-
----
-
-## 7. License & Academic Declaration
-Developed as an academic final-year project at B.Tech Level.  
-Submitted under the VitaGraph Project Constitution and Master Engineering Plan.
+1. **No External Entity Identification:** Never expose model names or external providers in the UI.
+2. **Local-First Grounding:** All claims must link back to specific character offsets in raw report PDFs.
+3. **Fail-Closed Clinical Refusal:** Educational and organizational use only.

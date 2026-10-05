@@ -1,9 +1,12 @@
 # VitaGraph workspace rules (binds all agents)
 - Imperative mode only: act, verify, report.
-- Read order each task: AGENTS.md, tasks/prd.json, tail progress.txt, then only the files the story touches.
-- DESIGN.md is the frozen visual law (tokens §4, components §7, gates §11); never invent colors, radii, copy, or motion.
-- Reality contract: no setTimeout/fake progress; SSE EventSource only; no static graph.json.
-- Checkpoint rule: end every turn with `npm run build` exit 0 AND `pytest tests -q` green, then `git commit`. If you cannot reach green in 3 verification attempts, STOP, write a BLOCKED entry in progress.txt, `git checkout -- .` to last green commit, and end turn.
+- Read order each task: AGENTS.md, gemini/DESIGN_LAW.md, gemini/TASK_*.md, tail progress.txt, then only the files the story touches.
+- Modernist design is the visual law (`VitaGraph-App-v3.html`, `design/reference/app-v3-source.html`, tokens in `site design/src/theme/tokens.css`): Archivo font only, 0px radius, flat surfaces, single red accent (`--color-accent: #e03e1a`). Never invent colors, radii, or typography.
+- 11 pages: Upload, Library, AI Agent, Knowledge Graph, Timeline, Compare, Insights, Image to Text, PDF to Text, Text to Graph, Settings.
+- Reality contract: no setTimeout/fake progress; SSE only (`POST /api/agent/stream`); real 3D canvas graph; no static graph.json.
+- Checkpoint rule: end every turn with `npm run build` exit 0 AND `pytest tests -q` green, then `git commit` staging by explicit path (never `git add .`, never `tsconfig.tsbuildinfo`). If you cannot reach green in 3 verification attempts, STOP, write a BLOCKED entry in progress.txt, `git checkout -- .` to last green commit, and end turn.
 - One story per task. Never open a second story. Never paste whole files into replies.
-- Evidence rule: every completion claim includes fresh command output plus a browser recording/screenshot artifact of the touched screen.
-- Quota rule: if remaining work exceeds this turn, write resume state to progress.txt and stop.
+- Evidence rule: every completion claim includes fresh command output plus a browser screenshot artifact of the touched screen.
+- Never show provider or model names in the UI.
+- Never touch the other folder (`kiruthika final project`) or ports. Use only ports 5174 (frontend) and 8001 (backend) in this worktree.
+- Run `python scripts/plan/secret_scan.py` (must print `RESULT: PASS`).
