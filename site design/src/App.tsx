@@ -10,6 +10,8 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { ComparePage } from "./pages/ComparePage";
 import { InsightsPage } from "./pages/InsightsPage";
 import { TextToGraphPage } from "./pages/TextToGraphPage";
+import { ImageToTextPage } from "./pages/ImageToTextPage";
+import { PdfToTextPage } from "./pages/PdfToTextPage";
 import { UserProvider } from "./context/UserContext";
 import { ToastProvider } from "./components/gallery/Toast";
 
@@ -55,6 +57,8 @@ export const App: React.FC = () => {
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/insights" element={<InsightsPage />} />
               <Route path="/text-to-graph" element={<TextToGraphPage />} />
+              <Route path="/image-to-text" element={<ImageToTextPage />} />
+              <Route path="/pdf-to-text" element={<PdfToTextPage />} />
             </Route>
 
             {/* Catch-all fallback */}

@@ -17,14 +17,17 @@ interface EvidenceModulesProps {
   cards: AgentEvidence[];
   openRefs: readonly number[];
   onToggle: (ref: number) => void;
+  aiUsed: boolean;
 }
 
 /** Evidence, Limitations and Safety under a finished answer. */
-export const EvidenceModules: React.FC<EvidenceModulesProps> = ({ cards, openRefs, onToggle }) => {
+export const EvidenceModules: React.FC<EvidenceModulesProps> = ({ cards, openRefs, onToggle, aiUsed }) => {
   const reportCount = new Set(cards.map((c) => c.report_id)).size;
-  const limitations = `Built from ${cards.length === 1 ? "1 passage" : `${cards.length} passages`} in ${
-    reportCount === 1 ? "1 report" : `${reportCount} reports`
-  }. The AI Agent can misread a table or a scan, so check the highlighted passage.`;
+  const passageCountText = cards.length === 1 ? "1 passage" : `${cards.length} passages`;
+  const reportCountText = reportCount === 1 ? "1 report" : `${reportCount} reports`;
+  const limitations = aiUsed
+    ? `Built from ${passageCountText} in ${reportCountText}. The AI Agent can misread a table or a scan, so check the highlighted passage.`
+    : `Quoted from ${passageCountText} in ${reportCountText}. No AI model wrote this answer; it is report text only.`;
 
   return (
     <div

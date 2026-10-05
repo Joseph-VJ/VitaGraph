@@ -1091,4 +1091,7 @@ button:not(:disabled):active,
   .vg-footer {
     padding: 0 var(--space-4);
   }
+  .vg-header-cluster { min-width:0; max-width:100%; width:100%; }
+  .vg-header-search { flex:1 1 100%; min-width:0; }
+  .vg-header-search .input { width:100%; }
 }

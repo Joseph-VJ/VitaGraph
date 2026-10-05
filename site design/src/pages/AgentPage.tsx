@@ -98,10 +98,15 @@ const EntryView: React.FC<EntryViewProps> = ({ n, entry, onRetry, canRetry, getP
     const card = byRef.get(ref);
     return card ? [card] : [];
   });
-  const citedCards = cited.flatMap((ref) => {
-    const card = byRef.get(ref);
-    return card ? [card] : [];
-  });
+  const citedCards =
+    cited.length > 0
+      ? cited.flatMap((ref) => {
+          const card = byRef.get(ref);
+          return card ? [card] : [];
+        })
+      : entry.aiStatus === "not_used"
+        ? entry.evidence
+        : [];
 
   let body: React.ReactNode = null;
   if (entry.status === "refused") {
@@ -166,7 +171,7 @@ const EntryView: React.FC<EntryViewProps> = ({ n, entry, onRetry, canRetry, getP
       ) : null}
       {body}
       {entry.status === "answered" && !entry.withheld && citedCards.length > 0 ? (
-        <EvidenceModules cards={citedCards} openRefs={openRefs} onToggle={toggleRef} />
+        <EvidenceModules cards={citedCards} openRefs={openRefs} onToggle={toggleRef} aiUsed={entry.aiStatus === "ok"} />
       ) : null}
       {openCards.length > 0 ? (
         <div ref={slipsRef}>
@@ -339,7 +344,7 @@ export const AgentPage: React.FC = () => {
   }
 
   const placeholder = composerReady
-    ? "Ask the AI Agent about a value, a trend or a report"
+    ? "Ask about a value, a trend or a report"
     : reportsState === "loading"
     ? "Loading your reports"
     : "Upload a report to start asking";
@@ -414,34 +419,30 @@ export const AgentPage: React.FC = () => {
             ) : (
               <>
                 <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em" }}>What would you like to know?</h2>
-                <p style={{ margin: 0, color: "var(--color-neutral-700)", maxWidth: "62ch" }}>
-                  The AI Agent reads only your own reports. It searches them, shows each step it takes, and cites the passages behind every answer.
-                </p>
                 <div>
                   {suggestions.map((q) => (
                     <button
                       key={q}
                       type="button"
                       onClick={() => submit(q)}
-                      disabled={!composerReady}
                       className="ask-suggestion"
                       style={{
                         appearance: "none",
                         width: "100%",
-                        cursor: composerReady ? "pointer" : "not-allowed",
+                        cursor: "pointer",
                         textAlign: "left",
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
                         gap: "var(--space-3)",
-                        padding: "var(--space-3) var(--space-2)",
+                        minHeight: 42,
+                        padding: "var(--space-2) var(--space-2)",
                         border: 0,
                         borderTop: "1px solid var(--color-divider)",
                         background: "transparent",
                         color: "var(--color-text)",
                         fontSize: "1rem",
                         fontWeight: 600,
-                        opacity: composerReady ? 1 : 0.45,
                       }}
                     >
                       <span>{q}</span>
@@ -474,6 +475,7 @@ export const AgentPage: React.FC = () => {
         className="vg-gutter"
         onSubmit={(event) => {
           event.preventDefault();
+          if (!composerReady || input.trim().length < MIN_QUESTION_CHARS) return;
           submit(input);
         }}
         style={{
@@ -509,8 +511,13 @@ export const AgentPage: React.FC = () => {
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={!composerReady || input.trim().length < MIN_QUESTION_CHARS}
-              style={{ minWidth: 140, justifyContent: "space-between" }}
+              aria-disabled={!composerReady || input.trim().length < MIN_QUESTION_CHARS}
+              onClick={(e) => {
+                if (!composerReady || input.trim().length < MIN_QUESTION_CHARS) {
+                  e.preventDefault();
+                }
+              }}
+              style={{ minWidth: 140, justifyContent: "space-between", opacity: 1 }}
             >
               Send
               <Arrow size={18} />

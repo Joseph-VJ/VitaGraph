@@ -46,7 +46,7 @@ def _looks_like_heading(line: str) -> bool:
     return any(re.search(rf"\b{hint}\b", lowered) for hint in _HEADING_HINTS)
 
 
-def chunk_page(page: dict, report: dict) -> list[dict]:
+def chunk_page(page: dict, report: dict, target_chars: int | None = None) -> list[dict]:
     """Split one page's text into metadata-rich chunks.
 
     char_start / char_end map each chunk back to the exact extracted page
@@ -92,9 +92,10 @@ def chunk_page(page: dict, report: dict) -> list[dict]:
         buffer.append((line_start, line_end, line))
 
         buffered_len = sum(len(b[2]) for b in buffer)
+        target = target_chars if target_chars is not None else CHUNK_TARGET_CHARS
         if _COMPLETE_ENTRY.match(line.strip()) and buffered_len >= 60:
             flush()                   # complete lab entry: natural boundary
-        elif buffered_len >= CHUNK_TARGET_CHARS:
+        elif buffered_len >= target:
             flush()
 
     flush()

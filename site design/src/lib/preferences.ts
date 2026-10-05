@@ -1,14 +1,22 @@
 import { useSyncExternalStore } from "react";
 import { governor } from "../motion";
 
+export type ProcessSpeed = "fast" | "normal" | "slow";
+
 export interface Preferences {
   cinematic: boolean;
   reduceMotion: boolean;
-  graphView: "auto" | "3d" | "2d";
+  speed: ProcessSpeed;
+  chunkSize: number;
 }
 
 const STORAGE_KEY = "vitagraph_preferences";
-const DEFAULTS: Preferences = { cinematic: true, reduceMotion: false, graphView: "auto" };
+const DEFAULTS: Preferences = {
+  cinematic: true,
+  reduceMotion: false,
+  speed: "normal",
+  chunkSize: 200,
+};
 
 function load(): Preferences {
   try {
@@ -17,14 +25,19 @@ function load(): Preferences {
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== "object" || parsed === null) return DEFAULTS;
     const stored = parsed as Record<string, unknown>;
-    const graphView =
-      stored.graphView === "3d" || stored.graphView === "2d" || stored.graphView === "auto"
-        ? stored.graphView
-        : DEFAULTS.graphView;
+    const speed =
+      stored.speed === "fast" || stored.speed === "normal" || stored.speed === "slow"
+        ? (stored.speed as ProcessSpeed)
+        : DEFAULTS.speed;
+    const chunkSize =
+      typeof stored.chunkSize === "number" && stored.chunkSize >= 120 && stored.chunkSize <= 600
+        ? stored.chunkSize
+        : DEFAULTS.chunkSize;
     return {
       cinematic: typeof stored.cinematic === "boolean" ? stored.cinematic : DEFAULTS.cinematic,
       reduceMotion: typeof stored.reduceMotion === "boolean" ? stored.reduceMotion : DEFAULTS.reduceMotion,
-      graphView,
+      speed,
+      chunkSize,
     };
   } catch {
     return DEFAULTS;

@@ -22,11 +22,25 @@ const ROUTE_TITLES: Record<string, string> = {
   "/library": "Document Library",
   "/settings": "Settings and System Configuration",
   "/gallery": "Component Gallery",
+  "/image-to-text": "Image to Text",
+  "/pdf-to-text": "PDF to Text",
   "/text-to-graph": "Text to Graph",
 };
 
 // routes already converted to the exact reference layout; each page task adds its route here
-const OWN_LAYOUT = new Set<string>(["/upload", "/compare", "/insights", "/library", "/settings", "/agent", "/timeline", "/graph", "/text-to-graph"]);
+const OWN_LAYOUT = new Set<string>([
+  "/upload",
+  "/compare",
+  "/insights",
+  "/library",
+  "/settings",
+  "/agent",
+  "/timeline",
+  "/graph",
+  "/image-to-text",
+  "/pdf-to-text",
+  "/text-to-graph",
+]);
 
 interface AppShellProps {
   children?: React.ReactNode;

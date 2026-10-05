@@ -100,7 +100,7 @@ export interface ChunkDetail {
 }
 
 export const reportsApi = {
-  upload: (userId: string, file: File, jobId?: string, background: boolean = true) => {
+  upload: (userId: string, file: File, jobId?: string, background: boolean = true, chunkSize?: number) => {
     const form = new FormData();
     form.append("user_id", userId);
     form.append("file", file);
@@ -108,6 +108,9 @@ export const reportsApi = {
       form.append("job_id", jobId);
     }
     form.append("background", background ? "true" : "false");
+    if (chunkSize !== undefined && chunkSize !== null) {
+      form.append("chunk_size", String(chunkSize));
+    }
     return api.upload<ReportStatus>("/api/reports/upload", form);
   },
   list: (userId: string) => api.get<Report[]>(`/api/reports?user_id=${userId}`),

@@ -113,6 +113,41 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
       ],
     },
     {
+      label: "Tools",
+      items: [
+        {
+          id: "image-to-text",
+          path: "/image-to-text",
+          label: "Image to Text",
+          sublabel: "Picture to text",
+          live: true,
+          icon: (
+            <Icon d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h8M7 12h10M7 16h6" />
+          ),
+        },
+        {
+          id: "pdf-to-text",
+          path: "/pdf-to-text",
+          label: "PDF to Text",
+          sublabel: "Digital text layer",
+          live: true,
+          icon: (
+            <Icon d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7ZM14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8M10 9H8" />
+          ),
+        },
+        {
+          id: "text-to-graph",
+          path: "/text-to-graph",
+          label: "Text to Graph",
+          sublabel: "Entities and links",
+          live: true,
+          icon: (
+            <Icon d="M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+          ),
+        },
+      ],
+    },
+    {
       label: "System",
       items: [
         { id: "settings", path: "/settings", label: "Settings", sublabel: "Ingestion, privacy", live: true,

@@ -61,6 +61,9 @@ export const ROUTE_INDEX: Record<string, number> = {
   "/library": 7,
   "/gallery": 8,
   "/settings": 9,
+  "/image-to-text": 10,
+  "/pdf-to-text": 11,
+  "/text-to-graph": 12,
 };
 
 let lastPath = typeof window !== "undefined" ? window.location.pathname : "/";

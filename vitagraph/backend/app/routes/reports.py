@@ -27,10 +27,15 @@ async def upload_report(
     file: UploadFile = File(...),
     job_id: str | None = Form(None),
     background: bool = Form(True),
+    chunk_size: int | None = Form(None),
 ) -> dict:
+    if chunk_size is not None and (chunk_size < 120 or chunk_size > 600):
+        raise HTTPException(
+            status_code=422,
+            detail="chunk_size must be between 120 and 600.",
+        )
     user_service.user_exists(user_id)
     if not user_service.has_consent(user_id):
-        from fastapi import HTTPException
         raise HTTPException(
             status_code=403,
             detail="This persona has not accepted the data-use statement yet.",
@@ -39,8 +44,6 @@ async def upload_report(
 
     declared_size = getattr(file, "size", None)
     if declared_size is not None and declared_size > settings.max_upload_mb * 1024 * 1024:
-        from fastapi import HTTPException
-
         raise HTTPException(
             status_code=400,
             detail=f"File exceeds the {settings.max_upload_mb} MB upload limit.",
@@ -53,7 +56,7 @@ async def upload_report(
 
     if background:
         import asyncio
-        asyncio.create_task(asyncio.to_thread(report_service.process_upload, user_id, filename, data, jid))
+        asyncio.create_task(asyncio.to_thread(report_service.process_upload, user_id, filename, data, jid, chunk_size))
         return {
             "id": jid,
             "status": "received",
@@ -63,7 +66,7 @@ async def upload_report(
             "file_hash": None,
             "job_id": jid,
         }
-    return report_service.process_upload(user_id, filename, data, job_id=jid)
+    return report_service.process_upload(user_id, filename, data, job_id=jid, chunk_size=chunk_size)
 
 
 @router.get("", response_model=list[ReportOut])
