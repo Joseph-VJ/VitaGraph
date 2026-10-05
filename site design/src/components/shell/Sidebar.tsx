@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { flip, supportsViewTransitions, governor, setNavDirection, getNavDirection } from "../../motion";
 
@@ -24,7 +24,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   const indicatorRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
 
-  useEffect(() => {
+  // Route changes animate the bar, and a resize or breakpoint change (244 px to 60 px sidebar)
+  // moves it at once, so it never points at the wrong item.
+  const placeIndicator = useCallback((animate: boolean) => {
     const navEl = navRef.current;
     const indicatorEl = indicatorRef.current;
     if (!navEl || !indicatorEl) return;
@@ -37,19 +39,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
 
     const navRect = navEl.getBoundingClientRect();
     const linkRect = activeLink.getBoundingClientRect();
-    const top = linkRect.top - navRect.top;
+    const top = linkRect.top - navRect.top + navEl.scrollTop;
     const height = linkRect.height;
 
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
+    indicatorEl.style.display = "block";
+
+    if (!animate) {
       indicatorEl.style.top = `${top}px`;
       indicatorEl.style.height = `${height}px`;
-      indicatorEl.style.display = "block";
       return;
     }
 
     // Subsequent route changes: FLIP animation via weighted spring (§M6.2)
-    indicatorEl.style.display = "block";
     flip(
       indicatorEl,
       () => {
@@ -58,7 +59,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
       },
       { spring: "weighted", capMs: 240 }
     );
-  }, [currentPath]);
+  }, []);
+
+  useEffect(() => {
+    placeIndicator(!isFirstRender.current);
+    isFirstRender.current = false;
+  }, [currentPath, placeIndicator]);
+
+  useEffect(() => {
+    const navEl = navRef.current;
+    if (!navEl || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => {
+      placeIndicator(false);
+    });
+    observer.observe(navEl);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [placeIndicator]);
 
   const Icon = ({ d }: { d: string }) => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"

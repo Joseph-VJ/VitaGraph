@@ -108,10 +108,10 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
 
   return (
     <header
-      className={`flex-shrink-0 select-none ${className}`}
+      className={`vg-header flex-shrink-0 select-none ${className}`}
       style={{
         minHeight: 76, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between",
-        gap: "var(--space-3) var(--space-6)", padding: "var(--space-3) var(--space-8)",
+        gap: "var(--space-3) var(--space-6)",
         borderBottom: "2px solid var(--color-divider)", boxSizing: "border-box", background: "var(--color-bg)",
       }}
     >
@@ -127,13 +127,13 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
         <div style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)" }}>{config.sub}</div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap", minWidth: 0, maxWidth: "100%" }}>
         {isReplay && (
           <span className="tag tag-outline" data-testid="replay-mode-badge">Replay mode</span>
         )}
         <form
           data-boot-target="header-search"
-          style={{ margin: 0 }}
+          style={{ margin: 0, flex: "1 1 200px", minWidth: 0, maxWidth: 300 }}
           onSubmit={(e) => { e.preventDefault(); submitSearch(); }}
         >
           <input
@@ -143,7 +143,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
             aria-label="Ask a question about your reports"
             placeholder={SEARCH_PLACEHOLDER}
             onChange={(e) => { setQuery(e.target.value); onSearch?.(e.target.value); }}
-            style={{ width: 300 }}
+            style={{ width: "100%" }}
           />
         </form>
         {allowApi === false && (

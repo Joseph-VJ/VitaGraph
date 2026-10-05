@@ -122,7 +122,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const routeTitle = ROUTE_TITLES[location.pathname] || "VitaGraph";
 
   return (
-    <div className="flex h-screen w-screen text-[var(--bone)] overflow-hidden relative">
+    <div className="flex h-screen w-screen text-[var(--color-text)] overflow-hidden relative">
       {/* Route change announcer for assistive technology (WCAG a11y, WS-5) */}
       <div data-testid="route-announcer" aria-live="polite" aria-atomic="true" className="sr-only">
         Navigated to {routeTitle}

@@ -94,9 +94,9 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
 
   return (
     <footer
-      className="flex-shrink-0 z-30 select-none"
+      className="vg-footer flex-shrink-0 z-30 select-none"
       style={{
-        height: 40, display: "flex", alignItems: "center", gap: "var(--space-6)", padding: "0 var(--space-8)",
+        height: 40, display: "flex", alignItems: "center", gap: "var(--space-6)",
         borderTop: "2px solid var(--color-divider)", fontSize: "0.75rem", fontVariantNumeric: "tabular-nums",
         background: "var(--color-bg)", whiteSpace: "nowrap", overflow: "hidden",
       }}
