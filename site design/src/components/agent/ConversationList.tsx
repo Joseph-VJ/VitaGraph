@@ -137,7 +137,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                   background: isCurrent ? "color-mix(in srgb, var(--color-accent) 8%, transparent)" : "transparent",
                   padding: "var(--space-2) var(--space-3)",
                   marginBottom: "var(--space-2)",
-                  borderRadius: "0 var(--radius-md) var(--radius-md) 0",
+                  borderRadius: 0,
                   transition: "background 0.15s ease",
                 }}
               >
@@ -205,6 +205,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                       </span>
                       <button
                         type="button"
+                        data-testid="agent-conversation-confirm-delete"
                         className="btn btn-ghost"
                         style={{
                           fontSize: "0.75rem",
@@ -228,6 +229,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                   ) : (
                     <button
                       type="button"
+                      data-testid="agent-conversation-delete"
                       className="btn btn-ghost"
                       style={{
                         fontSize: "0.6875rem",

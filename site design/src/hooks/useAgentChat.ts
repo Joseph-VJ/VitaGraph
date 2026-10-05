@@ -328,26 +328,27 @@ export function useAgentChat(): UseAgentChatReturn {
         }
         case "completed": {
           flushNow();
-          if (asRecord(data).stage === "done") {
-            if (typeof p.conversation_id === "string" && p.conversation_id) {
-              conversationIdRef.current = p.conversation_id;
-              setConversationId(p.conversation_id);
-            }
-            patch(id, (e) => settle({ ...e, status: e.status === "streaming" ? "answered" : e.status, endedAt: e.endedAt ?? Date.now() }));
-          } else {
-            const status: EntryStatus =
-              p.status === "refused" ? "refused" : p.status === "insufficient_evidence" ? "insufficient_evidence" : "answered";
-            patch(id, (e) => ({
-              ...e,
-              status,
-              answer: e.answer.trim() ? e.answer : String(p.summary_text ?? ""),
-              evidence: Array.isArray(p.evidence) ? p.evidence.filter(isEvidence) : e.evidence,
-              withheld: p.safety_passed === false,
-              safetyNote: typeof p.safety_note === "string" ? p.safety_note : null,
-              aiStatus: typeof p.ai_status === "string" ? p.ai_status : null,
-              title: typeof p.session_title === "string" && p.session_title.trim() ? p.session_title.trim() : null,
-            }));
+          const status: EntryStatus =
+            p.status === "refused" ? "refused" : p.status === "insufficient_evidence" ? "insufficient_evidence" : "answered";
+          patch(id, (e) => ({
+            ...e,
+            status,
+            answer: e.answer.trim() ? e.answer : String(p.summary_text ?? ""),
+            evidence: Array.isArray(p.evidence) ? p.evidence.filter(isEvidence) : e.evidence,
+            withheld: p.safety_passed === false,
+            safetyNote: typeof p.safety_note === "string" ? p.safety_note : null,
+            aiStatus: typeof p.ai_status === "string" ? p.ai_status : null,
+            title: typeof p.session_title === "string" && p.session_title.trim() ? p.session_title.trim() : null,
+          }));
+          break;
+        }
+        case "done": {
+          flushNow();
+          if (typeof p.conversation_id === "string" && p.conversation_id) {
+            conversationIdRef.current = p.conversation_id;
+            setConversationId(p.conversation_id);
           }
+          patch(id, (e) => settle({ ...e, status: e.status === "streaming" ? "answered" : e.status, endedAt: e.endedAt ?? Date.now() }));
           break;
         }
         default:
@@ -446,7 +447,7 @@ export function useAgentChat(): UseAgentChatReturn {
               }
               const record = asRecord(data);
               if (event === "message" && typeof record.event_type === "string") event = record.event_type;
-              if (event === "error" || (event === "completed" && record.stage === "done")) sawTerminal = true;
+              if (event === "error" || event === "done" || (event === "completed" && record.stage === "done")) sawTerminal = true;
               handleEvent(id, event, data);
             }
           }
