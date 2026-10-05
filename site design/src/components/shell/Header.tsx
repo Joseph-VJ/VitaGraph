@@ -100,6 +100,9 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
       case "/compare": return { title: "Compare", sub: "Change between two reports." };
       case "/insights": return { title: "Insights", sub: "Structure and key nodes of the graph." };
       case "/settings": return { title: "Settings", sub: "Ingestion, reading, privacy and display." };
+      case "/image-to-text": return { title: "Image to Text", sub: "Read the text in a picture." };
+      case "/pdf-to-text": return { title: "PDF to Text", sub: "Extract the text layer of a PDF, page by page." };
+      case "/text-to-graph": return { title: "Text to Graph", sub: "Turn plain text into linked entities." };
       default: return { title: "VitaGraph", sub: "Your reports, evidence and insights in one place." };
     }
   };
@@ -127,13 +130,14 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
         <div style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)" }}>{config.sub}</div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap", minWidth: 0, maxWidth: "100%" }}>
+      <div className="vg-header-cluster" style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
         {isReplay && (
           <span className="tag tag-outline" data-testid="replay-mode-badge">Replay mode</span>
         )}
         <form
+          className="vg-header-search"
           data-boot-target="header-search"
-          style={{ margin: 0, flex: "1 1 200px", minWidth: 0, maxWidth: 300 }}
+          style={{ margin: 0 }}
           onSubmit={(e) => { e.preventDefault(); submitSearch(); }}
         >
           <input
@@ -143,7 +147,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
             aria-label="Ask a question about your reports"
             placeholder={SEARCH_PLACEHOLDER}
             onChange={(e) => { setQuery(e.target.value); onSearch?.(e.target.value); }}
-            style={{ width: "100%" }}
+            style={{ width: 300 }}
           />
         </form>
         {allowApi === false && (
