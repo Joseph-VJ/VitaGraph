@@ -9,8 +9,8 @@ The definitive visual reference is `VitaGraph-App-v3.html` (readable source in `
 ### Modernist Visual Principles
 - **Universal Typography:** A single typeface family — **Archivo** (400 regular, 600 semi-bold, 800 extra-bold). All serif, mono, and display fonts have been unified into Archivo to eliminate cognitive switching.
 - **Zero Radius:** Pure flat geometry with `border-radius: 0px` across buttons, inputs, tags, dialogs, cards, and panels (`--radius-none: 0px`).
-- **High-Contrast Neutral Surfaces:** Clean white background (`--color-bg: #ffffff`), neutral light surfaces (`--color-surface: #f7f7f7`, `--color-neutral-100: #f2f2f2`, `--color-neutral-200: #e6e6e6`), crisp dark text (`--color-text: #111111`, `--color-neutral-700: #666666`), structured by 1px and 2px dividing rules (`--color-divider: #e0e0e0`).
-- **Single Vivid Accent:** Exactly one vivid red accent (`--color-accent: #e03e1a`) reserved exclusively for active states, key data indicators, and alerts.
+- **High-Contrast Neutral Surfaces:** Neutral ground (`--color-bg: #f3f2f2`), neutral light surfaces (`--color-surface: #eae9e9`, `--color-neutral-100: #f8f4f4`, `--color-neutral-200: #eae7e7`), crisp dark text (`--color-text: #201e1d`, `--color-neutral-700: #605d5d`), structured by dividing rules (`--color-divider: color-mix(in srgb, #201e1d 40%, transparent)`).
+- **Single Vivid Accent:** Exactly one vivid red accent (`--color-accent: #ec3013`) reserved exclusively for active states, key data indicators, and alerts.
 - **Tokens:** Canonical tokens are defined in `site design/src/theme/tokens.css` and `modernist.css`.
 
 ---
@@ -88,7 +88,7 @@ The AI Agent communicates with the backend via Server-Sent Events (`POST /api/ag
 
 ## 4. Verification and Quality Budgets
 
-- **Backend Pytest:** 213 unit and integration tests passing (`python -m pytest tests -q`).
+- **Backend Pytest:** 218 unit and integration tests passing (`python -m pytest tests -q`).
 - **Frontend Build:** Strict TypeScript check and Vite production build (`npm run build`) passing with zero errors.
 - **Accessibility:** Full keyboard navigability, WCAG AA contrast compliance across all text tokens, and visible focus rings.
 - **Secret Scan:** `python scripts/plan/secret_scan.py` passes cleanly with zero exposed credentials.

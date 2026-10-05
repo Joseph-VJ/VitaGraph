@@ -19,7 +19,7 @@ VitaGraph reads longitudinal health reports (PDFs and lab panels), extracts stru
 The interface follows a rigorous **Modernist** design system (reference prototype: `VitaGraph-App-v3.html`, source in `design/reference/app-v3-source.html`):
 - **Typography:** Single universal typeface — **Archivo** (400 regular, 600 semi-bold, 800 extra-bold). No serif or decorative fonts.
 - **Geometry:** Pure flat surfaces with zero corner radii (`border-radius: 0px`), structured by 1px and 2px divider lines (`--color-divider: #e0e0e0`).
-- **Color Discipline:** High-contrast neutral palette (pure white background `#ffffff`, off-white surfaces `#f7f7f7`, deep ink `#111111`) accented by a single vivid red (`--color-accent: #e03e1a`).
+- **Color Discipline:** High-contrast neutral palette (neutral background `#f3f2f2`, surfaces `#eae9e9`, deep ink `#201e1d`) accented by a single vivid red (`--color-accent: #ec3013`).
 - **Tokens:** Defined semantically in `site design/src/theme/tokens.css` and `modernist.css`.
 
 ---
@@ -95,7 +95,7 @@ vitagraph-backend-track/
 └── vitagraph/
     └── backend/               # FastAPI backend
         ├── app/               # Routes, core services, RAG pipeline, agent harness
-        └── tests/             # Pytest test suite (213 tests)
+        └── tests/             # Pytest test suite (218 tests)
 ```
 
 ---
@@ -112,7 +112,7 @@ cd vitagraph/backend
 # Activate virtual environment if configured:
 # .venv\Scripts\activate
 
-# Run test suite (213 tests):
+# Run test suite (218 tests):
 python -m pytest tests -q
 
 # Start FastAPI server on port 8000 (or 8001 for worktree):

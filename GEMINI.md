@@ -1,7 +1,7 @@
 # VitaGraph workspace rules (binds all agents)
 - Imperative mode only: act, verify, report.
 - Read order each task: AGENTS.md, gemini/DESIGN_LAW.md, gemini/TASK_*.md, tail progress.txt, then only the files the story touches.
-- Modernist design is the visual law (`VitaGraph-App-v3.html`, `design/reference/app-v3-source.html`, tokens in `site design/src/theme/tokens.css`): Archivo font only, 0px radius, flat surfaces, single red accent (`--color-accent: #e03e1a`). Never invent colors, radii, or typography.
+- Modernist design is the visual law (`VitaGraph-App-v3.html`, `design/reference/app-v3-source.html`, tokens in `site design/src/theme/tokens.css`): Archivo font only, 0px radius, flat surfaces, single red accent (`--color-accent: #ec3013`). Never invent colors, radii, or typography.
 - 11 pages: Upload, Library, AI Agent, Knowledge Graph, Timeline, Compare, Insights, Image to Text, PDF to Text, Text to Graph, Settings.
 - Reality contract: no setTimeout/fake progress; SSE only (`POST /api/agent/stream`); real 3D canvas graph; no static graph.json.
 - Checkpoint rule: end every turn with `npm run build` exit 0 AND `pytest tests -q` green, then `git commit` staging by explicit path (never `git add .`, never `tsconfig.tsbuildinfo`). If you cannot reach green in 3 verification attempts, STOP, write a BLOCKED entry in progress.txt, `git checkout -- .` to last green commit, and end turn.

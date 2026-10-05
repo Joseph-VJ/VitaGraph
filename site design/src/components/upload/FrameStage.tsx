@@ -118,42 +118,58 @@ export const FrameStage: React.FC<FrameStageProps> = ({
     });
     ro.observe(el);
 
-    // Probe frame 1; only if it exists, request the rest.
-    const first = new Image();
-    first.onload = () => {
-      if (disposed) return;
-      const list: HTMLImageElement[] = [first];
-      for (let i = 1; i < count; i += 1) {
-        const im = new Image();
-        im.onload = () => {
+    // Probe frame 1 quietly via HEAD; only if it exists, request the images.
+    let probeCancelled = false;
+    fetch(frameUrl(0), { method: "HEAD" })
+      .then((res) => {
+        if (probeCancelled || disposed || !res.ok) {
+          if (!probeCancelled && !disposed) {
+            frames = null;
+            setReady(false);
+          }
+          return;
+        }
+        const first = new Image();
+        first.onload = () => {
+          if (probeCancelled || disposed) return;
+          const list: HTMLImageElement[] = [first];
+          for (let i = 1; i < count; i += 1) {
+            const im = new Image();
+            im.onload = () => {
+              dirty = true;
+              kick();
+            };
+            im.src = frameUrl(i);
+            list.push(im);
+          }
+          frames = list;
+          setReady(true);
           dirty = true;
           kick();
         };
-        im.src = frameUrl(i);
-        list.push(im);
-      }
-      frames = list;
-      setReady(true);
-      dirty = true;
-      kick();
-    };
-    first.onerror = () => {
-      if (disposed) return;
-      frames = null;
-      setReady(false);
-    };
-    first.src = frameUrl(0);
+        first.onerror = () => {
+          if (probeCancelled || disposed) return;
+          frames = null;
+          setReady(false);
+        };
+        first.src = frameUrl(0);
+      })
+      .catch(() => {
+        if (!probeCancelled && !disposed) {
+          frames = null;
+          setReady(false);
+        }
+      });
 
     return () => {
       disposed = true;
+      probeCancelled = true;
       if (raf) cancelAnimationFrame(raf);
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("wheel", onWheel);
       el.removeEventListener("dragover", onDragOver);
       el.removeEventListener("drop", onDrop);
       ro.disconnect();
-      first.onload = null;
-      first.onerror = null;
       objectUrls.forEach((u) => URL.revokeObjectURL(u));
     };
   }, [framePath, frameCount]);

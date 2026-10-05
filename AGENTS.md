@@ -2,7 +2,7 @@
 Project: VitaGraph (B.Tech). Privacy-aware reading of health reports with cited evidence.
 Shipping frontend = `site design/` Modernist prototype wired to the REAL backend in `vitagraph/backend`.
 Read order each iteration: AGENTS.md → gemini/DESIGN_LAW.md → gemini/TASK_*.md → progress.txt (tail) → files touched.
-Design law: Modernist visual system (`VitaGraph-App-v3.html`, tokens in `site design/src/theme/tokens.css`). Archivo font only, flat surfaces, 0px radius, single red accent (`--color-accent: #e03e1a`).
+Design law: Modernist visual system (`VitaGraph-App-v3.html`, tokens in `site design/src/theme/tokens.css`). Archivo font only, flat surfaces, 0px radius, single red accent (`--color-accent: #ec3013`).
 Pages (11): Upload, Library, AI Agent, Knowledge Graph, Timeline, Compare, Insights, Image to Text, PDF to Text, Text to Graph, Settings.
 AI Agent: `POST /api/agent/stream` with real-time SSE events (status, step, thinking, tool_call, tool_result, text_delta, stats, completed, error); four read-only tools (`get_biomarkers`, `get_trends`, `query_chroma`, `query_graph`); fail-closed safety gate.
 Verify commands (Windows):

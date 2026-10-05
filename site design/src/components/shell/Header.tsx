@@ -94,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
     switch (path) {
       case "/upload": return { title: "Upload & Ingest", sub: "Add a report and watch it become searchable." };
       case "/library": return { title: "Library", sub: "Your reports and the values extracted from them." };
-      case "/agent": return { title: "AI Agent", sub: "Ask in plain words. The agent searches your reports and shows its work." };
+      case "/agent": return { title: "AI Agent", sub: "Ask about a value, a trend or a report." };
       case "/graph": return { title: "Knowledge Graph", sub: "How reports, sections and values connect." };
       case "/timeline": return { title: "Timeline", sub: "Reports and key values over time." };
       case "/compare": return { title: "Compare", sub: "Change between two reports." };

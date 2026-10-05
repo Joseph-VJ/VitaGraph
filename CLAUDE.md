@@ -9,7 +9,7 @@ VitaGraph is a Privacy-Aware Retrieval-Augmented System for Longitudinal Health-
 The visual law is the Modernist design system defined by `VitaGraph-App-v3.html` and `design/reference/app-v3-source.html`. This outranks all older task files and plans.
 - **Font:** Archivo only (weights 400, 600, 800). No serif, mono or display fonts in UI.
 - **Geometry:** Strictly flat surfaces with 0px border-radius (`--radius-none: 0px`).
-- **Color:** Neutral stark palette (`--color-bg: #ffffff`, `--color-surface: #f7f7f7`, `--color-text: #111111`) accented by one vivid red (`--color-accent: #e03e1a`).
+- **Color:** Neutral stark palette (`--color-bg: #f3f2f2`, `--color-surface: #eae9e9`, `--color-text: #201e1d`) accented by one vivid red (`--color-accent: #ec3013`).
 - **Tokens:** Semantic tokens live in `site design/src/theme/tokens.css` and `modernist.css`.
 - **Reference screens:** Measured at 1440 x 900 in `design/reference/screens/*.png`.
 
@@ -57,7 +57,7 @@ The frontend consumes Server-Sent Events from `POST /api/agent/stream` (or `/api
 - **Never Push or Reset:** Never `git push`, merge, rebase, `reset --hard`, clean, or amend.
 
 ## 6. Verification Commands (Windows)
-- **Backend:** `cd vitagraph/backend && .venv\Scripts\python.exe -m pytest tests -q` (213 tests passing)
+- **Backend:** `cd vitagraph/backend && .venv\Scripts\python.exe -m pytest tests -q` (218 tests passing)
 - **Frontend:** `cd "site design" && npm run build`
 - **Dev Servers:**
   - Backend: `uvicorn app.main:app --port 8000` (port 8001 for worktree)
