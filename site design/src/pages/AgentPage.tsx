@@ -9,6 +9,7 @@ import { AnswerMarkdown, citedRefs } from "../components/agent/AnswerMarkdown";
 import { EvidenceModules } from "../components/agent/EvidenceModules";
 import { PassageSlip } from "../components/agent/PassageSlip";
 import { TrajectoryPanel } from "../components/agent/TrajectoryPanel";
+import { PageState, PersonaState } from "../components/ui";
 
 const MIN_QUESTION_CHARS = 2;
 const MAX_QUESTION_CHARS = 2000;
@@ -200,8 +201,8 @@ const EntryView: React.FC<EntryViewProps> = ({ n, entry, onRetry, canRetry, getP
 
 export const AgentPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useActiveUser();
-  const effectiveUserId = user?.id || localStorage.getItem("vitagraph_user_id") || "VG-2026-001";
+  const { user, loading: personaLoading, refreshUsers } = useActiveUser();
+  const effectiveUserId = user?.id ?? "";
   const chat = useAgentChat();
   const [searchParams, setSearchParams] = useSearchParams();
   const reportParam = searchParams.get("report");
@@ -210,6 +211,7 @@ export const AgentPage: React.FC = () => {
   const [input, setInput] = useState("");
   const [reports, setReports] = useState<Report[]>([]);
   const [reportsState, setReportsState] = useState<ReportsState>("loading");
+  const [reportsTick, setReportsTick] = useState(0);
   const [topTests, setTopTests] = useState<string[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const stickRef = useRef(true);
@@ -244,6 +246,7 @@ export const AgentPage: React.FC = () => {
 
   // The persona's reports: they decide the empty state and the "chat with this report" scope.
   useEffect(() => {
+    if (!effectiveUserId) return;
     let cancelled = false;
     setReportsState("loading");
     reportsApi
@@ -259,7 +262,7 @@ export const AgentPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [effectiveUserId]);
+  }, [effectiveUserId, reportsTick]);
 
   // Suggested questions name the most central tests of the persona's real graph.
   useEffect(() => {
@@ -315,25 +318,44 @@ export const AgentPage: React.FC = () => {
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
     return () => scroller.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [effectiveUserId]);
 
   useLayoutEffect(() => {
     const scroller = bottomRef.current?.closest("main");
     if (scroller && stickRef.current) scroller.scrollTop = scroller.scrollHeight;
   }, [chat.entries]);
 
-  const placeholder = composerReady ? "Ask the AI Agent about a value, a trend or a report" : "Upload a report to start asking";
+  if (!effectiveUserId) {
+    return (
+      <div
+        data-screen-label="AI Agent"
+        data-testid="agent-page"
+        className="vg-pad"
+        style={{ maxWidth: 960, margin: "0 auto" }}
+      >
+        <PersonaState loading={personaLoading} onRetry={refreshUsers} />
+      </div>
+    );
+  }
+
+  const placeholder = composerReady
+    ? "Ask the AI Agent about a value, a trend or a report"
+    : reportsState === "loading"
+    ? "Loading your reports"
+    : "Upload a report to start asking";
 
   return (
     <div data-screen-label="AI Agent" data-testid="agent-page" style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
       <div
+        className="vg-gutter"
         style={{
           flex: 1,
           maxWidth: "960px",
           width: "100%",
           boxSizing: "border-box",
           margin: "0 auto",
-          padding: "var(--space-8) var(--space-8) var(--space-4)",
+          paddingTop: "var(--space-8)",
+          paddingBottom: "var(--space-4)",
           display: "flex",
           flexDirection: "column",
           gap: "var(--space-4)",
@@ -374,20 +396,21 @@ export const AgentPage: React.FC = () => {
         {chat.entries.length === 0 ? (
           <div data-testid="agent-empty" style={{ padding: "var(--space-8) 0", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             {reportsState === "failed" ? (
-              <>
-                <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em" }}>Cannot reach the backend</h2>
-                <p style={{ margin: 0, color: "var(--color-neutral-700)" }}>Your reports could not be loaded. Check that the backend is running, then reload this page.</p>
-              </>
+              <PageState
+                kind="error"
+                title="Could not load your reports"
+                detail="Check that the backend is running, then try again."
+                action={{ label: "Try again", onClick: () => setReportsTick((t) => t + 1) }}
+              />
             ) : reportsState === "ready" && reports.length === 0 ? (
-              <>
-                <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em" }}>No reports yet</h2>
-                <p style={{ margin: 0, color: "var(--color-neutral-700)" }}>Upload a report first, then ask about it here.</p>
-                <div>
-                  <button type="button" className="btn btn-primary" onClick={() => navigate("/upload")}>
-                    Upload a report
-                  </button>
-                </div>
-              </>
+              <PageState
+                kind="empty"
+                title="No reports yet"
+                detail="Upload a report first, then ask about it here."
+                action={{ label: "Upload a report", onClick: () => navigate("/upload") }}
+              />
+            ) : reportsState === "loading" ? (
+              <PageState kind="loading" title="Loading your reports" />
             ) : (
               <>
                 <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em" }}>What would you like to know?</h2>
@@ -448,6 +471,7 @@ export const AgentPage: React.FC = () => {
 
       <form
         data-testid="agent-composer"
+        className="vg-gutter"
         onSubmit={(event) => {
           event.preventDefault();
           submit(input);
@@ -457,7 +481,8 @@ export const AgentPage: React.FC = () => {
           bottom: 0,
           background: "var(--color-bg)",
           borderTop: "2px solid var(--color-divider)",
-          padding: "var(--space-4) var(--space-8)",
+          paddingTop: "var(--space-4)",
+          paddingBottom: "var(--space-4)",
           margin: 0,
         }}
       >
