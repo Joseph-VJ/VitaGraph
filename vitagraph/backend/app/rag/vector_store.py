@@ -9,6 +9,7 @@ filter — a query without one is a bug (fail closed, plan Section 5).
 from __future__ import annotations
 
 import json
+from typing import Callable
 
 from app.core.config import settings
 from app.rag import embedder
@@ -26,7 +27,9 @@ def _collection():
     )
 
 
-def index_chunks(rows: list[dict]) -> int:
+def index_chunks(
+    rows: list[dict], *, on_embedded: Callable[[], None] | None = None
+) -> int:
     """Embed and index chunk rows from SQLite. Returns count indexed.
 
     Indexing is all-or-nothing per report: on failure the caller marks the
@@ -36,6 +39,8 @@ def index_chunks(rows: list[dict]) -> int:
         return 0
     texts = [row["text"] for row in rows]
     vectors = embedder.embed_texts(texts)
+    if on_embedded is not None:
+        on_embedded()
 
     documents, metadatas, ids = [], [], []
     for row, vector in zip(rows, vectors):

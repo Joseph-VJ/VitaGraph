@@ -165,14 +165,21 @@ def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None 
             )
 
         t_idx_start = time.perf_counter()
+        t_embed_end = t_idx_start
+
+        def _on_embedded():
+            nonlocal t_embed_end
+            t_embed_end = time.perf_counter()
+
         with get_db() as db:
             rows = db.execute(
                 "SELECT * FROM report_chunks WHERE report_id = ?", (report_id,)
             ).fetchall()
         chunk_rows = [dict(row) for row in rows]
-        indexed = vector_store.index_chunks(chunk_rows)
+        indexed = vector_store.index_chunks(chunk_rows, on_embedded=_on_embedded)
         t_idx_end = time.perf_counter()
-        lat_idx = max(5, int((t_idx_end - t_idx_start) * 1000))
+        lat_embed = max(1, int((t_embed_end - t_idx_start) * 1000))
+        lat_idx = max(1, int((t_idx_end - t_embed_end) * 1000))
 
         if jid:
             job_broker.publish_event(
@@ -180,7 +187,7 @@ def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None 
                 stage="embedded",
                 description=f"Generated {indexed} dense vector embeddings via all-MiniLM-L6-v2",
                 sub_description="384-dimensional dense vectors, batch_size=32",
-                latency_ms=max(10, lat_idx // 2),
+                latency_ms=lat_embed,
                 metadata=_embedded_payload(chunk_rows, indexed),
             )
             job_broker.publish_event(
@@ -188,7 +195,7 @@ def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None 
                 stage="indexed",
                 description="Indexed chunks in persistent ChromaDB collection and SQLite",
                 sub_description=f"User privacy namespace: {user_id}",
-                latency_ms=max(10, lat_idx // 2),
+                latency_ms=lat_idx,
                 metadata={
                     "indexed": indexed,
                     "collection_total": _safe_collection_count(),
@@ -208,13 +215,16 @@ def process_upload(user_id: str, filename: str, data: bytes, job_id: str | None 
         })
 
         if jid:
+            t_graph_start = time.perf_counter()
+            graph_meta = _graph_payload(user_id, report_id)
+            lat_graph = max(1, int((time.perf_counter() - t_graph_start) * 1000))
             job_broker.publish_event(
                 jid,
                 stage="graphed",
                 description="Integrated report topology into personal knowledge graph",
                 sub_description="Nodes and provenance relations mapped",
-                latency_ms=10,
-                metadata=_graph_payload(user_id, report_id),
+                latency_ms=lat_graph,
+                metadata=graph_meta,
             )
 
         t_total = int((time.perf_counter() - t_start) * 1000)
