@@ -174,6 +174,9 @@ export const SettingsPage: React.FC = () => {
 
   return (
     <PageFrame label="Settings" width="narrow" gap="0">
+      <style>{`
+        .btn-primary { background: var(--color-accent-700) !important; color: var(--color-bg) !important; }
+      `}</style>
       {loadFailed ? (
         <PageState
           kind="offline"

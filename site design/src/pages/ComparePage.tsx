@@ -151,6 +151,9 @@ export const ComparePage: React.FC = () => {
 
   return (
     <PageFrame label="Compare" gap="var(--space-6)">
+      <style>{`
+        .table th { color: var(--color-neutral-800) !important; }
+      `}</style>
       {usePairButtons ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
           {pairs.map(([a, b]) => {
