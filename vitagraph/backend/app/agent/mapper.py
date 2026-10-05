@@ -11,6 +11,16 @@ def _dict(x: Any) -> dict:
     return x if isinstance(x, dict) else {}
 
 
+_TOOL_PREFIXES = ("mcp__vitagraph__", "mcp__vgartifacts__")
+
+
+def _short_tool_name(name: str) -> str:
+    for prefix in _TOOL_PREFIXES:
+        if name.startswith(prefix):
+            return name[len(prefix):]
+    return name
+
+
 class EventMapper:
     """Pure, non-async event mapper translating harness session messages into client events."""
 
@@ -199,8 +209,7 @@ class EventMapper:
             name = d.get("name")
             if not isinstance(name, str) or not name:
                 return []
-            prefix = "mcp__vitagraph__"
-            short = name[len(prefix):] if name.startswith(prefix) else name
+            short = _short_tool_name(name)
 
             raw_args = d.get("arguments")
             args = {}
@@ -272,7 +281,12 @@ class EventMapper:
         # 7. llm/retry
         if etype == "llm/retry":
             self._retries += 1
-            attempt = d.get("attempt") if isinstance(d.get("attempt"), int) else self._retries
+            if isinstance(d.get("retry"), int):
+                attempt = d["retry"]
+            elif isinstance(d.get("attempt"), int):
+                attempt = d["attempt"]
+            else:
+                attempt = self._retries
             return [("status", {
                 "phase": "retrying",
                 "attempt": attempt,
