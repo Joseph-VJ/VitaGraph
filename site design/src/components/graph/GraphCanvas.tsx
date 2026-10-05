@@ -54,6 +54,22 @@ interface Colors {
   n7: string;
 }
 
+interface Box {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+const LABEL_PRIORITY: Record<NodeKind, number> = {
+  person: 1,
+  report: 2,
+  bio: 3,
+  section: 4,
+  meas: 5,
+  unc: 6,
+};
+
 export function revealDelays(nodes: GNode[]): Record<string, number> {
   const cnt: Partial<Record<NodeKind, number>> = {};
   const out: Record<string, number> = {};
@@ -87,6 +103,20 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     live.current = props;
 
     const delays = useMemo(() => revealDelays(props.nodes), [props.nodes]);
+    const neighborsRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+      if (!props.selectedId) {
+        neighborsRef.current = new Set();
+        return;
+      }
+      const s = new Set<string>();
+      for (const [u, v] of props.edges) {
+        if (u === props.selectedId) s.add(v);
+        else if (v === props.selectedId) s.add(u);
+      }
+      neighborsRef.current = s;
+    }, [props.selectedId, props.edges]);
+
     const v = useRef({
       rx: 0.4,
       ry: 0.7,
@@ -101,6 +131,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       focusKey: "all",
       last: 0,
       hits: [] as Hit[],
+      labelNodes: [] as GNode[],
+      boxes: [] as Box[],
     });
 
     useImperativeHandle(ref, () => ({
@@ -309,6 +341,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         // 4. nodes, far to near
         const order = p.nodes.slice().sort((a, b) => P[b.id][2] - P[a.id][2]);
         s.hits.length = 0;
+        s.labelNodes.length = 0;
         const pulseT = (now - s.focusT0) / 1200;
 
         for (const n of order) {
@@ -391,27 +424,81 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             ctx.stroke();
           }
 
-          const show =
-            n.k !== "meas"
-              ? !act || isAct || sel || hov
-              : sel || hov || (act ? isAct : q[2] < 0.1);
+          const isNeigh = neighborsRef.current.has(n.id);
+          const inFocus = !act || isAct || sel || hov;
+          const canLabel =
+            inFocus &&
+            rv > 0.6 &&
+            (n.k !== "meas" && n.k !== "unc"
+              ? true
+              : sel || hov || isNeigh || s.zoom > 1.8);
 
-          if (show && rv > 0.6) {
-            const fs = Math.max(10, 12.5 * k);
-            ctx.font =
-              (n.k === "report" || n.k === "person" ? "800 " : "600 ") +
-              fs +
-              "px Archivo, system-ui, sans-serif";
-            ctx.globalAlpha = Math.max(alpha, sel || hov ? 1 : 0);
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = col.bg;
-            ctx.lineJoin = "round";
-            const tx = q[0] + rad + 7;
-            const ty = q[1] + fs * 0.35;
-            ctx.strokeText(n.label, tx, ty);
-            ctx.fillStyle = hot ? col.acc : col.ink;
-            ctx.fillText(n.label, tx, ty);
+          if (canLabel) {
+            s.labelNodes.push(n);
           }
+        }
+
+        // 5. labels, sorted by priority, greedy overlap pruning
+        s.labelNodes.sort((a, b) => {
+          const pA = a.id === p.selectedId ? 0 : LABEL_PRIORITY[a.k];
+          const pB = b.id === p.selectedId ? 0 : LABEL_PRIORITY[b.k];
+          if (pA !== pB) return pA - pB;
+          return P[b.id][2] - P[a.id][2];
+        });
+
+        s.boxes.length = 0;
+        for (let i = 0; i < s.labelNodes.length; i++) {
+          const n = s.labelNodes[i];
+          const q = P[n.id];
+          const k = q[3];
+          const rad = BASE[n.k] * k * (0.4 + 0.6 * V[n.id]);
+          const sel = p.selectedId === n.id;
+          const hov = s.hover === n.id;
+          const isAct = !act || act.has(n.id);
+          const hot = !!act && isAct;
+          const alpha = (act ? (isAct ? 1 : 0.4) : 0.55 + 0.45 * near(q[2])) * V[n.id];
+
+          const fs = Math.max(10, 12.5 * k);
+          ctx.font =
+            (n.k === "report" || n.k === "person" ? "800 " : "600 ") +
+            fs +
+            "px Archivo, system-ui, sans-serif";
+
+          const rawText = n.label;
+          const drawText = rawText.length > 24 ? rawText.slice(0, 23) + "…" : rawText;
+
+          const metrics = ctx.measureText(drawText);
+          const tw = metrics.width;
+          const tx = q[0] + rad + 7;
+          const ty = q[1] + fs * 0.35;
+
+          const bx0 = tx - 3;
+          const bx1 = tx + tw + 3;
+          const by0 = ty - fs;
+          const by1 = ty + 3;
+
+          if (sel) {
+            s.boxes.push({ x0: bx0, y0: by0, x1: bx1, y1: by1 });
+          } else {
+            let overlap = false;
+            for (let b = 0; b < s.boxes.length; b++) {
+              const eb = s.boxes[b];
+              if (!(bx1 < eb.x0 || bx0 > eb.x1 || by1 < eb.y0 || by0 > eb.y1)) {
+                overlap = true;
+                break;
+              }
+            }
+            if (overlap) continue;
+            s.boxes.push({ x0: bx0, y0: by0, x1: bx1, y1: by1 });
+          }
+
+          ctx.globalAlpha = Math.max(alpha, sel || hov ? 1 : 0);
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = col.bg;
+          ctx.lineJoin = "round";
+          ctx.strokeText(drawText, tx, ty);
+          ctx.fillStyle = hot ? col.acc : col.ink;
+          ctx.fillText(drawText, tx, ty);
         }
         ctx.globalAlpha = 1;
       };

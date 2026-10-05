@@ -514,6 +514,7 @@ export const KnowledgeGraphPage: React.FC = () => {
                   cursor: "pointer",
                   textAlign: "left",
                   display: "flex",
+                  alignItems: "center",
                   justifyContent: "space-between",
                   gap: "var(--space-3)",
                   padding: "var(--space-2)",
@@ -523,15 +524,26 @@ export const KnowledgeGraphPage: React.FC = () => {
                   color: isActive ? "var(--color-bg)" : "var(--color-text)",
                   fontSize: "0.9375rem",
                   fontWeight: isActive ? 800 : 600,
+                  minWidth: 0,
                 }}
               >
-                <span>{f.label}</span>
+                <span
+                  style={{
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    minWidth: 0,
+                  }}
+                >
+                  {f.label}
+                </span>
                 <span
                   style={{
                     fontVariantNumeric: "tabular-nums",
                     color: isActive
                       ? "var(--color-bg)"
                       : "var(--color-neutral-700)",
+                    flexShrink: 0,
                   }}
                 >
                   {f.count}

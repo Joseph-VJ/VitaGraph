@@ -113,12 +113,27 @@ export function processGraphData(data: GraphResponse): ProcessedGraph {
   }));
   const positions = layout3D(layoutInput, keptEdges);
 
-  const gNodes: GNode[] = topRawNodes.map((n) => ({
-    id: n.id,
-    k: mapNodeKind(n.type),
-    label: n.label,
-    pos: positions[n.id] ?? [0, 0, 0],
-  }));
+  const gNodes: GNode[] = topRawNodes.map((n) => {
+    const k = mapNodeKind(n.type);
+    let label = n.label;
+    if (k === "report") {
+      if (n.date && n.date.toLowerCase() !== "unknown date" && n.date.trim() !== "") {
+        label = n.date.trim();
+      } else {
+        const base = n.label
+          .replace(/\.[a-zA-Z0-9]+(\s*\(.*\))?$/, "")
+          .replace(/\s*\(.*\)$/, "")
+          .trim();
+        label = base || n.label;
+      }
+    }
+    return {
+      id: n.id,
+      k,
+      label,
+      pos: positions[n.id] ?? [0, 0, 0],
+    };
+  });
 
   const gNodesById = new Map<string, GNode>();
   for (const gn of gNodes) {
@@ -155,23 +170,47 @@ export function processGraphData(data: GraphResponse): ProcessedGraph {
   ];
 
   for (const comm of topComms) {
-    const candidatesForName = comm.nodes.filter((n) => {
+    // Prefer test/biomarker or section/category/date nodes over report file names
+    const testOrSection = comm.nodes.filter((n) => {
       const t = n.type.toLowerCase();
       return (
         t === "test" ||
-        t === "report" ||
+        t === "biomarker" ||
+        t === "bio" ||
         t === "section" ||
         t === "category" ||
         t === "date"
       );
     });
-    const pool = candidatesForName.length > 0 ? candidatesForName : comm.nodes;
-    pool.sort((a, b) => (b.betweenness ?? 0) - (a.betweenness ?? 0));
-    const bestNode = pool[0];
-    const label = bestNode?.label || `Community ${comm.commId}`;
+
+    let bestNode: GraphNode | undefined;
+    if (testOrSection.length > 0) {
+      testOrSection.sort((a, b) => (b.betweenness ?? 0) - (a.betweenness ?? 0));
+      bestNode = testOrSection[0];
+    } else {
+      const sorted = comm.nodes.slice().sort((a, b) => (b.betweenness ?? 0) - (a.betweenness ?? 0));
+      bestNode = sorted[0];
+    }
+
+    let name = bestNode?.label || `Community ${comm.commId}`;
+    if (bestNode?.type?.toLowerCase() === "report") {
+      if (bestNode.date && bestNode.date.toLowerCase() !== "unknown date" && bestNode.date.trim() !== "") {
+        name = bestNode.date.trim();
+      } else {
+        name = (bestNode.label || "")
+          .replace(/\.[a-zA-Z0-9]+(\s*\(.*\))?$/, "")
+          .replace(/\s*\(.*\)$/, "")
+          .trim() || `Report ${comm.commId}`;
+      }
+    }
+
+    if (name.length > 28) {
+      name = name.slice(0, 27) + "…";
+    }
+
     focuses.push({
       id: String(comm.commId),
-      label,
+      label: name,
       count: comm.nodes.length,
       ids: comm.nodes.map((n) => n.id),
     });
