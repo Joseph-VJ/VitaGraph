@@ -74,6 +74,54 @@ const OptionRow: React.FC<OptionRowProps> = ({ testId, title, desc, current, dis
   </div>
 );
 
+interface ChoiceOption<T> {
+  value: T;
+  label: string;
+}
+
+interface ChoiceRowProps<T> {
+  testId: string;
+  title: string;
+  desc: string;
+  current: T;
+  disabled?: boolean;
+  options: ChoiceOption<T>[];
+  onPick: (value: T) => void;
+}
+
+function ChoiceRow<T extends string>({
+  testId,
+  title,
+  desc,
+  current,
+  disabled = false,
+  options,
+  onPick,
+}: ChoiceRowProps<T>) {
+  return (
+    <div style={rowBox} data-testid={testId}>
+      <div style={{ flex: "1 1 300px", minWidth: 0 }}>
+        <div style={rowTitle}>{title}</div>
+        <div style={rowDesc}>{desc}</div>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+        {options.map((option) => (
+          <button
+            key={option.label}
+            type="button"
+            className={current === option.value ? "btn btn-primary" : "btn btn-secondary"}
+            aria-pressed={current === option.value}
+            disabled={disabled}
+            onClick={() => onPick(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const NoteRow: React.FC<{ testId: string; title: string; desc: string }> = ({ testId, title, desc }) => (
   <div
     data-testid={testId}
@@ -222,6 +270,18 @@ export const SettingsPage: React.FC = () => {
         current={prefs.reduceMotion}
         disabled={false}
         onPick={(value) => setPreference("reduceMotion", value)}
+      />
+      <ChoiceRow
+        testId="setting-graph-view"
+        title="Graph view"
+        desc="Automatic uses 3D when this browser supports it, and 2D otherwise."
+        current={prefs.graphView}
+        options={[
+          { value: "auto", label: "Automatic" },
+          { value: "3d", label: "3D" },
+          { value: "2d", label: "2D" },
+        ]}
+        onPick={(value) => setPreference("graphView", value)}
       />
 
       <Head title="Persona" />

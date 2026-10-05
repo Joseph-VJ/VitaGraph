@@ -4,10 +4,11 @@ import { governor } from "../motion";
 export interface Preferences {
   cinematic: boolean;
   reduceMotion: boolean;
+  graphView: "auto" | "3d" | "2d";
 }
 
 const STORAGE_KEY = "vitagraph_preferences";
-const DEFAULTS: Preferences = { cinematic: true, reduceMotion: false };
+const DEFAULTS: Preferences = { cinematic: true, reduceMotion: false, graphView: "auto" };
 
 function load(): Preferences {
   try {
@@ -16,9 +17,14 @@ function load(): Preferences {
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== "object" || parsed === null) return DEFAULTS;
     const stored = parsed as Record<string, unknown>;
+    const graphView =
+      stored.graphView === "3d" || stored.graphView === "2d" || stored.graphView === "auto"
+        ? stored.graphView
+        : DEFAULTS.graphView;
     return {
       cinematic: typeof stored.cinematic === "boolean" ? stored.cinematic : DEFAULTS.cinematic,
       reduceMotion: typeof stored.reduceMotion === "boolean" ? stored.reduceMotion : DEFAULTS.reduceMotion,
+      graphView,
     };
   } catch {
     return DEFAULTS;
