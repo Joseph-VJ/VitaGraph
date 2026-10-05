@@ -11,8 +11,8 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 from app.agent.pool import RuntimePool, get_pool
-from app.schemas.agent import AgentRequest
-from app.services import agent_service, user_service
+from app.schemas.agent import AgentRequest, ConversationOut, ConversationSummaryOut
+from app.services import agent_service, conversation_service, user_service
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
 
@@ -79,3 +79,24 @@ async def agent_stream(payload: AgentRequest, pool: RuntimePool = Depends(get_po
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
     )
+
+
+@router.get("/conversations", response_model=list[ConversationSummaryOut])
+def list_conversations(user_id: str) -> list[ConversationSummaryOut]:
+    """List a user's conversations, newest first."""
+    user_service.user_exists(user_id)
+    return conversation_service.list_conversations(user_id)
+
+
+@router.get("/conversations/{conversation_id}", response_model=ConversationOut)
+def get_conversation(conversation_id: str, user_id: str) -> ConversationOut:
+    """Retrieve one conversation with all its turns."""
+    user_service.user_exists(user_id)
+    return conversation_service.get_conversation(user_id, conversation_id)
+
+
+@router.delete("/conversations/{conversation_id}")
+def delete_conversation(conversation_id: str, user_id: str) -> dict[str, str]:
+    """Delete a conversation, its messages and artifacts."""
+    user_service.user_exists(user_id)
+    return conversation_service.delete_conversation(user_id, conversation_id)
