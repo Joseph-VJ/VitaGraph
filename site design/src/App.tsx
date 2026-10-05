@@ -9,6 +9,7 @@ import { LibraryPage } from "./pages/LibraryPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ComparePage } from "./pages/ComparePage";
 import { InsightsPage } from "./pages/InsightsPage";
+import { TextToGraphPage } from "./pages/TextToGraphPage";
 import { UserProvider } from "./context/UserContext";
 import { ToastProvider } from "./components/gallery/Toast";
 
@@ -53,6 +54,7 @@ export const App: React.FC = () => {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/insights" element={<InsightsPage />} />
+              <Route path="/text-to-graph" element={<TextToGraphPage />} />
             </Route>
 
             {/* Catch-all fallback */}

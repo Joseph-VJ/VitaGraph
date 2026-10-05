@@ -100,6 +100,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
       case "/compare": return { title: "Compare", sub: "Change between two reports." };
       case "/insights": return { title: "Insights", sub: "Structure and key nodes of the graph." };
       case "/settings": return { title: "Settings", sub: "Ingestion, reading, privacy and display." };
+      case "/text-to-graph": return { title: "Text to Graph", sub: "Turn plain text into linked entities." };
       default: return { title: "VitaGraph", sub: "Your reports, evidence and insights in one place." };
     }
   };
