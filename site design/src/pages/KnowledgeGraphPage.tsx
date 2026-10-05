@@ -1,76 +1,144 @@
 import React, {
-  Suspense,
-  lazy,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { type GraphResponse, graphApi } from "../api/graph";
-import { reportsApi } from "../api/reports";
-import { DocumentPanel } from "../components/gallery/DocumentPanel";
-import { Graph2D } from "../components/graph3d/Graph2D";
-import { GraphErrorBoundary } from "../components/graph3d/GraphErrorBoundary";
-import { selectNodes } from "../components/graph3d/graphModel";
-import { hasWebGL2 } from "../components/graph3d/webgl";
-import { PageFrame, PageState, PersonaState, SectionHead } from "../components/ui";
+import { type ChunkDetail, reportsApi } from "../api/reports";
+import {
+  GraphCanvas,
+  type GraphCanvasHandle,
+} from "../components/graph/GraphCanvas";
+import {
+  processGraphData,
+  type ProcessedGraph,
+  type SelectedNodeDetail,
+} from "../components/graph/graphData";
+import { PageState, PersonaState } from "../components/ui";
 import { useActiveUser } from "../context/UserContext";
-import { readLastAnswer } from "../lib/lastAnswer";
 import { usePreferences } from "../lib/preferences";
 import type { Report } from "../types";
 
-const Graph3D = lazy(() => import("../components/graph3d/Graph3D"));
+interface SlipData {
+  rep: string;
+  page: number;
+  start: number;
+  end: number;
+  pre: string;
+  hit: string;
+  post: string;
+}
 
-type FallbackReason = null | "no-webgl" | "crashed";
+const LEGEND_ITEMS = [
+  {
+    label: "Subject",
+    css: {
+      width: 12,
+      height: 12,
+      background: "var(--color-text)",
+      display: "inline-block",
+      flexShrink: 0,
+    },
+  },
+  {
+    label: "Report",
+    css: {
+      width: 12,
+      height: 12,
+      borderRadius: "var(--r-circle, 50%)",
+      border: "2.5px solid var(--color-text)",
+      background: "var(--color-bg)",
+      boxSizing: "border-box" as const,
+      display: "inline-block",
+      flexShrink: 0,
+    },
+  },
+  {
+    label: "Section",
+    css: {
+      width: 9,
+      height: 9,
+      border: "2px solid var(--color-text)",
+      background: "var(--color-bg)",
+      boxSizing: "border-box" as const,
+      transform: "rotate(45deg)",
+      display: "inline-block",
+      margin: 2,
+      flexShrink: 0,
+    },
+  },
+  {
+    label: "Biomarker",
+    css: {
+      width: 12,
+      height: 12,
+      borderRadius: "var(--r-circle, 50%)",
+      background: "var(--color-text)",
+      display: "inline-block",
+      flexShrink: 0,
+    },
+  },
+  {
+    label: "Measurement",
+    css: {
+      width: 8,
+      height: 8,
+      borderRadius: "var(--r-circle, 50%)",
+      background: "var(--color-neutral-700)",
+      display: "inline-block",
+      margin: 2,
+      flexShrink: 0,
+    },
+  },
+  {
+    label: "Uncertainty",
+    css: {
+      width: 12,
+      height: 12,
+      borderRadius: "var(--r-circle, 50%)",
+      border: "2px dashed var(--color-accent)",
+      background: "var(--color-bg)",
+      boxSizing: "border-box" as const,
+      display: "inline-block",
+      flexShrink: 0,
+    },
+  },
+];
 
 export const KnowledgeGraphPage: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { user, loading: personaLoading, refreshUsers } = useActiveUser();
   const prefs = usePreferences();
 
-  const [graphData, setGraphData] = useState<GraphResponse | null>(null);
+  const canvasHandleRef = useRef<GraphCanvasHandle>(null);
+
+  const [rawGraph, setRawGraph] = useState<GraphResponse | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retryTick, setRetryTick] = useState(0);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showFragments, setShowFragments] = useState(false);
-  const [fitSignal, setFitSignal] = useState(0);
-  const [autoRotate, setAutoRotate] = useState(true);
+  const [activeFocus, setActiveFocus] = useState<string>("all");
+  const [autoRotate, setAutoRotate] = useState<boolean>(true);
+  const [replayToken, setReplayToken] = useState<number>(0);
 
-  const [activeIds, setActiveIds] = useState<Set<string>>(new Set());
-  const [evidenceQuestion, setEvidenceQuestion] = useState<string | null>(null);
+  const [slip, setSlip] = useState<SlipData | null>(null);
+  const [, setSlipLoading] = useState(false);
 
-  // Reduced motion preference
-  const systemReduceMotion =
+  // System and user reduced-motion
+  const systemReduced =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const isReducedMotion = prefs.reduceMotion || systemReduceMotion;
+  const isReducedMotion = prefs.reduceMotion || systemReduced;
 
-  // View switch logic
-  const initialWanted: "3d" | "2d" =
-    prefs.graphView === "2d"
-      ? "2d"
-      : prefs.graphView === "3d"
-      ? "3d"
-      : hasWebGL2()
-      ? "3d"
-      : "2d";
-
-  const [view, setView] = useState<"3d" | "2d">(initialWanted);
-  const [reason, setReason] = useState<FallbackReason>(
-    initialWanted === "3d" && !hasWebGL2() ? "no-webgl" : null
-  );
-
-  const shown: "3d" | "2d" = reason ? "2d" : view;
-
-  // Load graph and reports
+  // Load real graph data and reports
   useEffect(() => {
     if (!user?.id) {
-      setGraphData(null);
+      setRawGraph(null);
       setReports([]);
       setLoading(false);
       setLoadError(null);
@@ -84,7 +152,7 @@ export const KnowledgeGraphPage: React.FC = () => {
     Promise.all([graphApi.getGraph(user.id), reportsApi.list(user.id)])
       .then(([g, r]) => {
         if (cancelled) return;
-        setGraphData(g);
+        setRawGraph(g);
         setReports(r);
         setLoading(false);
       })
@@ -99,46 +167,7 @@ export const KnowledgeGraphPage: React.FC = () => {
     };
   }, [user?.id, retryTick]);
 
-  // Load last answer evidence when ?answer=1
-  useEffect(() => {
-    if (!user?.id || searchParams.get("answer") !== "1") {
-      return;
-    }
-    const last = readLastAnswer(user.id);
-    if (!last || last.chunkIds.length === 0) {
-      return;
-    }
-    let cancelled = false;
-    setEvidenceQuestion(last.question);
-
-    graphApi
-      .getSubgraph(user.id, last.chunkIds)
-      .then((sub) => {
-        if (!cancelled) {
-          setActiveIds(new Set(sub.nodes.map((n) => n.id)));
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setActiveIds(new Set());
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, searchParams]);
-
-  // Clear evidence highlight
-  const clearEvidence = () => {
-    setActiveIds(new Set());
-    setEvidenceQuestion(null);
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("answer");
-    setSearchParams(nextParams, { replace: true });
-  };
-
-  // Keyboard Escape clears selection
+  // Escape clears selection
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -149,313 +178,540 @@ export const KnowledgeGraphPage: React.FC = () => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // Filtered nodes and edges based on fragment toggle
-  const selectedResult = useMemo(() => {
-    return selectNodes(graphData, { showFragments });
-  }, [graphData, showFragments]);
+  // Process real graph
+  const processed: ProcessedGraph | null = useMemo(() => {
+    if (!rawGraph) return null;
+    return processGraphData(rawGraph);
+  }, [rawGraph]);
 
-  // Selected node object for inspector
-  const selectedNode = useMemo(() => {
-    if (!selectedId || !graphData?.nodes) return null;
-    return graphData.nodes.find((n) => n.id === selectedId) || null;
-  }, [selectedId, graphData]);
+  // Selected node details
+  const selectedNode: SelectedNodeDetail | null = useMemo(() => {
+    if (!selectedId || !processed || !user) return null;
+    return processed.getNodeDetail(selectedId, user.id, reports);
+  }, [selectedId, processed, user, reports]);
+
+  // Active focus IDs
+  const activeFocusIds = useMemo(() => {
+    if (!processed || activeFocus === "all") return null;
+    const item = processed.focuses.find((f) => f.id === activeFocus);
+    return item?.ids ?? null;
+  }, [processed, activeFocus]);
+
+  // Load chunk slip when node changes
+  useEffect(() => {
+    if (!selectedNode?.trace || !user?.id) {
+      setSlip(null);
+      setSlipLoading(false);
+      return;
+    }
+
+    const { reportId, chunkId, page, searchStr } = selectedNode.trace;
+    if (!reportId || !chunkId) {
+      setSlip(null);
+      setSlipLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setSlipLoading(true);
+
+    reportsApi
+      .chunk(user.id, reportId, chunkId)
+      .then((ch: ChunkDetail) => {
+        if (cancelled) return;
+        const rep = reports.find((r) => r.id === reportId);
+        const repName = rep?.original_filename || "Report";
+        const text = ch.text || "";
+        const target = (searchStr || "").trim();
+
+        if (target) {
+          const idx = text.toLowerCase().indexOf(target.toLowerCase());
+          if (idx !== -1) {
+            const matchLen = target.length;
+            const startIdx = Math.max(0, idx - 120);
+            const endIdx = Math.min(text.length, idx + matchLen + 160);
+            setSlip({
+              rep: repName,
+              page: ch.page_number ?? page ?? 1,
+              start: ch.char_start,
+              end: ch.char_end,
+              pre: (startIdx > 0 ? "…" : "") + text.slice(startIdx, idx),
+              hit: text.slice(idx, idx + matchLen),
+              post:
+                text.slice(idx + matchLen, endIdx) +
+                (endIdx < text.length ? "…" : ""),
+            });
+            setSlipLoading(false);
+            return;
+          }
+        }
+
+        // Fallback: first 280 characters
+        setSlip({
+          rep: repName,
+          page: ch.page_number ?? page ?? 1,
+          start: ch.char_start,
+          end: ch.char_end,
+          pre: text.slice(0, 280) + (text.length > 280 ? "…" : ""),
+          hit: "",
+          post: "",
+        });
+        setSlipLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSlip(null);
+        setSlipLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedNode, user?.id, reports]);
 
   const handleSelect = useCallback((id: string | null) => {
     setSelectedId(id);
   }, []);
 
-  const handleViewChange = (targetView: "3d" | "2d") => {
-    setView(targetView);
-    if (targetView === "3d") {
-      if (!hasWebGL2()) {
-        setReason("no-webgl");
-      } else if (reason === "no-webgl") {
-        setReason(null);
-      }
-    } else {
-      if (reason === "crashed") {
-        setReason(null);
-      }
-    }
+  const handleReplay = () => {
+    setReplayToken(performance.now());
+    canvasHandleRef.current?.replay();
   };
 
-  // States
+  const toggleAuto = () => {
+    setAutoRotate((prev) => !prev);
+  };
+
+  const handleFocusClick = (focusId: string) => {
+    setActiveFocus(focusId);
+  };
+
+  // Node count string
+  const countLabel = useMemo(() => {
+    if (!processed) return "0 nodes · 0 edges";
+    if (processed.totalCount > processed.shownCount) {
+      return `${processed.shownCount} of ${processed.totalCount.toLocaleString("en-US")} nodes · ${processed.shownEdgesCount} edges`;
+    }
+    return `${processed.shownCount} nodes · ${processed.shownEdgesCount} edges`;
+  }, [processed]);
+
   if (!user) {
     return (
-      <PageFrame label="Knowledge Graph" width="wide">
-        <PersonaState loading={personaLoading} onRetry={refreshUsers} />
-      </PageFrame>
+      <div
+        data-screen-label="Graph"
+        style={{ height: "100%", display: "flex", flexWrap: "wrap" }}
+      >
+        <div style={{ flex: 1, padding: "var(--space-8)" }}>
+          <PersonaState loading={personaLoading} onRetry={refreshUsers} />
+        </div>
+      </div>
     );
   }
 
-  if (loading) {
-    return (
-      <PageFrame label="Knowledge Graph" width="wide">
-        <PageState kind="loading" title="Loading the graph" />
-      </PageFrame>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <PageFrame label="Knowledge Graph" width="wide">
-        <PageState
-          kind="error"
-          title="Could not load the graph"
-          detail={loadError}
-          action={{ label: "Try again", onClick: () => setRetryTick((t) => t + 1) }}
-        />
-      </PageFrame>
-    );
-  }
-
-  if (!graphData || !graphData.nodes || graphData.nodes.length === 0) {
-    return (
-      <PageFrame label="Knowledge Graph" width="wide">
-        <PageState
-          kind="empty"
-          title="No graph yet"
-          action={{ label: "Upload a report", onClick: () => navigate("/upload") }}
-        />
-      </PageFrame>
-    );
-  }
-
-  // Cap note text
-  let capText = "";
-  if (selectedResult.hiddenFragments) {
-    capText = `Showing the ${selectedResult.nodes.length} most central of ${graphData.nodes.length} nodes. ${selectedResult.fragmentCount} text fragments are hidden.`;
-  } else if (selectedResult.nodes.length < graphData.nodes.length) {
-    capText = `Showing the ${selectedResult.nodes.length} most central of ${graphData.nodes.length} nodes.`;
-  } else {
-    capText = `Showing all ${selectedResult.nodes.length} nodes.`;
-  }
-
-  const commonProps = {
-    nodes: selectedResult.nodes,
-    edges: selectedResult.edges,
-    selectedId,
-    activeIds,
-    onSelect: handleSelect,
-    fitSignal,
-    className: "w-full h-full",
-    autoRotate: autoRotate && !isReducedMotion,
-  };
+  const isEmpty =
+    !loading &&
+    !loadError &&
+    (!processed || processed.nodes.length === 0);
 
   return (
-    <PageFrame label="Knowledge Graph" width="wide">
-      <SectionHead
-        title="Knowledge Graph"
-        aside={
-          <button
-            type="button"
-            className="btn btn-secondary text-xs"
-            onClick={() => navigate("/agent")}
-          >
-            Ask the AI Agent
-          </button>
-        }
-      />
-
-      {evidenceQuestion && (
-        <div className="flex items-center justify-between gap-3 p-3 bg-[var(--color-surface)] border border-[var(--color-divider)] text-[13px]">
-          <span className="font-semibold text-[var(--color-text)]">
-            Highlighting the evidence of: {evidenceQuestion}
-          </span>
-          <button
-            type="button"
-            className="btn btn-secondary text-xs px-2 py-1"
-            onClick={clearEvidence}
-          >
-            Clear
-          </button>
-        </div>
-      )}
-
-      {reason === "no-webgl" && (
-        <div className="py-2 px-3 text-[13px] text-[var(--color-accent-700)] bg-[var(--color-accent-100)] border border-[var(--color-divider)]">
-          3D is not available in this browser, so the 2D view is shown.
-        </div>
-      )}
-
-      {reason === "crashed" && (
-        <div className="py-2 px-3 text-[13px] text-[var(--color-accent-700)] bg-[var(--color-accent-100)] border border-[var(--color-divider)]">
-          The 3D view stopped working, so the 2D view is shown.
-        </div>
-      )}
-
-      {/* Toolbar above the frame */}
-      <div className="flex flex-wrap items-center justify-between gap-3 py-2 border-b border-[var(--color-divider)]">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* View switch */}
-          <div className="seg" role="group" aria-label="View mode">
-            <button
-              type="button"
-              className={`seg-opt ${shown === "3d" ? "bg-[var(--color-accent)] text-[var(--color-bg)]" : ""}`}
-              aria-pressed={shown === "3d"}
-              onClick={() => handleViewChange("3d")}
-            >
-              3D
-            </button>
-            <button
-              type="button"
-              className={`seg-opt ${shown === "2d" ? "bg-[var(--color-accent)] text-[var(--color-bg)]" : ""}`}
-              aria-pressed={shown === "2d"}
-              onClick={() => handleViewChange("2d")}
-            >
-              2D
-            </button>
-          </div>
-
-          {/* Fragments toggle */}
-          <button
-            type="button"
-            role="switch"
-            data-testid="graph-fragments-toggle"
-            aria-checked={showFragments}
-            className={showFragments ? "btn btn-primary text-xs" : "btn btn-secondary text-xs"}
-            onClick={() => setShowFragments((prev) => !prev)}
-          >
-            Show text fragments
-          </button>
-
-          {/* Fit button */}
-          <button
-            type="button"
-            data-testid="graph-fit"
-            className="btn btn-secondary text-xs"
-            onClick={() => setFitSignal((s) => s + 1)}
-          >
-            Fit
-          </button>
-
-          {/* Auto-rotate toggle (3D only) */}
-          {shown === "3d" && (
-            <button
-              type="button"
-              role="switch"
-              data-testid="graph-auto-rotate"
-              aria-checked={isReducedMotion ? false : autoRotate}
-              disabled={isReducedMotion}
-              className={
-                autoRotate && !isReducedMotion
-                  ? "btn btn-primary text-xs"
-                  : "btn btn-secondary text-xs"
-              }
-              onClick={() => setAutoRotate((prev) => !prev)}
-            >
-              Auto-rotate
-            </button>
-          )}
-        </div>
-
-        {/* Legend */}
-        <div
-          data-testid="graph-legend"
-          className="flex flex-wrap items-center gap-3 text-[12px] text-[var(--color-text)]"
-        >
-          <div className="flex items-center gap-1.5">
-            <span
-              className="w-2.5 h-2.5 inline-block"
-              style={{ backgroundColor: "var(--color-text)" }}
-            />
-            <span>Report</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span
-              className="w-2.5 h-2.5 inline-block"
-              style={{ backgroundColor: "var(--ochre)" }}
-            />
-            <span>Uncertain</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span
-              className="w-2.5 h-2.5 inline-block"
-              style={{ backgroundColor: "var(--color-accent)" }}
-            />
-            <span>Selected</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span
-              className="w-2.5 h-2.5 inline-block"
-              style={{ backgroundColor: "var(--color-neutral-400)" }}
-            />
-            <span>Structural</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Cap note */}
-      <div data-testid="graph-cap-note" className="text-[12px] text-[var(--color-neutral-700)]">
-        {capText}
-      </div>
-
-      {/* Main two-column layout */}
-      <div className="flex flex-col lg:flex-row gap-4 items-start w-full">
-        <div className="flex-1 w-full min-w-0">
+    <div
+      data-screen-label="Graph"
+      style={{ height: "100%", display: "flex", flexWrap: "wrap" }}
+    >
+      {/* Left Canvas Area */}
+      <div
+        style={{
+          flex: "1 1 520px",
+          minWidth: 0,
+          minHeight: 520,
+          position: "relative",
+          overflow: "hidden",
+          backgroundImage:
+            "linear-gradient(color-mix(in srgb,var(--color-text) 7%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--color-text) 7%,transparent) 1px,transparent 1px)",
+          backgroundSize: "48px 48px",
+        }}
+      >
+        {loading ? (
           <div
-            data-testid="graph-frame"
-            className="relative w-full border-2 border-[var(--color-divider)] bg-[var(--color-bg)] overflow-hidden"
             style={{
-              height: "min(70vh, 720px)",
-              minHeight: "420px",
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            {shown === "3d" ? (
-              <GraphErrorBoundary
-                fallback={<Graph2D {...commonProps} />}
-                onError={() => setReason("crashed")}
-              >
-                <Suspense
-                  fallback={<PageState kind="loading" title="Loading the 3D view" />}
-                >
-                  <Graph3D
-                    {...commonProps}
-                    onContextLost={() => setReason("crashed")}
-                  />
-                </Suspense>
-              </GraphErrorBoundary>
-            ) : (
-              <Graph2D {...commonProps} />
-            )}
+            <PageState kind="loading" title="Loading the graph" />
           </div>
+        ) : loadError ? (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "var(--space-6)",
+            }}
+          >
+            <PageState
+              kind="error"
+              title="Could not load the graph"
+              detail={loadError}
+              action={{
+                label: "Try again",
+                onClick: () => setRetryTick((t) => t + 1),
+              }}
+            />
+          </div>
+        ) : isEmpty ? (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "var(--space-6)",
+            }}
+          >
+            <PageState
+              kind="empty"
+              title="No graph yet"
+              action={{
+                label: "Upload a report",
+                onClick: () => navigate("/upload"),
+              }}
+            />
+          </div>
+        ) : (
+          processed && (
+            <GraphCanvas
+              ref={canvasHandleRef}
+              nodes={processed.nodes}
+              edges={processed.edges}
+              focusIds={activeFocusIds}
+              selectedId={selectedId}
+              onSelect={handleSelect}
+              autoRotate={autoRotate && !isReducedMotion}
+              reducedMotion={isReducedMotion}
+              replayToken={replayToken}
+            />
+          )
+        )}
 
-          {/* Keyboard path: collapsed Nodes details */}
-          <details className="mt-3 p-3 bg-[var(--color-surface)] border border-[var(--color-divider)] text-[13px]">
-            <summary className="font-semibold cursor-pointer select-none text-[var(--color-text)]">
-              Nodes ({selectedResult.nodes.length})
-            </summary>
-            <div className="mt-2 max-h-48 overflow-y-auto flex flex-wrap gap-1.5 pt-1">
-              {selectedResult.nodes.map((node) => (
-                <button
-                  key={node.id}
-                  type="button"
-                  className={`px-2 py-1 text-xs border cursor-pointer ${
-                    node.id === selectedId
-                      ? "border-[var(--color-text)] bg-[var(--color-text)] text-[var(--color-bg)] font-extrabold"
-                      : "border-[var(--color-divider)] bg-[var(--color-bg)] text-[var(--color-text)] hover:bg-[color-mix(in_srgb,var(--color-text)_7%,transparent)]"
-                  }`}
-                  onClick={() => setSelectedId(node.id)}
-                >
-                  {node.label || node.id}
-                </button>
-              ))}
-            </div>
-          </details>
+        {/* Counter Top Left */}
+        <div
+          style={{
+            position: "absolute",
+            top: "var(--space-4)",
+            left: "var(--space-6)",
+            pointerEvents: "none",
+            fontSize: "0.9375rem",
+            fontWeight: 800,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {countLabel}
         </div>
 
-        {/* Inspector panel */}
-        <div className="w-full lg:w-[400px] flex-shrink-0">
-          <DocumentPanel
-            selectedNode={selectedNode}
-            graph={graphData}
-            reports={reports}
-            userId={user.id}
-            onClose={() => setSelectedId(null)}
-          />
+        {/* Action Buttons Top Right */}
+        <div
+          style={{
+            position: "absolute",
+            top: "var(--space-4)",
+            right: "var(--space-6)",
+            display: "flex",
+            gap: "var(--space-2)",
+          }}
+        >
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleReplay}
+            style={{ background: "var(--color-bg)" }}
+          >
+            Replay build
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={toggleAuto}
+            style={{ background: "var(--color-bg)" }}
+          >
+            {autoRotate ? "Pause rotation" : "Resume rotation"}
+          </button>
+        </div>
+
+        {/* Interaction Hint Bottom Left */}
+        <div
+          style={{
+            position: "absolute",
+            left: "var(--space-6)",
+            bottom: "var(--space-4)",
+            fontSize: "0.8125rem",
+            fontWeight: 600,
+            color: "var(--color-neutral-800)",
+            pointerEvents: "none",
+          }}
+        >
+          Drag to rotate · scroll to zoom · select a node
         </div>
       </div>
-    </PageFrame>
+
+      {/* Right Panel */}
+      <div
+        style={{
+          flex: "0 0 340px",
+          maxWidth: "100%",
+          boxSizing: "border-box",
+          borderLeft: "2px solid var(--color-divider)",
+          padding: "var(--space-6)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--space-6)",
+          overflow: "auto",
+        }}
+      >
+        {/* SUBGRAPH Block */}
+        <div>
+          <div
+            style={{
+              paddingBottom: "var(--space-2)",
+              borderBottom: "2px solid var(--color-divider)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "0.6875rem",
+                fontWeight: 800,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: "var(--color-neutral-700)",
+              }}
+            >
+              Subgraph
+            </div>
+          </div>
+          {processed?.focuses.map((f) => {
+            const isActive = activeFocus === f.id;
+            return (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => handleFocusClick(f.id)}
+                style={{
+                  appearance: "none",
+                  width: "100%",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "var(--space-3)",
+                  padding: "var(--space-2)",
+                  border: 0,
+                  borderBottom: "1px solid var(--color-divider)",
+                  background: isActive ? "var(--color-text)" : "transparent",
+                  color: isActive ? "var(--color-bg)" : "var(--color-text)",
+                  fontSize: "0.9375rem",
+                  fontWeight: isActive ? 800 : 600,
+                }}
+              >
+                <span>{f.label}</span>
+                <span
+                  style={{
+                    fontVariantNumeric: "tabular-nums",
+                    color: isActive
+                      ? "var(--color-bg)"
+                      : "var(--color-neutral-700)",
+                  }}
+                >
+                  {f.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Selected Node Card */}
+        {selectedNode && (
+          <div
+            style={{
+              borderTop: "2px solid var(--color-text)",
+              paddingTop: "var(--space-3)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.6875rem",
+                  fontWeight: 800,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: "var(--color-accent-700)",
+                }}
+              >
+                {selectedNode.kind}
+              </span>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setSelectedId(null)}
+                style={{ fontSize: "0.8125rem" }}
+              >
+                Clear
+              </button>
+            </div>
+            <h3
+              style={{
+                margin: "var(--space-1) 0 var(--space-2)",
+                fontSize: "1.5rem",
+              }}
+            >
+              {selectedNode.label}
+            </h3>
+            <p
+              style={{
+                margin: "0 0 var(--space-3)",
+                fontSize: "0.9375rem",
+              }}
+            >
+              {selectedNode.about}
+            </p>
+            {selectedNode.nbs.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "var(--space-2)",
+                }}
+              >
+                {selectedNode.nbs.map((nb) => (
+                  <button
+                    key={nb.id}
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setSelectedId(nb.id)}
+                    style={{
+                      padding: "var(--space-1) var(--space-2)",
+                      fontSize: "0.8125rem",
+                    }}
+                  >
+                    {nb.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Source Slip */}
+            {slip && (
+              <div
+                style={{
+                  marginTop: "var(--space-3)",
+                  background: "var(--color-surface)",
+                  borderTop: "2px solid var(--color-text)",
+                  padding: "var(--space-3)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "var(--space-3)",
+                    fontSize: "0.6875rem",
+                    fontWeight: 800,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    color: "var(--color-neutral-700)",
+                  }}
+                >
+                  <span>{slip.rep}</span>
+                  <span>Page {slip.page}</span>
+                  <span>
+                    Chars {slip.start}–{slip.end}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    marginTop: "var(--space-2)",
+                    whiteSpace: "pre-wrap",
+                    fontSize: "0.875rem",
+                    lineHeight: 1.7,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  <span>{slip.pre}</span>
+                  {slip.hit && (
+                    <mark
+                      style={{
+                        background: "var(--color-accent-200)",
+                        color: "var(--color-text)",
+                        boxShadow: "inset 0 -2px 0 var(--color-accent)",
+                        padding: "0 2px",
+                      }}
+                    >
+                      {slip.hit}
+                    </mark>
+                  )}
+                  <span>{slip.post}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Legend */}
+        <div style={{ marginTop: "auto" }}>
+          <div
+            style={{
+              paddingBottom: "var(--space-2)",
+              borderBottom: "2px solid var(--color-divider)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "0.6875rem",
+                fontWeight: 800,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: "var(--color-neutral-700)",
+              }}
+            >
+              Legend
+            </div>
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2,1fr)",
+              gap: "var(--space-2) var(--space-3)",
+              paddingTop: "var(--space-3)",
+            }}
+          >
+            {LEGEND_ITEMS.map((g) => (
+              <div
+                key={g.label}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-2)",
+                  fontSize: "0.8125rem",
+                }}
+              >
+                <span style={g.css} />
+                {g.label}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
