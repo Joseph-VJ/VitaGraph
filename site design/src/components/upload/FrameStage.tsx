@@ -180,7 +180,7 @@ export const FrameStage: React.FC<FrameStageProps> = ({
             flexDirection: "column", gap: "var(--space-1)", pointerEvents: "none",
           }}
         >
-          <span style={{ fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
+          <span style={{ fontSize: "11px", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
             Interactive stage
           </span>
           <span style={{ fontSize: "1rem", fontWeight: 600 }}>
