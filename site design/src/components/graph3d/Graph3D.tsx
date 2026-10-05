@@ -5,6 +5,7 @@
 
 import { Canvas, type ThreeEvent, invalidate, useFrame, useThree } from "@react-three/fiber";
 import React, {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -163,15 +164,15 @@ function Scene({
   }, [nodes, selectedId, activeIds, tokenColours]);
 
   // Pause helper for auto-rotation
-  const triggerPause = () => {
+  const triggerPause = useCallback(() => {
     pausedRef.current = true;
     if (pauseTimerRef.current) {
       clearTimeout(pauseTimerRef.current);
       pauseTimerRef.current = null;
     }
-  };
+  }, []);
 
-  const scheduleResume = () => {
+  const scheduleResume = useCallback(() => {
     if (pauseTimerRef.current) {
       clearTimeout(pauseTimerRef.current);
     }
@@ -179,7 +180,7 @@ function Scene({
       pausedRef.current = false;
       invalidate();
     }, 3000);
-  };
+  }, []);
 
   // Pause when hovered or selected
   useEffect(() => {
@@ -401,7 +402,22 @@ function Controls({
   onResume,
   controlsRef,
 }: ControlsProps) {
+  const onPauseRef = useRef(onPause);
+  onPauseRef.current = onPause;
+  const onResumeRef = useRef(onResume);
+  onResumeRef.current = onResume;
+
   useEffect(() => {
+    if (import.meta.env.DEV) {
+      const w = window as unknown as {
+        __VG_CONTROLS__?: { created: number; disposed: number };
+      };
+      if (!w.__VG_CONTROLS__) {
+        w.__VG_CONTROLS__ = { created: 0, disposed: 0 };
+      }
+      w.__VG_CONTROLS__.created += 1;
+    }
+
     const controls = new OrbitControls(camera, domElement);
     controlsRef.current = controls;
     controls.enableDamping = !isReducedMotion;
@@ -409,10 +425,10 @@ function Controls({
 
     const onChange = () => invalidate();
     const onStart = () => {
-      onPause();
+      onPauseRef.current();
     };
     const onEnd = () => {
-      onResume();
+      onResumeRef.current();
     };
 
     controls.addEventListener("change", onChange);
@@ -425,8 +441,18 @@ function Controls({
       controls.removeEventListener("end", onEnd);
       controls.dispose();
       controlsRef.current = null;
+
+      if (import.meta.env.DEV) {
+        const w = window as unknown as {
+          __VG_CONTROLS__?: { created: number; disposed: number };
+        };
+        if (!w.__VG_CONTROLS__) {
+          w.__VG_CONTROLS__ = { created: 0, disposed: 0 };
+        }
+        w.__VG_CONTROLS__.disposed += 1;
+      }
     };
-  }, [camera, domElement, isReducedMotion, onPause, onResume, controlsRef]);
+  }, [camera, domElement, isReducedMotion, controlsRef]);
 
   return null;
 }
