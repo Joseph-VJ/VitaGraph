@@ -112,7 +112,11 @@ def delete_user(user_id: str) -> dict:
         )
         db.execute("DELETE FROM questions WHERE user_id = ?", (user_id,))
         db.execute("DELETE FROM history_events WHERE user_id = ?", (user_id,))
+        db.execute("DELETE FROM agent_artifacts WHERE user_id = ?", (user_id,))
+        db.execute("DELETE FROM agent_messages WHERE user_id = ?", (user_id,))
+        db.execute("DELETE FROM agent_conversations WHERE user_id = ?", (user_id,))
+        db.execute("DELETE FROM ai_calls WHERE user_id = ?", (user_id,))
         db.execute("DELETE FROM users WHERE id = ?", (user_id,))
 
     return {"deleted": user_id,
-            "records": "reports, pages, chunks, questions, answers, timeline, vectors, raw files"}
+            "records": "reports, pages, chunks, questions, answers, timeline, vectors, raw files, agent conversations, artifacts, AI call records"}

@@ -146,9 +146,6 @@ export const SettingsPage: React.FC = () => {
         flexDirection: "column",
       }}
     >
-      <style>{`
-        .btn-primary { background: var(--color-accent-700) !important; color: var(--color-bg) !important; }
-      `}</style>
       {loadFailed ? (
         <PageState
           kind="offline"
@@ -485,7 +482,7 @@ export const SettingsPage: React.FC = () => {
           <div style={{ fontSize: "1.0625rem", fontWeight: 800 }}>Delete this persona</div>
           <div style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)" }}>
             {user
-              ? `Removes ${user.display_label} (${user.id}) and its reports, pages, chunks, vectors, questions, answers, timeline, raw files and AI Agent folder.`
+              ? `Removes ${user.display_label} (${user.id}) and its reports, pages, chunks, vectors, questions, answers, timeline, raw files, AI Agent folder, AI Agent conversations, artifacts and AI call records.`
               : "No persona is active."}
           </div>
           {deleteError ? (

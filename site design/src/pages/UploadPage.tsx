@@ -406,7 +406,7 @@ export const UploadPage: React.FC = () => {
                 disabled={isUploading || isLoadingCohort}
                 onClick={handleLoadDemoCohort}
               >
-                {isLoadingCohort ? "Loading demo cohort" : "Load demo cohort"}
+                {isLoadingCohort ? "Loading demo" : "Load demo"}
               </button>
             </div>
           </div>

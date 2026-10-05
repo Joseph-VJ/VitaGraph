@@ -26,7 +26,7 @@ export const ImageToTextPage: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [imageBitmap, setImageBitmap] = useState<HTMLImageElement | null>(null);
   const [isReading, setIsReading] = useState(false);
-  const [statusMsg, setStatusMsg] = useState("Ready");
+  const [statusMsg, setStatusMsg] = useState("Choose an image.");
   const [engineAvailable, setEngineAvailable] = useState<boolean | null>(null);
   const [result, setResult] = useState<OcrResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -71,8 +71,9 @@ export const ImageToTextPage: React.FC = () => {
     ctx.drawImage(imageBitmap, 0, 0);
 
     if (showBoxes && result && result.lines) {
+      const accent = getComputedStyle(document.documentElement).getPropertyValue("--color-accent").trim() || "currentColor";
       ctx.lineWidth = Math.max(2, Math.round(canvas.width / 500));
-      ctx.strokeStyle = "var(--color-accent, #c92a2a)";
+      ctx.strokeStyle = accent;
       ctx.fillStyle = "rgba(201, 42, 42, 0.15)";
 
       for (const line of result.lines) {
@@ -165,9 +166,6 @@ export const ImageToTextPage: React.FC = () => {
         gap: "var(--space-6)",
       }}
     >
-      <style>{`
-        .btn-primary { background: var(--color-accent-700) !important; color: var(--color-bg) !important; }
-      `}</style>
 
       {/* Input bar */}
       <div

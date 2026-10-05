@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
 import logging
 import uuid
 from typing import Any, AsyncGenerator
@@ -15,7 +16,7 @@ from app.agent.runtime import RuntimeBusy, RuntimeStartError
 from app.core.config import settings
 from app.core.database import get_db
 from app.generation import safety
-from app.services import chat_service, question_service
+from app.services import chat_service, conversation_service, question_service
 from app.services.chat_service import MAX_TURN_CHARS, _clean_history, _diagnostic_phrase
 
 logger = logging.getLogger(__name__)
@@ -75,8 +76,42 @@ def build_prompt(
     return "\n".join(parts)
 
 
+class _TurnRecorder:
+    """Observes streamed events to collect trajectory and stats for conversation history."""
+
+    def __init__(self) -> None:
+        self.trajectory: list[dict[str, Any]] = []
+        self.stats: dict[str, Any] = {}
+
+    def observe(self, ev_type: str, payload: dict[str, Any]) -> None:
+        if ev_type in ("thinking", "tool_call"):
+            self.trajectory.append(dict(payload))
+        elif ev_type == "tool_result":
+            item = dict(payload)
+            res = item.get("result")
+            if res is not None:
+                if not isinstance(res, str):
+                    try:
+                        res_str = json.dumps(res, ensure_ascii=False)
+                    except Exception:
+                        res_str = str(res)
+                else:
+                    res_str = res
+                if len(res_str) > 4000:
+                    item["result"] = res_str[:4000]
+            self.trajectory.append(item)
+        elif ev_type == "stats":
+            self.stats = dict(payload)
+
+
 def _persist_turn(
-    user_id: str, turns: list[dict], final: dict[str, Any], conversation_id: str
+    user_id: str,
+    turns: list[dict],
+    final: dict[str, Any],
+    conversation_id: str,
+    *,
+    trajectory: list[dict[str, Any]] | None = None,
+    stats: dict[str, Any] | None = None,
 ) -> str | None:
     try:
         question_id = f"qst_{uuid.uuid4().hex[:12]}"
@@ -114,10 +149,11 @@ def _persist_turn(
             ai_status == "ok",
             final.get("safety_note"),
         )
+        q_text = str(turns[-1].get("content", ""))
         question_service._persist(
             user_id=user_id,
             question_id=question_id,
-            question_text=str(turns[-1].get("content", "")),
+            question_text=q_text,
             classification=final.get("classification", "educational"),
             status=status,
             summary_text=final.get("summary_text", ""),
@@ -126,6 +162,14 @@ def _persist_turn(
             ai_service_status=ai_status,
             safety_note=final.get("safety_note"),
             job_id=None,
+        )
+        conversation_service.record_turn(
+            user_id=user_id,
+            conversation_id=conversation_id,
+            question=q_text,
+            final=final,
+            trajectory=trajectory or [],
+            stats=stats or {},
         )
         return question_id
     except Exception:
@@ -270,12 +314,14 @@ async def stream_agent(
 
     # 7. EventMapper and streaming loop
     mapper = EventMapper(redact=_redact)
+    recorder = _TurnRecorder()
     agen = pool.stream_turn(user_id, session_id, prompt)
     turn_started = False
     try:
         async for msg in agen:
             turn_started = True
             for ev in mapper.feed(msg):
+                recorder.observe(ev[0], ev[1])
                 yield ev
             if mapper.outcome is not None:
                 break
@@ -367,7 +413,9 @@ async def stream_agent(
         return
 
     phrase = _diagnostic_phrase(text)
-    yield ("stats", mapper.stats())
+    st_payload = mapper.stats()
+    recorder.observe("stats", st_payload)
+    yield ("stats", st_payload)
     final_ai = completed(
         "answered",
         text,
@@ -379,7 +427,15 @@ async def stream_agent(
     yield ("completed", final_ai)
 
     # 9. Persistence
-    qid = await asyncio.to_thread(_persist_turn, user_id, turns, final_ai, conv_id)
+    qid = await asyncio.to_thread(
+        _persist_turn,
+        user_id,
+        turns,
+        final_ai,
+        conv_id,
+        trajectory=recorder.trajectory,
+        stats=recorder.stats,
+    )
     yield (
         "done",
         {

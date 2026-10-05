@@ -150,7 +150,15 @@ export const TrajectoryPanel: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
   const stepsText = steps === 1 ? "1 step" : `${steps} steps`;
   const callsText = toolCalls === 1 ? "1 tool call" : `${toolCalls} tool calls`;
   const label = streaming ? "Working" : `Worked for ${seconds} s · ${stepsText} · ${callsText}`;
-  const tokens = entry.stats && entry.stats.inputTokens !== null && entry.stats.outputTokens !== null ? entry.stats : null;
+  const hasIn = entry.stats?.inputTokens !== null && entry.stats?.inputTokens !== undefined;
+  const hasOut = entry.stats?.outputTokens !== null && entry.stats?.outputTokens !== undefined;
+  const tokensVal = hasIn && hasOut
+    ? `${entry.stats!.inputTokens} in · ${entry.stats!.outputTokens} out`
+    : hasIn
+    ? `${entry.stats!.inputTokens} in`
+    : hasOut
+    ? `${entry.stats!.outputTokens} out`
+    : null;
 
   return (
     <div style={{ border: "2px solid var(--color-divider)", marginBottom: "var(--space-4)" }} data-testid="agent-trajectory">
@@ -186,7 +194,7 @@ export const TrajectoryPanel: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
             <Cell label="Steps" value={String(steps)} />
             <Cell label="Tool calls" value={String(toolCalls)} />
             <Cell label="Time" value={`${seconds} s`} />
-            {tokens ? <Cell label="Tokens" value={`${tokens.inputTokens} in · ${tokens.outputTokens} out`} /> : null}
+            {tokensVal ? <Cell label="Tokens" value={tokensVal} /> : null}
           </div>
           <div style={{ padding: "var(--space-2) var(--space-4)" }}>
             {entry.trajectory.map((item) => (

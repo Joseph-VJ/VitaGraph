@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BASE_URL } from "../api/client";
+import { agentApi } from "../api/agent";
 
 export interface AgentEvidence {
   ref: number;
@@ -59,6 +60,8 @@ export interface AgentEntry {
 export interface UseAgentChatReturn {
   entries: AgentEntry[];
   isStreaming: boolean;
+  conversationId: string | null;
+  load: (userId: string, conversationId: string) => Promise<void>;
   send: (userId: string, text: string, reportId?: string | null) => void;
   stop: () => void;
   reset: () => void;
@@ -145,6 +148,7 @@ function settle(entry: AgentEntry): AgentEntry {
 
 export function useAgentChat(): UseAgentChatReturn {
   const [entries, setEntries] = useState<AgentEntry[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const entriesRef = useRef<AgentEntry[]>([]);
   const controllerRef = useRef<AbortController | null>(null);
   const activeIdRef = useRef<string | null>(null);
@@ -324,22 +328,27 @@ export function useAgentChat(): UseAgentChatReturn {
         }
         case "completed": {
           flushNow();
-          if (asRecord(data).stage === "done") {
-            patch(id, (e) => settle({ ...e, status: e.status === "streaming" ? "answered" : e.status, endedAt: e.endedAt ?? Date.now() }));
-          } else {
-            const status: EntryStatus =
-              p.status === "refused" ? "refused" : p.status === "insufficient_evidence" ? "insufficient_evidence" : "answered";
-            patch(id, (e) => ({
-              ...e,
-              status,
-              answer: e.answer.trim() ? e.answer : String(p.summary_text ?? ""),
-              evidence: Array.isArray(p.evidence) ? p.evidence.filter(isEvidence) : e.evidence,
-              withheld: p.safety_passed === false,
-              safetyNote: typeof p.safety_note === "string" ? p.safety_note : null,
-              aiStatus: typeof p.ai_status === "string" ? p.ai_status : null,
-              title: typeof p.session_title === "string" && p.session_title.trim() ? p.session_title.trim() : null,
-            }));
+          const status: EntryStatus =
+            p.status === "refused" ? "refused" : p.status === "insufficient_evidence" ? "insufficient_evidence" : "answered";
+          patch(id, (e) => ({
+            ...e,
+            status,
+            answer: e.answer.trim() ? e.answer : String(p.summary_text ?? ""),
+            evidence: Array.isArray(p.evidence) ? p.evidence.filter(isEvidence) : e.evidence,
+            withheld: p.safety_passed === false,
+            safetyNote: typeof p.safety_note === "string" ? p.safety_note : null,
+            aiStatus: typeof p.ai_status === "string" ? p.ai_status : null,
+            title: typeof p.session_title === "string" && p.session_title.trim() ? p.session_title.trim() : null,
+          }));
+          break;
+        }
+        case "done": {
+          flushNow();
+          if (typeof p.conversation_id === "string" && p.conversation_id) {
+            conversationIdRef.current = p.conversation_id;
+            setConversationId(p.conversation_id);
           }
+          patch(id, (e) => settle({ ...e, status: e.status === "streaming" ? "answered" : e.status, endedAt: e.endedAt ?? Date.now() }));
           break;
         }
         default:
@@ -366,6 +375,7 @@ export function useAgentChat(): UseAgentChatReturn {
       if (!conversationIdRef.current) {
         conversationIdRef.current = `conv_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
       }
+      setConversationId(conversationIdRef.current);
 
       const id = `agent_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const controller = new AbortController();
@@ -437,7 +447,7 @@ export function useAgentChat(): UseAgentChatReturn {
               }
               const record = asRecord(data);
               if (event === "message" && typeof record.event_type === "string") event = record.event_type;
-              if (event === "error" || (event === "completed" && record.stage === "done")) sawTerminal = true;
+              if (event === "error" || event === "done" || (event === "completed" && record.stage === "done")) sawTerminal = true;
               handleEvent(id, event, data);
             }
           }
@@ -471,12 +481,71 @@ export function useAgentChat(): UseAgentChatReturn {
     }
   }, [flushNow, teardown, patch]);
 
+  const load = useCallback(
+    async (userId: string, targetConvId: string) => {
+      teardown();
+      activeIdRef.current = null;
+      conversationIdRef.current = targetConvId;
+      setConversationId(targetConvId);
+
+      try {
+        const conv = await agentApi.getConversation(userId, targetConvId);
+        conversationIdRef.current = conv.id;
+        setConversationId(conv.id);
+
+        const loadedEntries: AgentEntry[] = [];
+        const msgs = conv.messages || [];
+        for (let i = 0; i < msgs.length; i++) {
+          const m = msgs[i];
+          if (m.role === "user") {
+            const next = msgs[i + 1]?.role === "assistant" ? msgs[i + 1] : null;
+            if (next) i++;
+
+            const startedAt = m.created_at ? new Date(m.created_at).getTime() : Date.now();
+            const endedAt = next?.created_at ? new Date(next.created_at).getTime() : startedAt;
+            const status = (next?.status as EntryStatus) || "answered";
+
+            loadedEntries.push({
+              id: `loaded_${m.seq}`,
+              question: m.content,
+              startedAt,
+              endedAt,
+              status,
+              answer: next ? next.content : "",
+              trajectory: next && Array.isArray(next.trajectory) ? next.trajectory : [],
+              stats: next && next.stats && typeof next.stats === "object" ? next.stats : null,
+              evidence: next && Array.isArray(next.evidence) ? next.evidence : [],
+              withheld: false,
+              safetyNote: null,
+              aiStatus: next?.ai_status ?? null,
+              title: conv.title ?? null,
+              error: null,
+            });
+          }
+        }
+        commit(loadedEntries);
+      } catch (err) {
+        // Keep current state on load error
+      }
+    },
+    [teardown, commit]
+  );
+
   const reset = useCallback(() => {
     teardown();
     activeIdRef.current = null;
     conversationIdRef.current = null;
+    setConversationId(null);
     commit([]);
   }, [teardown, commit]);
 
-  return { entries, isStreaming: entries.some((e) => e.status === "streaming"), send, stop, reset };
+  return {
+    entries,
+    isStreaming: entries.some((e) => e.status === "streaming"),
+    conversationId,
+    load,
+    send,
+    stop,
+    reset,
+  };
 }

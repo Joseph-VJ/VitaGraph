@@ -167,10 +167,9 @@ export const CinematicIngestionShow: React.FC<CinematicIngestionShowProps> = ({
 
     // Canvas coordinate scale helpers
     const css = getComputedStyle(document.documentElement);
-    const g = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
-    const cr = g("--color-bg", "#f3f2f2");
-    const ink = g("--color-text", "#201e1d");
-    const ac = g("--color-accent", "#ec3013");
+    const cr = css.getPropertyValue("--color-bg").trim();
+    const ink = css.getPropertyValue("--color-text").trim();
+    const ac = css.getPropertyValue("--color-accent").trim();
 
     const k = H / 1000;
     const L = W * 0.06;
@@ -273,9 +272,20 @@ export const CinematicIngestionShow: React.FC<CinematicIngestionShowProps> = ({
     while (PC.length < 5) {
       const fallback = [1284, 1102, 968, 1347, 312];
       PC.push(fallback[PC.length]);
-      scanFlags.push(PC.length === 5);
+      scanFlags.push(false);
     }
     const TOT = PC.reduce((a, b) => a + b, 0) || 5013;
+
+    const ocrPages = pagesMeta.filter((p) => p.method === "ocr");
+    let hasScanned = ocrPages.length > 0;
+    let ocrCharsTotal = ocrPages.reduce((acc, p) => acc + (Number(p.chars) || 0), 0);
+    if (pagesMeta.length === 0 && pageExtractedEvents.length > 0) {
+      const ocrEvents = pageExtractedEvents.filter((e) => e.metadata?.method === "ocr");
+      if (ocrEvents.length > 0) {
+        hasScanned = true;
+        ocrCharsTotal = ocrEvents.reduce((acc, e) => acc + (Number(e.metadata?.chars) || 0), 0);
+      }
+    }
 
     // Chunks count
     const totalChunksMeta = Number(
@@ -292,7 +302,10 @@ export const CinematicIngestionShow: React.FC<CinematicIngestionShowProps> = ({
       chars: number;
     }>) || [];
 
-    const effectiveUserId = userId || (indexedEvent?.metadata?.user_id as string) || "VG-2026-001";
+    const effectiveUserId =
+      userId ||
+      (indexedEvent?.metadata?.user_id as string) ||
+      (typeof window !== "undefined" ? localStorage.getItem("vitagraph_user_id") || "" : "");
     const fileHash = (receivedEvent?.metadata?.file_hash as string) || "";
 
     let currentStats = { label: "Starting", value: "0" };
@@ -402,84 +415,92 @@ export const CinematicIngestionShow: React.FC<CinematicIngestionShowProps> = ({
         value: Math.round(got).toLocaleString("en-US"),
       };
     } else if (st === 1) {
-      const SW = RW * 0.36;
-      const SH = H * 0.56;
-      const OL = [
-        "ADDENDUM — SCANNED ATTACHMENT",
-        "Date of collection 14 Feb 2026",
-        "Platelet count (manual) 245,000 /µL",
-        "Reference 150,000 - 450,000 /µL",
-        "Smear: normocytic, normochromic",
-        "Verified by: Lab Tech 0412",
-        "Remarks: no abnormal cells seen",
-        "End of report",
-      ];
-      const CF = [0.97, 0.96, 0.95, 0.97, 0.93, 0.68, 0.94, 0.99];
+      if (!hasScanned || ocrCharsTotal === 0) {
+        txt("No scanned pages in this report.", L, T0 + H * 0.16, 32, 800, cr);
+        txt("All pages contained readable text layers.", L, T0 + H * 0.16 + 40 * k, 20, 600, cr);
+        txt("Optical character recognition was skipped.", L, T0 + H * 0.16 + 72 * k, 18, 400, ac);
+        currentStats = { label: "Characters read by OCR", value: "0" };
+      } else {
+        const SW = RW * 0.36;
+        const SH = H * 0.56;
+        const OL = [
+          "ADDENDUM — SCANNED ATTACHMENT",
+          "Date of collection 14 Feb 2026",
+          "Platelet count (manual) 245,000 /µL",
+          "Reference 150,000 - 450,000 /µL",
+          "Smear: normocytic, normochromic",
+          "Verified by: Lab Tech 0412",
+          "Remarks: no abnormal cells seen",
+          "End of report",
+        ];
+        const CF = [0.97, 0.96, 0.95, 0.97, 0.93, 0.68, 0.94, 0.99];
 
-      const tl = (i: number) => 1.0 + 6.3 * cl((0.13 + 0.105 * i - 0.06) / 0.89, 0, 1);
-      let chars = 0;
+        const tl = (i: number) => 1.0 + 6.3 * cl((0.13 + 0.105 * i - 0.06) / 0.89, 0, 1);
+        let chars = 0;
 
-      x.save();
-      x.translate(L + SW / 2, T0 + SH / 2 + 10 * k);
-      x.rotate(-0.018);
-      x.translate(-SW / 2, -SH / 2);
+        x.save();
+        x.translate(L + SW / 2, T0 + SH / 2 + 10 * k);
+        x.rotate(-0.018);
+        x.translate(-SW / 2, -SH / 2);
 
-      x.globalAlpha = 0.93;
-      x.fillStyle = cr;
-      x.fillRect(0, 0, SW, SH);
+        x.globalAlpha = 0.93;
+        x.fillStyle = cr;
+        x.fillRect(0, 0, SW, SH);
 
-      x.globalAlpha = 0.35;
-      x.fillStyle = ink;
-      for (let a = 0; a < 260; a++) {
-        x.fillRect(((a * 53) % 100) / 100 * SW, ((a * 29) % 100) / 100 * SH, 2 * k, 2 * k);
-      }
-
-      OL.forEach((s, i) => {
-        const ly = SH * (0.10 + 0.105 * i);
-        const lw = Math.min(SW * 0.9, s.length * 13.5 * k);
-        const on = u >= tl(i);
-        x.globalAlpha = 0.6;
+        x.globalAlpha = 0.35;
         x.fillStyle = ink;
-        x.fillRect(SW * 0.06, ly + 4 * k, lw, 16 * k);
-        if (on) {
+        for (let a = 0; a < 260; a++) {
+          x.fillRect(((a * 53) % 100) / 100 * SW, ((a * 29) % 100) / 100 * SH, 2 * k, 2 * k);
+        }
+
+        OL.forEach((s, i) => {
+          const ly = SH * (0.10 + 0.105 * i);
+          const lw = Math.min(SW * 0.9, s.length * 13.5 * k);
+          const on = u >= tl(i);
+          x.globalAlpha = 0.6;
+          x.fillStyle = ink;
+          x.fillRect(SW * 0.06, ly + 4 * k, lw, 16 * k);
+          if (on) {
+            x.globalAlpha = 1;
+            x.strokeStyle = ac;
+            x.lineWidth = 3 * k;
+            x.strokeRect(SW * 0.06 - 6 * k, ly - 2 * k, lw + 12 * k, 30 * k);
+            x.fillStyle = i === 5 ? ac : ink;
+            x.fillRect(SW * 0.06 + lw - 36 * k, ly - 24 * k, 48 * k, 22 * k);
+            txt(CF[i].toFixed(2), SW * 0.06 + lw - 12 * k, ly - 8 * k, 15, 800, cr, "center");
+          }
+        });
+
+        const bf = cl((u - 1.0) / 6.3, 0, 1);
+        if (bf > 0 && bf < 1) {
           x.globalAlpha = 1;
-          x.strokeStyle = ac;
-          x.lineWidth = 3 * k;
-          x.strokeRect(SW * 0.06 - 6 * k, ly - 2 * k, lw + 12 * k, 30 * k);
-          x.fillStyle = i === 5 ? ac : ink;
-          x.fillRect(SW * 0.06 + lw - 36 * k, ly - 24 * k, 48 * k, 22 * k);
-          txt(CF[i].toFixed(2), SW * 0.06 + lw - 12 * k, ly - 8 * k, 15, 800, cr, "center");
+          x.fillStyle = ac;
+          x.fillRect(-8 * k, SH * (0.06 + 0.89 * bf), SW + 16 * k, 5 * k);
         }
-      });
-
-      const bf = cl((u - 1.0) / 6.3, 0, 1);
-      if (bf > 0 && bf < 1) {
+        x.restore();
         x.globalAlpha = 1;
-        x.fillStyle = ac;
-        x.fillRect(-8 * k, SH * (0.06 + 0.89 * bf), SW + 16 * k, 5 * k);
+
+        const X2 = L + SW + RW * 0.06;
+        OL.forEach((s, i) => {
+          const n = Math.floor(cl((u - tl(i)) * 34, 0, s.length));
+          chars += n;
+          const ry = T0 + 36 * k + i * (SH / 8.2);
+          txt(s.slice(0, n), X2, ry, 30, 800, i === 5 ? ac : cr);
+          if (n >= s.length) {
+            txt(
+              i === 5 ? "conf " + CF[i].toFixed(2) + "  needs review" : "conf " + CF[i].toFixed(2),
+              X2,
+              ry + 26 * k,
+              19,
+              600,
+              i === 5 ? ac : cr
+            );
+          }
+        });
+
+        const displayedOcr = Math.min(ocrCharsTotal, Math.round(cl((u - 1.0) / 6.3, 0, 1) * ocrCharsTotal));
+        currentStats = { label: "Characters read by OCR", value: String(displayedOcr) };
       }
-      x.restore();
-      x.globalAlpha = 1;
-
-      const X2 = L + SW + RW * 0.06;
-      OL.forEach((s, i) => {
-        const n = Math.floor(cl((u - tl(i)) * 34, 0, s.length));
-        chars += n;
-        const ry = T0 + 36 * k + i * (SH / 8.2);
-        txt(s.slice(0, n), X2, ry, 30, 800, i === 5 ? ac : cr);
-        if (n >= s.length) {
-          txt(
-            i === 5 ? "conf " + CF[i].toFixed(2) + "  needs review" : "conf " + CF[i].toFixed(2),
-            X2,
-            ry + 26 * k,
-            19,
-            600,
-            i === 5 ? ac : cr
-          );
-        }
-      });
-
-      currentStats = { label: "Characters read by OCR", value: String(chars) };
     } else if (st === 2) {
       const cols = 8;
       const rows = Math.ceil(nC / cols);
@@ -722,10 +743,21 @@ export const CinematicIngestionShow: React.FC<CinematicIngestionShowProps> = ({
   const isError = jobStream.status === "error" || Boolean(jobStream.error);
   const showRunning = !showDone && !isError;
 
+  const hasScannedInJob = jobStream.events.some(
+    (e) =>
+      (e.stage === "extracted" &&
+        (e.metadata?.pages as Array<{ method?: string }> | undefined)?.some(
+          (p) => p.method === "ocr"
+        )) ||
+      (e.stage === "page_extracted" && e.metadata?.method === "ocr")
+  );
+
   const showN = isError ? "05" : String(Math.min(5, si + 1)).padStart(2, "0");
   const showName = isError ? "Quarantined" : STAGE_NAMES[si];
   const showDesc = isError
     ? jobStream.error || "The report could not be processed."
+    : si === 1 && !hasScannedInJob
+    ? "No scanned pages in this report."
     : STAGE_DESCS[si];
 
   const showSegs = ["Parse", "OCR", "Chunk", "Embed", "Index"].map((label, i) => ({

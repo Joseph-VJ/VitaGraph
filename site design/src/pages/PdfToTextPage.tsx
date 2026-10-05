@@ -17,7 +17,7 @@ export const PdfToTextPage: React.FC = () => {
   const [pdfName, setPdfName] = useState("");
   const [pages, setPages] = useState<PageData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [statusMsg, setStatusMsg] = useState("Ready");
+  const [statusMsg, setStatusMsg] = useState("Choose a PDF.");
   const [dragOver, setDragOver] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -142,9 +142,6 @@ export const PdfToTextPage: React.FC = () => {
         gap: "var(--space-6)",
       }}
     >
-      <style>{`
-        .btn-primary { background: var(--color-accent-700) !important; color: var(--color-bg) !important; }
-      `}</style>
 
       {/* Input bar */}
       <div

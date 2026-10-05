@@ -9,6 +9,7 @@ import { AnswerMarkdown, citedRefs } from "../components/agent/AnswerMarkdown";
 import { EvidenceModules } from "../components/agent/EvidenceModules";
 import { PassageSlip } from "../components/agent/PassageSlip";
 import { TrajectoryPanel } from "../components/agent/TrajectoryPanel";
+import { ConversationList } from "../components/agent/ConversationList";
 import { PageState, PersonaState } from "../components/ui";
 
 const MIN_QUESTION_CHARS = 2;
@@ -204,6 +205,34 @@ const EntryView: React.FC<EntryViewProps> = ({ n, entry, onRetry, canRetry, getP
   );
 };
 
+function sessionTotals(entries: AgentEntry[]) {
+  let toolCalls = 0;
+  let input: number | null = null;
+  let output: number | null = null;
+  for (const e of entries) {
+    if (!e.stats) continue;
+    toolCalls += e.stats.toolCalls;
+    if (e.stats.inputTokens !== null) input = (input ?? 0) + e.stats.inputTokens;
+    if (e.stats.outputTokens !== null) output = (output ?? 0) + e.stats.outputTokens;
+  }
+  return { answers: entries.filter((e) => e.status === "answered").length, toolCalls, input, output };
+}
+
+function useIsDesktop(): boolean {
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 1024px)").matches : true
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
+
+  return isDesktop;
+}
+
 export const AgentPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading: personaLoading, refreshUsers } = useActiveUser();
@@ -221,6 +250,70 @@ export const AgentPage: React.FC = () => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const stickRef = useRef(true);
   const pagesCache = useRef(new Map<string, Promise<ReportPage[]>>());
+
+  const isDesktop = useIsDesktop();
+  const [showMobileList, setShowMobileList] = useState(false);
+  const [refreshSignal, setRefreshSignal] = useState(0);
+  const prevStreaming = useRef(chat.isStreaming);
+
+  useEffect(() => {
+    if (prevStreaming.current && !chat.isStreaming && chat.entries.length > 0) {
+      setRefreshSignal((s) => s + 1);
+    }
+    prevStreaming.current = chat.isStreaming;
+  }, [chat.isStreaming, chat.entries.length]);
+
+  const c = searchParams.get("c");
+  const loadedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!c) {
+      loadedRef.current = null;
+      return;
+    }
+    if (!effectiveUserId || loadedRef.current === c || c === chat.conversationId) return;
+    loadedRef.current = c;
+    void chat.load(effectiveUserId, c);
+  }, [effectiveUserId, c, chat]);
+
+  useEffect(() => {
+    const id = chat.conversationId;
+    if (!id || searchParams.get("c") === id) return;
+    loadedRef.current = id;
+    const next = new URLSearchParams(searchParams);
+    next.set("c", id);
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chat.conversationId]);
+
+  const handleNew = useCallback(() => {
+    chat.reset();
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("c");
+        return next;
+      },
+      { replace: true }
+    );
+  }, [chat, setSearchParams]);
+
+  const handleOpen = useCallback(
+    (id: string) => {
+      if (id === chat.conversationId) return;
+      loadedRef.current = id;
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("c", id);
+          return next;
+        },
+        { replace: true }
+      );
+      void chat.load(effectiveUserId, id);
+    },
+    [chat, effectiveUserId, setSearchParams]
+  );
 
   // Each report's pages are fetched once and shared by every passage slip.
   const getPages = useCallback((reportId: string) => {
@@ -244,10 +337,19 @@ export const AgentPage: React.FC = () => {
   }, [qParam]);
 
   // A different persona starts a fresh conversation.
+  const prevUserRef = useRef<string | null>(null);
   useEffect(() => {
-    chat.reset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveUserId]);
+    if (prevUserRef.current && prevUserRef.current !== effectiveUserId) {
+      chat.reset();
+      loadedRef.current = null;
+      const next = new URLSearchParams(searchParams);
+      if (next.has("c")) {
+        next.delete("c");
+        setSearchParams(next, { replace: true });
+      }
+    }
+    prevUserRef.current = effectiveUserId || null;
+  }, [effectiveUserId, chat, searchParams, setSearchParams]);
 
   // The persona's reports: they decide the empty state and the "chat with this report" scope.
   useEffect(() => {
@@ -330,6 +432,21 @@ export const AgentPage: React.FC = () => {
     if (scroller && stickRef.current) scroller.scrollTop = scroller.scrollHeight;
   }, [chat.entries]);
 
+  const totals = useMemo(() => sessionTotals(chat.entries), [chat.entries]);
+  const totalsParts: string[] = [];
+  totalsParts.push(totals.answers === 1 ? "1 answer" : `${totals.answers} answers`);
+  if (totals.toolCalls > 0) {
+    totalsParts.push(totals.toolCalls === 1 ? "1 tool call" : `${totals.toolCalls} tool calls`);
+  }
+  if (totals.input !== null && totals.output !== null) {
+    totalsParts.push(`${totals.input} in · ${totals.output} out tokens`);
+  } else if (totals.input !== null) {
+    totalsParts.push(`${totals.input} tokens in`);
+  } else if (totals.output !== null) {
+    totalsParts.push(`${totals.output} tokens out`);
+  }
+  const totalsSummary = totalsParts.join(" · ");
+
   if (!effectiveUserId) {
     return (
       <div
@@ -350,181 +467,304 @@ export const AgentPage: React.FC = () => {
     : "Upload a report to start asking";
 
   return (
-    <div data-screen-label="AI Agent" data-testid="agent-page" style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
+    <div
+      data-screen-label="AI Agent"
+      data-testid="agent-page"
+      style={{
+        minHeight: "100%",
+        display: "flex",
+        flexDirection: isDesktop ? "row" : "column",
+        alignItems: "stretch",
+      }}
+    >
+      {/* 280px Conversation Column on Desktop (>= 1024px) */}
+      {isDesktop ? (
+        <aside
+          style={{
+            width: 280,
+            flex: "0 0 280px",
+            boxSizing: "border-box",
+            display: "flex",
+            flexDirection: "column",
+            position: "sticky",
+            top: 0,
+            height: "calc(100vh - 114px)",
+            maxHeight: "calc(100vh - 114px)",
+            alignSelf: "flex-start",
+          }}
+        >
+          <ConversationList
+            userId={effectiveUserId}
+            currentId={chat.conversationId || c}
+            onOpen={handleOpen}
+            onNew={handleNew}
+            refreshSignal={refreshSignal}
+          />
+        </aside>
+      ) : null}
+
+      {/* Main Chat Column */}
       <div
-        className="vg-gutter"
         style={{
           flex: 1,
-          maxWidth: "960px",
-          width: "100%",
-          boxSizing: "border-box",
-          margin: "0 auto",
-          paddingTop: "var(--space-8)",
-          paddingBottom: "var(--space-4)",
+          minWidth: 0,
           display: "flex",
           flexDirection: "column",
-          gap: "var(--space-4)",
+          minHeight: "100%",
         }}
       >
-        {reportParam ? (
+        {/* Mobile Header Row (< 1024px) */}
+        {!isDesktop ? (
           <div
-            data-testid="agent-scope-chip"
+            className="vg-gutter"
             style={{
+              paddingTop: "var(--space-3)",
+              paddingBottom: "var(--space-3)",
+              borderBottom: "1px solid var(--color-divider)",
               background: "var(--color-surface)",
-              borderTop: "2px solid var(--color-text)",
-              padding: "var(--space-3) var(--space-4)",
               display: "flex",
-              flexWrap: "wrap",
-              gap: "var(--space-3)",
-              justifyContent: "space-between",
               alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            <div style={{ fontSize: "0.9375rem" }}>
-              {scope ? (
-                <>
-                  <span style={{ fontWeight: 800 }}>Chatting with {scope.original_filename}.</span>{" "}
-                  <span style={{ color: "var(--color-neutral-700)" }}>Answers use only this report.</span>
-                </>
-              ) : reportsState === "ready" ? (
-                <span style={{ fontWeight: 800 }}>That report was not found. Answers use all your reports.</span>
-              ) : (
-                <span style={{ fontWeight: 800 }}>Loading the report</span>
-              )}
-            </div>
-            <button type="button" className="btn btn-secondary" onClick={() => setSearchParams({})}>
-              Use all my reports
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setShowMobileList((prev) => !prev)}
+              aria-expanded={showMobileList}
+              style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" }}>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              Conversations
             </button>
           </div>
         ) : null}
 
-        {chat.entries.length === 0 ? (
-          <div data-testid="agent-empty" style={{ padding: "var(--space-8) 0", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-            {reportsState === "failed" ? (
-              <PageState
-                kind="error"
-                title="Could not load your reports"
-                detail="Check that the backend is running, then try again."
-                action={{ label: "Try again", onClick: () => setReportsTick((t) => t + 1) }}
-              />
-            ) : reportsState === "ready" && reports.length === 0 ? (
-              <PageState
-                kind="empty"
-                title="No reports yet"
-                detail="Upload a report first, then ask about it here."
-                action={{ label: "Upload a report", onClick: () => navigate("/upload") }}
-              />
-            ) : reportsState === "loading" ? (
-              <PageState kind="loading" title="Loading your reports" />
-            ) : (
-              <>
-                <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em" }}>What would you like to know?</h2>
-                <div>
-                  {suggestions.map((q) => (
-                    <button
-                      key={q}
-                      type="button"
-                      onClick={() => submit(q)}
-                      className="ask-suggestion"
-                      style={{
-                        appearance: "none",
-                        width: "100%",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: "var(--space-3)",
-                        minHeight: 42,
-                        padding: "var(--space-2) var(--space-2)",
-                        border: 0,
-                        borderTop: "1px solid var(--color-divider)",
-                        background: "transparent",
-                        color: "var(--color-text)",
-                        fontSize: "1rem",
-                        fontWeight: 600,
-                      }}
-                    >
-                      <span>{q}</span>
-                      <Arrow size={16} />
-                    </button>
-                  ))}
+        {/* Mobile Conversation Panel (< 1024px) */}
+        {!isDesktop && showMobileList ? (
+          <div
+            style={{
+              borderBottom: "2px solid var(--color-divider)",
+              background: "var(--color-surface)",
+              maxHeight: "50vh",
+              overflowY: "auto",
+            }}
+          >
+            <ConversationList
+              userId={effectiveUserId}
+              currentId={chat.conversationId || c}
+              onOpen={(id) => {
+                handleOpen(id);
+                setShowMobileList(false);
+              }}
+              onNew={() => {
+                handleNew();
+                setShowMobileList(false);
+              }}
+              refreshSignal={refreshSignal}
+            />
+          </div>
+        ) : null}
+
+        <div
+          className="vg-gutter"
+          style={{
+            flex: 1,
+            maxWidth: "960px",
+            width: "100%",
+            boxSizing: "border-box",
+            margin: "0 auto",
+            paddingTop: "var(--space-8)",
+            paddingBottom: "var(--space-4)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--space-4)",
+          }}
+        >
+          {reportParam ? (
+            <div
+              data-testid="agent-scope-chip"
+              style={{
+                background: "var(--color-surface)",
+                borderTop: "2px solid var(--color-text)",
+                padding: "var(--space-3) var(--space-4)",
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "var(--space-3)",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div style={{ fontSize: "0.9375rem" }}>
+                {scope ? (
+                  <>
+                    <span style={{ fontWeight: 800 }}>Chatting with {scope.original_filename}.</span>{" "}
+                    <span style={{ color: "var(--color-neutral-700)" }}>Answers use only this report.</span>
+                  </>
+                ) : reportsState === "ready" ? (
+                  <span style={{ fontWeight: 800 }}>That report was not found. Answers use all your reports.</span>
+                ) : (
+                  <span style={{ fontWeight: 800 }}>Loading the report</span>
+                )}
+              </div>
+              <button type="button" className="btn btn-secondary" onClick={() => setSearchParams({})}>
+                Use all my reports
+              </button>
+            </div>
+          ) : null}
+
+          {chat.entries.length === 0 ? (
+            <div data-testid="agent-empty" style={{ padding: "var(--space-8) 0", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+              {reportsState === "failed" ? (
+                <PageState
+                  kind="error"
+                  title="Could not load your reports"
+                  detail="Check that the backend is running, then try again."
+                  action={{ label: "Try again", onClick: () => setReportsTick((t) => t + 1) }}
+                />
+              ) : reportsState === "ready" && reports.length === 0 ? (
+                <PageState
+                  kind="empty"
+                  title="No reports yet"
+                  detail="Upload a report first, then ask about it here."
+                  action={{ label: "Upload a report", onClick: () => navigate("/upload") }}
+                />
+              ) : reportsState === "loading" ? (
+                <PageState kind="loading" title="Loading your reports" />
+              ) : (
+                <>
+                  <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em" }}>What would you like to know?</h2>
+                  <div>
+                    {suggestions.map((q) => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => submit(q)}
+                        className="ask-suggestion"
+                        style={{
+                          appearance: "none",
+                          width: "100%",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "var(--space-3)",
+                          minHeight: 42,
+                          padding: "var(--space-2) var(--space-2)",
+                          border: 0,
+                          borderTop: "1px solid var(--color-divider)",
+                          background: "transparent",
+                          color: "var(--color-text)",
+                          fontSize: "1rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <span>{q}</span>
+                        <Arrow size={16} />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div data-testid="agent-threads">
+              {totalsParts.length > 0 && (
+                <div
+                  data-testid="agent-session-totals"
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "var(--space-2)",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingBottom: "var(--space-3)",
+                    marginBottom: "var(--space-4)",
+                    borderBottom: "1px solid var(--color-divider)",
+                    fontSize: "0.8125rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                    color: "var(--color-neutral-700)",
+                  }}
+                >
+                  <span>Session · {totalsSummary}</span>
                 </div>
-              </>
+              )}
+              {chat.entries.map((entry, index) => (
+                <EntryView key={entry.id} n={index + 1} entry={entry} onRetry={submit} canRetry={composerReady && !chat.isStreaming} getPages={getPages} />
+              ))}
+              {!chat.isStreaming ? (
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <button type="button" className="btn btn-secondary" onClick={handleNew} data-testid="agent-new-chat">
+                    New chat
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+
+        <form
+          data-testid="agent-composer"
+          className="vg-gutter"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!composerReady || input.trim().length < MIN_QUESTION_CHARS) return;
+            submit(input);
+          }}
+          style={{
+            position: "sticky",
+            bottom: 0,
+            background: "var(--color-bg)",
+            borderTop: "2px solid var(--color-divider)",
+            paddingTop: "var(--space-4)",
+            paddingBottom: "var(--space-4)",
+            margin: 0,
+          }}
+        >
+          <div style={{ maxWidth: "960px", margin: "0 auto", display: "flex", flexWrap: "wrap", gap: "var(--space-3)" }}>
+            <input
+              data-testid="agent-input"
+              className="input"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              maxLength={MAX_QUESTION_CHARS}
+              disabled={!composerReady}
+              aria-label="Your question"
+              placeholder={placeholder}
+              style={{ flex: "1 1 320px", minHeight: 52, fontSize: "1.0625rem", fontWeight: 600, padding: "var(--space-3) var(--space-4)" }}
+            />
+            {chat.isStreaming ? (
+              <button type="button" className="btn btn-secondary" onClick={chat.stop} style={{ minWidth: 140, justifyContent: "space-between" }}>
+                Stop
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <rect x="4" y="4" width="16" height="16" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className="btn btn-primary"
+                aria-disabled={!composerReady || input.trim().length < MIN_QUESTION_CHARS}
+                onClick={(e) => {
+                  if (!composerReady || input.trim().length < MIN_QUESTION_CHARS) {
+                    e.preventDefault();
+                  }
+                }}
+                style={{ minWidth: 140, justifyContent: "space-between", opacity: 1 }}
+              >
+                Send
+                <Arrow size={18} />
+              </button>
             )}
           </div>
-        ) : (
-          <div data-testid="agent-threads">
-            {chat.entries.map((entry, index) => (
-              <EntryView key={entry.id} n={index + 1} entry={entry} onRetry={submit} canRetry={composerReady && !chat.isStreaming} getPages={getPages} />
-            ))}
-            {!chat.isStreaming ? (
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button type="button" className="btn btn-secondary" onClick={chat.reset} data-testid="agent-new-chat">
-                  New chat
-                </button>
-              </div>
-            ) : null}
-          </div>
-        )}
-        <div ref={bottomRef} />
+        </form>
       </div>
-
-      <form
-        data-testid="agent-composer"
-        className="vg-gutter"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (!composerReady || input.trim().length < MIN_QUESTION_CHARS) return;
-          submit(input);
-        }}
-        style={{
-          position: "sticky",
-          bottom: 0,
-          background: "var(--color-bg)",
-          borderTop: "2px solid var(--color-divider)",
-          paddingTop: "var(--space-4)",
-          paddingBottom: "var(--space-4)",
-          margin: 0,
-        }}
-      >
-        <div style={{ maxWidth: "960px", margin: "0 auto", display: "flex", flexWrap: "wrap", gap: "var(--space-3)" }}>
-          <input
-            data-testid="agent-input"
-            className="input"
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            maxLength={MAX_QUESTION_CHARS}
-            disabled={!composerReady}
-            aria-label="Your question"
-            placeholder={placeholder}
-            style={{ flex: "1 1 320px", minHeight: 52, fontSize: "1.0625rem", fontWeight: 600, padding: "var(--space-3) var(--space-4)" }}
-          />
-          {chat.isStreaming ? (
-            <button type="button" className="btn btn-secondary" onClick={chat.stop} style={{ minWidth: 140, justifyContent: "space-between" }}>
-              Stop
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <rect x="4" y="4" width="16" height="16" />
-              </svg>
-            </button>
-          ) : (
-            <button
-              type="submit"
-              className="btn btn-primary"
-              aria-disabled={!composerReady || input.trim().length < MIN_QUESTION_CHARS}
-              onClick={(e) => {
-                if (!composerReady || input.trim().length < MIN_QUESTION_CHARS) {
-                  e.preventDefault();
-                }
-              }}
-              style={{ minWidth: 140, justifyContent: "space-between", opacity: 1 }}
-            >
-              Send
-              <Arrow size={18} />
-            </button>
-          )}
-        </div>
-      </form>
     </div>
   );
 };

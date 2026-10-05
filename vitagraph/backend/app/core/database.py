@@ -114,6 +114,45 @@ CREATE TABLE IF NOT EXISTS history_events (
     payload    TEXT NOT NULL              -- JSON blob, no unnecessary raw health text
 );
 CREATE INDEX IF NOT EXISTS idx_events_user ON history_events(user_id);
+
+CREATE TABLE IF NOT EXISTS agent_conversations (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL,
+    title      TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_agent_conversations_user ON agent_conversations(user_id);
+
+CREATE TABLE IF NOT EXISTS agent_messages (
+    id              TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL,
+    user_id         TEXT NOT NULL,
+    seq             INTEGER NOT NULL,
+    role            TEXT NOT NULL,
+    content         TEXT NOT NULL,
+    status          TEXT,
+    ai_status       TEXT,
+    evidence_json   TEXT,
+    trajectory_json TEXT,
+    stats_json      TEXT,
+    created_at      TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_messages_conv_seq ON agent_messages(conversation_id, seq);
+CREATE INDEX IF NOT EXISTS idx_agent_messages_user ON agent_messages(user_id);
+
+CREATE TABLE IF NOT EXISTS agent_artifacts (
+    id              TEXT PRIMARY KEY,
+    user_id         TEXT NOT NULL,
+    conversation_id TEXT,
+    kind            TEXT NOT NULL,
+    title           TEXT NOT NULL,
+    language        TEXT,
+    content         TEXT,
+    data            BLOB,
+    created_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_agent_artifacts_user ON agent_artifacts(user_id);
 """
 
 
