@@ -98,10 +98,15 @@ const EntryView: React.FC<EntryViewProps> = ({ n, entry, onRetry, canRetry, getP
     const card = byRef.get(ref);
     return card ? [card] : [];
   });
-  const citedCards = cited.flatMap((ref) => {
-    const card = byRef.get(ref);
-    return card ? [card] : [];
-  });
+  const citedCards =
+    cited.length > 0
+      ? cited.flatMap((ref) => {
+          const card = byRef.get(ref);
+          return card ? [card] : [];
+        })
+      : entry.aiStatus === "not_used"
+        ? entry.evidence
+        : [];
 
   let body: React.ReactNode = null;
   if (entry.status === "refused") {
@@ -166,7 +171,7 @@ const EntryView: React.FC<EntryViewProps> = ({ n, entry, onRetry, canRetry, getP
       ) : null}
       {body}
       {entry.status === "answered" && !entry.withheld && citedCards.length > 0 ? (
-        <EvidenceModules cards={citedCards} openRefs={openRefs} onToggle={toggleRef} />
+        <EvidenceModules cards={citedCards} openRefs={openRefs} onToggle={toggleRef} aiUsed={entry.aiStatus === "ok"} />
       ) : null}
       {openCards.length > 0 ? (
         <div ref={slipsRef}>
