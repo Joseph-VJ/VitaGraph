@@ -1,0 +1,101 @@
+VITAGRAPH VIDEO PROMPT  |  EXTENDED PROCESS 8  |  THE SAFETY GATE REFUSES (FAIL-CLOSED)
+File: 10_P8_safety_gate_refusal.txt
+Standalone clip (not part of the 120-frame Upload chain). Same style, same square format, same safe areas.
+Duration 8.0 s, 24 fps, square 1:1, silent.
+Matches: the AI Agent page's refusal card ("Declined by policy": pale red fill, red top rule, pale red tag) and the backend gates in app/services/agent_service.py (clinical-boundary refusal BEFORE any model call).
+==========================================================================================
+
+A. WHAT THIS CLIP IS FOR
+------------------------
+VitaGraph is an educational evidence tool, not a diagnostic service. When a question asks for a diagnosis, a treatment or a prescription, the safety gate stops it BEFORE the AI model is ever called (fail-closed). This clip shows exactly that: a question card travels toward the agent, meets the gate, the gate closes red, the agent's area on the other side stays completely dormant (no tool runs, nothing is sent), and a refusal card unfolds in the app's own "Declined by policy" style. Use it in a demo film or as an alternative frame set.
+
+
+B. WHAT THE REAL PROCESS DOES (so the picture is truthful)
+----------------------------------------------------------
+In stream_agent, the question is classified first. If it needs a boundary response, the backend immediately streams the fixed boundary text and a completed event with status "refused" and ai_status "not_used": no runtime is started, no tool is called, no passage is sent anywhere. Then the turn is saved. A second gate removes prompt-injection text; a message that is only injection is refused the same way. On the page the refusal is a card with a pale red fill (#FFF2EF), a red top rule and a small pale red tag ("Declined by policy"). No words are drawn in this video.
+
+
+C. MASTER PROMPT  (paste everything between the lines into the generator)
+--------------------------------------------------------------------------
+A pristine flat 2D motion-graphics animation that looks exactly like a live vector user interface drawn by software, in strict Swiss International (Modernist) graphic style. Square 1:1 frame, 24 fps, silent, 8 seconds, one continuous take. The entire frame is one perfectly flat, perfectly uniform field of warm light grey #EAE9E9, identical in every pixel, edge to edge, no vignette, no texture, no noise, no gradient. All shapes are flat single-colour geometry with razor-sharp straight edges and perfectly square 90-degree corners: zero corner radius anywhere. The only colours are warm greys (paper #F8F4F4, light grey #D7D3D3, divider grey #999796, dark grey #605D5D), near-black warm ink #201E1D, vivid vermilion red #EC3013, deep red #AE1800, pale red #FFE0D9 and palest red #FFF2EF; no other hue exists. Absolutely no text of any kind: no letters, no numbers, no symbols, no logos, no watermark; every place where writing would be is drawn as solid horizontal bars with square ends. No lighting, no shading, no shadows, no glow, no bloom, no reflections, no blur, no depth of field, no motion blur, no film grain. Locked-off static orthographic camera, straight-on, no zoom, no pan, no cuts. Motion is calm, precise and mechanical, along straight horizontal or vertical lines, ease-out cubic, no bounce, no overshoot, no shaking, no particles. Every frame must look like a finished, razor-sharp UI screenshot. All objects stay between 10% and 90% of the frame on both axes; the bottom-right corner region (right of 74% and below 86%) stays empty field.
+
+COORDINATES: x from the left edge (0%) to the right edge (100%), y from the top edge (0%) to the bottom edge (100%).
+
+THE OBJECTS (exact design):
+
+1. THE GATE: a single vertical heavy rule, 6 pixels wide, solid ink #201E1D, at x 50%, from y 22% to y 72%. Just above its top, centred on it, a small square indicator 2.0% wide (from y 19.5% to y 21.5%), drawn as a hollow square with a 4-pixel ink outline.
+
+2. THE AGENT AREA (right side, dormant): a rectangle from x 56% to x 88% and from y 26% to y 68%, outlined by a 2-pixel divider-grey #999796 line at 60% opacity. Inside, four faint rows at y 31%, 36%, 41%, 46%: each a HOLLOW square marker 1.5% wide with a 3-pixel light grey #D7D3D3 outline at x 59%, followed by a light grey #D7D3D3 bar 0.7% tall starting at x 62% (lengths 14%, 18%, 16%, 12%). Below them, four more light grey bars 0.7% tall at y 53%, 56%, 59%, 62% (lengths 22%, 20%, 23%, 12%): the answer area, empty. This whole area NEVER changes except to fade slightly: no marker ever fills, no bar ever darkens, nothing ever moves inside it.
+
+3. THE QUESTION CARD: a flat paper #F8F4F4 rectangle 32% wide and 10% tall, with a 4-pixel solid ink #201E1D rule along its top edge only. Inside: a short solid deep red #AE1800 bar 2.4% wide and 0.9% tall near its top-left (the "Q1" label), 2% in from its left edge and 1.8% below its top; below it two solid ink bars 0.8% tall, 2% in from the left edge, 3.6% and 5.6% below the top, 24% and 14% long (the question, unreadable). Resting position: x 12%-44%, y 30%-40%.
+
+4. THE REFUSAL CARD ("Declined by policy"): a flat rectangle filled with palest red #FFF2EF from x 12% to x 44% and from y 43% to y 63%, with a 4-pixel solid vivid red #EC3013 rule along its top edge only. Inside:
+   - a small tag at its top-left: a pale red #FFE0D9 rectangle 9% wide and 2.0% tall at x 14%, y 45%, containing a solid deep red #AE1800 bar 6% wide and 0.7% tall, 1.0% in from the tag's left edge, vertically centred;
+   - four solid ink bars 0.7% tall, flush left at x 14%, at y 49.5%, 52.3%, 55.1%, 57.9%, lengths 28%, 26%, 29%, 18% (the explanation, unreadable);
+   - one dark grey #605D5D bar 0.6% tall at x 14%, y 60.5%, 20% long (the safety note).
+
+THE TIMELINE (all motion ease-out cubic unless stated):
+
+0.0 s to 0.4 s  Still: the ink gate with its hollow indicator, and the dormant agent area on the right with its hollow markers and light grey bars. The left half is empty.
+
+0.4 s to 1.2 s  THE QUESTION ARRIVES. The question card fades in while sliding 3% to the right into its resting position (x 12%-44%, y 30%-40%).
+
+1.2 s to 1.6 s  Still.
+
+1.6 s to 2.6 s  IT HEADS FOR THE AGENT. The question card slides straight to the right, perfectly horizontally, until its right edge touches the gate line exactly (final x 18%-50%). It decelerates softly and stops dead at the gate: no bounce, no squash, no shake.
+
+2.6 s to 3.0 s  THE GATE CLOSES. The hollow indicator above the gate fills solid vivid red #EC3013 (within 0.15 s), and the whole gate rule turns from ink to solid vivid red #EC3013 (crossfade 0.3 s). The agent area on the right fades from 60% to 40% opacity: it was never reached.
+
+3.0 s to 3.6 s  Still. Nothing crosses the gate. Not a single marker on the right fills.
+
+3.6 s to 4.4 s  The question card slides straight back to the left, perfectly horizontally, to its resting position (x 12%-44%).
+
+4.2 s to 5.4 s  THE REFUSAL UNFOLDS. Below the question card, the refusal card appears from the top down: first its red top rule draws from left to right across x 12%-44% at y 43% (0.3 s), then its palest red fill extends downward from that rule to its full height (y 43%-63%) with a crisp, perfectly straight bottom edge (0.9 s). No content inside yet.
+
+5.4 s to 6.4 s  THE REASON IS GIVEN. The pale red tag with its deep red bar fades in at the card's top-left (5.4 s). Then the four ink explanation bars grow from their left ends one after another (5.6 s, 5.8 s, 6.0 s, 6.2 s, each in 0.2 s), and the dark grey safety-note bar grows last (6.2 s to 6.4 s).
+
+6.4 s to 8.0 s  HOLD, perfectly still, on the final state.
+
+FINAL FRAME: the red gate rule at x 50% with its solid red indicator; on the left, the question card (x 12%-44%, y 30%-40%) and below it the palest-red refusal card with its red top rule, pale red tag, four ink bars and a grey note bar (x 12%-44%, y 43%-63%); on the right, the agent area untouched and faint, every marker still hollow, every bar still light grey. Everything else empty warm light grey field.
+
+NEVER, in any frame: letters, digits, words, warning triangles, exclamation marks, stop signs, prohibition circles, crosses, X marks, padlocks, shields, alarm lights, flashing, shaking, red screen flashes, a cursor, a hand, rounded corners, shadows, blur, glow, camera movement, particles, colours other than the listed greys, ink and reds.
+--------------------------------------------------------------------------
+
+
+D. NEGATIVE PROMPT
+------------------
+text, letters, words, numbers, digits, typography, font, captions, labels, watermark, logo, symbols, emoji, icons, warning triangle, exclamation mark, stop sign, prohibition sign, no-entry sign, cross, X mark, padlock, lock icon, shield, alarm, siren, flashing red, red screen flash, shaking, vibration, error popup, browser dialog, cursor, mouse pointer, hand, people, doctor, rounded corners, rounded rectangle, pill shape, soft corners, gradient, vignette, glow, neon, bloom, lens flare, bokeh, depth of field, blur, motion blur, film grain, noise, 3D, perspective, drop shadow, shadows, emboss, glossy, reflections, photorealistic, camera movement, zoom, pan, camera shake, cuts, transitions, flash, flicker, strobe, particles, sparkles, smoke, morphing, bouncing, wobbly lines, jitter, blue, cyan, teal, green, yellow, orange, purple, rainbow, dark mode, black background, sci-fi HUD, hologram, robot, brain, DNA, heart, stethoscope, pills, syringe, red cross, cartoon, sketch, low resolution, compression artifacts
+
+
+E. START KEYFRAME IMAGE PROMPT
+------------------------------
+A flat 2D vector user-interface still in strict Swiss Modernist style, square 1:1, razor sharp, no text at all, perfectly uniform warm light grey background #EAE9E9. A single vertical thick near-black line stands at the horizontal centre of the frame from y 22% to y 72%, with a small hollow black square just above its top. On the right, a rectangle outlined in a faint thin grey line (x 56%-88%, y 26%-68%) contains four rows, each a small hollow light grey square followed by a light grey bar, and below them four more light grey bars: an idle, empty panel. The left half is empty. No letters, no numbers, no icons, no shadows, no gradients, no glow, no blur, no logos.
+
+
+F. END KEYFRAME IMAGE PROMPT
+----------------------------
+A flat 2D vector user-interface still in strict Swiss Modernist style, square 1:1, razor sharp, no text at all, perfectly uniform warm light grey background #EAE9E9, square corners everywhere. A single vertical thick vivid red #EC3013 line at the horizontal centre from y 22% to y 72%, with a small solid red square just above its top. On the left: a pale paper card with a thick near-black rule along its top edge, a short deep red #AE1800 bar and two black bars (x 12%-44%, y 30%-40%); below it a card filled with the palest pink-red #FFF2EF with a thick vivid red rule along its top edge, a small pale red tag holding a deep red bar, four black text bars and one grey bar (x 12%-44%, y 43%-63%). On the right, a faint thin grey outlined panel (x 56%-88%, y 26%-68%) with four hollow light grey squares and light grey bars, completely idle. No letters, no numbers, no warning icons, no shadows, no gradients, no glow, no blur, no logos.
+
+
+G. COMPACT PROMPT (under 1,000 characters)
+------------------------------------------
+Flat 2D Swiss-modernist UI animation, square, static camera, 8 s, razor sharp, no text or numbers. Uniform warm light grey background #EAE9E9. A thick black vertical line stands in the centre with a small hollow square on top; on the right, a faint idle panel of hollow grey squares and grey bars. A pale question card with a black top rule and a deep red label bar slides in on the left, then glides right until it touches the line and stops dead. The square fills vivid red #EC3013 and the line turns red; the panel on the right stays idle and fades a little. The question card slides back, and below it a palest-red card with a red top rule unfolds downward; a small pale red tag and black text bars fill in. Flat colours only (greys, black, reds), square corners, no warning icons, no flashing, no shaking, no shadows, no blur, no glow, no letters, no logos.
+
+
+H. GENERATOR SETTINGS
+---------------------
+- Mode: image-to-video with the START KEYFRAME as the first frame (and the END KEYFRAME as the last frame if supported), or text-to-video.
+- Aspect 1:1, highest resolution, 24 fps, 8 seconds, audio off.
+- Prompt enhancement OFF, no style preset, motion strength low, prompt adherence high, fixed seed.
+
+
+I. ACCEPTANCE CHECKLIST (reject if any answer is "no")
+------------------------------------------------------
+[ ] No letter, digit, symbol, warning icon, stop sign, lock or logo in any frame.
+[ ] The question card stops exactly at the gate line without bouncing or shaking.
+[ ] The gate indicator and the line turn red; nothing ever crosses the gate.
+[ ] The agent panel on the right never activates: every marker stays hollow, every bar stays light grey.
+[ ] The refusal card has a palest-red fill and a red top rule only, unfolds from the top down, then fills with a pale red tag and black bars.
+[ ] Background flat #EAE9E9; square corners everywhere; no flash, no shake, no camera move.
+[ ] No blur, glow, shadow, grain, particles or extra colour in any frame.
+[ ] The bottom-right corner region stays empty.

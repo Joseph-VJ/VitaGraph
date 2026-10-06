@@ -1,0 +1,107 @@
+VITAGRAPH VIDEO PROMPT  |  PROCESS 3 OF 5  |  CHUNK WITH PROVENANCE
+File: 04_P3_chunk_with_provenance.txt
+Chain position: THIRD clip of the Upload stage chain (P1 -> P2 -> P3 -> P4 -> P5). Becomes frames 0049-0072.
+Duration 8.0 s, 24 fps, square 1:1, silent.
+FIRST FRAME = the exact last frame of P2 (use P2_last.png as the first-frame image).
+==========================================================================================
+
+A. WHAT THIS CLIP IS FOR
+------------------------
+On the left of the stage the page shows "03  Chunk with provenance" with the real result (for example "24 chunks, page and character spans kept"). This clip shows that meaning without words: the whole report's text, now complete, becomes one continuous strip; red cut marks divide it into equal passages; each passage drops into its own card; every card visibly remembers which page it came from and exactly where in that page it sits (its character span), and finally each card shows how many entities it contains.
+
+
+B. WHAT THE REAL PROCESS DOES (so the picture is truthful)
+----------------------------------------------------------
+VitaGraph splits the extracted text into sentence-aware chunks (target about 200 characters, user-adjustable from 120 to 600 in Settings). Every chunk keeps its provenance: report id, page number, and the exact start and end character offsets inside that page's text. These offsets are what later let the app highlight the exact cited characters. The graph extractor then counts the entities (tests, values, dates) in each chunk. The reference demo has 24 chunks over five pages (pages give about 6, 5, 5, 6 and 2 chunks); those proportions are used below; no number is drawn.
+
+
+C. MASTER PROMPT  (paste everything between the lines into the generator)
+--------------------------------------------------------------------------
+A pristine flat 2D motion-graphics animation that looks exactly like a live vector user interface drawn by software, in strict Swiss International (Modernist) graphic style. Square 1:1 frame, 24 fps, silent, 8 seconds, one continuous take. The entire frame is one perfectly flat, perfectly uniform field of warm light grey #EAE9E9, identical in every pixel, edge to edge, no vignette, no texture, no noise, no gradient. All shapes are flat single-colour geometry with razor-sharp straight edges and perfectly square 90-degree corners: zero corner radius anywhere; only small dots are round. The only colours are warm greys (paper #F8F4F4, light grey #D7D3D3, faint ink #BBB8B7, mid grey #BAB6B6, tick grey #8C8A89, divider grey #999796, scan grey #767373, dark grey #605D5D), near-black warm ink #201E1D, and one vivid vermilion red #EC3013; no other hue exists. Red marks only what is active right now. Absolutely no text of any kind: no letters, no numbers, no symbols, no logos, no watermark; every place where writing would be is drawn as solid horizontal bars with square ends. No lighting, no shading, no shadows, no glow, no bloom, no reflections, no blur, no depth of field, no motion blur, no film grain. Locked-off static orthographic camera, straight-on, no zoom, no pan, no cuts. Motion is calm, precise and mechanical, along straight vertical lines, no bounce, no overshoot, no particles. Every frame must look like a finished, razor-sharp UI screenshot. All objects stay between 10% and 90% of the frame on both axes; the bottom-right corner region (right of 74% and below 86%) stays empty field.
+
+COORDINATES: x from the left edge (0%) to the right edge (100%), y from the top edge (0%) to the bottom edge (100%).
+
+THE OPENING STATE (identical to the end of the previous clip; the first frame image shows it):
+On the left, a large scanned paper sheet (#F8F4F4, 2-pixel grey #999796 outline) at x 10.0%-44.0%, y 18.0%-66.1%, tilted 1 degree counter-clockwise, sprinkled with tiny grey specks, carrying eight scan-grey #767373 print lines, each enclosed by a thin red #EC3013 box with a small ink tab on top (the sixth tab red). On the right, eight clean ink #201E1D bars starting at x 50.0% (tops at y 22.0% to 61.2%, every 5.6%), the sixth one red with a small hollow red square after it, each with a thin dark grey meter bar under it (the sixth red). At the bottom, the progress ribbon at y 82.0%-83.0%, solid red #EC3013 from x 10% to x 90%.
+
+THE NEW OBJECTS:
+
+1. THE TEXT STRIP (the whole report as one continuous line of text): a long horizontal paper band from x 10.0% to x 90.0% and from y 18.0% to y 21.0% (80% wide, 3% tall), flat paper #F8F4F4, 2-pixel grey #999796 outline, square corners. Inside it, a dense, perfectly regular row of tiny vertical ticks in tick grey #8C8A89: each tick 0.12% wide and 1.9% tall, vertically centred in the band, one every 0.44% across the whole length, like a line of text compressed so tightly that it becomes a fine comb. The ticks never move.
+
+2. THE CUT MARKS: 23 thin solid red #EC3013 vertical bars, each 0.25% wide, from y 17.4% to y 21.6% (overhanging the strip by 0.6% above and below), at equal spacing, dividing the strip into 24 equal segments. Their x positions are 10% + k x 3.333% for k = 1 to 23 (13.3%, 16.7%, 20.0%, ... 86.7%).
+
+3. THE CHUNK CARDS: 24 small flat paper cards (#F8F4F4 fill, 2-pixel grey #999796 outline, square corners), each 9.0% wide and 12.0% tall, arranged in a precise grid of 8 columns and 3 rows. Column left edges at x 10.5%, 20.5%, 30.5%, 40.5%, 50.5%, 60.5%, 70.5%, 80.5% (gaps of 1.0%). Row top edges at y 28.0%, 41.6%, 55.2% (gaps of 1.6%). Card 1 is top-left; cards are numbered left to right, row by row; card 24 is bottom-right.
+   Inside every card (positions relative to the card's top-left corner, in % of the frame):
+   - CHUNK ID: a solid ink #201E1D bar 3.4% wide and 0.9% tall, 0.8% in from the top and left edges.
+   - PAGE INDICATOR: in the top-right corner, a short row of tiny solid ink squares (each 0.5% wide, 0.3% apart), right-aligned 0.8% in from the card's right edge, 0.9% from its top. The NUMBER of squares is the page the passage came from: cards 1-6 show one square (page 1), cards 7-11 two squares (page 2), cards 12-16 three squares (page 3), cards 17-22 four squares (page 4), cards 23-24 five squares (page 5).
+   - CHARACTER SPAN (the provenance mark): 4.0% below the card's top, a thin mid grey #BAB6B6 line 0.2% tall running across the card's inner width (0.8% in from each side): it stands for the full text of that page. On it, a short solid ink segment 0.35% tall marks exactly where this passage sits inside its page, bounded at each end by a tiny solid red #EC3013 tick (0.2% wide, 1.2% tall). The segment moves along the line from card to card within the same page: the first card of a page has its segment at the far left of the line, the last card of that page at the far right, the others evenly in between (page 1: six equal sixths; page 2: five fifths; page 3: five fifths; page 4: six sixths; page 5: two halves).
+   - TWO FAINT TEXT BARS: faint ink #BBB8B7 bars 0.4% tall, flush left 0.8% in, at 6.2% and 7.4% below the card's top, 80% and 55% of the card's inner width long.
+   - ENTITY DOTS (appear late): near the bottom-left corner, a short row of small solid red #EC3013 dots, each 0.6% in diameter and 0.4% apart, their centres 1.4% above the card's bottom edge, starting 1.1% in from its left edge. The number of dots repeats the pattern 1, 4, 3, 2 across the cards (card 1: 1 dot, card 2: 4, card 3: 3, card 4: 2, card 5: 1, card 6: 4, and so on to card 24: 2).
+
+THE TIMELINE:
+
+0.0 s to 0.5 s  HOLD, perfectly still, on the opening state.
+
+0.5 s to 1.3 s  CLEAR THE DESK. The scanned sheet with its boxes and tabs, the eight recognised bars, their review square and their meters all fade from 100% to 0% opacity in place (no movement). The red progress ribbon at the bottom stays.
+
+1.0 s to 2.4 s  THE TEXT BECOMES ONE STRIP. The fully red progress ribbon rises straight up, perfectly level, from y 82.0% to the top position y 18.0%, with a smooth ease-in-out over 1.4 s, while its height grows evenly from 1.0% to 3.0% (final y 18.0%-21.0%), keeping its exact left and right ends at x 10% and x 90%. In the last 0.5 s of the rise (1.9 s to 2.4 s) its solid red fill crossfades into the paper text strip: paper fill, grey outline and the fine comb of grey ticks. At 2.4 s the strip sits still, completely paper and grey, with no red left on it.
+
+2.4 s to 2.5 s  Brief still: the strip alone on the field.
+
+2.5 s to 7.37 s  CUT AND DROP. Starting at 2.5 s, one new red cut mark appears every 0.19 s from left to right (each one fades in within 0.1 s at its exact position): cut 1 at 2.50 s, cut 2 at 2.69 s, ... cut 23 at 6.68 s. In the same rhythm, one chunk card drops into the grid every 0.19 s: card 1 starts at 2.50 s, card 2 at 2.69 s, ... card 24 at 6.87 s. Each card appears 3.0% above its grid slot at 0% opacity and slides straight down into the slot over 0.5 s with an ease-out (fast start, soft stop, no bounce) while fading to 100%; it arrives already showing its chunk-id bar, page squares, character span and faint bars. Cards fill the first row left to right, then the second row, then the third.
+
+6.0 s to 7.2 s  ENTITIES ARE COUNTED. A quick sweep, left to right and row by row from 6.0 s to 6.6 s, fades in the red entity dots on every card that has already landed (each card's dots fade in within 0.15 s). Cards that land after 6.0 s receive their dots 0.2 s after they settle.
+
+7.37 s to 7.5 s  Everything settles. No motion.
+
+7.5 s to 8.0 s  HOLD, perfectly still: the final state below.
+
+FINAL FRAME (held exactly; it becomes the first frame of the next clip): at the top, the paper text strip (x 10%-90%, y 18.0%-21.0%) with its fine grey comb and 23 thin red cut marks dividing it into 24 equal parts. Below it, the precise 8 x 3 grid of 24 paper cards (x 10.5%-89.5%, y 28.0%-67.2%), each with an ink id bar, one to five tiny ink page squares at the top right, a thin grey span line with a short ink segment between two tiny red ticks (the segment shifting position from card to card), two faint text bars, and one to four small red entity dots at the bottom left. No progress ribbon at the bottom any more. Everything else is empty warm light grey field.
+
+NEVER, in any frame: letters, digits, chunk numbers, page numbers, scissors, blades, knives, a cursor, a hand, rounded corners, shadows, card flips, 3D rotation, paper texture, blur, glow, camera movement, particles, colours other than the listed greys, ink and red.
+--------------------------------------------------------------------------
+
+
+D. NEGATIVE PROMPT
+------------------
+text, letters, words, numbers, digits, chunk numbers, page numbers, typography, font, captions, labels, watermark, logo, symbols, emoji, icons, scissors, blade, knife, cutting tool, cursor, mouse pointer, hand, fingers, people, rounded corners, rounded rectangle, pill shape, soft corners, gradient, vignette, glow, neon, bloom, lens flare, bokeh, depth of field, blur, motion blur, film grain, noise, paper texture, card flip, 3D rotation, perspective, isometric, drop shadow, shadows, emboss, bevel, glossy, reflections, photorealistic, camera movement, zoom, pan, camera shake, cuts, transitions, flash, flicker, particles, sparkles, confetti, smoke, morphing, wobbly lines, jitter, warping, uneven grid, misaligned cards, blue, cyan, teal, green, yellow, orange, purple, rainbow, dark background, sci-fi HUD, hologram, binary code, matrix rain, DNA, brain, heart, cartoon, sketch, low resolution, compression artifacts
+
+
+E. START KEYFRAME IMAGE
+-----------------------
+Use the exported last frame of P2 (P2_last.png). If you must regenerate it, use section F of 03_P2_read_scanned_pages_ocr.txt.
+
+
+F. END KEYFRAME IMAGE PROMPT (this exact still ends P3 and begins P4)
+---------------------------------------------------------------------
+A flat 2D vector user-interface still in strict Swiss Modernist style, square 1:1, razor sharp, no text at all, perfectly uniform warm light grey background #EAE9E9 edge to edge. Near the top, a long thin horizontal paper strip (#F8F4F4, thin grey #999796 outline, square corners) from x 10% to x 90% at y 18%-21%, filled with a fine regular comb of tiny vertical grey ticks, divided into 24 equal parts by 23 thin vivid red #EC3013 vertical cut marks that overhang it slightly above and below. Below it, a perfectly aligned grid of 24 small paper cards in 8 columns and 3 rows (x 10.5%-89.5%, y 28%-67%), each card #F8F4F4 with a thin grey outline and square corners, each holding: a short solid near-black bar at the top left, one to five tiny near-black squares in a row at the top right, a thin grey line with a short dark segment between two tiny red ticks (the segment at a different position on each card), two faint grey text bars, and one to four small vivid red dots at the bottom left. Nothing else. No shadows, no 3D, no letters, no numbers, no logos, no gradients, no glow, no blur.
+
+
+G. COMPACT PROMPT (under 1,000 characters)
+------------------------------------------
+Flat 2D Swiss-modernist UI animation, square, static camera, 8 s, razor sharp, no text or numbers. Uniform warm light grey background #EAE9E9. A scanned sheet with red-boxed lines fades away. The full red progress bar at the bottom rises to the top and becomes a long paper strip filled with fine grey ticks. Thin vivid red #EC3013 cut marks appear one by one along it, dividing it into 24 equal parts; with each cut a small paper card drops neatly into an 8 by 3 grid below. Each card shows a dark bar, tiny squares for its page number, a thin line with a short dark segment between two red ticks marking where it came from, and faint text bars; at the end small red dots appear on every card. Flat colours only (greys, near-black, one red), square corners, no shadows, no gradients, no blur, no glow, no letters, no logos. Hold still for the first and last half second.
+
+
+H. GENERATOR SETTINGS
+---------------------
+- Mode: image-to-video with P2_last.png as the FIRST frame (mandatory). If supported, use the END KEYFRAME (section F) as the last frame.
+- Aspect 1:1, highest resolution, 24 fps, 8 seconds, audio off.
+- Prompt enhancement OFF, no style preset, motion strength low-medium, prompt adherence high, fixed seed.
+- This clip has many small identical elements: if the generator merges or misaligns cards, try the first+last-frame mode, or generate at the highest resolution available.
+- Export the last frame for P4:  ffmpeg -sseof -0.1 -i P3.mp4 -frames:v 1 -update 1 P3_last.png
+
+
+I. ACCEPTANCE CHECKLIST (reject if any answer is "no")
+------------------------------------------------------
+[ ] Frame 1 is identical to the last frame of P2.
+[ ] No letter, digit, symbol or logo in any frame.
+[ ] The red ribbon rises straight and level, keeps its left and right ends, and becomes a paper strip with fine grey ticks (no red left on the strip itself).
+[ ] Exactly 23 red cut marks, evenly spaced, appearing left to right.
+[ ] Exactly 24 cards in a perfect 8 x 3 grid with equal gaps; cards drop straight down with no bounce, no flip, no rotation.
+[ ] Cards show page squares (1 to 5) and a span segment that shifts position from card to card.
+[ ] Small red entity dots appear on every card near the end.
+[ ] The bottom progress ribbon is gone in the final frame.
+[ ] Background flat #EAE9E9 everywhere; square corners everywhere.
+[ ] No blur, glow, shadow, grain, camera move, or extra colour in any frame.
+[ ] The bottom-right corner region stays empty.
+[ ] The last 0.5 s is a perfectly still hold that matches section F.
