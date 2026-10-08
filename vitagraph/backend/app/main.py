@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.agent.pool import RuntimePool, get_pool
 from app.core.config import settings
 from app.core.database import init_db
-from app.routes import agent, ai, chat, demo, graph, jobs, questions, reports, timeline, tools, users
+from app.routes import agent, ai, chat, demo, graph, jobs, llm_shim, questions, reports, timeline, tools, users
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +75,7 @@ app.include_router(reports.router)
 app.include_router(questions.router)
 app.include_router(chat.router)
 app.include_router(agent.router)
+app.include_router(llm_shim.router)
 app.include_router(timeline.router)
 app.include_router(graph.router)
 app.include_router(ai.router)
@@ -97,7 +98,7 @@ def health() -> dict:
         "retrieval_store": store_status,
         "allow_api": settings.allow_api,
         "ai_service": "enabled" if settings.allow_api else "disabled (offline mode)",
-        "ai_service_model": settings.ai_service_model if settings.allow_api else "offline-fallback-composer",
+        "ai_service_model": settings.effective_model if settings.allow_api else "offline-fallback-composer",
         "embedding_model": settings.embedding_model_name,
         "chunk_target_chars": chunker.CHUNK_TARGET_CHARS,
         "chunk_max_chars": chunker.CHUNK_MAX_CHARS,

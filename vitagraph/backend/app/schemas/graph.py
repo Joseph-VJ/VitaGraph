@@ -42,3 +42,9 @@ class GraphResponse(BaseModel):
 class SubgraphRequest(BaseModel):
     user_id: str
     chunk_ids: list[str]
+
+
+class NodeSummaryRequest(BaseModel):
+    user_id: str
+    node_id: str
+    refresh: bool = False  # "Write again": ignore the cache

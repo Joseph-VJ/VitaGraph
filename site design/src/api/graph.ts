@@ -1,4 +1,5 @@
-import { api } from "./client";
+import { api, BASE_URL } from "./client";
+import { readSse } from "../lib/sse";
 
 export interface GraphNode {
   id: string;
@@ -41,8 +42,60 @@ export interface GraphResponse {
   active_concepts?: string[];
 }
 
+export interface NodeSource {
+  n: number;
+  report_id: string;
+  chunk_id: string | null;
+  filename: string;
+  report_date: string | null;
+  page_number: number;
+  char_start: number;
+  char_end: number;
+  text: string;
+  hit_start: number;
+  hit_end: number;
+  method: string; // native | ocr | text
+  quality: string;
+}
+
+export type NodeSummaryStatus = "ai" | "cached" | "off" | "fallback";
+
+export type NodeSummaryEvent =
+  | { type: "status"; phase: "reading" | "writing" | "checking" }
+  | { type: "sources"; sources: NodeSource[]; passages: number; files: number }
+  | { type: "delta"; delta: string }
+  | { type: "completed"; status: NodeSummaryStatus; text: string; reason: string | null }
+  | { type: "error"; message: string };
+
 export const graphApi = {
   getGraph: (userId: string) => api.get<GraphResponse>(`/api/graph/${userId}`),
   getSubgraph: (userId: string, chunkIds: string[]) =>
     api.post<GraphResponse>("/api/graph/subgraph", { user_id: userId, chunk_ids: chunkIds }),
+
+  /** Stream the AI summary of one node. Resolves when the stream ends; abort with `signal`. */
+  streamNodeSummary: async (
+    userId: string,
+    nodeId: string,
+    opts: { refresh?: boolean; signal?: AbortSignal },
+    onEvent: (e: NodeSummaryEvent) => void,
+  ): Promise<void> => {
+    const res = await fetch(`${BASE_URL}/api/graph/node-summary`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+      body: JSON.stringify({ user_id: userId, node_id: nodeId, refresh: !!opts.refresh }),
+      signal: opts.signal,
+    });
+    if (!res.ok) {
+      const detail = await res.json().catch(() => null);
+      throw new Error((detail && typeof detail.detail === "string" && detail.detail) || `HTTP ${res.status}`);
+    }
+    await readSse(res, (event, data) => {
+      const m = (data.metadata ?? {}) as Record<string, unknown>;
+      if (event === "status") onEvent({ type: "status", phase: m.phase as "reading" | "writing" | "checking" });
+      else if (event === "sources") onEvent({ type: "sources", sources: (m.sources as NodeSource[]) ?? [], passages: Number(m.passages ?? 0), files: Number(m.files ?? 0) });
+      else if (event === "text_delta") onEvent({ type: "delta", delta: String(m.delta ?? "") });
+      else if (event === "completed") onEvent({ type: "completed", status: m.status as NodeSummaryStatus, text: String(m.text ?? ""), reason: (m.reason as string) ?? null });
+      else if (event === "error") onEvent({ type: "error", message: String(m.message ?? "The summary could not be written.") });
+    });
+  },
 };

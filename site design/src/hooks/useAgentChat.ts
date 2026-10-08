@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BASE_URL } from "../api/client";
 import { agentApi } from "../api/agent";
+import {
+  applyFeedEvent,
+  asRecord,
+  closeRunning,
+  evidenceFrom,
+  numberOrNull,
+  replaySavedFeed,
+  settleItems,
+} from "../lib/agentFeed";
 
 export interface AgentEvidence {
   ref: number;
@@ -15,7 +24,7 @@ export interface AgentEvidence {
   char_end: number | null;
 }
 
-export type TrajectoryKind = "status" | "step" | "reasoning" | "tool";
+export type TrajectoryKind = "status" | "step" | "reasoning" | "tool" | "model" | "note";
 export type TrajectoryStatus = "running" | "done" | "failed";
 
 export interface TrajectoryItem {
@@ -28,6 +37,16 @@ export interface TrajectoryItem {
   args?: Record<string, unknown>;
   result?: Record<string, unknown> | null;
   durationMs?: number | null;
+  /** Wall-clock start, for the live seconds counter (not set on a reopened conversation). */
+  startedAt?: number;
+  /** What a finished model call cost. */
+  meta?: {
+    ms: number | null;
+    firstMs: number | null;
+    inputTokens: number | null;
+    outputTokens: number | null;
+    toolCalls: number;
+  };
 }
 
 export interface AgentStats {
@@ -72,10 +91,6 @@ type Json = Record<string, unknown>;
 const MAX_HISTORY_MESSAGES = 40;
 const MAX_TURN_CHARS = 8000;
 
-function asRecord(value: unknown): Json {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Json) : {};
-}
-
 // The typed payload lives in `metadata` on broker events.
 function payloadOf(data: unknown): Json {
   const record = asRecord(data);
@@ -88,62 +103,21 @@ function isEvidence(value: unknown): value is AgentEvidence {
   return typeof record.ref === "number" && typeof record.chunk_id === "string";
 }
 
-function clip(value: unknown): string {
-  return String(value ?? "").trim().slice(0, 80);
-}
-
-// Plain words for each tool; never an empty quote.
-function toolLabel(tool: string, args: Json): string {
-  switch (tool) {
-    case "search_reports":
-    case "search_chroma": {
-      const query = clip(args.query);
-      return query ? `Searched your reports for "${query}"` : "Searched your reports";
-    }
-    case "list_reports":
-      return "Listed your reports";
-    case "get_measurements":
-      return "Read the values of a report";
-    case "graph_lookup":
-    case "query_networkx_graph": {
-      const concept = clip(args.concept);
-      return concept ? `Looked up "${concept}" in the knowledge graph` : "Looked through the knowledge graph";
-    }
-    default:
-      return "Used a tool";
-  }
-}
-
-function plural(count: number, one: string, many: string): string {
-  return count === 1 ? `1 ${one}` : `${count} ${many}`;
-}
-
-function toolSummary(tool: string, result: Json): { detail: string; failed: boolean } {
-  if (typeof result.error === "string") return { detail: result.error, failed: true };
-  if (tool === "search_reports" || tool === "search_chroma") {
-    return { detail: plural(Array.isArray(result.evidence) ? result.evidence.length : 0, "passage found", "passages found"), failed: false };
-  }
-  if (tool === "list_reports") {
-    return { detail: plural(Array.isArray(result.reports) ? result.reports.length : 0, "report", "reports"), failed: false };
-  }
-  if (tool === "get_measurements") {
-    return { detail: plural(Array.isArray(result.measurements) ? result.measurements.length : 0, "value", "values"), failed: false };
-  }
-  return { detail: "Done", failed: false };
-}
-
-function numberOrNull(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-// A running reasoning or status row is finished as soon as something else happens.
-function closeRunning(items: TrajectoryItem[], kinds: TrajectoryKind[]): TrajectoryItem[] {
-  if (!items.some((i) => i.status === "running" && kinds.includes(i.kind))) return items;
-  return items.map((i) => (i.status === "running" && kinds.includes(i.kind) ? { ...i, status: "done" as const } : i));
+// A saved turn keeps the backend's names (elapsed_ms, tool_calls); the page uses its own.
+function savedStats(raw: unknown): AgentStats | null {
+  const s = asRecord(raw);
+  if (Object.keys(s).length === 0) return null;
+  return {
+    steps: numberOrNull(s.steps) ?? 0,
+    toolCalls: numberOrNull(s.tool_calls ?? s.toolCalls) ?? 0,
+    elapsedMs: numberOrNull(s.elapsed_ms ?? s.elapsedMs) ?? 0,
+    inputTokens: numberOrNull(s.input_tokens ?? s.inputTokens),
+    outputTokens: numberOrNull(s.output_tokens ?? s.outputTokens),
+  };
 }
 
 function settle(entry: AgentEntry): AgentEntry {
-  return { ...entry, trajectory: entry.trajectory.map((i) => (i.status === "running" ? { ...i, status: "done" as const } : i)) };
+  return { ...entry, trajectory: settleItems(entry.trajectory) };
 }
 
 export function useAgentChat(): UseAgentChatReturn {
@@ -210,91 +184,53 @@ export function useAgentChat(): UseAgentChatReturn {
     [patch]
   );
 
+  const feedContext = useCallback(
+    () => ({ id: () => `feed_${stepSeqRef.current++}`, now: Date.now() }),
+    []
+  );
+
+  // Move the words written so far into the feed as a note and clear the answer area.
+  const narrate = useCallback(
+    (id: string) => {
+      flushNow();
+      patch(id, (e) => {
+        const text = e.answer.trim();
+        if (!text) return e;
+        return { ...e, answer: "", trajectory: applyFeedEvent(e.trajectory, "note", { text }, feedContext()) };
+      });
+    },
+    [flushNow, patch, feedContext]
+  );
+
   const handleEvent = useCallback(
     (id: string, event: string, data: unknown) => {
       const p = payloadOf(data);
       switch (event) {
-        case "status": {
-          const phase = String(p.phase ?? "");
-          const message = String(p.message ?? "");
-          if (!message) break;
-          patch(id, (e) => {
-            if (phase === "starting") {
-              return { ...e, trajectory: [...e.trajectory, { id: `status_${stepSeqRef.current++}`, kind: "status", label: message, detail: "", status: "running" }] };
-            }
-            const closed = closeRunning(e.trajectory, ["status"]);
-            if (phase === "retrying") {
-              const attempt = numberOrNull(p.attempt);
-              const label = attempt === null ? message : `${message} (attempt ${attempt})`;
-              return { ...e, trajectory: [...closed, { id: `status_${stepSeqRef.current++}`, kind: "status", label, detail: "", status: "done" }] };
-            }
-            return { ...e, trajectory: closed };
-          });
+        case "status":
+        case "step":
+        case "thinking":
+          patch(id, (e) => ({ ...e, trajectory: applyFeedEvent(e.trajectory, event, p, feedContext()) }));
           break;
-        }
-        case "step": {
-          const step = numberOrNull(p.step);
-          if (step === null) break;
-          const rowId = `step_${step}`;
-          if (p.phase === "start") {
-            patch(id, (e) => {
-              const closed = closeRunning(e.trajectory, ["status", "reasoning"]);
-              if (closed.some((i) => i.id === rowId)) return { ...e, trajectory: closed };
-              return { ...e, trajectory: [...closed, { id: rowId, kind: "step", label: `Step ${step}`, detail: "", status: "running" }] };
-            });
-          } else {
-            patch(id, (e) => ({
-              ...e,
-              trajectory: closeRunning(e.trajectory, ["reasoning"]).map((i) => (i.id === rowId ? { ...i, status: "done" as const } : i)),
-            }));
-          }
-          break;
-        }
-        case "thinking": {
-          const text = String(p.thinking ?? "");
-          if (!text) break;
-          patch(id, (e) => {
-            const items = e.trajectory.slice();
-            const last = items[items.length - 1];
-            if (last && last.kind === "reasoning" && last.status === "running") {
-              items[items.length - 1] = { ...last, detail: last.detail + text };
-            } else {
-              items.push({ id: `think_${stepSeqRef.current++}`, kind: "reasoning", label: "Reasoning", detail: text, status: "running" });
-            }
-            return { ...e, trajectory: items };
-          });
+        case "model": {
+          // The model finished a call that asked for tools: the words it wrote were narration, not the answer.
+          if (p.phase === "end" && (numberOrNull(p.tool_calls) ?? 0) > 0) narrate(id);
+          patch(id, (e) => ({ ...e, trajectory: applyFeedEvent(e.trajectory, event, p, feedContext()) }));
           break;
         }
         case "tool_call": {
-          const callId = String(p.id ?? `call_${stepSeqRef.current++}`);
-          const tool = String(p.tool ?? "");
-          const args = asRecord(p.arguments);
-          patch(id, (e) => {
-            const closed = closeRunning(e.trajectory, ["status", "reasoning"]);
-            if (closed.some((i) => i.id === callId)) return { ...e, trajectory: closed };
-            return {
-              ...e,
-              trajectory: [...closed, { id: callId, kind: "tool", label: toolLabel(tool, args), detail: "", status: "running", tool, args, result: null, durationMs: null }],
-            };
-          });
+          narrate(id); // without model events (chat format) the tool call is what ends the narration
+          patch(id, (e) => ({ ...e, trajectory: applyFeedEvent(e.trajectory, event, p, feedContext()) }));
           break;
         }
         case "tool_result": {
-          const callId = String(p.id ?? "");
           const tool = String(p.tool ?? "");
-          const result = asRecord(p.result);
-          const { detail, failed } = toolSummary(tool, result);
-          const failedFlag = failed || p.is_error === true;
-          const cards = (tool === "search_reports" || tool === "search_chroma") && Array.isArray(result.evidence) ? result.evidence.filter(isEvidence) : [];
-          const durationMs = numberOrNull(p.duration_ms);
+          const cards = evidenceFrom(tool, asRecord(p.result));
           patch(id, (e) => {
             const byRef = new Map(e.evidence.map((c) => [c.ref, c]));
             cards.forEach((c) => byRef.set(c.ref, c));
             return {
               ...e,
-              trajectory: e.trajectory.map((i) =>
-                i.id === callId ? { ...i, detail, result, durationMs, status: failedFlag ? ("failed" as const) : ("done" as const) } : i
-              ),
+              trajectory: applyFeedEvent(e.trajectory, event, p, feedContext()),
               evidence: Array.from(byRef.values()).sort((a, b) => a.ref - b.ref),
             };
           });
@@ -333,7 +269,7 @@ export function useAgentChat(): UseAgentChatReturn {
           patch(id, (e) => ({
             ...e,
             status,
-            answer: e.answer.trim() ? e.answer : String(p.summary_text ?? ""),
+            answer: String(p.summary_text ?? "").trim() ? String(p.summary_text) : e.answer,
             evidence: Array.isArray(p.evidence) ? p.evidence.filter(isEvidence) : e.evidence,
             withheld: p.safety_passed === false,
             safetyNote: typeof p.safety_note === "string" ? p.safety_note : null,
@@ -355,7 +291,7 @@ export function useAgentChat(): UseAgentChatReturn {
           break;
       }
     },
-    [patch, fail, flushNow]
+    [patch, fail, flushNow, narrate, feedContext]
   );
 
   const send = useCallback(
@@ -512,8 +448,8 @@ export function useAgentChat(): UseAgentChatReturn {
               endedAt,
               status,
               answer: next ? next.content : "",
-              trajectory: next && Array.isArray(next.trajectory) ? next.trajectory : [],
-              stats: next && next.stats && typeof next.stats === "object" ? next.stats : null,
+              trajectory: next ? replaySavedFeed(next.trajectory) : [],
+              stats: next ? savedStats(next.stats) : null,
               evidence: next && Array.isArray(next.evidence) ? next.evidence : [],
               withheld: false,
               safetyNote: null,

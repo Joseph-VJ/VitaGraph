@@ -16,6 +16,13 @@ os.environ["UPLOADS_DIR"] = str(_TMP / "uploads")
 os.environ["DB_PATH"] = str(_TMP / "test.db")
 os.environ["CHROMA_DIR"] = str(_TMP / "chroma")
 os.environ["ALLOW_API"] = "false"
+# The developer's real model settings in backend/.env must not change what the tests exercise:
+# neutralise the MODEL_* block so the gateway defaults (which the tests were written against) apply.
+for _name in ("MODEL_API_KEY", "MODEL_API_URL", "MODEL_NAME", "MODEL_FALLBACK_MODELS"):
+    os.environ[_name] = ""
+os.environ["MODEL_API_FORMAT"] = "chat"
+# A fixed placeholder, so tests that mock the AI service never depend on (or send) a real key.
+os.environ["AGENTROUTER_API_KEY"] = "test-placeholder-key"
 
 from app.core.database import init_db  # noqa: E402
 from app.services import user_service  # noqa: E402

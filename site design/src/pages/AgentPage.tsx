@@ -11,6 +11,10 @@ import { PassageSlip } from "../components/agent/PassageSlip";
 import { TrajectoryPanel } from "../components/agent/TrajectoryPanel";
 import { ConversationList } from "../components/agent/ConversationList";
 import { PageState, PersonaState } from "../components/ui";
+import { clearLoadedReport, getLoadedReportId } from "../lib/loadedReport";
+import { extractReport, reportTitle, splitFollowUps, stabilizeMarkdown, verifiedFacts } from "../lib/answerFormat";
+import { ReportPanel, type ReportView } from "../components/agent/ReportPanel";
+import { agentApi, type ReportRequest } from "../api/agent";
 
 const MIN_QUESTION_CHARS = 2;
 const MAX_QUESTION_CHARS = 2000;
@@ -70,20 +74,37 @@ const NoteCard: React.FC<{ tone: "accent" | "neutral"; tag: string; children: Re
 );
 
 interface EntryViewProps {
-  n: number;
   entry: AgentEntry;
+  isLast: boolean;
   onRetry: (question: string) => void;
+  onAsk: (question: string) => void;
+  onSaveReport: (payload: Pick<ReportRequest, "title" | "markdown" | "refs">) => void;
   canRetry: boolean;
   getPages: (reportId: string) => Promise<ReportPage[]>;
 }
 
-const EntryView: React.FC<EntryViewProps> = ({ n, entry, onRetry, canRetry, getPages }) => {
+const CopyIcon: React.FC = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" }} aria-hidden="true">
+    <rect x="9" y="9" width="11" height="11" />
+    <path d="M5 15V5h10" />
+  </svg>
+);
+
+const EntryView: React.FC<EntryViewProps> = ({ entry, isLast, onRetry, onAsk, onSaveReport, canRetry, getPages }) => {
   const [openRefs, setOpenRefs] = useState<number[]>([]);
+  const [showDetails, setShowDetails] = useState(false);
+  const [copied, setCopied] = useState(false);
   const slipsRef = useRef<HTMLDivElement>(null);
   const openedBefore = useRef(0);
+  const streaming = entry.status === "streaming";
+
+  // The closing "FOLLOW-UPS: a | b" line becomes chips; half-typed markdown never flickers while streaming.
+  const { body: answerBody, followUps } = useMemo(() => splitFollowUps(entry.answer), [entry.answer]);
+  const shown = streaming ? stabilizeMarkdown(answerBody) : answerBody;
+
   const byRef = useMemo(() => new Map(entry.evidence.map((card) => [card.ref, card])), [entry.evidence]);
-  const available = useMemo(() => new Set(byRef.keys()), [byRef]);
-  const cited = useMemo(() => citedRefs(entry.answer, available), [entry.answer, available]);
+  const cited = useMemo(() => citedRefs(answerBody, new Set(byRef.keys())), [answerBody, byRef]);
+  const facts = useMemo(() => verifiedFacts(entry.trajectory, entry.evidence.map((c) => c.snippet)), [entry.trajectory, entry.evidence]);
   const toggleRef = useCallback(
     (ref: number) => setOpenRefs((current) => (current.includes(ref) ? current.filter((r) => r !== ref) : [...current, ref])),
     []
@@ -94,6 +115,12 @@ const EntryView: React.FC<EntryViewProps> = ({ n, entry, onRetry, canRetry, getP
     if (openRefs.length > openedBefore.current) slipsRef.current?.lastElementChild?.scrollIntoView({ block: "nearest" });
     openedBefore.current = openRefs.length;
   }, [openRefs]);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 1600);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
 
   const openCards = openRefs.flatMap((ref) => {
     const card = byRef.get(ref);
@@ -108,6 +135,27 @@ const EntryView: React.FC<EntryViewProps> = ({ n, entry, onRetry, canRetry, getP
       : entry.aiStatus === "not_used"
         ? entry.evidence
         : [];
+
+  // A report the agent wrote, or else this answer turned into a report, is rendered and saved by the server.
+  const saveReport = (markdown?: string) => {
+    const written = markdown ?? extractReport(answerBody);
+    const shortQuestion = entry.question.trim().slice(0, 80);
+    const text = written ?? `# ${shortQuestion}\n\n${answerBody}`;
+    onSaveReport({
+      title: reportTitle(text, shortQuestion),
+      markdown: text,
+      refs: citedCards.map((c) => ({ ref: c.ref, chunk_id: c.chunk_id, report_id: c.report_id })),
+    });
+  };
+
+  const copyAnswer = async () => {
+    try {
+      await navigator.clipboard.writeText(answerBody);
+      setCopied(true);
+    } catch {
+      /* clipboard can be blocked; nothing else to do */
+    }
+  };
 
   let body: React.ReactNode = null;
   if (entry.status === "refused") {
@@ -128,95 +176,147 @@ const EntryView: React.FC<EntryViewProps> = ({ n, entry, onRetry, canRetry, getP
         The safety check held this answer back because it read like a diagnosis. Please rephrase the question, or take it to a clinician.
       </NoteCard>
     );
-  } else if (entry.answer.trim()) {
+  } else if (shown.trim()) {
     body = (
-      <div style={{ paddingBottom: "var(--space-4)" }} data-testid="agent-answer">
-        <AnswerMarkdown text={entry.answer} refs={available} onCite={toggleRef} />
+      <div style={{ paddingBottom: "var(--space-3)" }} data-testid="agent-answer">
+        <AnswerMarkdown text={shown} cards={byRef} facts={facts} onCite={toggleRef} onReport={(markdown) => saveReport(markdown)} emphasizeLede={!streaming} />
       </div>
     );
   }
 
+  const answered = entry.status === "answered" && !entry.withheld && shown.trim().length > 0;
+
   return (
-    <article style={{ paddingBottom: "var(--space-6)" }} data-testid="agent-entry">
-      <div style={{ display: "flex", justifyContent: "flex-end", paddingBottom: "var(--space-3)" }}>
+    <article style={{ paddingBottom: "var(--space-8)" }} data-testid="agent-entry">
+      <div style={{ display: "flex", justifyContent: "flex-end", paddingBottom: "var(--space-5)" }}>
         <div
+          data-testid="agent-question"
           style={{
-            maxWidth: "72%",
+            maxWidth: "78%",
             background: "var(--color-surface)",
-            borderTop: "2px solid var(--color-text)",
             padding: "var(--space-3) var(--space-4)",
+            fontSize: "1.0625rem",
+            lineHeight: 1.5,
+            whiteSpace: "pre-wrap",
+            overflowWrap: "anywhere",
           }}
         >
-          <div
-            style={{
-              fontSize: "0.6875rem",
-              fontWeight: 800,
-              letterSpacing: "0.1em",
-              color: "var(--color-accent-700)",
-              fontVariantNumeric: "tabular-nums",
-            }}
-          >
-            Q{n}
-          </div>
-          <div style={{ fontSize: "1.125rem", fontWeight: 800, letterSpacing: "-0.01em", lineHeight: 1.3, overflowWrap: "anywhere" }}>
-            {entry.question}
-          </div>
+          {entry.question}
         </div>
       </div>
-      <TrajectoryPanel entry={entry} />
-      {entry.status === "answered" && entry.aiStatus === "not_used" ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)", alignItems: "baseline", paddingBottom: "var(--space-3)" }}>
-          <span className="tag tag-neutral" style={{ fontWeight: 800 }}>Evidence only</span>
-          <span style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)" }}>{entry.safetyNote ?? "The AI Agent was not used for this answer."}</span>
+
+      <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start" }}>
+        <span
+          aria-hidden="true"
+          style={{
+            width: 26,
+            height: 26,
+            flex: "none",
+            marginTop: 2,
+            display: "grid",
+            placeItems: "center",
+            background: "var(--color-accent)",
+            color: "var(--color-bg)",
+            fontSize: "0.75rem",
+            fontWeight: 800,
+          }}
+        >
+          V
+        </span>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: "0.6875rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-neutral-700)", paddingBottom: "var(--space-1)" }}>
+            AI Agent
+          </div>
+          <TrajectoryPanel entry={entry} />
+          {entry.status === "answered" && entry.aiStatus === "not_used" ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)", alignItems: "baseline", paddingBottom: "var(--space-3)" }}>
+              <span className="tag tag-neutral" style={{ fontWeight: 800 }}>Evidence only</span>
+              <span style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)" }}>{entry.safetyNote ?? "The AI Agent was not used for this answer."}</span>
+            </div>
+          ) : null}
+          {body}
+
+          {answered ? (
+            <div data-testid="agent-actions" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-1)", marginLeft: "calc(var(--space-2) * -1)" }}>
+              <button type="button" className="vg-action" onClick={copyAnswer} data-testid="agent-copy">
+                <CopyIcon />
+                {copied ? "Copied" : "Copy"}
+              </button>
+              <button type="button" className="vg-action" onClick={() => saveReport()} data-testid="agent-save-report">
+                Save as report
+              </button>
+              {citedCards.length > 0 ? (
+                <button type="button" className="vg-action" onClick={() => setShowDetails((v) => !v)} aria-expanded={showDetails}>
+                  {showDetails ? "Hide evidence" : "Evidence and limits"}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {answered && citedCards.length > 0 ? (
+            <div data-testid="agent-sources" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-2)", padding: "var(--space-2) 0 var(--space-1)" }}>
+              <span style={{ fontSize: "0.6875rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-neutral-700)" }}>Sources</span>
+              {citedCards.map((card) => (
+                <button
+                  key={card.ref}
+                  type="button"
+                  className="vg-chip"
+                  aria-expanded={openRefs.includes(card.ref)}
+                  onClick={() => toggleRef(card.ref)}
+                  style={{ fontSize: "0.8125rem", padding: "2px var(--space-2)" }}
+                >
+                  <span style={{ fontWeight: 800, color: "var(--color-accent-700)" }}>{card.ref}</span> {card.report_filename} · p.{card.page_number}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {answered && showDetails && citedCards.length > 0 ? (
+            <EvidenceModules cards={citedCards} openRefs={openRefs} onToggle={toggleRef} aiUsed={entry.aiStatus === "ok"} />
+          ) : null}
+          {openCards.length > 0 ? (
+            <div ref={slipsRef}>
+              {openCards.map((card) => (
+                <PassageSlip key={card.ref} card={card} getPages={getPages} />
+              ))}
+            </div>
+          ) : null}
+
+          {answered && isLast && followUps.length > 0 ? (
+            <div data-testid="agent-followups" style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", paddingTop: "var(--space-3)" }}>
+              {followUps.map((q) => (
+                <button key={q} type="button" className="vg-chip" onClick={() => onAsk(q)} disabled={!canRetry}>
+                  {q}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {entry.status === "stopped" ? (
+            <div style={{ paddingBottom: "var(--space-4)" }}>
+              <span className="tag tag-neutral" style={{ fontWeight: 800 }}>
+                Stopped
+              </span>
+            </div>
+          ) : null}
+          {entry.status === "error" ? (
+            <div role="alert" style={{ ...cardBase, background: "var(--color-accent-100)", borderTop: "2px solid var(--color-accent)" }}>
+              <span className="tag tag-accent" style={{ fontWeight: 800, background: "var(--color-accent-200)" }}>
+                Could not finish
+              </span>
+              <p style={{ margin: "var(--space-3) 0", fontSize: "1.0625rem", lineHeight: 1.5, color: "var(--color-accent-800)" }}>
+                {entry.error}
+              </p>
+              <button type="button" className="btn btn-secondary" disabled={!canRetry} onClick={() => onRetry(entry.question)}>
+                Try again
+              </button>
+            </div>
+          ) : null}
         </div>
-      ) : null}
-      {body}
-      {entry.status === "answered" && !entry.withheld && citedCards.length > 0 ? (
-        <EvidenceModules cards={citedCards} openRefs={openRefs} onToggle={toggleRef} aiUsed={entry.aiStatus === "ok"} />
-      ) : null}
-      {openCards.length > 0 ? (
-        <div ref={slipsRef}>
-          {openCards.map((card) => (
-            <PassageSlip key={card.ref} card={card} getPages={getPages} />
-          ))}
-        </div>
-      ) : null}
-      {entry.status === "stopped" ? (
-        <div style={{ paddingBottom: "var(--space-4)" }}>
-          <span className="tag tag-neutral" style={{ fontWeight: 800 }}>
-            Stopped
-          </span>
-        </div>
-      ) : null}
-      {entry.status === "error" ? (
-        <div role="alert" style={{ ...cardBase, background: "var(--color-accent-100)", borderTop: "2px solid var(--color-accent)" }}>
-          <span className="tag tag-accent" style={{ fontWeight: 800, background: "var(--color-accent-200)" }}>
-            Could not finish
-          </span>
-          <p style={{ margin: "var(--space-3) 0", fontSize: "1.0625rem", lineHeight: 1.5, color: "var(--color-accent-800)" }}>
-            {entry.error}
-          </p>
-          <button type="button" className="btn btn-secondary" disabled={!canRetry} onClick={() => onRetry(entry.question)}>
-            Try again
-          </button>
-        </div>
-      ) : null}
+      </div>
     </article>
   );
 };
-
-function sessionTotals(entries: AgentEntry[]) {
-  let toolCalls = 0;
-  let input: number | null = null;
-  let output: number | null = null;
-  for (const e of entries) {
-    if (!e.stats) continue;
-    toolCalls += e.stats.toolCalls;
-    if (e.stats.inputTokens !== null) input = (input ?? 0) + e.stats.inputTokens;
-    if (e.stats.outputTokens !== null) output = (output ?? 0) + e.stats.outputTokens;
-  }
-  return { answers: entries.filter((e) => e.status === "answered").length, toolCalls, input, output };
-}
 
 function useIsDesktop(): boolean {
   const [isDesktop, setIsDesktop] = useState(() =>
@@ -253,6 +353,60 @@ export const AgentPage: React.FC = () => {
 
   const isDesktop = useIsDesktop();
   const [showMobileList, setShowMobileList] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("vitagraph_agent_history") !== "closed";
+    } catch {
+      return true;
+    }
+  });
+  const toggleHistory = () =>
+    setHistoryOpen((open) => {
+      try {
+        localStorage.setItem("vitagraph_agent_history", open ? "closed" : "open");
+      } catch {
+        /* a blocked store only means the choice is not remembered */
+      }
+      return !open;
+    });
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+
+  // The report beside the chat.
+  const [reportView, setReportView] = useState<ReportView | null>(null);
+  const fail = (e: unknown): ReportView => ({ kind: "error", message: e instanceof Error ? e.message : "Something went wrong." });
+  const saveReport = async (payload: Pick<ReportRequest, "title" | "markdown" | "refs">) => {
+    setReportView({ kind: "loading", title: payload.title });
+    try {
+      const saved = await agentApi.createReport({ ...payload, user_id: effectiveUserId, conversation_id: chat.conversationId });
+      setReportView({ kind: "ready", report: saved });
+    } catch (e) {
+      setReportView(fail(e));
+    }
+  };
+  const showReportList = async () => {
+    setReportView({ kind: "list", items: [], loading: true });
+    try {
+      setReportView({ kind: "list", items: await agentApi.listReports(effectiveUserId), loading: false });
+    } catch (e) {
+      setReportView(fail(e));
+    }
+  };
+  const openSavedReport = async (id: string) => {
+    setReportView({ kind: "loading", title: "Opening" });
+    try {
+      setReportView({ kind: "ready", report: await agentApi.getReport(effectiveUserId, id) });
+    } catch (e) {
+      setReportView(fail(e));
+    }
+  };
+  const deleteSavedReport = async (id: string) => {
+    try {
+      await agentApi.deleteReport(effectiveUserId, id);
+      await showReportList();
+    } catch (e) {
+      setReportView(fail(e));
+    }
+  };
   const [refreshSignal, setRefreshSignal] = useState(0);
   const prevStreaming = useRef(chat.isStreaming);
 
@@ -397,6 +551,22 @@ export const AgentPage: React.FC = () => {
     };
   }, [effectiveUserId, reportsState, reports.length]);
 
+  // Start the agent while the person is reading the page, so the first question is not slowed by start-up.
+  useEffect(() => {
+    if (effectiveUserId) void agentApi.warm(effectiveUserId);
+  }, [effectiveUserId]);
+
+  // A report that was just uploaded is loaded into the agent: open scoped to it unless the
+  // person already chose a report or reopened a conversation.
+  useEffect(() => {
+    if (reportParam || c || reportsState !== "ready" || !effectiveUserId) return;
+    const loadedId = getLoadedReportId(effectiveUserId);
+    if (!loadedId || !reports.some((r) => r.id === loadedId)) return;
+    const next = new URLSearchParams(searchParams);
+    next.set("report", loadedId);
+    setSearchParams(next, { replace: true });
+  }, [reportParam, c, reportsState, reports, effectiveUserId, searchParams, setSearchParams]);
+
   const scope = reportParam ? reports.find((r) => r.id === reportParam) ?? null : null;
   const hasReports = reportsState === "ready" && reports.length > 0;
   const composerReady = hasReports;
@@ -408,6 +578,14 @@ export const AgentPage: React.FC = () => {
         ...GENERIC_SUGGESTIONS,
         ...(topTests[1] ? [`What was my ${topTests[1]} value in each report?`] : []),
       ];
+
+  // The question box grows with what is typed, up to six lines.
+  useLayoutEffect(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 168)}px`;
+  }, [input]);
 
   const submit = (text: string) => {
     const question = text.trim();
@@ -433,21 +611,6 @@ export const AgentPage: React.FC = () => {
     if (scroller && stickRef.current) scroller.scrollTop = scroller.scrollHeight;
   }, [chat.entries]);
 
-  const totals = useMemo(() => sessionTotals(chat.entries), [chat.entries]);
-  const totalsParts: string[] = [];
-  totalsParts.push(totals.answers === 1 ? "1 answer" : `${totals.answers} answers`);
-  if (totals.toolCalls > 0) {
-    totalsParts.push(totals.toolCalls === 1 ? "1 tool call" : `${totals.toolCalls} tool calls`);
-  }
-  if (totals.input !== null && totals.output !== null) {
-    totalsParts.push(`${totals.input} in · ${totals.output} out tokens`);
-  } else if (totals.input !== null) {
-    totalsParts.push(`${totals.input} tokens in`);
-  } else if (totals.output !== null) {
-    totalsParts.push(`${totals.output} tokens out`);
-  }
-  const totalsSummary = totalsParts.join(" · ");
-
   if (!effectiveUserId) {
     return (
       <div
@@ -466,6 +629,8 @@ export const AgentPage: React.FC = () => {
     : reportsState === "loading"
     ? "Loading your reports"
     : "Upload a report to start asking";
+  const canSend = composerReady && input.trim().length >= MIN_QUESTION_CHARS;
+  const historyShown = isDesktop && historyOpen && !reportView;
 
   return (
     <div
@@ -478,8 +643,8 @@ export const AgentPage: React.FC = () => {
         alignItems: "stretch",
       }}
     >
-      {/* 280px Conversation Column on Desktop (>= 1024px) */}
-      {isDesktop ? (
+      {/* History column (desktop) */}
+      {historyShown ? (
         <aside
           style={{
             width: 280,
@@ -504,55 +669,48 @@ export const AgentPage: React.FC = () => {
         </aside>
       ) : null}
 
-      {/* Main Chat Column */}
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          display: "flex",
-          flexDirection: "column",
-          minHeight: "100%",
-        }}
-      >
-        {/* Mobile Header Row (< 1024px) */}
-        {!isDesktop ? (
-          <div
-            className="vg-gutter"
-            style={{
-              paddingTop: "var(--space-3)",
-              paddingBottom: "var(--space-3)",
-              borderBottom: "1px solid var(--color-divider)",
-              background: "var(--color-surface)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
+      {/* Conversation column (hidden behind the report on narrow screens) */}
+      <div style={{ flex: 1, minWidth: 0, display: !isDesktop && reportView ? "none" : "flex", flexDirection: "column", minHeight: "100%" }}>
+        <div
+          className="vg-gutter"
+          style={{
+            paddingTop: "var(--space-3)",
+            paddingBottom: "var(--space-3)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "var(--space-3)",
+          }}
+        >
+          <button
+            type="button"
+            className="vg-action"
+            data-testid="agent-history-toggle"
+            aria-expanded={isDesktop ? historyOpen : showMobileList}
+            onClick={() => (isDesktop ? toggleHistory() : setShowMobileList((prev) => !prev))}
           >
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setShowMobileList((prev) => !prev)}
-              aria-expanded={showMobileList}
-              style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" }}>
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              Conversations
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" }} aria-hidden="true">
+              <path d="M4 6h16M4 12h16M4 18h10" />
+            </svg>
+            {isDesktop && historyOpen ? "Hide history" : "History"}
+          </button>
+          <button type="button" className="vg-action" data-testid="agent-reports-toggle" onClick={showReportList} style={{ marginRight: "auto" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" }} aria-hidden="true">
+              <path d="M7 3h8l4 4v14H7z" />
+              <path d="M15 3v4h4" />
+            </svg>
+            Reports
+          </button>
+          {chat.entries.length > 0 && !chat.isStreaming ? (
+            <button type="button" className="vg-action" onClick={handleNew} data-testid="agent-new-chat">
+              + New chat
             </button>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
-        {/* Mobile Conversation Panel (< 1024px) */}
+        {/* History panel (narrow screens) */}
         {!isDesktop && showMobileList ? (
-          <div
-            style={{
-              borderBottom: "2px solid var(--color-divider)",
-              background: "var(--color-surface)",
-              maxHeight: "50vh",
-              overflowY: "auto",
-            }}
-          >
+          <div style={{ borderBottom: "2px solid var(--color-divider)", background: "var(--color-surface)", maxHeight: "50vh", overflowY: "auto" }}>
             <ConversationList
               userId={effectiveUserId}
               currentId={chat.conversationId || c}
@@ -573,51 +731,18 @@ export const AgentPage: React.FC = () => {
           className="vg-gutter"
           style={{
             flex: 1,
-            maxWidth: "960px",
+            maxWidth: "760px",
             width: "100%",
             boxSizing: "border-box",
             margin: "0 auto",
-            paddingTop: "var(--space-8)",
+            paddingTop: "var(--space-4)",
             paddingBottom: "var(--space-4)",
             display: "flex",
             flexDirection: "column",
-            gap: "var(--space-4)",
           }}
         >
-          {reportParam ? (
-            <div
-              data-testid="agent-scope-chip"
-              style={{
-                background: "var(--color-surface)",
-                borderTop: "2px solid var(--color-text)",
-                padding: "var(--space-3) var(--space-4)",
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "var(--space-3)",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div style={{ fontSize: "0.9375rem" }}>
-                {scope ? (
-                  <>
-                    <span style={{ fontWeight: 800 }}>Chatting with {scope.original_filename}.</span>{" "}
-                    <span style={{ color: "var(--color-neutral-700)" }}>Answers use only this report.</span>
-                  </>
-                ) : reportsState === "ready" ? (
-                  <span style={{ fontWeight: 800 }}>That report was not found. Answers use all your reports.</span>
-                ) : (
-                  <span style={{ fontWeight: 800 }}>Loading the report</span>
-                )}
-              </div>
-              <button type="button" className="btn btn-secondary" onClick={() => setSearchParams({})}>
-                Use all my reports
-              </button>
-            </div>
-          ) : null}
-
           {chat.entries.length === 0 ? (
-            <div data-testid="agent-empty" style={{ padding: "var(--space-8) 0", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+            <div data-testid="agent-empty" style={{ padding: "var(--space-8) 0", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
               {reportsState === "failed" ? (
                 <PageState
                   kind="error"
@@ -636,35 +761,19 @@ export const AgentPage: React.FC = () => {
                 <PageState kind="loading" title="Loading your reports" />
               ) : (
                 <>
-                  <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em" }}>What would you like to know?</h2>
                   <div>
-                    {suggestions.map((q) => (
-                      <button
-                        key={q}
-                        type="button"
-                        onClick={() => submit(q)}
-                        className="ask-suggestion"
-                        style={{
-                          appearance: "none",
-                          width: "100%",
-                          cursor: "pointer",
-                          textAlign: "left",
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: "var(--space-3)",
-                          minHeight: 42,
-                          padding: "var(--space-2) var(--space-2)",
-                          border: 0,
-                          borderTop: "1px solid var(--color-divider)",
-                          background: "transparent",
-                          color: "var(--color-text)",
-                          fontSize: "1rem",
-                          fontWeight: 600,
-                        }}
-                      >
-                        <span>{q}</span>
-                        <Arrow size={16} />
+                    <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em" }}>What would you like to know?</h2>
+                    <p style={{ margin: "var(--space-2) 0 0", fontSize: "1rem", color: "var(--color-neutral-700)", maxWidth: "52ch" }}>
+                      Ask about your reports. Every answer shows how it was found and cites the page it came from.
+                    </p>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: "var(--space-3)" }}>
+                    {suggestions.slice(0, 4).map((q) => (
+                      <button key={q} type="button" onClick={() => submit(q)} className="vg-card">
+                        <span style={{ fontSize: "1rem", fontWeight: 600, lineHeight: 1.4 }}>{q}</span>
+                        <span style={{ color: "var(--color-accent-700)" }}>
+                          <Arrow size={16} />
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -672,39 +781,19 @@ export const AgentPage: React.FC = () => {
               )}
             </div>
           ) : (
-            <div data-testid="agent-threads">
-              {totalsParts.length > 0 && (
-                <div
-                  data-testid="agent-session-totals"
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "var(--space-2)",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    paddingBottom: "var(--space-3)",
-                    marginBottom: "var(--space-4)",
-                    borderBottom: "1px solid var(--color-divider)",
-                    fontSize: "0.8125rem",
-                    fontWeight: 700,
-                    letterSpacing: "0.05em",
-                    textTransform: "uppercase",
-                    color: "var(--color-neutral-700)",
-                  }}
-                >
-                  <span>Session · {totalsSummary}</span>
-                </div>
-              )}
+            <div data-testid="agent-threads" role="log" aria-live="polite" aria-relevant="additions">
               {chat.entries.map((entry, index) => (
-                <EntryView key={entry.id} n={index + 1} entry={entry} onRetry={submit} canRetry={composerReady && !chat.isStreaming} getPages={getPages} />
+                <EntryView
+                  key={entry.id}
+                  entry={entry}
+                  isLast={index === chat.entries.length - 1}
+                  onRetry={submit}
+                  onAsk={submit}
+                  onSaveReport={saveReport}
+                  canRetry={composerReady && !chat.isStreaming}
+                  getPages={getPages}
+                />
               ))}
-              {!chat.isStreaming ? (
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <button type="button" className="btn btn-secondary" onClick={handleNew} data-testid="agent-new-chat">
-                    New chat
-                  </button>
-                </div>
-              ) : null}
             </div>
           )}
           <div ref={bottomRef} />
@@ -715,57 +804,119 @@ export const AgentPage: React.FC = () => {
           className="vg-gutter"
           onSubmit={(event) => {
             event.preventDefault();
-            if (!composerReady || input.trim().length < MIN_QUESTION_CHARS) return;
-            submit(input);
+            if (canSend) submit(input);
           }}
           style={{
             position: "sticky",
             bottom: 0,
             background: "var(--color-bg)",
-            borderTop: "2px solid var(--color-divider)",
-            paddingTop: "var(--space-4)",
-            paddingBottom: "var(--space-4)",
+            paddingTop: "var(--space-2)",
+            paddingBottom: "var(--space-3)",
             margin: 0,
           }}
         >
-          <div style={{ maxWidth: "960px", margin: "0 auto", display: "flex", flexWrap: "wrap", gap: "var(--space-3)" }}>
-            <input
-              data-testid="agent-input"
-              className="input"
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              maxLength={MAX_QUESTION_CHARS}
-              disabled={!composerReady}
-              aria-label="Your question"
-              placeholder={placeholder}
-              style={{ flex: "1 1 320px", minHeight: 52, fontSize: "1.0625rem", fontWeight: 600, padding: "var(--space-3) var(--space-4)" }}
-            />
-            {chat.isStreaming ? (
-              <button type="button" className="btn btn-secondary" onClick={chat.stop} style={{ minWidth: 140, justifyContent: "space-between" }}>
-                Stop
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <rect x="4" y="4" width="16" height="16" />
-                </svg>
-              </button>
-            ) : (
-              <button
-                type="submit"
-                className="btn btn-primary"
-                aria-disabled={!composerReady || input.trim().length < MIN_QUESTION_CHARS}
-                onClick={(e) => {
-                  if (!composerReady || input.trim().length < MIN_QUESTION_CHARS) {
-                    e.preventDefault();
+          <div style={{ maxWidth: "760px", margin: "0 auto" }}>
+            {reportParam ? (
+              <div data-testid="agent-scope-chip" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-2)", paddingBottom: "var(--space-2)" }}>
+                <span className="tag tag-neutral" style={{ fontWeight: 800, display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}>
+                  {scope ? `Report: ${scope.original_filename}` : reportsState === "ready" ? "Report not found" : "Loading the report"}
+                  <button
+                    type="button"
+                    className="vg-action"
+                    aria-label="Use all my reports"
+                    title="Use all my reports"
+                    onClick={() => {
+                      clearLoadedReport();
+                      setSearchParams({});
+                    }}
+                    style={{ padding: "0 var(--space-1)" }}
+                  >
+                    ×
+                  </button>
+                </span>
+                <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>
+                  {scope ? "Answers use only this report." : "Answers use all your reports."}
+                </span>
+              </div>
+            ) : null}
+            <div className="vg-composer-box">
+              <textarea
+                ref={composerRef}
+                data-testid="agent-input"
+                value={input}
+                rows={1}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                    event.preventDefault();
+                    if (canSend && !chat.isStreaming) submit(input);
                   }
                 }}
-                style={{ minWidth: 140, justifyContent: "space-between", opacity: 1 }}
-              >
-                Send
-                <Arrow size={18} />
-              </button>
-            )}
+                maxLength={MAX_QUESTION_CHARS}
+                disabled={!composerReady}
+                aria-label="Your question"
+                placeholder={placeholder}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "var(--space-2) var(--space-2) var(--space-2) var(--space-4)" }}>
+                <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-700)" }}>Enter to send · Shift+Enter for a new line</span>
+                {chat.isStreaming ? (
+                  <button type="button" className="btn btn-secondary" onClick={chat.stop} aria-label="Stop" style={{ minWidth: 0, padding: "var(--space-2) var(--space-3)", gap: "var(--space-2)" }}>
+                    Stop
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <rect x="4" y="4" width="16" height="16" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    aria-label="Send"
+                    aria-disabled={!canSend}
+                    onClick={(e) => {
+                      if (!canSend) e.preventDefault();
+                    }}
+                    style={{ minWidth: 0, padding: "var(--space-2) var(--space-3)", opacity: canSend ? 1 : 0.45 }}
+                  >
+                    <Arrow size={18} />
+                  </button>
+                )}
+              </div>
+            </div>
+            <div style={{ paddingTop: "var(--space-2)", fontSize: "0.75rem", color: "var(--color-neutral-700)", textAlign: "center" }}>
+              Educational tool. Not a diagnosis. Check the cited passage.
+            </div>
           </div>
         </form>
       </div>
+
+      {/* The report beside the chat */}
+      {reportView ? (
+        <aside
+          style={
+            isDesktop
+              ? {
+                  width: 520,
+                  flex: "0 0 520px",
+                  boxSizing: "border-box",
+                  position: "sticky",
+                  top: 0,
+                  height: "calc(100vh - 114px)",
+                  alignSelf: "flex-start",
+                  borderLeft: "2px solid var(--color-divider)",
+                }
+              : { height: "calc(100vh - 114px)", borderTop: "2px solid var(--color-divider)" }
+          }
+        >
+          <ReportPanel
+            view={reportView}
+            pdfUrl={(id) => agentApi.reportPdfUrl(effectiveUserId, id)}
+            onClose={() => setReportView(null)}
+            onOpen={openSavedReport}
+            onDelete={deleteSavedReport}
+            onList={showReportList}
+          />
+        </aside>
+      ) : null}
     </div>
   );
 };

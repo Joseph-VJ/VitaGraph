@@ -116,6 +116,7 @@ def delete_user(user_id: str) -> dict:
         db.execute("DELETE FROM agent_messages WHERE user_id = ?", (user_id,))
         db.execute("DELETE FROM agent_conversations WHERE user_id = ?", (user_id,))
         db.execute("DELETE FROM ai_calls WHERE user_id = ?", (user_id,))
+        db.execute("DELETE FROM node_summaries WHERE user_id = ?", (user_id,))
         db.execute("DELETE FROM users WHERE id = ?", (user_id,))
 
     return {"deleted": user_id,

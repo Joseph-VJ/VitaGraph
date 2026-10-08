@@ -16,7 +16,7 @@ from app.agent.runtime import RuntimeBusy, RuntimeStartError
 from app.core.config import settings
 from app.core.database import get_db
 from app.generation import safety
-from app.services import chat_service, conversation_service, question_service
+from app.services import chat_service, conversation_service, live_bus, question_service
 from app.services.chat_service import MAX_TURN_CHARS, _clean_history, _diagnostic_phrase
 
 logger = logging.getLogger(__name__)
@@ -45,12 +45,33 @@ def _get_report_hint(user_id: str, report_id: str | None) -> tuple[str, str] | N
     return None
 
 
+MAX_LISTED_REPORTS = 12
+
+
+def _report_index(user_id: str) -> list[tuple[str, str, str | None]]:
+    """(report_id, filename, date) of the person's newest reports, so the agent need not list them first."""
+    try:
+        with get_db() as db:
+            rows = db.execute(
+                """SELECT id, original_filename, report_date FROM reports
+                   WHERE user_id = ? ORDER BY upload_time DESC LIMIT ?""",
+                (user_id, MAX_LISTED_REPORTS),
+            ).fetchall()
+        return [(r["id"], r["original_filename"] or "", r["report_date"]) for r in rows]
+    except Exception as exc:
+        logger.warning("Report index lookup failed: %s", exc)
+        return []
+
+
 def build_prompt(
-    history_turns: list[dict], cleaned: str, report_hint: tuple[str, str] | None = None
+    history_turns: list[dict],
+    cleaned: str,
+    report_hint: tuple[str, str] | None = None,
+    report_index: list[tuple[str, str, str | None]] | None = None,
 ) -> str:
     """Build the prompt sent to the harness."""
     history = _clean_history(history_turns)
-    if not history and not report_hint:
+    if not history and not report_hint and not report_index:
         return cleaned
 
     parts: list[str] = []
@@ -61,6 +82,13 @@ def build_prompt(
         for turn in history:
             role = "User" if turn.get("role") == "user" else "Assistant"
             parts.append(f"{role}: {turn.get('content', '')}")
+        parts.append("")
+
+    if report_index and not report_hint:
+        parts.append("[The person's reports (newest first), so you do not need list_reports:")
+        for rep_id, filename, date in report_index:
+            parts.append(f"- {rep_id}: {filename}" + (f" ({date})" if date else ""))
+        parts.append("]")
         parts.append("")
 
     if report_hint:
@@ -77,17 +105,45 @@ def build_prompt(
 
 
 class _TurnRecorder:
-    """Observes streamed events to collect trajectory and stats for conversation history."""
+    """Observes streamed events to keep the feed (what the agent did, in order) and stats for reloading a chat.
+
+    Each stored item is {"event": <type>, ...payload} so a reloaded conversation can be replayed exactly.
+    """
 
     def __init__(self) -> None:
         self.trajectory: list[dict[str, Any]] = []
         self.stats: dict[str, Any] = {}
+        self._text = ""  # text of the model call in progress
+
+    def _note(self) -> None:
+        text = self._text.strip()
+        if text:
+            self.trajectory.append({"event": "note", "text": text})
+        self._text = ""
 
     def observe(self, ev_type: str, payload: dict[str, Any]) -> None:
-        if ev_type in ("thinking", "tool_call"):
-            self.trajectory.append(dict(payload))
+        if ev_type == "thinking":
+            last = self.trajectory[-1] if self.trajectory else None
+            if last is not None and last.get("event") == "thinking":
+                last["thinking"] = str(last.get("thinking", "")) + str(payload.get("thinking", ""))
+            else:
+                self.trajectory.append({"event": "thinking", **payload})
+        elif ev_type == "text_delta":
+            self._text += str(payload.get("delta", ""))
+        elif ev_type == "model":
+            if payload.get("phase") == "end":
+                if payload.get("tool_calls"):
+                    self._note()  # text before a tool call is narration, not the answer
+                else:
+                    self._text = ""
+                self.trajectory.append({"event": "model", **payload})
+            elif payload.get("phase") == "error":
+                self.trajectory.append({"event": "model", **payload})
+        elif ev_type == "tool_call":
+            self._note()  # chat-format fallback: no model events, so narration is closed here
+            self.trajectory.append({"event": "tool_call", **payload})
         elif ev_type == "tool_result":
-            item = dict(payload)
+            item = {"event": "tool_result", **payload}
             res = item.get("result")
             if res is not None:
                 if not isinstance(res, str):
@@ -102,6 +158,43 @@ class _TurnRecorder:
             self.trajectory.append(item)
         elif ev_type == "stats":
             self.stats = dict(payload)
+
+
+async def _plain(agen: Any) -> AsyncGenerator[tuple[str, Any], None]:
+    async for msg in agen:
+        yield ("h", msg)
+
+
+async def _merged(agen: Any, queue: asyncio.Queue) -> AsyncGenerator[tuple[str, Any], None]:
+    """Yield ("h", harness message) and ("l", live model event) in the order they happen.
+
+    Live events are already arriving on `queue`; the harness stream is pumped into the same queue.
+    """
+
+    async def pump() -> None:
+        try:
+            async for msg in agen:
+                queue.put_nowait({"_h": msg})
+            queue.put_nowait({"_end": True})
+        except BaseException as exc:  # handed to the consumer, which raises it
+            queue.put_nowait({"_exc": exc})
+
+    task = asyncio.ensure_future(pump())
+    try:
+        while True:
+            item = await queue.get()
+            if "_end" in item:
+                return
+            if "_exc" in item:
+                raise item["_exc"]
+            if "_h" in item:
+                yield ("h", item["_h"])
+            else:
+                yield ("l", item)
+    finally:
+        task.cancel()
+        with contextlib.suppress(BaseException):
+            await task
 
 
 def _persist_turn(
@@ -310,17 +403,21 @@ async def stream_agent(
     n_user_turns = sum(1 for t in turns if t.get("role") == "user")
     session_id = f"{conv_id}-t{n_user_turns}-{uuid.uuid4().hex[:6]}"
     report_hint = _get_report_hint(user_id, report_id)
-    prompt = build_prompt(turns[:-1], cleaned, report_hint)
+    prompt = build_prompt(turns[:-1], cleaned, report_hint, None if report_hint else _report_index(user_id))
 
     # 7. EventMapper and streaming loop
     mapper = EventMapper(redact=_redact)
     recorder = _TurnRecorder()
     agen = pool.stream_turn(user_id, session_id, prompt)
     turn_started = False
+    # When the model endpoint needs translating, its stream passes through our own route, which reports what
+    # the model is doing as it happens. Merge that with the harness events so the browser sees it live.
+    live_queue = live_bus.subscribe(user_id) if settings.api_format == "responses" else None
+    source = _merged(agen, live_queue) if live_queue is not None else None
     try:
-        async for msg in agen:
+        async for kind, msg in (source if source is not None else _plain(agen)):
             turn_started = True
-            for ev in mapper.feed(msg):
+            for ev in mapper.feed_live(msg) if kind == "l" else mapper.feed(msg):
                 recorder.observe(ev[0], ev[1])
                 yield ev
             if mapper.outcome is not None:
@@ -383,6 +480,11 @@ async def stream_agent(
         )
         return
     finally:
+        if live_queue is not None:
+            live_bus.unsubscribe(user_id, live_queue)
+        if source is not None:
+            with contextlib.suppress(Exception):
+                await source.aclose()
         with contextlib.suppress(Exception):
             await agen.aclose()
 
@@ -400,7 +502,7 @@ async def stream_agent(
         )
         return
 
-    text = mapper.answer_text.strip()
+    text = (mapper.final_text or mapper.answer_text).strip()
     if not text:
         yield (
             "error",
@@ -422,7 +524,7 @@ async def stream_agent(
         ai_status="ok",
         safety_passed=(phrase is None),
         safety_note=(f"Safety check: answer contains diagnostic phrasing ('{phrase}')." if phrase else None),
-        session_title=mapper.title,
+        session_title=None,  # the harness titles a chat from the start of the prompt (the scope hint); use the question
     )
     yield ("completed", final_ai)
 

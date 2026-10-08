@@ -52,6 +52,17 @@ class _PoolEntry:
 
 def _default_runtime_factory(profile: PersonaProfile) -> AgentRuntime:
     """Default factory building AgentRuntime with settings credentials."""
+    if settings.api_format == "responses":
+        # The harness speaks chat-completions: send it through the loopback translation
+        # route, which holds the real key. The worker only ever gets a per-process token.
+        from app.services.responses_adapter import shim_token_for
+
+        return AgentRuntime(
+            profile,
+            api_key=shim_token_for(profile.persona_id),
+            base_url=f"{settings.backend_url.rstrip('/')}/internal/llm/v1",
+            model=settings.effective_model,
+        )
     return AgentRuntime(
         profile,
         api_key=settings.effective_api_key or None,
@@ -194,6 +205,65 @@ class RuntimePool:
             async with self._pool_lock:
                 entry.running = False
                 entry.last_used = self.clock()
+
+    async def warm(self, persona_id: str) -> bool:
+        """Start a persona's runtime ahead of the first question. True if a runtime was started now.
+
+        Does nothing when the persona already has a live runtime (idle or answering).
+        """
+        _validate_persona_id(persona_id)
+        p_lock = await self._get_persona_lock(persona_id)
+        async with p_lock:
+            async with self._pool_lock:
+                existing = self._entries.get(persona_id)
+                if existing is not None and (existing.running or existing.runtime.is_alive):
+                    existing.last_used = self.clock()
+                    return False
+
+            if persona_id not in self._verified_personas:
+                await (self._verify or _default_verify)(persona_id)
+                self._verified_personas.add(persona_id)
+
+            rts_to_close: list[AgentRuntime] = []
+            async with self._pool_lock:
+                stale = self._entries.pop(persona_id, None)
+                if stale is not None:
+                    rts_to_close.append(stale.runtime)
+                if len(self._entries) >= self.max_runtimes:
+                    idle = [e for e in self._entries.values() if not e.running]
+                    if not idle:
+                        raise PoolFull("All runtimes in the pool are currently busy.")
+                    victim = min(idle, key=lambda e: e.last_used)
+                    del self._entries[victim.persona_id]
+                    rts_to_close.append(victim.runtime)
+                rt = (self._runtime_factory or _default_runtime_factory)(profile_for(persona_id))
+                entry = _PoolEntry(persona_id=persona_id, runtime=rt, running=True, last_used=self.clock())
+                self._entries[persona_id] = entry
+
+            try:
+                for old_rt in rts_to_close:
+                    if hasattr(old_rt, "aclose"):
+                        await old_rt.aclose()
+                    else:
+                        await asyncio.to_thread(old_rt.close)
+                if hasattr(rt, "astart"):
+                    await rt.astart()
+                else:
+                    await asyncio.to_thread(rt.start)
+            except BaseException:
+                async with self._pool_lock:
+                    if self._entries.get(persona_id) is entry:
+                        del self._entries[persona_id]
+                with contextlib.suppress(Exception):
+                    if hasattr(rt, "akill"):
+                        await asyncio.shield(rt.akill())
+                    else:
+                        await asyncio.to_thread(rt.kill)
+                raise
+            async with self._pool_lock:
+                entry.running = False
+                entry.last_used = self.clock()
+            return True
 
     async def reap_idle(self) -> None:
         """Close idle runtimes older than idle_seconds."""

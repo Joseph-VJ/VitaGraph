@@ -140,6 +140,38 @@ class _EvidenceRefs:
             return card
 
 
+def _opening_passages(report_id: str, persona: str, limit: int) -> list[dict[str, Any]]:
+    """First passages of one report, shaped like retrieval hits (score 0 = not a similarity match)."""
+    from app.core.database import get_db
+
+    with get_db() as db:
+        info = db.execute(
+            "SELECT original_filename, report_date FROM reports WHERE id = ? AND user_id = ?",
+            (report_id, persona),
+        ).fetchone()
+        rows = db.execute(
+            """SELECT id, page_number, text, char_start, char_end FROM report_chunks
+               WHERE report_id = ? AND user_id = ? ORDER BY page_number, sequence LIMIT ?""",
+            (report_id, persona, max(1, limit)),
+        ).fetchall()
+    return [
+        {
+            "chunk_id": r["id"],
+            "document": r["text"],
+            "score": 0.0,
+            "report_filename": info["original_filename"] if info else "",
+            "report_date": info["report_date"] if info else None,
+            "metadata": {
+                "report_id": report_id,
+                "page_number": r["page_number"],
+                "char_start": r["char_start"],
+                "char_end": r["char_end"],
+            },
+        }
+        for r in rows
+    ]
+
+
 def create_server(persona: str) -> MCPServer:
     """Build and configure the VitaGraph MCP tool server for the given persona."""
     server = MCPServer("vitagraph")
@@ -151,16 +183,16 @@ def create_server(persona: str) -> MCPServer:
         description=(
             "List all health reports available for the current patient persona. "
             "Returns a JSON array of reports with their report_id, original filename, "
-            "report date, and page count. Use this first to discover available reports and "
-            "their IDs before requesting measurements or performing filtered searches."
+            "report date, and page count. Only needed when no report_id was given to you "
+            "and the person did not say which report they mean."
         ),
     )
     def list_reports() -> str:
         """List all health reports available for the current patient persona.
 
         Returns a JSON array of reports with their report_id, original filename,
-        report date, and page count. Use this first to discover available reports and
-        their IDs before requesting measurements or performing filtered searches.
+        report date, and page count. Only needed when no report_id was given to you
+        and the person did not say which report they mean.
         """
         from app.services import report_service
 
@@ -213,6 +245,17 @@ def create_server(persona: str) -> MCPServer:
                     report_id=filter_report_id or None,
                 )
             cards = [evidence_refs.add(hit) for hit in hits]
+            if not cards and filter_report_id:
+                # Nothing matched closely (for example "summarize this report"): hand back the
+                # report's own opening passages, clearly marked, so the agent can still read it.
+                cards = [evidence_refs.add(hit) for hit in _opening_passages(filter_report_id, persona, effective_top_k)]
+                if cards:
+                    return _format_json(
+                        {
+                            "evidence": cards,
+                            "fallback": "No passage matched the query closely; these are the opening passages of the report.",
+                        }
+                    )
             return _format_json({"evidence": cards})
         except Exception as exc:
             return _format_json({"error": f"Report search failed: {exc}"})
@@ -270,13 +313,43 @@ def create_server(persona: str) -> MCPServer:
         )
         return _format_json(result)
 
+    @server.tool(
+        name="calculate",
+        description=(
+            "Exact arithmetic. Pass one expression with plain numbers (no units, no thousands commas), for example "
+            "'(14.1 - 13.2) / 13.2 * 100' or 'pct_change(13.2, 14.1)'. Supports + - * / // % **, brackets, "
+            "abs, round, min, max, sum, mean, sqrt, log, log10, exp and pct_change(old, new). Use it for every "
+            "difference, percent change, average, conversion or BMI instead of working numbers out yourself."
+        ),
+    )
+    def calculate(expression: str) -> str:
+        """Exact arithmetic on plain numbers: differences, percent change, averages, conversions."""
+        from app.agent import calc
+
+        try:
+            return _format_json(calc.evaluate(expression))
+        except calc.CalcError as exc:
+            return _format_json({"error": str(exc)})
+
     return server
+
+
+def _warm_embedder() -> None:
+    try:
+        from app.rag import embedder
+
+        embedder.embed_query("warm up")
+    except Exception as exc:  # a failed warm-up only means the first search is slower
+        sys.stderr.write(f"Embedding warm-up skipped: {exc}\n")
 
 
 def main() -> None:
     """Entry point for running the VitaGraph MCP tool server over stdio."""
     persona = _persona()
     server = create_server(persona)
+    # Load the embedding model now, in the background, so the first search does not pay for it
+    # (it took about 15 s) while the model is still thinking about the first step.
+    threading.Thread(target=_warm_embedder, daemon=True).start()
     server.run(transport="stdio")
 
 

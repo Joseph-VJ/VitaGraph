@@ -12,7 +12,7 @@ export interface Preferences {
 
 const STORAGE_KEY = "vitagraph_preferences";
 const DEFAULTS: Preferences = {
-  cinematic: true,
+  cinematic: false, // the Upload page shows the process in its own panel; the full-screen show is opt-in
   reduceMotion: false,
   speed: "normal",
   chunkSize: 200,

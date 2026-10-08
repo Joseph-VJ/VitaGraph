@@ -156,11 +156,12 @@ def test_the_child_environment_is_minimal():
         os.environ.update(orig_env)
 
 
-def test_lockdown_check_accepts_exactly_the_four_tools_and_refuses_anything_else():
-    """Verify assert_locked_down accepts only the four tools and raises LockdownViolation otherwise."""
+def test_lockdown_check_accepts_exactly_the_five_tools_and_refuses_anything_else():
+    """Verify assert_locked_down accepts only the five tools (calculate added 2026-10-08) and raises LockdownViolation otherwise."""
     from app.agent.lockdown import LockdownViolation, assert_locked_down
 
     valid_tools = [
+        "mcp__vitagraph__calculate",
         "mcp__vitagraph__get_measurements",
         "mcp__vitagraph__graph_lookup",
         "mcp__vitagraph__list_reports",
@@ -255,6 +256,7 @@ def test_a_real_runtime_is_locked_down_and_the_persona_cannot_be_overridden(tmp_
         snap_thread.join(timeout=1.0)
 
         expected_tools = [
+            "mcp__vitagraph__calculate",
             "mcp__vitagraph__get_measurements",
             "mcp__vitagraph__graph_lookup",
             "mcp__vitagraph__list_reports",

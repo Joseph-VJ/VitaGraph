@@ -1095,3 +1095,128 @@ button:not(:disabled):active,
   .vg-header-search { flex:1 1 100%; min-width:0; }
   .vg-header-search .input { width:100%; }
 }
+
+/* ---- AI Agent answer: how it reads ---- */
+.vg-answer { color: var(--color-text); }
+.vg-answer li::marker { color: var(--color-accent); font-weight: 800; }
+.vg-answer-h {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
+}
+/* A number with a unit that a tool really returned: marked like a highlighter, flat. */
+.vg-key {
+  background: var(--color-accent-200);
+  color: var(--color-text);
+  font-weight: 800;
+  padding: 0 4px;
+  margin: 0 -1px;
+  font-variant-numeric: tabular-nums;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+/* General knowledge, kept visibly apart from the person's own data. */
+.vg-general {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--color-neutral-700);
+  background: var(--color-surface);
+}
+.vg-answer-table td, .vg-answer-table th { font-variant-numeric: tabular-nums; }
+
+/* ---- AI Agent chat: composer and message actions ---- */
+.vg-composer-box {
+  border: 1px solid var(--color-divider);
+  background: var(--color-surface);
+}
+.vg-composer-box:focus-within { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent); }
+.vg-composer-box textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  padding: var(--space-3) var(--space-4) 0;
+}
+.vg-composer-box textarea::placeholder { color: var(--color-neutral-700); }
+.vg-action {
+  appearance: none;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  color: var(--color-neutral-700);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  padding: var(--space-1) var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.vg-action:hover:not(:disabled) { color: var(--color-text); background: var(--color-surface); }
+.vg-chip {
+  appearance: none;
+  cursor: pointer;
+  border: 1px solid var(--color-divider);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: var(--space-1) var(--space-3);
+  text-align: left;
+}
+.vg-chip:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent-700); }
+.vg-card {
+  appearance: none;
+  cursor: pointer;
+  text-align: left;
+  border: 1px solid var(--color-divider);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.vg-card:hover:not(:disabled) { border-color: var(--color-accent); background: var(--color-surface); }
+
+/* ---- Knowledge Graph: AI node summary box ---- */
+.vg-ai { display: flex; flex-direction: column; gap: var(--space-2); margin: 0 0 var(--space-3); padding: var(--space-3); background: var(--color-surface); border-left: 3px solid var(--color-accent); }
+.vg-ai-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); }
+.vg-ai-label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.vg-ai-label i { width: 8px; height: 8px; background: var(--color-accent); display: block; }
+.vg-ai-label.is-busy i { animation: vg-blink 1s steps(2) infinite; }
+.vg-ai-wait { margin: 0; font-size: 0.8125rem; color: var(--color-neutral-700); }
+.vg-ai-text { margin: 0; font-size: 0.9375rem; line-height: 1.55; }
+.vg-ai-cite { all: unset; box-sizing: border-box; cursor: pointer; display: inline-block; min-width: 16px; height: 16px; padding: 0 3px; margin-left: 2px; font-size: 0.6875rem; font-weight: 800; line-height: 16px; text-align: center; background: var(--color-text); color: var(--color-bg); vertical-align: 2px; font-variant-numeric: tabular-nums; }
+.vg-ai-cite:hover, .vg-ai-cite.is-on { background: var(--color-accent); }
+.vg-ai-cite:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.vg-ai-caret { display: inline-block; width: 7px; height: 1em; background: var(--color-accent); vertical-align: -2px; margin-left: 2px; animation: vg-blink 1s steps(2) infinite; }
+.vg-ai-sources { display: flex; flex-direction: column; border-top: 1px solid var(--color-divider); padding-top: var(--space-1); }
+.vg-ai-sh { font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-700); padding: 4px 0; }
+.vg-ai-src { border-bottom: 1px solid var(--color-divider); }
+.vg-ai-src > button { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 5px 0; font-size: 0.8125rem; }
+.vg-ai-src > button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+.vg-ai-n { height: 18px; line-height: 18px; text-align: center; font-size: 0.6875rem; font-weight: 800; background: var(--color-text); color: var(--color-bg); }
+.vg-ai-f { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.vg-ai-w { font-size: 0.75rem; color: var(--color-neutral-700); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.vg-ai-src.is-on .vg-ai-n, .vg-ai-src > button:hover .vg-ai-n { background: var(--color-accent); }
+.vg-ai-src.is-on .vg-ai-f { color: var(--color-accent-700); }
+.vg-ai-quote { margin: 0 0 var(--space-2) 26px; padding: 6px 8px; background: var(--color-bg); border-top: 2px solid var(--color-text); font-size: 0.8125rem; line-height: 1.5; overflow-wrap: anywhere; }
+.vg-ai-quote mark { background: var(--color-accent-200); color: var(--color-text); font-weight: 800; padding: 0 1px; }
+.vg-ai-quote small { display: block; margin-top: 4px; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-neutral-700); }
+.vg-ai-note { margin: 0; font-size: 0.75rem; color: var(--color-neutral-700); }
+@keyframes vg-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .vg-ai-caret, .vg-ai-label.is-busy i { animation: none; } }
+:root[data-reduce-motion="true"] .vg-ai-caret, :root[data-reduce-motion="true"] .vg-ai-label.is-busy i { animation: none; }

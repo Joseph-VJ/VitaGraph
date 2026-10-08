@@ -8,7 +8,9 @@ import type { ReportPage, Report } from "../types";
 import { transitionNavigate } from "../motion/navigation";
 import { useJobStream } from "../hooks/useJobStream";
 import { getPreferences } from "../lib/preferences";
-import { FrameStage } from "../components/upload/FrameStage";
+import { rememberLoadedReport } from "../lib/loadedReport";
+import { agentApi } from "../api/agent";
+import { ProcessTheatre, type StageState } from "../components/upload/ProcessTheatre";
 
 const fmtSize = (bytes: number) =>
   bytes < 1048576 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1048576).toFixed(1)} MB`;
@@ -32,6 +34,8 @@ export const UploadPage: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingCohort, setIsLoadingCohort] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  // Stage the process film is on while it follows an upload (null when it is not following one).
+  const [pacedStage, setPacedStage] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
   const [pages, setPages] = useState<ReportPage[]>([]);
@@ -191,6 +195,38 @@ export const UploadPage: React.FC = () => {
   const hasEmbedded = !!embedEvt || isDone || (!!activeReport && !isUploading);
   const hasIndexed = !!idxEvt || isDone || (!!activeReport && !isUploading);
 
+  // Once the scan has finished and the film has played out, the report is "loaded" into the
+  // AI Agent: that page opens scoped to it (see AgentPage).
+  useEffect(() => {
+    if (activeReport && pages.length > 0 && pacedStage === null && !isUploading) {
+      rememberLoadedReport(userId, activeReport.id);
+      void agentApi.warm(userId);
+    }
+  }, [activeReport, pages.length, pacedStage, isUploading, userId]);
+
+  // Which of the seven theatre stages the real job has reached (events arrive from the backend stream).
+  const JOB_STAGE_INDEX: Record<string, number> = { received: 0, extracting: 1, extracted: 1, chunked: 2, embedded: 3, indexed: 4, graphed: 5 };
+  let reachedStage = -1;
+  for (const evt of jobStream.events) {
+    const idx = JOB_STAGE_INDEX[evt.stage];
+    if (idx !== undefined && idx > reachedStage) reachedStage = idx;
+  }
+  const jobActive = isUploading || isDone || isFailed;
+  const theatreLive: number | null = !jobActive ? null : isDone ? 6 : Math.max(0, reachedStage);
+  const theatreSettled = !jobActive && hasIndexed; // a finished report is on screen, nothing is processing
+  const theatreStates: StageState[] | undefined = jobActive && pacedStage !== null && !isFailed
+    ? Array.from({ length: 7 }, (_, i): StageState => (i < pacedStage ? "done" : i === pacedStage ? "running" : "waiting"))
+    : !jobActive
+    ? theatreSettled
+      ? Array.from({ length: 7 }, (): StageState => "done")
+      : undefined
+    : Array.from({ length: 7 }, (_, i): StageState => {
+        if (isDone) return "done";
+        if (i < reachedStage) return "done";
+        if (i === Math.max(0, reachedStage)) return isFailed ? "failed" : "running";
+        return "waiting";
+      });
+
   const stageStatus = (index: number): { kind: "done" | "running" | "waiting" | "failed"; label: string } => {
     if (isFailed) {
       if (index === 0 && !hasExtracted) return { kind: "failed", label: "Failed" };
@@ -261,11 +297,20 @@ export const UploadPage: React.FC = () => {
   const indexCount =
     (typeof idxEvt?.metadata?.indexed === "number" ? idxEvt.metadata.indexed : null) ?? chunkCount;
 
-  const s0 = stageStatus(0);
-  const s1 = stageStatus(1);
-  const s2 = stageStatus(2);
-  const s3 = stageStatus(3);
-  const s4 = stageStatus(4);
+  // The rows follow the process film, so a row never says Done before the film has shown that stage.
+  const ROW_FILM_STAGE = [1, 1, 2, 3, 4];
+  const paceRow = (i: number, st: ReturnType<typeof stageStatus>): ReturnType<typeof stageStatus> => {
+    if (pacedStage === null || st.kind === "failed") return st;
+    const at = ROW_FILM_STAGE[i];
+    if (pacedStage > at) return st;
+    if (pacedStage === at) return st.kind === "waiting" ? st : { kind: "running", label: "Running" };
+    return { kind: "waiting", label: "Waiting" };
+  };
+  const s0 = paceRow(0, stageStatus(0));
+  const s1 = paceRow(1, stageStatus(1));
+  const s2 = paceRow(2, stageStatus(2));
+  const s3 = paceRow(3, stageStatus(3));
+  const s4 = paceRow(4, stageStatus(4));
 
   const pipeRows = [
     {
@@ -305,9 +350,9 @@ export const UploadPage: React.FC = () => {
   const fileIsQuarantined = !!file && quarantinedFiles.some((q) => q.filename === file.name);
   const fileTag: { label: string; kind: "done" | "running" | "waiting" | "failed" } = fileIsQuarantined
     ? { label: "Quarantined", kind: "failed" }
-    : isDone
+    : isDone && (pacedStage === null || pacedStage > 4)
     ? { label: "Indexed", kind: "done" }
-    : isUploading
+    : isUploading || pacedStage !== null
     ? { label: "Ingesting", kind: "running" }
     : { label: "Ready", kind: "waiting" };
 
@@ -324,10 +369,10 @@ export const UploadPage: React.FC = () => {
       }}
     >
       <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-8)", alignItems: "flex-start" }}>
-        {/* Left column: 320px */}
+        {/* Left column: 400px (wider than the reference so the larger process text fits) */}
         <div
           style={{
-            flex: "0 0 320px",
+            flex: "0 0 400px",
             maxWidth: "100%",
             display: "flex",
             flexDirection: "column",
@@ -466,16 +511,16 @@ export const UploadPage: React.FC = () => {
                 key={r.name}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1.75rem minmax(0,1fr) auto",
+                  gridTemplateColumns: "2.5rem minmax(0,1fr) auto",
                   gap: "var(--space-2)",
                   alignItems: "baseline",
-                  padding: "var(--space-2) 0",
+                  padding: "var(--space-3) 0",
                   borderTop: "1px solid var(--color-divider)",
                 }}
               >
                 <span
                   style={{
-                    fontSize: "0.75rem",
+                    fontSize: "1rem",
                     fontWeight: 800,
                     fontVariantNumeric: "tabular-nums",
                     color: "var(--color-neutral-700)",
@@ -484,12 +529,12 @@ export const UploadPage: React.FC = () => {
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <span style={{ minWidth: 0 }}>
-                  <span style={{ display: "block", fontWeight: 800, fontSize: "0.9375rem" }}>{r.name}</span>
-                  <span style={{ display: "block", fontSize: "0.75rem", color: "var(--color-neutral-700)" }}>
+                  <span style={{ display: "block", fontWeight: 800, fontSize: "1.25rem", lineHeight: 1.25 }}>{r.name}</span>
+                  <span style={{ display: "block", fontSize: "0.9375rem", marginTop: 2, color: "var(--color-neutral-700)" }}>
                     {r.out}
                   </span>
                 </span>
-                <span className="tag" style={tagStyle(r.kind)}>{r.label}</span>
+                <span className="tag" style={{ ...tagStyle(r.kind), fontSize: "0.8125rem", padding: "4px 12px", whiteSpace: "nowrap" }}>{r.label}</span>
               </div>
             ))}
           </div>
@@ -497,11 +542,11 @@ export const UploadPage: React.FC = () => {
 
         {/* Right column: 560px min */}
         <div style={{ flex: "1 1 560px", minWidth: 0 }}>
-          <FrameStage />
+          <ProcessTheatre liveIndex={theatreLive} states={theatreStates} settled={theatreSettled} onPace={setPacedStage} />
         </div>
       </div>
 
-      {pages.length > 0 && (
+      {pages.length > 0 && pacedStage === null && (
         <div>
           <div
             style={{

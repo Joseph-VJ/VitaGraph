@@ -4,6 +4,8 @@ interface FrameStageProps {
   /** URL pattern; {n} becomes a 4-digit frame number starting at 0001. */
   framePath?: string;
   frameCount?: number;
+  /** "cover" fills the panel and crops (default); "contain" shows the whole frame, for wide footage. */
+  fit?: "cover" | "contain";
 }
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -11,6 +13,7 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 export const FrameStage: React.FC<FrameStageProps> = ({
   framePath = "/assets/frames/frame_{n}.jpg",
   frameCount = 120,
+  fit = "cover",
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [ready, setReady] = useState(false);
@@ -51,10 +54,28 @@ export const FrameStage: React.FC<FrameStageProps> = ({
       const ctx = el.getContext("2d");
       if (!ctx) return;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const scale = Math.max(W / im.naturalWidth, H / im.naturalHeight);
+      const scale = (fit === "contain" ? Math.min : Math.max)(W / im.naturalWidth, H / im.naturalHeight);
       const w = im.naturalWidth * scale;
       const h = im.naturalHeight * scale;
-      ctx.drawImage(im, (W - w) / 2, (H - h) / 2, w, h);
+      const x = (W - w) / 2;
+      const y = (H - h) / 2;
+      if (fit === "contain") {
+        // Extend the frame's own edge rows/columns into the free space so the bars match the footage.
+        const nw = im.naturalWidth;
+        const nh = im.naturalHeight;
+        ctx.save();
+        ctx.filter = "blur(28px)"; // soft edge so shadows do not smear into streaks
+        if (y > 0.5) {
+          ctx.drawImage(im, 0, 0, nw, 1, x, 0, w, y);
+          ctx.drawImage(im, 0, nh - 1, nw, 1, x, y + h, w, H - (y + h));
+        }
+        if (x > 0.5) {
+          ctx.drawImage(im, 0, 0, 1, nh, 0, y, x, h);
+          ctx.drawImage(im, nw - 1, 0, 1, nh, x + w, y, W - (x + w), h);
+        }
+        ctx.restore();
+      }
+      ctx.drawImage(im, x, y, w, h);
     };
 
     const step = () => {
@@ -172,7 +193,7 @@ export const FrameStage: React.FC<FrameStageProps> = ({
       ro.disconnect();
       objectUrls.forEach((u) => URL.revokeObjectURL(u));
     };
-  }, [framePath, frameCount]);
+  }, [framePath, frameCount, fit]);
 
   return (
     <div
@@ -180,7 +201,9 @@ export const FrameStage: React.FC<FrameStageProps> = ({
         position: "relative", width: "100%", height: "min(74vh,760px)", minHeight: 420,
         background: "var(--color-surface)", border: "2px solid var(--color-divider)", overflow: "hidden",
         backgroundImage:
-          "repeating-linear-gradient(45deg,color-mix(in srgb,var(--color-text) 6%,transparent) 0 8px,transparent 8px 20px)",
+          ready && fit === "contain"
+            ? "none"
+            : "repeating-linear-gradient(45deg,color-mix(in srgb,var(--color-text) 6%,transparent) 0 8px,transparent 8px 20px)",
       }}
     >
       <canvas

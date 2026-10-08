@@ -420,7 +420,12 @@ export function useJobStream(): UseJobStreamReturn {
           return;
         }
         if (isDoneRef.current) {
-          disconnect();
+          // The server closes the stream once it has sent everything. Close the socket only: events that are
+          // still waiting in the queue must still be shown (disconnect() would throw them away).
+          if (eventSourceRef.current) {
+            eventSourceRef.current.close();
+            eventSourceRef.current = null;
+          }
           return;
         }
         // Stop the browser's auto-reconnect (it would replay and duplicate events) and poll instead.

@@ -110,7 +110,11 @@ TOOL_DEFINITIONS = [
 
 
 def get_client() -> AsyncOpenAI:
-    """Create configured AsyncOpenAI client targeting AgentRouter."""
+    """Create the model client: a Responses-API adapter when configured, else AsyncOpenAI."""
+    if settings.api_format == "responses":
+        from app.services.responses_adapter import ResponsesClient
+
+        return ResponsesClient()  # type: ignore[return-value]
     base_url = settings.effective_base_url
     api_key = settings.effective_api_key or "sk-agentrouter-placeholder"
     timeout = settings.ai_service_timeout_seconds

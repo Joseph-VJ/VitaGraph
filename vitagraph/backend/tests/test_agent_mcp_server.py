@@ -68,14 +68,14 @@ def call_mcp_tool(persona_id: str, tool_name: str, arguments: dict | None = None
     return asyncio.run(_run_mcp_session(persona_id, _action))
 
 
-def test_the_server_offers_exactly_four_tools_without_any_persona_parameter(personas):
-    """Verify tool discovery: exactly 4 tools, non-empty docstrings, no persona parameter."""
+def test_the_server_offers_exactly_five_tools_without_any_persona_parameter(personas):
+    """Verify tool discovery: exactly 5 tools (calculate added 2026-10-08), non-empty docstrings, no persona parameter."""
     async def _list(session: ClientSession):
         return await session.list_tools()
 
     tools_res = asyncio.run(_run_mcp_session(personas["A"]["user_id"], _list))
     tools = {t.name: t for t in tools_res.tools}
-    assert sorted(tools.keys()) == ["get_measurements", "graph_lookup", "list_reports", "search_reports"]
+    assert sorted(tools.keys()) == ["calculate", "get_measurements", "graph_lookup", "list_reports", "search_reports"]
 
     forbidden_names = {"user_id", "persona", "user", "owner", "id"}
     for name, tool in tools.items():

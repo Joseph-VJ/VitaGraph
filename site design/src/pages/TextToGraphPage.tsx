@@ -1,10 +1,12 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   GraphCanvas,
   type GraphCanvasHandle,
   type GEdge,
 } from "../components/graph/GraphCanvas";
 import { extractGraph, type Entity, type TextGraphNode } from "../components/graph/textGraph";
+import { aiGraphToTextGraph } from "../components/graph/aiGraph";
+import { toolsApi } from "../api/tools";
 import { usePreferences } from "../lib/preferences";
 
 type T2GNode = TextGraphNode;
@@ -63,6 +65,17 @@ export const TextToGraphPage: React.FC = () => {
   const [entities, setEntities] = useState<Entity[]>([]);
   const [message, setMessage] = useState<string>("");
   const [dateStr, setDateStr] = useState<string | null>(null);
+  // Relation words from the AI graph, keyed "source|target"; empty for the pattern graph.
+  const [edgeLabels, setEdgeLabels] = useState<Record<string, string>>({});
+  const [aiStartedAt, setAiStartedAt] = useState<number | null>(null);
+  const [aiNow, setAiNow] = useState<number>(0);
+  const aiBusy = aiStartedAt !== null;
+
+  useEffect(() => {
+    if (aiStartedAt === null) return;
+    const timer = window.setInterval(() => setAiNow(Date.now()), 200);
+    return () => window.clearInterval(timer);
+  }, [aiStartedAt]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [autoRotate, setAutoRotate] = useState<boolean>(true);
@@ -85,6 +98,7 @@ export const TextToGraphPage: React.FC = () => {
       return;
     }
     const g = extractGraph(rawText);
+    setEdgeLabels({});
     setMessage("");
     setNodes(g.nodes);
     setEdges(g.edges);
@@ -93,6 +107,38 @@ export const TextToGraphPage: React.FC = () => {
     setSelectedId(null);
     setReplayToken(performance.now());
   }, []);
+
+  const buildWithAI = useCallback(
+    async (rawText: string) => {
+      if (!rawText.trim()) {
+        setMessage("Type or paste some text first.");
+        return;
+      }
+      setMessage("");
+      setAiNow(Date.now());
+      setAiStartedAt(Date.now());
+      try {
+        const ai = await toolsApi.graph(rawText);
+        const g = aiGraphToTextGraph(rawText, ai);
+        setNodes(g.nodes);
+        setEdges(g.edges);
+        setEntities(g.entities);
+        setEdgeLabels(g.edgeLabels);
+        setDateStr(null);
+        setSelectedId(null);
+        setReplayToken(performance.now());
+        setMessage(`Built by the AI: ${ai.nodes.length} entities, ${g.relationCount} relations, each tied to exact words in your text.`);
+      } catch (err) {
+        // The pattern graph needs no AI, so the person always gets a graph.
+        buildGraphFromText(rawText);
+        const reason = err instanceof Error ? err.message : "The AI could not build the graph.";
+        setMessage(`${reason} Showing the pattern graph instead.`);
+      } finally {
+        setAiStartedAt(null);
+      }
+    },
+    [buildGraphFromText]
+  );
 
   const loadExample = (sample: string) => {
     setText(sample);
@@ -116,6 +162,9 @@ export const TextToGraphPage: React.FC = () => {
       {
         nodes: nodes.map((q) => ({ id: q.id, type: q.k, label: q.label })),
         edges,
+        ...(Object.keys(edgeLabels).length > 0
+          ? { relations: edges.filter(([a, b]) => edgeLabels[`${a}|${b}`]).map(([a, b]) => ({ source: a, target: b, label: edgeLabels[`${a}|${b}`] })) }
+          : {}),
         entities,
       },
       null,
@@ -147,9 +196,10 @@ export const TextToGraphPage: React.FC = () => {
       .map((e) => {
         const otherId = e[0] === nd.id ? e[1] : e[0];
         const other = nodes.find((n) => n.id === otherId);
+        const word = edgeLabels[`${e[0]}|${e[1]}`];
         return {
           id: otherId,
-          label: other?.label || otherId,
+          label: word ? `${e[0] === nd.id ? "" : "← "}${word} · ${other?.label || otherId}` : other?.label || otherId,
         };
       })
       .slice(0, 8);
@@ -160,13 +210,16 @@ export const TextToGraphPage: React.FC = () => {
       about: nd.about,
       nbs,
     };
-  }, [selectedId, nodes, edges]);
+  }, [selectedId, nodes, edges, edgeLabels]);
 
   const summaryText = useMemo(() => {
     if (nodes.length === 0) return "";
+    if (Object.keys(edgeLabels).length > 0) {
+      return `${entities.length} entit${entities.length === 1 ? "y" : "ies"} · ${Object.keys(edgeLabels).length} relations · ${nodes.length} nodes, ${edges.length} edges`;
+    }
     const sentences = nodes.filter((n) => n.k === "section").length;
     return `${entities.length} entit${entities.length === 1 ? "y" : "ies"} · ${sentences} sentence${sentences === 1 ? "" : "s"}${dateStr ? ` · ${dateStr}` : ""} · ${nodes.length} nodes, ${edges.length} edges`;
-  }, [nodes, edges.length, entities.length, dateStr]);
+  }, [nodes, edges.length, entities.length, dateStr, edgeLabels]);
 
   const countLabel = useMemo(() => {
     if (nodes.length === 0) return "0 nodes · 0 edges";
@@ -208,6 +261,7 @@ export const TextToGraphPage: React.FC = () => {
             autoRotate={autoRotate && !isReducedMotion}
             reducedMotion={isReducedMotion}
             replayToken={replayToken}
+            edgeLabels={edgeLabels}
           />
         ) : (
           <div
@@ -412,6 +466,15 @@ export const TextToGraphPage: React.FC = () => {
                 <path d="m12 5 7 7-7 7" />
               </svg>
             </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={aiBusy}
+              onClick={() => void buildWithAI(text)}
+              title="The AI reads the text and names the connections. Needs AI switched on in Settings."
+            >
+              {aiBusy ? `Asking the AI… ${((Math.max(0, aiNow - (aiStartedAt ?? aiNow))) / 1000).toFixed(1)} s` : "Build with AI"}
+            </button>
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
@@ -541,10 +604,19 @@ export const TextToGraphPage: React.FC = () => {
               style={{
                 margin: "0 0 var(--space-3)",
                 fontSize: "0.9375rem",
+                whiteSpace: "pre-line",
               }}
             >
               {selectedNode.about}
             </p>
+            {selectedId ? (
+              <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>
+                {(() => {
+                  const n = edges.filter((e) => e[0] === selectedId || e[1] === selectedId).length;
+                  return n === 0 ? "Not connected to anything else." : `Connected to ${n} node${n === 1 ? "" : "s"}. Its lines are drawn in red.`;
+                })()}
+              </p>
+            ) : null}
             {selectedNode.nbs.length > 0 && (
               <div
                 style={{

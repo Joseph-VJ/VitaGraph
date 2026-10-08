@@ -153,6 +153,16 @@ CREATE TABLE IF NOT EXISTS agent_artifacts (
     created_at      TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_agent_artifacts_user ON agent_artifacts(user_id);
+
+CREATE TABLE IF NOT EXISTS node_summaries (
+    id           TEXT PRIMARY KEY,
+    user_id      TEXT NOT NULL,
+    node_id      TEXT NOT NULL,
+    evidence_key TEXT NOT NULL,
+    text         TEXT NOT NULL,
+    created_at   TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_node_summaries_user_node ON node_summaries(user_id, node_id);
 """
 
 

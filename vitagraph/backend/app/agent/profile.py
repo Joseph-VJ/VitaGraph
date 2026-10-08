@@ -15,6 +15,7 @@ from app.core.config import settings
 BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
 
 TOOL_NAMES = (
+    "mcp__vitagraph__calculate",
     "mcp__vitagraph__get_measurements",
     "mcp__vitagraph__graph_lookup",
     "mcp__vitagraph__list_reports",

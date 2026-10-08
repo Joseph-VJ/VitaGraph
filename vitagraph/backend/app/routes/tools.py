@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
 from app.ingestion import ocr_image
+from app.services import graph_ai
 
 router = APIRouter(prefix="/api/tools", tags=["tools"])
 
@@ -33,3 +35,16 @@ async def ocr_image_route(file: UploadFile = File(...)) -> dict:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+class GraphTextRequest(BaseModel):
+    text: str
+
+
+@router.post("/graph")
+async def text_to_graph(payload: GraphTextRequest) -> dict:
+    """Build a graph from pasted text with the AI model. Nothing is stored; every item is checked against the text."""
+    try:
+        return await graph_ai.build_graph(payload.text)
+    except graph_ai.GraphAIError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.message) from exc

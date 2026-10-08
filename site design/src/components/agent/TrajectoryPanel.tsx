@@ -29,18 +29,22 @@ const labelStyle: React.CSSProperties = {
   color: "var(--color-neutral-700)",
 };
 
-const valueStyle: React.CSSProperties = { fontSize: "1.125rem", fontWeight: 800, fontVariantNumeric: "tabular-nums" };
-
 const rowStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "flex-start",
   gap: "var(--space-3)",
   padding: "var(--space-1) 0",
-  fontSize: "0.875rem",
+  fontSize: "0.9375rem",
 };
+
+const mutedStyle: React.CSSProperties = { color: "var(--color-neutral-700)", fontSize: "0.8125rem", fontVariantNumeric: "tabular-nums" };
 
 function formatValue(value: unknown): string {
   return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+function seconds(ms: number | null | undefined): string {
+  return `${(Math.max(0, ms ?? 0) / 1000).toFixed(1)} s`;
 }
 
 // A clock that only runs while the agent is working, and is always cleared.
@@ -48,65 +52,55 @@ function useNow(active: boolean): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!active) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    const timer = window.setInterval(() => setNow(Date.now()), 200);
     return () => window.clearInterval(timer);
   }, [active]);
   return now;
 }
 
-const ToolCard: React.FC<{ item: TrajectoryItem }> = ({ item }) => {
-  const [raw, setRaw] = useState(false);
+const linkButton: React.CSSProperties = {
+  appearance: "none",
+  cursor: "pointer",
+  border: 0,
+  padding: 0,
+  background: "transparent",
+  color: "var(--color-accent-700)",
+  fontSize: "0.8125rem",
+  fontWeight: 800,
+};
+
+// One tool call: a single line while you read the feed, the arguments and raw result on request.
+const ToolRow: React.FC<{ item: TrajectoryItem; now: number }> = ({ item, now }) => {
+  const [open, setOpen] = useState(false);
   const args = Object.entries(item.args ?? {}).filter(([, value]) => value !== "" && value !== null && value !== undefined);
   const rawText = item.result ? JSON.stringify(item.result, null, 2).slice(0, RAW_LIMIT) : "";
+  const running = item.status === "running";
+  const elapsed = running && item.startedAt ? seconds(now - item.startedAt) : item.durationMs ? seconds(item.durationMs) : "";
   return (
-    <div
-      data-testid="agent-tool-card"
-      style={{ border: "1px solid var(--color-divider)", background: "var(--color-surface)", padding: "var(--space-3)", marginTop: "var(--space-1)" }}
-    >
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", alignItems: "baseline", justifyContent: "space-between" }}>
+    <div data-testid="agent-tool-card" style={{ minWidth: 0 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", alignItems: "baseline" }}>
         <span style={{ fontWeight: 800 }}>{item.label}</span>
-        <span style={labelStyle}>
-          {item.tool}
-          {item.durationMs !== null && item.durationMs !== undefined ? ` · ${item.durationMs} ms` : ""}
+        <span style={{ ...mutedStyle, color: item.status === "failed" ? "var(--color-accent-700)" : "var(--color-neutral-700)" }}>
+          {running ? "running" : item.detail || "Done"}
+          {elapsed ? ` · ${elapsed}` : ""}
         </span>
+        <button type="button" data-testid="agent-raw-toggle" aria-expanded={open} onClick={() => setOpen(!open)} style={linkButton}>
+          {open ? "Hide details" : "Details"}
+        </button>
       </div>
-      {args.length > 0 ? (
-        <div style={{ marginTop: "var(--space-2)" }}>
-          <div style={labelStyle}>Arguments</div>
-          {args.map(([key, value]) => (
-            <div key={key} style={{ overflowWrap: "anywhere" }}>
-              <span style={{ fontWeight: 800 }}>{key}</span>: {formatValue(value)}
+      {open ? (
+        <div style={{ border: "1px solid var(--color-divider)", background: "var(--color-surface)", padding: "var(--space-3)", marginTop: "var(--space-1)" }}>
+          <div style={labelStyle}>{item.tool}</div>
+          {args.length > 0 ? (
+            <div style={{ marginTop: "var(--space-2)", fontSize: "0.875rem" }}>
+              {args.map(([key, value]) => (
+                <div key={key} style={{ overflowWrap: "anywhere" }}>
+                  <span style={{ fontWeight: 800 }}>{key}</span>: {formatValue(value)}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      ) : null}
-      <div style={{ marginTop: "var(--space-2)" }}>
-        <div style={labelStyle}>Result</div>
-        <div style={{ overflowWrap: "anywhere", color: item.status === "failed" ? "var(--color-accent-700)" : "var(--color-text)" }}>
-          {item.status === "running" ? "Waiting for the result" : item.detail || "Done"}
-        </div>
-      </div>
-      {item.result ? (
-        <div style={{ marginTop: "var(--space-2)" }}>
-          <button
-            type="button"
-            data-testid="agent-raw-toggle"
-            aria-expanded={raw}
-            onClick={() => setRaw(!raw)}
-            style={{
-              appearance: "none",
-              cursor: "pointer",
-              border: 0,
-              padding: 0,
-              background: "transparent",
-              color: "var(--color-accent-700)",
-              fontSize: "0.8125rem",
-              fontWeight: 800,
-            }}
-          >
-            {raw ? "Hide raw result" : "Show raw result"}
-          </button>
-          {raw ? (
+          ) : null}
+          {item.result ? (
             <pre
               data-testid="agent-raw"
               style={{
@@ -129,12 +123,22 @@ const ToolCard: React.FC<{ item: TrajectoryItem }> = ({ item }) => {
   );
 };
 
-const Cell: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div style={{ padding: "var(--space-2) var(--space-4) var(--space-2) 0", minWidth: 0 }}>
-    <div style={labelStyle}>{label}</div>
-    <div style={valueStyle}>{value}</div>
-  </div>
-);
+const ModelRow: React.FC<{ item: TrajectoryItem; now: number }> = ({ item, now }) => {
+  const running = item.status === "running";
+  const parts: string[] = [];
+  if (running && item.startedAt) parts.push(seconds(now - item.startedAt));
+  if (item.meta?.ms) parts.push(seconds(item.meta.ms));
+  if (item.meta?.firstMs) parts.push(`first words after ${seconds(item.meta.firstMs)}`);
+  if (item.meta?.inputTokens != null) parts.push(`${item.meta.inputTokens} in`);
+  if (item.meta?.outputTokens != null) parts.push(`${item.meta.outputTokens} out`);
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", alignItems: "baseline" }}>
+      <span style={{ fontWeight: 800 }}>{item.label}{running ? "…" : ""}</span>
+      {parts.length > 0 ? <span style={mutedStyle}>{parts.join(" · ")}</span> : null}
+      {item.status === "failed" && item.detail ? <span style={{ ...mutedStyle, color: "var(--color-accent-700)" }}>{item.detail}</span> : null}
+    </div>
+  );
+};
 
 export const TrajectoryPanel: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
   const [toggled, setToggled] = useState<boolean | null>(null);
@@ -143,13 +147,14 @@ export const TrajectoryPanel: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
   if (entry.trajectory.length === 0 && !streaming) return null;
 
   const open = toggled ?? streaming;
-  const steps = entry.stats?.steps ?? entry.trajectory.filter((i) => i.kind === "step").length;
   const toolCalls = entry.stats?.toolCalls ?? entry.trajectory.filter((i) => i.kind === "tool").length;
+  const steps = entry.stats?.steps ?? entry.trajectory.filter((i) => i.kind === "model").length;
   const elapsedMs = streaming ? now - entry.startedAt : entry.stats?.elapsedMs ?? (entry.endedAt ?? entry.startedAt) - entry.startedAt;
-  const seconds = (Math.max(0, elapsedMs) / 1000).toFixed(1);
+  const total = seconds(elapsedMs);
   const stepsText = steps === 1 ? "1 step" : `${steps} steps`;
   const callsText = toolCalls === 1 ? "1 tool call" : `${toolCalls} tool calls`;
-  const label = streaming ? "Working" : `Worked for ${seconds} s · ${stepsText} · ${callsText}`;
+  const label = streaming ? `Working · ${total}` : `Thought for ${total}`;
+  const detail = streaming ? "" : ` · ${stepsText} · ${callsText}`;
   const hasIn = entry.stats?.inputTokens !== null && entry.stats?.inputTokens !== undefined;
   const hasOut = entry.stats?.outputTokens !== null && entry.stats?.outputTokens !== undefined;
   const tokensVal = hasIn && hasOut
@@ -159,72 +164,89 @@ export const TrajectoryPanel: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
     : hasOut
     ? `${entry.stats!.outputTokens} out`
     : null;
+  // While it works, the line says what is happening right now.
+  const running = [...entry.trajectory].reverse().find((i) => i.status === "running");
+  const nowText = streaming
+    ? running?.kind === "tool"
+      ? running.label
+      : running?.kind === "model"
+      ? running.label
+      : running?.kind === "reasoning"
+      ? "Thinking"
+      : "Working"
+    : "";
 
   return (
-    <div style={{ border: "2px solid var(--color-divider)", marginBottom: "var(--space-4)" }} data-testid="agent-trajectory">
+    <div style={{ marginBottom: "var(--space-3)" }} data-testid="agent-trajectory">
       <button
         type="button"
         onClick={() => setToggled(!open)}
         aria-expanded={open}
         style={{
           appearance: "none",
-          width: "100%",
           cursor: "pointer",
-          display: "flex",
-          justifyContent: "space-between",
+          display: "inline-flex",
           alignItems: "center",
-          gap: "var(--space-3)",
-          padding: "var(--space-2) var(--space-4)",
+          gap: "var(--space-2)",
+          maxWidth: "100%",
+          padding: "var(--space-1) 0",
           border: 0,
           background: "transparent",
-          color: "var(--color-text)",
-          fontSize: "0.9375rem",
+          color: "var(--color-neutral-700)",
+          fontSize: "0.875rem",
           fontWeight: 800,
+          fontVariantNumeric: "tabular-nums",
         }}
       >
+        <span
+          aria-hidden="true"
+          style={{
+            display: "inline-block",
+            width: 8,
+            height: 8,
+            flex: "none",
+            background: streaming ? "var(--color-accent)" : "var(--color-neutral-700)",
+          }}
+        />
         <span>{label}</span>
-        <span style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem" }}>{open ? "Hide" : "Show"}</span>
+        {detail ? <span style={{ fontWeight: 600 }}>{detail}</span> : null}
+        {nowText ? <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>· {nowText}</span> : null}
+        <span aria-hidden="true" style={{ display: "inline-block", transform: open ? "rotate(90deg)" : "none", fontWeight: 800 }}>›</span>
       </button>
       {open ? (
-        <div style={{ borderTop: "2px solid var(--color-divider)" }}>
-          <div
-            data-testid="agent-stats"
-            style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", padding: "0 var(--space-4)", borderBottom: "1px solid var(--color-divider)" }}
-          >
-            <Cell label="Steps" value={String(steps)} />
-            <Cell label="Tool calls" value={String(toolCalls)} />
-            <Cell label="Time" value={`${seconds} s`} />
-            {tokensVal ? <Cell label="Tokens" value={tokensVal} /> : null}
-          </div>
-          <div style={{ padding: "var(--space-2) var(--space-4)" }}>
+        <div style={{ borderLeft: "2px solid var(--color-divider)", marginLeft: 3, paddingLeft: "var(--space-4)", marginTop: "var(--space-1)" }}>
+          {tokensVal ? (
+            <div data-testid="agent-stats" style={{ ...mutedStyle, padding: "var(--space-1) 0" }}>
+              Tokens: {tokensVal}
+            </div>
+          ) : null}
+          <div>
             {entry.trajectory.map((item) => (
               <div key={item.id} data-row={item.kind} style={rowStyle}>
-                <span style={{ display: "flex", paddingTop: 3 }}>
-                  <Marker status={item.status} />
+                <span style={{ display: "flex", paddingTop: 5 }}>
+                  {item.kind === "note" ? <span style={{ width: 12 }} /> : <Marker status={item.status} />}
                 </span>
                 <span style={{ minWidth: 0, flex: 1 }}>
                   {item.kind === "tool" ? (
-                    <ToolCard item={item} />
+                    <ToolRow item={item} now={now} />
+                  ) : item.kind === "model" ? (
+                    <ModelRow item={item} now={now} />
+                  ) : item.kind === "note" ? (
+                    <span style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{item.detail}</span>
                   ) : item.kind === "step" ? (
                     <span style={labelStyle}>{item.label}</span>
-                  ) : (
+                  ) : item.kind === "reasoning" ? (
                     <>
-                      <span style={{ fontWeight: 800 }}>{item.label}</span>
-                      {item.detail.trim() ? (
-                        <span
-                          style={{
-                            display: "-webkit-box",
-                            WebkitLineClamp: 3,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
-                            color: "var(--color-neutral-700)",
-                            whiteSpace: "pre-wrap",
-                          }}
-                        >
-                          {item.detail.trim()}
-                        </span>
-                      ) : null}
+                      <span style={labelStyle}>Thinking</span>
+                      <span style={{ display: "block", color: "var(--color-neutral-700)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                        {item.detail.trim()}
+                      </span>
                     </>
+                  ) : (
+                    <span style={{ fontWeight: 800 }}>
+                      {item.label}
+                      {item.status === "running" && item.startedAt ? <span style={{ ...mutedStyle, fontWeight: 400 }}> · {seconds(now - item.startedAt)}</span> : null}
+                    </span>
                   )}
                 </span>
               </div>

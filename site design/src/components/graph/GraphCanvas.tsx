@@ -81,6 +81,46 @@ export function revealDelays(nodes: GNode[]): Record<string, number> {
   return out;
 }
 
+/**
+ * The order the graph builds in: one node at a time, walking outward along the connections from the
+ * main node, so every new node appears next to something that is already there.
+ */
+export function revealPlan(nodes: GNode[], edges: GEdge[]): { delay: Record<string, number> } {
+  const byId = new Map(nodes.map((x) => [x.id, x]));
+  const adj = new Map<string, string[]>(nodes.map((x) => [x.id, []]));
+  for (const [a, b] of edges) {
+    if (byId.has(a) && byId.has(b)) {
+      adj.get(a)!.push(b);
+      adj.get(b)!.push(a);
+    }
+  }
+  const degree = (id: string) => adj.get(id)?.length ?? 0;
+  const rank = (id: string) => ORDER[byId.get(id)!.k];
+  const step = clamp(5200 / Math.max(1, nodes.length), 14, 110); // about five seconds for a big graph
+  const delay: Record<string, number> = {};
+  const seen = new Set<string>();
+  let index = 0;
+  const roots = nodes.slice().sort((a, b) => ORDER[a.k] - ORDER[b.k] || degree(b.id) - degree(a.id));
+  for (const root of roots) {
+    if (seen.has(root.id)) continue;
+    const queue = [root.id];
+    seen.add(root.id);
+    for (let head = 0; head < queue.length; head++) {
+      const id = queue[head];
+      delay[id] = index++ * step;
+      const next = adj
+        .get(id)!
+        .filter((x) => !seen.has(x))
+        .sort((x, y) => rank(x) - rank(y) || degree(y) - degree(x));
+      for (const x of next) {
+        seen.add(x);
+        queue.push(x);
+      }
+    }
+  }
+  return { delay };
+}
+
 export interface GraphCanvasHandle {
   replay: () => void;
 }
@@ -94,6 +134,8 @@ export interface GraphCanvasProps {
   autoRotate?: boolean;
   reducedMotion?: boolean;
   replayToken?: number;
+  /** Relation words keyed "source|target"; drawn on the edge (all of them, or just the selected node's). */
+  edgeLabels?: Record<string, string>;
 }
 
 export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
@@ -102,20 +144,19 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     const live = useRef(props);
     live.current = props;
 
-    const delays = useMemo(() => revealDelays(props.nodes), [props.nodes]);
-    const neighborsRef = useRef<Set<string>>(new Set());
-    useEffect(() => {
-      if (!props.selectedId) {
-        neighborsRef.current = new Set();
-        return;
+    const plan = useMemo(() => revealPlan(props.nodes, props.edges), [props.nodes, props.edges]);
+    const delays = plan.delay;
+    // Who connects to whom, for the click: the node, what it connects to, and what those connect to.
+    const adj = useMemo(() => {
+      const m = new Map<string, string[]>(props.nodes.map((n) => [n.id, []]));
+      for (const [a, b] of props.edges) {
+        m.get(a)?.push(b);
+        m.get(b)?.push(a);
       }
-      const s = new Set<string>();
-      for (const [u, v] of props.edges) {
-        if (u === props.selectedId) s.add(v);
-        else if (v === props.selectedId) s.add(u);
-      }
-      neighborsRef.current = s;
-    }, [props.selectedId, props.edges]);
+      return m;
+    }, [props.nodes, props.edges]);
+    const adjRef = useRef(adj);
+    adjRef.current = adj;
 
     const v = useRef({
       rx: 0.4,
@@ -129,6 +170,10 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       t0: 0,
       focusT0: -1e9,
       focusKey: "all",
+      selId: null as string | null,
+      selT0: -1e9,
+      h1: new Set<string>(),
+      h2: new Set<string>(),
       last: 0,
       hits: [] as Hit[],
       labelNodes: [] as GNode[],
@@ -254,7 +299,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         const reduce =
           p.reducedMotion ||
           window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        if (!s.drag && p.autoRotate !== false && !reduce) {
+        if (!s.drag && p.autoRotate !== false && !reduce && !p.selectedId) {
           s.ry += (0.192 * dt) / 1000; // 0.0032 rad per frame at 60 fps
         }
 
@@ -276,6 +321,18 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         };
 
         const act = p.focusIds ? new Set(p.focusIds) : null;
+
+        // A click: the node, what it connects to (h1) and what those connect to (h2).
+        const selId = p.selectedId;
+        if (selId !== s.selId) {
+          s.selId = selId;
+          s.selT0 = now;
+          s.h1 = new Set(selId ? adjRef.current.get(selId) ?? [] : []);
+          s.h2 = new Set();
+          for (const id of s.h1) for (const nb of adjRef.current.get(id) ?? []) if (nb !== selId && !s.h1.has(nb)) s.h2.add(nb);
+        }
+        const selOn = selId !== null;
+        const delayOf = (id: string) => (reduce ? (delays[id] ?? 0) * 0.04 : delays[id] ?? 0);
 
         // 1. floor grid
         ctx.strokeStyle = col.ink;
@@ -308,7 +365,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         const revealDuration = reduce ? 120 : 420;
         for (const n of p.nodes) {
           P[n.id] = project(n.pos);
-          const t = (now - s.t0 - (delays[n.id] ?? 0)) / revealDuration;
+          const t = (now - s.t0 - delayOf(n.id)) / revealDuration;
           V[n.id] = t <= 0 ? 0 : t >= 1 ? 1 : 1 - Math.pow(1 - t, 3);
         }
 
@@ -317,25 +374,93 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           const A = P[a];
           const B = P[b];
           if (!A || !B) continue;
-          const rv = Math.min(V[a], V[b]);
-          if (rv <= 0) continue;
-          const both = !!act && act.has(a) && act.has(b);
-          const base = act
-            ? both
-              ? 0.85
-              : 0.07
-            : 0.14 + 0.4 * near((A[2] + B[2]) / 2);
-          ctx.globalAlpha = base * rv;
-          ctx.strokeStyle = both ? col.acc : col.ink;
-          ctx.lineWidth = both ? 1.8 : 1;
+
+          // Build: the line grows from the node that appeared first towards the one that follows.
+          const da = delayOf(a);
+          const db = delayOf(b);
+          const startMs = Math.max(da, db) - 200;
+          const g = reduce ? (now - s.t0 >= startMs ? 1 : 0) : clamp((now - s.t0 - startMs) / 380, 0, 1);
+          if (g <= 0) continue;
+          let grow = 1 - Math.pow(1 - g, 2);
+          let fromA = da <= db;
+
+          let alpha: number;
+          let hot = false;
+          let width = 1;
+          let direct = false;
+          if (selOn) {
+            const aSel = a === selId;
+            const bSel = b === selId;
+            if (aSel || bSel) {
+              direct = true;
+              hot = true;
+              width = 2.4;
+              alpha = 1;
+              fromA = aSel; // flows outward from the clicked node
+              const out = clamp((now - s.selT0) / 520, 0, 1);
+              grow = Math.min(grow, reduce ? 1 : 1 - Math.pow(1 - out, 3));
+            } else if ((s.h1.has(a) && s.h2.has(b)) || (s.h1.has(b) && s.h2.has(a))) {
+              hot = true;
+              width = 1.4;
+              alpha = 0.55;
+              fromA = s.h1.has(a);
+              const out = clamp((now - s.selT0 - 450) / 520, 0, 1);
+              grow = Math.min(grow, reduce ? 1 : 1 - Math.pow(1 - out, 3));
+            } else {
+              alpha = 0.05;
+            }
+          } else {
+            const both = !!act && act.has(a) && act.has(b);
+            hot = both;
+            width = both ? 1.8 : 1;
+            alpha = act ? (both ? 0.85 : 0.07) : 0.14 + 0.4 * near((A[2] + B[2]) / 2);
+          }
+          if (grow <= 0) continue;
+
           const mx = (A[0] + B[0]) / 2;
           const my = (A[1] + B[1]) / 2;
           const dx = B[0] - A[0];
           const dy = B[1] - A[1];
+          const cxp = mx - dy * 0.08;
+          const cyp = my + dx * 0.08;
+          const point = (t: number): [number, number] => [
+            (1 - t) * (1 - t) * A[0] + 2 * (1 - t) * t * cxp + t * t * B[0],
+            (1 - t) * (1 - t) * A[1] + 2 * (1 - t) * t * cyp + t * t * B[1],
+          ];
+          // The part of the curve that has grown so far: from one end to `grow` of the way along.
+          const t0 = fromA ? 0 : 1 - grow;
+          const t1 = fromA ? grow : 1;
+          const S = point(t0);
+          const E = point(t1);
+          const cw = (1 - t0) * t1 + t0 * (1 - t1);
+          const ctrlX = (1 - t0) * (1 - t1) * A[0] + cw * cxp + t0 * t1 * B[0];
+          const ctrlY = (1 - t0) * (1 - t1) * A[1] + cw * cyp + t0 * t1 * B[1];
+
+          ctx.globalAlpha = alpha * Math.min(1, g * 2);
+          ctx.strokeStyle = hot ? col.acc : col.ink;
+          ctx.lineWidth = width;
           ctx.beginPath();
-          ctx.moveTo(A[0], A[1]);
-          ctx.quadraticCurveTo(mx - dy * 0.08, my + dx * 0.08, B[0], B[1]);
+          ctx.moveTo(S[0], S[1]);
+          ctx.quadraticCurveTo(ctrlX, ctrlY, E[0], E[1]);
           ctx.stroke();
+
+          // A spark at the growing tip, and sparks that keep travelling along a connection of the clicked node.
+          if (grow < 1 && !reduce) {
+            const tip = fromA ? E : S;
+            ctx.globalAlpha = 0.9;
+            ctx.fillStyle = col.acc;
+            ctx.beginPath();
+            ctx.arc(tip[0], tip[1], 2.8, 0, TAU);
+            ctx.fill();
+          } else if (direct && !reduce && grow >= 1) {
+            const phase = (((now - s.selT0) / 1500) + ((a.length + b.length) % 7) / 7) % 1;
+            const sp = point(fromA ? phase : 1 - phase);
+            ctx.globalAlpha = 0.95;
+            ctx.fillStyle = col.acc;
+            ctx.beginPath();
+            ctx.arc(sp[0], sp[1], 2.6, 0, TAU);
+            ctx.fill();
+          }
         }
 
         // 4. nodes, far to near
@@ -352,9 +477,13 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           const isAct = !act || act.has(n.id);
           const sel = p.selectedId === n.id;
           const hov = s.hover === n.id;
-          const alpha = (act ? (isAct ? 1 : 0.4) : 0.55 + 0.45 * near(q[2])) * rv;
+          const linked1 = selOn && (sel || s.h1.has(n.id));
+          const linked2 = selOn && s.h2.has(n.id);
+          const alpha = selOn
+            ? (linked1 ? 1 : linked2 ? 0.8 : 0.12) * rv
+            : (act ? (isAct ? 1 : 0.4) : 0.55 + 0.45 * near(q[2])) * rv;
           const rad = BASE[n.k] * k * (0.4 + 0.6 * rv);
-          const hot = !!act && isAct;
+          const hot = selOn ? linked1 : !!act && isAct;
 
           s.hits.push({
             id: n.id,
@@ -406,7 +535,20 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             ctx.setLineDash([]);
           }
 
-          if (hot && pulseT >= 0 && pulseT < 1) {
+          if (selOn && s.h1.has(n.id) && !reduce) {
+            // a ring spreads from each neighbour as the connection reaches it
+            const rt = (now - s.selT0 - 520) / 900;
+            if (rt >= 0 && rt < 1) {
+              ctx.globalAlpha = (1 - rt) * 0.8;
+              ctx.strokeStyle = col.acc;
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.arc(q[0], q[1], rad + 4 + rt * 22, 0, TAU);
+              ctx.stroke();
+            }
+          }
+
+          if (!selOn && hot && pulseT >= 0 && pulseT < 1) {
             ctx.globalAlpha = (1 - pulseT) * 0.8;
             ctx.strokeStyle = col.acc;
             ctx.lineWidth = 2;
@@ -424,8 +566,10 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             ctx.stroke();
           }
 
-          const isNeigh = neighborsRef.current.has(n.id);
-          const inFocus = !act || isAct || sel || hov;
+          const isNeigh = s.h1.has(n.id);
+          const inFocus = selOn
+            ? linked1 || hov || (linked2 && n.k !== "meas" && n.k !== "unc")
+            : !act || isAct || sel || hov;
           const canLabel =
             inFocus &&
             rv > 0.6 &&
@@ -499,6 +643,37 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           ctx.strokeText(drawText, tx, ty);
           ctx.fillStyle = hot ? col.acc : col.ink;
           ctx.fillText(drawText, tx, ty);
+        }
+        // 6. relation words on edges, after the node labels so they never push those out
+        if (p.edgeLabels) {
+          const fs = 11;
+          ctx.font = "600 " + fs + "px Archivo, system-ui, sans-serif";
+          ctx.lineJoin = "round";
+          for (const [a, b] of p.edges) {
+            const word = p.edgeLabels[a + "|" + b];
+            const A = P[a];
+            const B = P[b];
+            if (!word || !A || !B) continue;
+            const touching = p.selectedId !== null && (a === p.selectedId || b === p.selectedId);
+            if (p.selectedId !== null && !touching) continue;
+            if (Math.min(V[a], V[b]) < 0.7) continue;
+            const mx = (A[0] + B[0]) / 2;
+            const my = (A[1] + B[1]) / 2;
+            const cx = mx - (B[1] - A[1]) * 0.08;
+            const cy = my + (B[0] - A[0]) * 0.08;
+            const x = 0.25 * A[0] + 0.5 * cx + 0.25 * B[0];
+            const y = 0.25 * A[1] + 0.5 * cy + 0.25 * B[1];
+            const w = ctx.measureText(word).width;
+            const box = { x0: x - w / 2 - 3, y0: y - fs, x1: x + w / 2 + 3, y1: y + 3 };
+            if (!touching && s.boxes.some((eb) => !(box.x1 < eb.x0 || box.x0 > eb.x1 || box.y1 < eb.y0 || box.y0 > eb.y1))) continue;
+            s.boxes.push(box);
+            ctx.globalAlpha = touching ? 1 : 0.8;
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = col.bg;
+            ctx.strokeText(word, x - w / 2, y);
+            ctx.fillStyle = touching ? col.acc : col.ink;
+            ctx.fillText(word, x - w / 2, y);
+          }
         }
         ctx.globalAlpha = 1;
       };

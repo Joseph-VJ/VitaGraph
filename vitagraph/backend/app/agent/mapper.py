@@ -54,6 +54,73 @@ class EventMapper:
 
         self._current_step_for_text: int | None = None
 
+        # Model calls in order. A call that asked for tools wrote narration; the last call without tools wrote the answer.
+        self._calls: list[dict[str, Any]] = []
+        self._live = False  # True once the loopback route has reported the model's own stream
+        self._live_calls = 0
+        self._live_text_seen = False
+        self._live_reasoning_seen = False
+
+    @property
+    def final_text(self) -> str:
+        """The answer: the text of the last model call that did not ask for tools (else everything written)."""
+        for call in reversed(self._calls):
+            if not call["tools"]:
+                return call["text"].strip()
+        return self.answer_text.strip()
+
+    def feed_live(self, ev: dict) -> list[tuple[str, dict]]:
+        """Map one live event from the model stream (see app.services.live_bus) to client events."""
+        kind = ev.get("kind")
+        if kind == "model_start":
+            self._live = True
+            self._live_calls += 1
+            self._live_text_seen = False
+            self._live_reasoning_seen = False
+            self._calls.append({"text": "", "tools": False})
+            return [("model", {"phase": "start", "call": self._live_calls})]
+        if kind == "reasoning":
+            delta = ev.get("delta")
+            if not delta:
+                return []
+            self._live_reasoning_seen = True
+            return [("thinking", {"thinking": delta})]
+        if kind == "text":
+            delta = ev.get("delta")
+            if not delta:
+                return []
+            if not self._calls:
+                self._calls.append({"text": "", "tools": False})
+            out = ""
+            if self.answer_text and not self._live_text_seen:
+                out = "\n\n"  # a new model call starts a new paragraph
+            self._live_text_seen = True
+            out += delta
+            self.answer_text += out
+            self._calls[-1]["text"] += delta
+            return [("text_delta", {"delta": out})]
+        if kind == "model_end":
+            tools = int(ev.get("tool_calls") or 0)
+            if tools and self._calls:
+                self._calls[-1]["tools"] = True
+            return [
+                (
+                    "model",
+                    {
+                        "phase": "end",
+                        "call": self._live_calls,
+                        "ms": ev.get("ms"),
+                        "first_ms": ev.get("first_ms"),
+                        "input_tokens": ev.get("input_tokens"),
+                        "output_tokens": ev.get("output_tokens"),
+                        "tool_calls": tools,
+                    },
+                )
+            ]
+        if kind == "model_error":
+            return [("model", {"phase": "error", "call": self._live_calls, "message": self._redact(str(ev.get("message", "")))[:300]})]
+        return []
+
     def _failure_message(self, detail: str) -> tuple[str, str]:
         lowered = (detail or "").lower()
         if any(w in lowered for w in ("401", "403", "unauthorized", "forbidden")):
@@ -193,8 +260,15 @@ class EventMapper:
                     continue
 
                 if btype == "reasoning":
-                    events.append(("thinking", {"thinking": text}))
+                    if not self._live_reasoning_seen:
+                        events.append(("thinking", {"thinking": text}))
                 elif btype == "text":
+                    if self._live_text_seen:
+                        continue  # already streamed word by word from the model stream
+                    if not self._live:
+                        self._calls.append({"text": text, "tools": False})
+                    elif self._calls:
+                        self._calls[-1]["text"] += text
                     if self.answer_text and self._current_step_for_text is not None and self._current_step_for_text != step_num:
                         events.append(("text_delta", {"delta": "\n\n"}))
                         self.answer_text += "\n\n"
@@ -202,6 +276,8 @@ class EventMapper:
                     events.append(("text_delta", {"delta": text}))
                     self.answer_text += text
 
+            self._live_text_seen = False
+            self._live_reasoning_seen = False
             return events
 
         # 5. tool/call
@@ -229,25 +305,41 @@ class EventMapper:
 
             self._pending_calls[call_id] = (short, self._clock())
             self._tool_calls_count += 1
+            if self._calls:
+                self._calls[-1]["tools"] = True
             step_num = d.get("step") if isinstance(d.get("step"), int) else self._steps
             return [("tool_call", {"id": call_id, "tool": short, "arguments": args, "step": step_num})]
 
         # 6. tool/result
         if etype == "tool/result":
             message = _dict(d.get("message"))
-            call_id = message.get("toolCallId") or d.get("toolCallId") or ""
-            short, started = self._pending_calls.get(call_id, ("unknown", self._clock()))
-            duration_ms = max(0, int((self._clock() - started) * 1000))
-
             content_list = message.get("content")
             if not isinstance(content_list, list):
                 content_list = []
-            text_blocks = [
-                b.get("text", "") for b in content_list if isinstance(b, dict) and b.get("type") == "text"
-            ]
-            raw_text = "".join(text_blocks)
 
-            is_error = bool(message.get("isError") or isinstance(d.get("error"), dict))
+            # Real shape: content = [{"type": "tool-result", "toolCallId", "content": [{"type": "text", "text"}], "isError"}]
+            block = next(
+                (b for b in content_list if isinstance(b, dict) and b.get("type") == "tool-result"), {}
+            )
+            call_id = (
+                block.get("toolCallId")
+                or _dict(message.get("source")).get("callId")
+                or message.get("toolCallId")
+                or d.get("toolCallId")
+                or ""
+            )
+            short, started = self._pending_calls.get(call_id, ("unknown", self._clock()))
+            duration_ms = max(0, int((self._clock() - started) * 1000))
+
+            inner = block.get("content") if block else content_list
+            if isinstance(inner, str):
+                raw_text = inner
+            else:
+                raw_text = "".join(
+                    b.get("text", "") for b in (inner or []) if isinstance(b, dict) and b.get("type") == "text"
+                )
+
+            is_error = bool(block.get("isError") or message.get("isError") or isinstance(d.get("error"), dict))
             if is_error:
                 err_dict = _dict(d.get("error"))
                 err_text = raw_text or err_dict.get("reason") or "The tool failed."

@@ -31,6 +31,11 @@ def graph_lookup(concept: str) -> str:
     return "{}"
 
 
+@server.tool(name="calculate", description="Exact arithmetic on plain numbers.")
+def calculate(expression: str) -> str:
+    return "{}"
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1]:
         out_path = sys.argv[1]

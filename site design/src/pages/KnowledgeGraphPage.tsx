@@ -21,6 +21,7 @@ import { PageState, PersonaState } from "../components/ui";
 import { useActiveUser } from "../context/UserContext";
 import { usePreferences } from "../lib/preferences";
 import type { Report } from "../types";
+import { NodeSummary } from "../components/graph/NodeSummary";
 
 interface SlipData {
   rep: string;
@@ -596,6 +597,7 @@ export const KnowledgeGraphPage: React.FC = () => {
             >
               {selectedNode.label}
             </h3>
+            {user && <NodeSummary key={`${user.id}|${selectedNode.id}`} userId={user.id} nodeId={selectedNode.id} />}
             <p
               style={{
                 margin: "0 0 var(--space-3)",
@@ -604,6 +606,16 @@ export const KnowledgeGraphPage: React.FC = () => {
             >
               {selectedNode.about}
             </p>
+            {processed && selectedId ? (
+              <p data-testid="graph-connections" style={{ margin: "0 0 var(--space-2)", fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>
+                {(() => {
+                  const n = processed.edges.filter((e) => e[0] === selectedId || e[1] === selectedId).length;
+                  return n === 0
+                    ? "Not connected to anything else."
+                    : `Connected to ${n} node${n === 1 ? "" : "s"}${n > selectedNode.nbs.length ? ` (first ${selectedNode.nbs.length} shown)` : ""}. Its lines are drawn in red; the fainter lines go one step further.`;
+                })()}
+              </p>
+            ) : null}
             {selectedNode.nbs.length > 0 && (
               <div
                 style={{

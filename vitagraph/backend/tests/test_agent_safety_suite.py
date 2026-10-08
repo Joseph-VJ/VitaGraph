@@ -57,7 +57,7 @@ def test_no_tool_accepts_a_persona_argument_at_any_depth():
         return await session.list_tools()
 
     tools_res = asyncio.run(_run_mcp_session(user["id"], _list))
-    assert len(tools_res.tools) == 4
+    assert len(tools_res.tools) == 5  # calculate was added on 2026-10-08
 
     forbidden_tokens = ("user", "persona", "patient", "owner")
 

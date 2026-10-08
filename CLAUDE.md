@@ -27,22 +27,28 @@ The visual law is the Modernist design system defined by `VitaGraph-App-v3.html`
 11. **Settings** (`/settings`): Process speed, chunk size slider (120 to 600), privacy controls, persona management.
 
 ## 4. AI Agent Streaming Protocol
-The frontend consumes Server-Sent Events from `POST /api/agent/stream` (or `/api/agent/stream` via fetch ReadableStream):
-1. `status`: Lifecycle updates (`starting`, `searching`, `synthesizing`).
-2. `step`: High-level reasoning milestone announcements.
-3. `thinking`: Model thought chain deltas.
-4. `tool_call`: `{ "tool": "get_biomarkers"|"get_trends"|"query_chroma"|"query_graph", "args": {...}, "call_id": "..." }`
-5. `tool_result`: `{ "call_id": "...", "result": {...} }`
-6. `text_delta`: `{ "delta": "..." }` (streaming markdown text tokens)
-7. `stats`: Operational metrics (latencies, token counts, chunks).
-8. `completed`: `{ "status": "answered"|"refused", "evidence": [...] }`
-9. `error`: `{ "message": "...", "detail": "..." }`
+The frontend consumes Server-Sent Events from `POST /api/agent/stream` (fetch + ReadableStream). Every frame carries `event_type` and a `metadata` payload:
+1. `status`: Lifecycle updates (`starting`, `working`, `retrying`).
+2. `step`: `{ "phase": "start"|"end", "step": n }`.
+3. `model`: Live model activity from the loopback route: `{ "phase": "start"|"end"|"error", "call": n, "ms", "first_ms", "input_tokens", "output_tokens", "tool_calls" }`.
+4. `thinking`: The model's reasoning summary (the raw private chain of thought is not available from the API).
+5. `tool_call`: `{ "id", "tool", "arguments", "step" }`.
+6. `tool_result`: `{ "id", "tool", "result", "is_error", "duration_ms" }`.
+7. `text_delta`: `{ "delta": "..." }` (streaming Markdown; text of a model call that then runs tools is narration, the last call without tools is the answer).
+8. `stats`: Steps, tool calls, elapsed ms, token counts.
+9. `completed`: `{ "status": "answered"|"refused", "summary_text", "evidence": [...], "safety_passed" }` then a terminal `done`.
+10. `error`: `{ "message", "diagnostic" }`.
 
-### Four Read-Only Harness Tools:
-- `get_biomarkers`: Query extracted lab values from a report.
-- `get_trends`: Retrieve historical lab values across dates.
-- `query_chroma`: Vector search over sentence-aware chunks.
-- `query_graph`: Graph query for related concepts and paths.
+### Five Read-Only Harness Tools (exactly these, none with a person parameter):
+- `list_reports`: The person's reports and ids.
+- `search_reports`: Vector search over report passages; numbered evidence cards with character offsets (opening passages as a marked fallback).
+- `get_measurements`: Extracted lab values, ranges and flags of one report.
+- `graph_lookup`: Related concepts and paths in the person's graph.
+- `calculate`: Exact arithmetic (`app/agent/calc.py`, AST whitelist; no names, attributes, files or network). Added 2026-10-08 by owner decision.
+
+### Reports and code
+- The agent never writes HTML. A report is Markdown in a ```report block; the server renders it (`report_render.py`: raw HTML, images and links off, strict CSP) and builds the PDF with PyMuPDF; saved in `agent_artifacts` (`/api/agent/reports`). The browser shows it in an iframe with `sandbox=""`.
+- Code is only shown (highlighted, Copy), never run.
 
 ### Safety Gates:
 - Clinical advice, diagnoses, or prescriptions are refused fail-closed by system policy.

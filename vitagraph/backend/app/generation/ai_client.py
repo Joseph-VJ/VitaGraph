@@ -20,6 +20,7 @@ from dataclasses import dataclass
 import httpx
 
 from app.core.config import settings
+from app.services import responses_adapter
 
 CONFIG_VERSION = "neutral-openai-compatible-v2-med-edu"
 
@@ -97,6 +98,33 @@ def test_connection(url: str, key: str, model: str, timeout: int = 12) -> tuple[
         return False, "AI Service URL is required."
 
     request_id = f"test_{uuid.uuid4().hex[:8]}"
+    if url.strip().rstrip("/").endswith("/responses"):
+        try:
+            resp = responses_adapter.complete_sync(
+                [{"role": "user", "content": "Hello. Please reply with the single word 'OK'."}],
+                model=model.strip(),
+                url=url,
+                api_key=key,
+                max_tokens=64,
+                timeout=timeout,
+                request_id=request_id,
+            )
+            if resp.status_code == 401:
+                return False, "Authentication failed (HTTP 401): Invalid API key."
+            if resp.status_code == 403:
+                return False, "Access forbidden (HTTP 403): Check model permissions or regional availability."
+            if resp.status_code == 404:
+                return False, f"Not found (HTTP 404): Check endpoint URL and model name '{model}'."
+            if resp.status_code == 429:
+                return False, "Rate limit exceeded or API quota exhausted (HTTP 429)."
+            resp.raise_for_status()
+            reply = responses_adapter.text_from_response(resp.json())
+            return True, f"Connection verified. Model responded: '{reply or 'OK'}'"
+        except httpx.TimeoutException:
+            return False, f"Connection timed out after {timeout}s. Check URL reachability or network connection."
+        except Exception as exc:
+            return False, f"Connection failed: {str(exc)}"
+
     target_url, headers = _build_headers_and_url(url, key, request_id)
     payload = {
         "model": model.strip(),
@@ -151,19 +179,30 @@ def generate_answer(question: str, evidence_snippets: list[str]) -> GenerationRe
         )
 
     request_id = f"gen_{uuid.uuid4().hex[:12]}"
+    use_responses = settings.api_format == "responses"
     endpoint_url = f"{settings.effective_base_url}/chat/completions" if not settings.ai_service_url or "agentrouter.org" in settings.effective_base_url else settings.ai_service_url
     target_url, headers = _build_headers_and_url(
         endpoint_url, api_key, request_id
     )
+    messages = _instruction_prompt(question, evidence_snippets)
     payload = {
         "model": settings.effective_model,
-        "messages": _instruction_prompt(question, evidence_snippets),
+        "messages": messages,
         "temperature": 0.1,
     }
 
     try:
         with httpx.Client(timeout=settings.ai_service_timeout_seconds) as client:
-            response = client.post(target_url, json=payload, headers=headers)
+            if use_responses:
+                response = responses_adapter.complete_sync(
+                    messages,
+                    model=settings.effective_model,
+                    api_key=api_key,
+                    request_id=request_id,
+                    timeout=settings.ai_service_timeout_seconds,
+                )
+            else:
+                response = client.post(target_url, json=payload, headers=headers)
             status_code = getattr(response, "status_code", 200)
             if status_code == 401:
                 return GenerationResult(
@@ -181,7 +220,12 @@ def generate_answer(question: str, evidence_snippets: list[str]) -> GenerationRe
                 )
             response.raise_for_status()
             data = response.json()
-        text = data["choices"][0]["message"]["content"].strip()
+        if use_responses:
+            text = responses_adapter.text_from_response(data)
+            if not text:
+                raise ValueError("The model returned no text.")
+        else:
+            text = data["choices"][0]["message"]["content"].strip()
         return GenerationResult(ok=True, text=text, request_id=request_id, status="ok")
     except Exception as exc:
         return GenerationResult(

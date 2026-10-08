@@ -76,8 +76,8 @@ def _detect_provider(url: str) -> str:
 @router.get("/config", response_model=AiConfigResponse)
 def get_ai_config() -> dict:
     """Return active AI service configuration and masked key status."""
-    has_key = bool((settings.ai_service_api_key or "").strip())
-    provider = _detect_provider(settings.ai_service_url)
+    has_key = bool(settings.effective_api_key)
+    provider = _detect_provider(settings.effective_base_url)
 
     status = "offline"
     if settings.allow_api and has_key:
@@ -86,12 +86,12 @@ def get_ai_config() -> dict:
     return {
         "allow_api": settings.allow_api,
         "provider": provider,
-        "model": settings.ai_service_model,
-        "url": settings.ai_service_url,
+        "model": settings.effective_model,
+        "url": settings.effective_base_url,
         "has_api_key": has_key,
         "masked_key": settings.get_masked_key(),
         "status": status,
-        "message": f"AI service ready ({settings.ai_service_model})" if has_key else "API key not configured",
+        "message": "AI service ready" if has_key else "API key not configured",
     }
 
 
@@ -219,9 +219,9 @@ def analyze_report(payload: ReportAnalysisRequest) -> dict:
     # Generate AI synthesis
     summary_text = ""
     is_ai_generated = False
-    model_used = settings.ai_service_model
+    model_used = settings.effective_model
 
-    if settings.allow_api and settings.ai_service_api_key:
+    if settings.allow_api and settings.effective_api_key:
         prompt = (
             f"Analyze this patient lab report ({filename}, dated {report_date}) for patient education.\n"
             "Provide:\n"

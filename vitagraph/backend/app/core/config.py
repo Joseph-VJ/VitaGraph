@@ -11,6 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 import logging
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,57 @@ class Settings(BaseSettings):
     agentrouter_model: str = "deepseek-v4-flash"
     agentrouter_fallback_models: str = "gpt-6-astra,claude-opus-5"
 
+    # --- Model API (provider-neutral; takes over the two blocks above) -------
+    # When MODEL_API_KEY is set, MODEL_API_URL / MODEL_NAME replace the gateway
+    # values below. The URL and name are only applied together with the key, so
+    # an older gateway key is never sent to a different host.
+    model_api_key: str = ""
+    model_api_url: str = ""
+    model_name: str = ""
+    model_api_format: str = "chat"  # "chat" = /chat/completions, "responses" = /responses
+    model_fallback_models: str = ""
+    model_reasoning_effort: str = "low"  # minimal | low | medium | high; empty string turns reasoning control off
+    model_reasoning_summary: str = "auto"  # asks the model for a short reasoning summary to show live; empty = off
+    model_max_output_tokens: int = 50107
+    model_temperature: float = 1.0
+    model_top_p: float = 1.0
+    # Address the agent worker uses to reach this backend's loopback translation route.
+    backend_url: str = "http://127.0.0.1:8000"
+
+    @model_validator(mode="after")
+    def _apply_model_api(self) -> "Settings":
+        key = self.model_api_key.strip()
+        if not key:
+            if self.model_api_url.strip() or self.model_name.strip():
+                logger.warning("MODEL_API_URL / MODEL_NAME are set but MODEL_API_KEY is empty; ignoring them.")
+            return self
+        self.agentrouter_api_key = key
+        if self.model_api_url.strip():
+            self.agentrouter_base_url = self.model_api_url.strip()
+        if self.model_name.strip():
+            self.agentrouter_model = self.model_name.strip()
+            self.agentrouter_fallback_models = self.model_fallback_models
+        return self
+
+    @staticmethod
+    def _normalise_base(url: str) -> str:
+        url = (url or "").strip().rstrip("/")
+        for suffix in ("/chat/completions", "/responses"):
+            if url.endswith(suffix):
+                url = url[: -len(suffix)]
+        return url.rstrip("/")
+
+    @property
+    def api_format(self) -> str:
+        """'responses' only while the active endpoint is the configured MODEL_API_URL, else 'chat'."""
+        if (
+            self.model_api_format.strip().lower() == "responses"
+            and self.model_api_key.strip()
+            and self.effective_base_url == self._normalise_base(self.model_api_url)
+        ):
+            return "responses"
+        return "chat"
+
     @property
     def effective_api_key(self) -> str:
         return (self.agentrouter_api_key or self.ai_service_api_key or "").strip()
@@ -60,9 +112,7 @@ class Settings(BaseSettings):
         url = (self.agentrouter_base_url or "").strip()
         if not url:
             url = (self.ai_service_url or "").strip()
-        if url.endswith("/chat/completions"):
-            url = url[:-len("/chat/completions")]
-        return url.rstrip("/")
+        return self._normalise_base(url)
 
     @property
     def effective_model(self) -> str:
@@ -157,6 +207,8 @@ class Settings(BaseSettings):
 
     def validate_models(self) -> None:
         """Log warning if effective_model is not in the allowed AgentRouter set."""
+        if self.model_name.strip() and self.model_api_key.strip():
+            return
         if self.effective_model not in ALLOWED_AGENTROUTER_MODELS:
             logger.warning(
                 "Configured effective model '%s' is not in verified AgentRouter whitelist %s. "

@@ -8,6 +8,7 @@ import sys
 import time
 
 TOOL_NAMES = (
+    "mcp__vitagraph__calculate",
     "mcp__vitagraph__get_measurements",
     "mcp__vitagraph__graph_lookup",
     "mcp__vitagraph__list_reports",

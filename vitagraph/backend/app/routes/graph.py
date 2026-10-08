@@ -1,12 +1,15 @@
-"""Knowledge Graph endpoints — whole graph and question-conditioned subgraphs."""
+"""Knowledge Graph endpoints — whole graph, question-conditioned subgraphs, and node summaries."""
 
 from __future__ import annotations
 
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
+from starlette.concurrency import run_in_threadpool
 
+from app.core.sse import sse_stream
 from app.graph.builder import build_user_graph, get_question_subgraph, serialize_graph
-from app.schemas.graph import GraphResponse, SubgraphRequest
-from app.services import user_service
+from app.schemas.graph import GraphResponse, NodeSummaryRequest, SubgraphRequest
+from app.services import node_summary, user_service
 
 router = APIRouter(prefix="/api/graph", tags=["graph"])
 
@@ -26,3 +29,16 @@ def get_subgraph(req: SubgraphRequest) -> dict:
     """Retrieve the question-conditioned active subnetwork for retrieved chunk IDs."""
     user_service.user_exists(req.user_id)
     return get_question_subgraph(req.user_id, req.chunk_ids)
+
+
+@router.post("/node-summary")
+async def node_summary_stream(req: NodeSummaryRequest) -> StreamingResponse:
+    """What one graph node is and what this person's files say about it, streamed over SSE:
+    status, sources, text_delta, completed (or error). Every claim cites a passage."""
+    user_service.user_exists(req.user_id)
+    node = await run_in_threadpool(node_summary.gather, req.user_id, req.node_id)  # 404 before the stream opens
+    return StreamingResponse(
+        sse_stream(node_summary.stream(node, refresh=req.refresh)),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+    )

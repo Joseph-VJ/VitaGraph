@@ -16,6 +16,10 @@ class AgentRequest(BaseModel):
     report_id: str | None = None
 
 
+class AgentWarmRequest(BaseModel):
+    user_id: str
+
+
 class ConversationSummaryOut(BaseModel):
     id: str
     title: str | None = None
@@ -39,3 +43,29 @@ class ConversationOut(BaseModel):
     id: str
     title: str | None = None
     messages: list[ConversationMessageOut]
+
+
+class ReportRef(BaseModel):
+    ref: int = Field(ge=1, le=999)
+    chunk_id: str = Field(max_length=64)
+    report_id: str = Field(max_length=64)
+
+
+class ReportCreate(BaseModel):
+    user_id: str
+    conversation_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    title: str = Field(min_length=1, max_length=120)
+    # Markdown only: the server turns it into HTML itself and never trusts HTML from the model.
+    markdown: str = Field(min_length=1, max_length=30000)
+    refs: list[ReportRef] = Field(default_factory=list, max_length=30)
+
+
+class ReportSummaryOut(BaseModel):
+    id: str
+    title: str
+    created_at: str
+    conversation_id: str | None = None
+
+
+class ReportOut(ReportSummaryOut):
+    html: str
