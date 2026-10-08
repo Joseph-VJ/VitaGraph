@@ -715,3 +715,16 @@ The shared canvas `site design/src/components/graph/GraphCanvas.tsx` (used by Kn
 - **Click shows the connections:** the clicked node, its direct neighbours (h1) and their neighbours (h2) are computed on selection. Unrelated nodes and edges fade to about 10 percent; the clicked node's edges flow outward in red (thick, with sparks that keep travelling), neighbours turn red and get a ripple and a label (including measurements), and a fainter second ring of edges follows 450 ms later. Rotation pauses while a node is selected; Escape or clicking empty space clears it. The old code computed the neighbour set but never used it for edges.
 - The node panel says "Connected to N nodes" (it lists the first 8); Text to Graph shows the same count.
 Checked in Chrome at 1440x900 on a 94-node, 160-edge graph (screenshots of the build at 0.7, 2, 3.5 and 7 s, and the click at 0.25, 0.9 and 2.2 s): no console errors. `tsc`, build and `audit:design` clean. Backend untouched (suite last run: 362 passed).
+
+---
+
+## 22. PLAYGROUND PREVIEW, AI NODE SUMMARY, AND THE PLAN TO BUILD THE PLAYGROUND INTO THE APP (2026-10-08, latest)
+
+- **Approved target:** `design/prototypes/VitaGraph-Playground.html` (also the private Artifact https://claude.ai/artifact/M3KsfVd1eNK39bteSbVU1b) is the owner-approved target. Sample data only.
+- **The card:** the owner's marked picture `ai box.png` (repo root) circles the docked node card with the AI summary box and its red elbow line. That exact card is wanted in the app.
+- **AI summary box (built):** branch `feature/ai-node-summary`, commits `ac15d93` (source) and `293002d` (docs). `POST /api/graph/node-summary` over SSE, `app/services/node_summary.py`, `core/sse.py`, `node_summaries` cache table, frontend `NodeSummary.tsx`, `useNodeSummary.ts`, `lib/sse.ts`. Spec `design/prototypes/VitaGraph-AI-Node-Summary.md`. Built by Gemini sessions N1 to N7, reviews in `gemini/reviews/`. Backend suite 395 passed.
+- **Known limits:** the shared safety check wrongly rejects some good AI texts on "132/86mmHg" and on an ISO date followed by a word; the labelled plain fallback is then shown. Person and report summaries can drift. First words take 7 to 13 s. Only PDFs are ingested; Markdown upload is a later task (spec section 9).
+- **Playground build (branch `feature/playground-graph-and-backgrounds`, not committed by Gemini):**
+  - P1: new Knowledge Graph stage for `/graph` per `gemini/TASK_P1_graph_stage.md` (dark ink stage with a Paper switch, opening, four layouts, lens, docked card with trend chart, What changed, time machine, path finder, evidence badges, filters, Save as image; real data). Text to Graph keeps the old `GraphCanvas`.
+  - P2: backend `GET /api/graph/{user_id}/series` (per-test values across reports with printed ranges), then the living background layer per `gemini/TASK_P2_series_and_background.md` (four engines, Off/Soft/Full and style in Settings, play mode, driven by real agent and upload events; not drawn on `/graph` and `/text-to-graph`).
+- **Process:** Gemini does not commit in this round; the reviewer reviews, then commits. Sub-agents are not used in this project (owner decision).

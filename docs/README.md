@@ -10,6 +10,9 @@ Root (kept here because tools look for them there):
 `docs/ui-ux-design-notes.md`, `docs/demo-script.md`   current design notes and demo script
 
 `design/prototypes/`  standalone HTML prototypes (V1 animated, Final, Story)
+`design/prototypes/VitaGraph-Playground.html`  approved Knowledge Graph and background preview (the visual target)
+`design/prototypes/VitaGraph-AI-Node-Summary.md`  spec of the AI summary box in the node card
+`design/prototypes/playground-src/`  read-only split copy of the preview (CSS, markup, graph and background JS), line map in its README
 `design/reference/`   Modernist redesign export and the build specs (input for the redesign)
 
 `gemini/`  RULES.md + TASK_xx files for the supervised Gemini redesign work

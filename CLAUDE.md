@@ -17,7 +17,7 @@ The visual law is the Modernist design system defined by `VitaGraph-App-v3.html`
 1. **Upload & Ingest** (`/upload`): Ingestion show (5s per stage), dropzone, page quality manifest, interactive stage.
 2. **Library** (`/library`): Report index with SHA-256 hashes, page/chunk counts, biomarker values, reference ranges, and character-level passage preview.
 3. **AI Agent** (`/agent`): Provenance-grounded question answering via `POST /api/agent/stream`.
-4. **Knowledge Graph** (`/graph`): 3D canvas with isometric perspective, readable labels (collision pruning, priority sorting), community subgraphs, rotation/pause.
+4. **Knowledge Graph** (`/graph`): the `/graph` page is the preview-based graph stage (dark ink stage with a Paper switch, opening sequence, four layouts, lens, What changed, time machine, path finder), readable labels with collision pruning and priority sorting, the node card docked at the right of the stage with the AI summary box (numbered citations to exact passages), rotation/pause; see gemini/DESIGN_LAW.md items 9 to 11.
 5. **Timeline** (`/timeline`): Longitudinal reports list and 3D isometric biomarker change charts.
 6. **Compare** (`/compare`): Side-by-side longitudinal report comparisons and change deltas.
 7. **Insights** (`/insights`): Graph size, betweenness centrality rankings, edge type frequencies.
