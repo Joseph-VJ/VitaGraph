@@ -1,0 +1,214 @@
+
+<canvas id="field" role="img" aria-label="Decorative living background"></canvas>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand"><i></i>VitaGraph</div>
+    <nav class="navgroup" aria-label="Preview sections">
+      <div class="navlabel">Preview</div>
+      <button class="navitem" id="nav-graph" aria-current="page"><b>Knowledge Graph</b><small>A new level for the graph</small></button>
+      <button class="navitem" id="nav-bg"><b>Living background</b><small>Four playable layers</small></button>
+    </nav>
+    <div class="sidefoot">
+      <div class="label">Background layer</div>
+      <div class="seg" role="group" aria-label="Background strength">
+        <button type="button" data-str="off" aria-pressed="false">Off</button>
+        <button type="button" data-str="soft" aria-pressed="true">Soft</button>
+        <button type="button" data-str="full" aria-pressed="false">Full</button>
+      </div>
+      <button type="button" class="btn btn-primary" id="playBtn">Play mode</button>
+    </div>
+  </aside>
+
+  <header class="head">
+    <div>
+      <h1 id="title">Knowledge Graph</h1>
+      <p id="subtitle">Click any dot. Try the layouts at the bottom of the stage.</p>
+    </div>
+    <span class="tag tag-accent">Preview with sample data</span>
+  </header>
+
+  <main data-bgzone>
+    <!-- ================= GRAPH ================= -->
+    <section class="view" id="v-graph" aria-label="Knowledge graph preview">
+      <div class="stage ink" id="stage">
+        <canvas id="g" role="img" aria-label="Three-dimensional knowledge graph of a sample person's reports. Drag to rotate, scroll to zoom, click a node for its details."></canvas>
+        <div class="ov tl">
+          <div class="count" id="count">0 nodes · 0 links</div>
+          <input class="search" id="search" list="names" placeholder="Find a test, section or report" aria-label="Find a test, section or report" autocomplete="off">
+          <datalist id="names"></datalist>
+        </div>
+        <div class="ov tr">
+          <button class="btn btn-small" id="replay" type="button">Replay intro</button>
+          <button class="btn btn-small" id="spin" type="button" aria-pressed="false">Pause</button>
+          <button class="btn btn-small" id="lensBtn" type="button" aria-pressed="false">Lens</button>
+          <button class="btn btn-small" id="themeBtn" type="button">Paper stage</button>
+        </div>
+        <div class="ov intro" id="intro" aria-hidden="true"></div>
+        <div class="ov bar" id="bar" hidden></div>
+        <div class="ov histdate" id="histdate" hidden></div>
+        <div class="ov seg layoutbar" id="layoutbar" role="group" aria-label="Layout of the graph">
+          <button type="button" data-layout="sphere" aria-pressed="true">Sphere</button>
+          <button type="button" data-layout="orbits" aria-pressed="false">Orbits</button>
+          <button type="button" data-layout="timeline" aria-pressed="false">Timeline</button>
+          <button type="button" data-layout="columns" aria-pressed="false">Columns</button>
+        </div>
+        <div class="dossier" id="dossier" hidden role="dialog" aria-label="Details of the selected node"></div>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+
+      <aside class="panel" aria-label="Graph options">
+        <section>
+          <h2 class="label">Modes</h2>
+          <label class="sw"><input type="checkbox" id="m-flow" checked><span class="box"></span><span><b>Data flow</b><small>Small dots travel along every line, from the values up to the person.</small></span></label>
+          <label class="sw"><input type="checkbox" id="m-lens"><span class="box"></span><span><b>Lens</b><small>A magnifier follows the pointer and names everything under it. Key: L.</small></span></label>
+          <label class="sw"><input type="checkbox" id="m-heat"><span class="box"></span><span><b>What changed</b><small>Values outside the printed range turn red; arrows show the direction since January.</small></span></label>
+          <label class="sw"><input type="checkbox" id="m-ghost" checked><span class="box"></span><span><b>Ghosts in the time machine</b><small>What is still to come shows as faint dotted outlines.</small></span></label>
+        </section>
+
+        <section>
+          <h2 class="label">Time machine</h2>
+          <div class="row">
+            <button class="btn btn-secondary btn-small" id="histPlay" type="button">Play</button>
+            <button class="btn btn-secondary btn-small" id="histAll" type="button">Show all</button>
+          </div>
+          <input type="range" id="histRange" min="0" max="200" step="1" value="200" aria-label="Point in time">
+          <div class="ticks"><span>Jan 2025</span><span>Jun 2025</span><span>Oct 2025</span></div>
+        </section>
+
+        <section>
+          <h2 class="label">Find a connection</h2>
+          <label class="muted" for="pathFrom">From</label>
+          <select class="select" id="pathFrom"></select>
+          <label class="muted" for="pathTo">To</label>
+          <select class="select" id="pathTo"></select>
+          <div class="row"><button class="btn btn-secondary btn-small" id="pathGo" type="button">Show the path</button><button class="btn btn-ghost btn-small" id="pathClear" type="button">Clear</button></div>
+          <p class="muted" style="margin:0">Or click one dot, then Shift-click another.</p>
+        </section>
+
+        <section>
+          <h2 class="label">Agent link and filters</h2>
+          <button class="btn btn-secondary btn-small" id="evid" type="button" aria-pressed="false">Show what the last answer cited</button>
+          <div class="row" id="chips" role="group" aria-label="Show or hide node types"></div>
+          <button class="btn btn-secondary btn-small" id="snap" type="button">Save as image</button>
+        </section>
+
+        <section>
+          <details class="fine">
+            <summary class="label">Fine-tune</summary>
+            <div class="inner">
+              <label class="sw"><input type="checkbox" id="u-size" checked><span class="box"></span><span><b>Size by importance</b><small>Hubs are drawn bigger (betweenness centrality).</small></span></label>
+              <label class="sw"><input type="checkbox" id="u-breath" checked><span class="box"></span><span><b>Gentle idle motion</b><small>Nodes breathe a little.</small></span></label>
+              <label class="sw"><input type="checkbox" id="u-drop" checked><span class="box"></span><span><b>Floor drop-lines</b><small>A thin line from each node to the grid.</small></span></label>
+              <label class="sw"><input type="checkbox" id="u-hover" checked><span class="box"></span><span><b>Hover preview</b><small>Hover lights a node's lines and shows a tooltip.</small></span></label>
+              <label class="sw"><input type="checkbox" id="u-fly" checked><span class="box"></span><span><b>Fly to node</b><small>Clicking glides the camera to the node.</small></span></label>
+              <label class="sw"><input type="checkbox" id="u-clu" checked><span class="box"></span><span><b>Cluster outlines</b><small>A dashed outline and name around each group.</small></span></label>
+            </div>
+          </details>
+        </section>
+
+        <section>
+          <h2 class="label">Legend</h2>
+          <div class="legend" id="legend"></div>
+        </section>
+      </aside>
+    </section>
+
+    <!-- ================= BACKGROUND ================= -->
+    <section class="view" id="v-bg" hidden aria-label="Living background preview">
+      <div class="box2">
+        <h2>Choose a background</h2>
+        <div class="engines" role="group" aria-label="Background engine">
+          <button class="eng" type="button" data-engine="warp" aria-pressed="true">
+            <svg viewBox="0 0 160 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1"><path d="M8 4v56M28 4v56M48 4c0 20 10 28 10 28s-10 8-10 28M68 4c4 18 18 28 18 28s-14 10-18 28M88 4c-4 18-14 28-14 28s10 10 14 28M108 4v56M128 4v56M148 4v56M4 12h152M4 32c40 0 60-8 76 0s36 0 76 0M4 52h152"/></g><rect x="78" y="29" width="6" height="6" fill="#ec3013"/></svg>
+            <b>Rubber grid</b><small>The page grid bends around the pointer.</small>
+          </button>
+          <button class="eng" type="button" data-engine="flow" aria-pressed="false">
+            <svg viewBox="0 0 160 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1"><path d="M4 14c30-10 50 10 80 0s50 6 72 0M4 26c30-10 50 10 80 0s50 6 72 0M4 38c30-10 50 10 80 0s50 6 72 0M4 50c30-10 50 10 80 0s50 6 72 0"/></g><path d="M40 32c20-8 40 8 60 0" fill="none" stroke="#ec3013" stroke-width="1.5"/></svg>
+            <b>Ink currents</b><small>Thousands of threads on a slow current.</small>
+          </button>
+          <button class="eng" type="button" data-engine="stars" aria-pressed="false">
+            <svg viewBox="0 0 160 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1"><path d="M20 40L50 18L84 34L112 14L140 40M50 18L64 52L84 34L118 50"/></g><g fill="currentColor"><circle cx="20" cy="40" r="2.5"/><circle cx="50" cy="18" r="2.5"/><circle cx="64" cy="52" r="2.5"/><circle cx="112" cy="14" r="2.5"/><circle cx="140" cy="40" r="2.5"/><circle cx="118" cy="50" r="2.5"/></g><circle cx="84" cy="34" r="4" fill="#ec3013"/></svg>
+            <b>Constellation</b><small>Dots that link to their neighbours.</small>
+          </button>
+          <button class="eng" type="button" data-engine="type" aria-pressed="false">
+            <svg viewBox="0 0 160 64" aria-hidden="true"><g fill="currentColor"><rect x="40" y="14" width="4" height="4"/><rect x="40" y="22" width="4" height="4"/><rect x="40" y="30" width="4" height="4"/><rect x="40" y="38" width="4" height="4"/><rect x="40" y="46" width="4" height="4"/><rect x="48" y="14" width="4" height="4"/><rect x="56" y="14" width="4" height="4"/><rect x="48" y="30" width="4" height="4"/><rect x="72" y="14" width="4" height="4"/><rect x="72" y="22" width="4" height="4"/><rect x="72" y="30" width="4" height="4"/><rect x="72" y="38" width="4" height="4"/><rect x="72" y="46" width="4" height="4"/><rect x="88" y="14" width="4" height="4"/><rect x="96" y="22" width="4" height="4"/><rect x="104" y="30" width="4" height="4"/><rect x="112" y="22" width="4" height="4"/><rect x="120" y="14" width="4" height="4"/><rect x="128" y="50" width="3" height="3"/><rect x="20" y="10" width="3" height="3"/></g><rect x="56" y="46" width="4" height="4" fill="#ec3013"/></svg>
+            <b>Living type</b><small>The dots spell what the app is doing.</small>
+          </button>
+        </div>
+        <p id="engDesc"></p>
+      </div>
+
+      <div class="grid2">
+        <div class="box2">
+          <h2>It reacts to what the app does</h2>
+          <p>These buttons stand in for real events. Watch the space to the right.</p>
+          <div class="row">
+            <button class="btn btn-secondary" id="ev-think" type="button" aria-pressed="false">Agent is thinking</button>
+            <button class="btn btn-secondary" id="ev-up" type="button">Start an upload</button>
+            <button class="btn btn-secondary" id="ev-done" type="button">Scan finished</button>
+          </div>
+          <div class="row"><span class="label">Right now</span><span class="state" id="evstate">Idle</span></div>
+        </div>
+        <div class="box2">
+          <h2>Play with it</h2>
+          <p id="engPlay"></p>
+          <div class="row"><span class="label">Pointer</span>
+            <div class="seg" role="group" aria-label="What the pointer does">
+              <button type="button" id="pt-attract" aria-pressed="true">Pull</button>
+              <button type="button" id="pt-repel" aria-pressed="false">Push</button>
+            </div>
+          </div>
+          <button class="btn btn-primary" type="button" id="playBtn2" style="align-self:flex-start">Enter play mode</button>
+        </div>
+      </div>
+
+      <div class="box2">
+        <h2>Text stays readable</h2>
+        <p>Content sits on a calm surface; the layer shows in the space around it.</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Report</th><th>Date</th><th>Pages</th><th>Values</th></tr></thead>
+            <tbody>
+              <tr><td>Sample panel A</td><td>15 Jan 2025</td><td>2</td><td>9</td></tr>
+              <tr><td>Sample panel B</td><td>20 Jun 2025</td><td>2</td><td>9</td></tr>
+              <tr><td>Sample scan C</td><td>02 Oct 2025</td><td>1</td><td>11</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="muted">Off, Soft and Full are in the sidebar. The layer pauses when the tab is hidden and stays still if your system asks for reduced motion.</p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span><i class="dot"></i><b>Preview</b></span>
+    <span id="fps">Background: Soft</span>
+    <span>Sample data only. Nothing here is connected to the app or to any report.</span>
+  </footer>
+</div>
+
+<div class="playtitle" id="playtitle">Play mode</div>
+<div class="playbar" id="playbar" role="toolbar" aria-label="Play mode tools">
+  <div class="seg" role="group" aria-label="Background engine">
+    <button type="button" data-pengine="warp">Grid</button>
+    <button type="button" data-pengine="flow">Currents</button>
+    <button type="button" data-pengine="stars">Stars</button>
+    <button type="button" data-pengine="type">Type</button>
+  </div>
+  <span class="tools" data-tools="warp"><button class="btn btn-small" id="pb-pull" type="button" aria-pressed="true">Pull</button><button class="btn btn-small" id="pb-wells" type="button" aria-pressed="false">Pin wells</button><button class="btn btn-small" id="pb-clear" type="button">Clear wells</button></span>
+  <span class="tools" data-tools="flow" hidden><button class="btn btn-small" id="pb-storm" type="button" aria-pressed="false">Storm</button><button class="btn btn-small" id="pb-paint" type="button" aria-pressed="false">Paint the current</button><button class="btn btn-small" id="pb-red" type="button" aria-pressed="false">Red ink</button></span>
+  <span class="tools" data-tools="stars" hidden><button class="btn btn-small" id="pb-tidy" type="button">Tidy into my graph</button><button class="btn btn-small" id="pb-free" type="button">Scatter</button><button class="btn btn-small" id="pb-add" type="button">Add 10 dots</button></span>
+  <span class="tools" data-tools="type" hidden><input id="pb-word" maxlength="12" aria-label="A word for the dots" placeholder="Type a word" value="HEMOGLOBIN"><button class="btn btn-small" id="pb-form" type="button">Form it</button></span>
+  <span class="count" id="pb-count"></span>
+  <button class="btn btn-primary btn-small" id="pb-exit" type="button">Exit (Esc)</button>
+</div>
+
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-label="Graph image">
+  <div class="sheet">
+    <img id="snapimg" alt="The graph as an image">
+    <p class="muted">In the app this button downloads the image as a PNG. This preview cannot save files, so press and hold or right-click the picture to save it.</p>
+    <div class="row"><button class="btn btn-primary btn-small" id="modalClose" type="button">Close</button></div>
+  </div>
+</div>
+
