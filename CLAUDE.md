@@ -21,9 +21,9 @@ The visual law is the Modernist design system defined by `VitaGraph-App-v3.html`
 5. **Timeline** (`/timeline`): Longitudinal reports list and 3D isometric biomarker change charts.
 6. **Compare** (`/compare`): Side-by-side longitudinal report comparisons and change deltas.
 7. **Insights** (`/insights`): Graph size, betweenness centrality rankings, edge type frequencies.
-8. **Image to Text** (`/tools/ocr`): Standalone OCR tool.
-9. **PDF to Text** (`/tools/pdf`): Standalone text-layer extraction tool.
-10. **Text to Graph** (`/tools/graph`): Standalone clinical text-to-graph extraction tool.
+8. **Image to Text** (`/image-to-text`): Standalone OCR tool.
+9. **PDF to Text** (`/pdf-to-text`): Standalone text-layer extraction tool.
+10. **Text to Graph** (`/text-to-graph`): Standalone clinical text-to-graph extraction tool.
 11. **Settings** (`/settings`): Process speed, chunk size slider (120 to 600), privacy controls, persona management.
 
 ## 4. AI Agent Streaming Protocol
@@ -63,7 +63,7 @@ The frontend consumes Server-Sent Events from `POST /api/agent/stream` (fetch + 
 - **Never Push or Reset:** Never `git push`, merge, rebase, `reset --hard`, clean, or amend.
 
 ## 6. Verification Commands (Windows)
-- **Backend:** `cd vitagraph/backend && .venv\Scripts\python.exe -m pytest tests -q` (218 tests passing)
+- **Backend:** `cd vitagraph/backend && .venv\Scripts\python.exe -m pytest tests -q` (426 tests passing)
 - **Frontend:** `cd "site design" && npm run build`
 - **Dev Servers:**
   - Backend: `uvicorn app.main:app --port 8000` (port 8001 for worktree)
