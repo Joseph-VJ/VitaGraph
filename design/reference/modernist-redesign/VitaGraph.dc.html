@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" fill="#ec3013"/><rect x="36" y="36" width="48" height="48" fill="#f3f2f2"/></svg></template>
+
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/modernist-883b3a5b-7c37-48fe-9df7-df393a0e8fc6/styles.css">
+<script src="_ds/modernist-883b3a5b-7c37-48fe-9df7-df393a0e8fc6/_ds_bundle.js"></script>
+<style>body{margin:0}button,input{font-family:inherit}a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-600)}</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body)">
+
+<nav class="nav" style="flex-wrap:wrap;gap:var(--space-4);padding:var(--space-3) var(--space-8)">
+  <span class="nav-brand" style="display:flex;align-items:center;gap:var(--space-2);font-size:1.25rem;letter-spacing:-0.02em">
+    <span style="width:16px;height:16px;background:var(--color-accent);display:inline-block"></span>VitaGraph
+  </span>
+  <span style="font-size:0.8125rem;color:var(--color-neutral-700)">Arjun R · VG-2026-001 · synthetic data</span>
+  <button class="btn btn-secondary" onClick="{{ openAi }}" style="gap:var(--space-3)">{{ providerLabel }}
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m6 9 6 6 6-6"></path></svg>
+  </button>
+  <button class="btn btn-ghost" onClick="{{ resetDemo }}">Reset demo</button>
+</nav>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+  <sc-for list="{{ steps }}" as="c" hint-placeholder-count="6">
+    <sc-if value="{{ c.active }}" hint-placeholder-val="{{ false }}">
+      <button style="appearance:none;cursor:default;text-align:left;display:flex;flex-direction:column;gap:2px;padding:var(--space-3) var(--space-4);border:0;border-right:2px solid var(--color-divider);border-bottom:2px solid var(--color-divider);background:var(--color-text);color:var(--color-bg)">
+        <span style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;font-variant-numeric:tabular-nums">{{ c.n }}</span>
+        <span style="font-size:1rem;font-weight:800;letter-spacing:-0.01em">{{ c.k }}</span>
+      </button>
+    </sc-if>
+    <sc-if value="{{ c.idle }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ c.go }}" style="appearance:none;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:2px;padding:var(--space-3) var(--space-4);border:0;border-right:2px solid var(--color-divider);border-bottom:2px solid var(--color-divider);background:transparent;color:var(--color-text)" style-hover="background:var(--color-surface)">
+        <span style="display:flex;align-items:center;gap:var(--space-2);font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;font-variant-numeric:tabular-nums;color:var(--color-neutral-700)">{{ c.n }}
+          <sc-if value="{{ c.done }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" style="stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+        </span>
+        <span style="font-size:1rem;font-weight:800;letter-spacing:-0.01em">{{ c.k }}</span>
+      </button>
+    </sc-if>
+  </sc-for>
+</div>
+
+<!-- ============ 01 INGEST ============ -->
+<sc-if value="{{ s1 }}" hint-placeholder-val="{{ true }}">
+<section data-screen-label="01 Ingest" style="flex:1;display:flex;flex-wrap:wrap;align-items:stretch;min-height:660px">
+  <div style="flex:1 1 440px;min-width:0;padding:calc(var(--space-8) + var(--space-4)) var(--space-8);border-right:2px solid var(--color-divider);display:flex;flex-direction:column;gap:var(--space-6)">
+    <div>
+      <h6 style="color:var(--color-accent-700);margin-bottom:var(--space-4)">01 / Ingest</h6>
+      <h1 style="font-size:clamp(2.75rem,5.2vw,4.75rem);line-height:0.98;letter-spacing:-0.035em;margin:0">Add a lab report.</h1>
+      <p style="margin:var(--space-4) 0 0;max-width:46ch;font-size:1.0625rem;color:var(--color-neutral-800)">Upload a PDF of any length. Digital text is extracted, scanned pages go through OCR, and every passage keeps its page number and character position.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);padding:var(--space-3) 0;border-top:2px solid var(--color-divider);border-bottom:2px solid var(--color-divider)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+      <div style="flex:1 1 200px;min-width:0">
+        <div style="font-weight:800;overflow-wrap:anywhere">{{ fileName }}</div>
+        <div style="font-size:0.8125rem;color:var(--color-neutral-700)">PDF · scoped to VG-2026-001</div>
+      </div>
+      <label class="btn btn-secondary" style="cursor:pointer">Choose file<input type="file" accept="application/pdf" onChange="{{ onFile }}" style="display:none"></input></label>
+      <button class="btn btn-primary" onClick="{{ startIngest }}" disabled="{{ busy }}" style="min-width:190px;justify-content:space-between">{{ ingestLabel }}
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+      </button>
+    </div>
+    <div>
+      <sc-for list="{{ pipe }}" as="r" hint-placeholder-count="5">
+        <div style="display:grid;grid-template-columns:2.25rem minmax(0,1fr) auto;gap:var(--space-3);align-items:baseline;padding:var(--space-3) 0;border-top:1px solid var(--color-divider)">
+          <span style="font-size:0.75rem;font-weight:800;font-variant-numeric:tabular-nums;color:var(--color-neutral-700)">{{ r.n }}</span>
+          <span style="min-width:0">
+            <span style="display:block;font-weight:800">{{ r.name }}</span>
+            <span style="display:block;font-size:0.8125rem;color:var(--color-neutral-700)">{{ r.out }}</span>
+          </span>
+          <span class="tag" style="{{ r.tagCss }}">{{ r.status }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div onMouseMove="{{ onTilt }}" onMouseLeave="{{ offTilt }}" onDragOver="{{ onDragOver }}" onDragLeave="{{ onDragLeave }}" onDrop="{{ onDrop }}" style="{{ stageCss }}">
+    <div style="position:absolute;top:var(--space-6);left:var(--space-6);z-index:2;pointer-events:none">
+      <div style="font-size:clamp(3rem,6vw,5.5rem);font-weight:800;letter-spacing:-0.05em;line-height:0.9;font-variant-numeric:tabular-nums">{{ stageNum }}<span style="color:var(--color-neutral-500)">/05</span></div>
+      <div style="margin-top:var(--space-2);font-size:0.75rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">{{ stageName }}</div>
+    </div>
+    <div style="position:absolute;inset:0;display:grid;place-items:center;perspective:1700px;pointer-events:none">
+      <div style="{{ sceneCss }}">
+        <sc-for list="{{ layers }}" as="l" hint-placeholder-count="5">
+          <div style="{{ l.css }}">
+            <sc-if value="{{ l.scanning }}" hint-placeholder-val="{{ false }}"><div style="{{ l.scanCss }}"></div></sc-if>
+            <span style="position:absolute;right:14px;top:10px;font-size:0.75rem;font-weight:800;letter-spacing:0.1em;font-variant-numeric:tabular-nums">{{ l.n }}</span>
+            <span style="{{ l.lblCss }}">{{ l.k }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="position:absolute;left:var(--space-6);bottom:var(--space-6);z-index:2;display:flex;align-items:center;gap:var(--space-2);font-size:0.8125rem;font-weight:600;color:var(--color-neutral-800);pointer-events:none">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg>
+      Drop a PDF anywhere on this panel
+    </div>
+  </div>
+</section>
+</sc-if>
+
+<!-- ============ 02 ARCHIVE ============ -->
+<sc-if value="{{ s2 }}" hint-placeholder-val="{{ false }}">
+<section data-screen-label="02 Archive" style="flex:1;display:flex;flex-wrap:wrap;align-items:stretch;min-height:660px">
+  <div style="flex:1 1 440px;min-width:0;padding:calc(var(--space-8) + var(--space-4)) var(--space-8);border-right:2px solid var(--color-divider);display:flex;flex-direction:column;gap:var(--space-6)">
+    <div>
+      <h6 style="color:var(--color-accent-700);margin-bottom:var(--space-4)">02 / Archive</h6>
+      <h1 style="font-size:clamp(2.75rem,5.2vw,4.75rem);line-height:0.98;letter-spacing:-0.035em;margin:0">Save now, or preview first.</h1>
+      <p style="margin:var(--space-4) 0 0;max-width:46ch;font-size:1.0625rem;color:var(--color-neutral-800)">Saved reports are locked in the immutable archive. A preview lets you review the extracted findings before anything is written.</p>
+    </div>
+    <div>
+      <sc-for list="{{ facts }}" as="f" hint-placeholder-count="4">
+        <div style="display:flex;justify-content:space-between;gap:var(--space-4);padding:var(--space-2) 0;border-top:1px solid var(--color-divider);font-size:0.9375rem">
+          <span style="color:var(--color-neutral-700)">{{ f.k }}</span>
+          <span style="font-weight:800;text-align:right;overflow-wrap:anywhere">{{ f.v }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;flex-direction:column;border-top:2px solid var(--color-divider)">
+      <sc-for list="{{ choices }}" as="o" hint-placeholder-count="2">
+        <sc-if value="{{ o.on }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ o.pick }}" style="appearance:none;cursor:pointer;text-align:left;display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);padding:var(--space-4);border:0;border-bottom:2px solid var(--color-divider);background:var(--color-text);color:var(--color-bg)">
+            <span><span style="display:block;font-size:1.5rem;font-weight:800;letter-spacing:-0.02em">{{ o.title }}</span><span style="display:block;margin-top:2px;font-size:0.875rem">{{ o.desc }}</span></span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-400)" style="stroke-width:3;stroke-linecap:round;stroke-linejoin:round;flex:none"><path d="M20 6 9 17l-5-5"></path></svg>
+          </button>
+        </sc-if>
+        <sc-if value="{{ o.off }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ o.pick }}" style="appearance:none;cursor:pointer;text-align:left;display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);padding:var(--space-4);border:0;border-bottom:2px solid var(--color-divider);background:transparent;color:var(--color-text)" style-hover="background:var(--color-surface)">
+            <span><span style="display:block;font-size:1.5rem;font-weight:800;letter-spacing:-0.02em">{{ o.title }}</span><span style="display:block;margin-top:2px;font-size:0.875rem;color:var(--color-neutral-700)">{{ o.desc }}</span></span>
+            <span style="width:22px;height:22px;border:2px solid var(--color-divider);flex:none"></span>
+          </button>
+        </sc-if>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="flex:1.3 1 520px;min-width:0;position:relative;overflow:hidden;background-image:linear-gradient(color-mix(in srgb,var(--color-text) 7%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--color-text) 7%,transparent) 1px,transparent 1px);background-size:48px 48px;min-height:620px">
+    <div style="position:absolute;top:var(--space-6);left:var(--space-6);z-index:2;pointer-events:none">
+      <div style="font-size:clamp(3rem,6vw,5.5rem);font-weight:800;letter-spacing:-0.05em;line-height:0.9">{{ bookState }}</div>
+      <div style="margin-top:var(--space-2);font-size:0.75rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">{{ bookSub }}</div>
+    </div>
+    <div style="position:absolute;inset:0;display:grid;place-items:center;perspective:1700px;pointer-events:none">
+      <div style="{{ bookCss }}">
+        <sc-for list="{{ pages }}" as="g" hint-placeholder-count="8">
+          <div style="{{ g.css }}"></div>
+        </sc-for>
+        <div style="{{ sealCss }}">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--color-bg)" style="stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><rect width="18" height="11" x="3" y="11" rx="0"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span style="writing-mode:vertical-rl;font-size:1.125rem;font-weight:800;letter-spacing:0.18em;color:var(--color-bg)">SEALED</span>
+        </div>
+      </div>
+    </div>
+    <div style="position:absolute;left:50%;bottom:11%;width:340px;height:34px;margin-left:-170px;background:radial-gradient(ellipse at center,color-mix(in srgb,var(--color-text) 28%,transparent),transparent 70%);pointer-events:none"></div>
+  </div>
+</section>
+</sc-if>
+
+<!-- ============ 03 UNDERSTAND ============ -->
+<sc-if value="{{ s3 }}" hint-placeholder-val="{{ false }}">
+<section data-screen-label="03 Understand" style="flex:1;display:flex;flex-wrap:wrap;align-items:stretch;min-height:660px">
+  <div style="flex:1 1 380px;min-width:0;max-width:100%;padding:calc(var(--space-8) + var(--space-4)) var(--space-8);border-right:2px solid var(--color-divider);display:flex;flex-direction:column;gap:var(--space-6)">
+    <div>
+      <h6 style="color:var(--color-accent-700);margin-bottom:var(--space-4)">03 / Understand</h6>
+      <h1 style="font-size:clamp(2.5rem,4.6vw,4.25rem);line-height:0.98;letter-spacing:-0.035em;margin:0">What the report contains.</h1>
+      <p style="margin:var(--space-4) 0 0;max-width:42ch;font-size:1.0625rem;color:var(--color-neutral-800)">Six values were extracted from five pages. Select a row to see the passage it came from.</p>
+    </div>
+    <div>
+      <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:var(--space-3)">Pages</div>
+      <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+        <sc-for list="{{ pageStrip }}" as="p" hint-placeholder-count="5">
+          <div style="display:flex;flex-direction:column;gap:var(--space-1)">
+            <div style="{{ p.css }}"></div>
+            <span style="font-size:0.75rem;font-weight:800;font-variant-numeric:tabular-nums">p.{{ p.n }}</span>
+            <span style="font-size:0.6875rem;color:var(--color-neutral-700)">{{ p.kind }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div>
+      <button class="btn btn-primary" onClick="{{ reparse }}" disabled="{{ reparsing }}" style="min-width:220px;justify-content:space-between">Re-analyze
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+      </button>
+    </div>
+  </div>
+
+  <div style="flex:2 1 560px;min-width:0;padding:calc(var(--space-8) + var(--space-4)) var(--space-8)">
+    <div style="display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(90px,0.8fr) minmax(150px,1.6fr) 5.5rem;gap:var(--space-4);padding:0 var(--space-2) var(--space-2);border-bottom:2px solid var(--color-divider);font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">
+      <span>Biomarker</span><span>Value</span><span>Reference range</span><span>Status</span>
+    </div>
+    <sc-for list="{{ bios }}" as="b" hint-placeholder-count="6">
+      <div style="border-bottom:1px solid var(--color-divider)">
+        <button onClick="{{ b.toggle }}" style="appearance:none;width:100%;text-align:left;cursor:pointer;display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(90px,0.8fr) minmax(150px,1.6fr) 5.5rem;gap:var(--space-4);align-items:center;padding:var(--space-4) var(--space-2);border:0;background:transparent;color:var(--color-text)" style-hover="background:color-mix(in srgb,var(--color-text) 4%,transparent)">
+          <span><span style="display:block;font-weight:800">{{ b.name }}</span><span style="display:block;font-size:0.75rem;color:var(--color-neutral-700)">Page {{ b.page }}</span></span>
+          <span><span style="font-size:1.375rem;font-weight:800;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">{{ b.valText }}</span><span style="font-size:0.75rem;color:var(--color-neutral-700);margin-left:4px">{{ b.unit }}</span>
+            <sc-if value="{{ b.note }}" hint-placeholder-val="{{ false }}"><span style="display:block;font-size:0.75rem;color:var(--color-neutral-700)">{{ b.note }}</span></sc-if>
+          </span>
+          <span>
+            <span style="display:block;position:relative;height:8px;background:var(--color-neutral-200)">
+              <span style="{{ b.bandCss }}"></span>
+              <span style="{{ b.markCss }}"></span>
+            </span>
+            <span style="display:flex;justify-content:space-between;margin-top:var(--space-2);font-size:0.6875rem;color:var(--color-neutral-700);font-variant-numeric:tabular-nums"><span>{{ b.lo }}</span><span>{{ b.hi }}</span></span>
+          </span>
+          <span><span class="tag tag-neutral">In range</span></span>
+        </button>
+        <sc-if value="{{ b.open }}" hint-placeholder-val="{{ false }}">
+          <div style="margin:0 var(--space-2) var(--space-4);background:var(--color-surface);border-top:2px solid var(--color-text);padding:var(--space-4)">
+            <div style="display:flex;flex-wrap:wrap;gap:var(--space-4);font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)"><span>{{ b.slip.rep }}</span><span>Page {{ b.slip.page }}</span><span>Characters {{ b.slip.start }}–{{ b.slip.end }}</span></div>
+            <div style="margin-top:var(--space-3);white-space:pre-wrap;font-size:0.9375rem;line-height:1.75;font-variant-numeric:tabular-nums"><span>{{ b.slip.pre }}</span><mark style="background:var(--color-accent-200);color:var(--color-text);box-shadow:inset 0 -2px 0 var(--color-accent);padding:0 2px">{{ b.slip.hit }}</mark><span>{{ b.slip.post }}</span></div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+</section>
+</sc-if>
+
+<!-- ============ 04 ASK ============ -->
+<sc-if value="{{ s4 }}" hint-placeholder-val="{{ false }}">
+<section data-screen-label="04 Ask" style="flex:1;display:flex;flex-wrap:wrap;align-items:stretch;min-height:660px">
+  <div style="flex:1 1 340px;min-width:0;max-width:100%;padding:calc(var(--space-8) + var(--space-4)) var(--space-8);border-right:2px solid var(--color-divider);display:flex;flex-direction:column;gap:var(--space-6)">
+    <div>
+      <h6 style="color:var(--color-accent-700);margin-bottom:var(--space-4)">04 / Ask</h6>
+      <h1 style="font-size:clamp(2.5rem,4.6vw,4.25rem);line-height:0.98;letter-spacing:-0.035em;margin:0">Ask the record.</h1>
+      <p style="margin:var(--space-4) 0 0;max-width:40ch;font-size:1.0625rem;color:var(--color-neutral-800)">Answers use only passages from the three indexed reports. Each claim carries a numbered reference to its source.</p>
+    </div>
+    <div>
+      <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700);padding-bottom:var(--space-2);border-bottom:2px solid var(--color-divider)">Try asking</div>
+      <sc-for list="{{ suggestions }}" as="q" hint-placeholder-count="4">
+        <button onClick="{{ q.go }}" style="appearance:none;width:100%;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-2);border:0;border-bottom:1px solid var(--color-divider);background:transparent;color:var(--color-text);font-size:0.9375rem;font-weight:600" style-hover="background:color-mix(in srgb,var(--color-text) 5%,transparent)">
+          <span>{{ q.text }}</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg>
+        </button>
+      </sc-for>
+    </div>
+    <p style="margin:auto 0 0;font-size:0.8125rem;color:var(--color-neutral-700);max-width:40ch">Educational evidence organizer. It does not diagnose, recommend treatment or advise on medication.</p>
+  </div>
+
+  <div style="flex:2 1 560px;min-width:0;padding:calc(var(--space-8) + var(--space-4)) var(--space-8);display:flex;flex-direction:column;gap:var(--space-6)">
+    <form onSubmit="{{ submit }}" style="display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:stretch">
+      <input class="input" value="{{ input }}" onChange="{{ onInput }}" placeholder="Ask about a value, a trend or a report" style="flex:1 1 280px;min-height:56px;font-size:1.125rem;font-weight:600;padding:var(--space-3) var(--space-4)"></input>
+      <button class="btn btn-primary" type="submit" style="min-width:150px;justify-content:space-between">Send
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+      </button>
+    </form>
+
+    <sc-if value="{{ noQa }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:1;min-height:260px;border:2px dashed var(--color-divider);display:flex;align-items:flex-end;padding:var(--space-4);font-size:0.9375rem;color:var(--color-neutral-700)">No questions yet. Pick one from the list or type your own.</div>
+    </sc-if>
+
+    <sc-for list="{{ entries }}" as="e" hint-placeholder-count="0">
+      <article style="border-top:2px solid var(--color-text)">
+        <div style="display:flex;gap:var(--space-4);align-items:baseline;padding:var(--space-4) 0 var(--space-3)">
+          <span style="font-size:0.75rem;font-weight:800;letter-spacing:0.1em;color:var(--color-accent-700);font-variant-numeric:tabular-nums">Q{{ e.n }}</span>
+          <h3 style="margin:0;font-size:1.625rem;letter-spacing:-0.02em;line-height:1.15">{{ e.q }}</h3>
+        </div>
+        <sc-if value="{{ e.pending }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);padding-bottom:var(--space-4)">
+            <sc-for list="{{ e.stages }}" as="t" hint-placeholder-count="3"><span class="tag" style="{{ t.css }}">{{ t.label }}</span></sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ e.isAnswer }}" hint-placeholder-val="{{ false }}">
+          <div style="padding-bottom:var(--space-4)">
+            <p style="margin:0;max-width:62ch;font-size:1.3125rem;line-height:1.5;font-weight:400">
+              <sc-for list="{{ e.segs }}" as="x" hint-placeholder-count="0">
+                <sc-if value="{{ x.isText }}"><span>{{ x.text }}</span></sc-if>
+                <sc-if value="{{ x.isRef }}"><button onClick="{{ x.onClick }}" style="appearance:none;cursor:pointer;display:inline-block;margin:0 2px;padding:0 6px;border:0;background:var(--color-accent-700);color:var(--color-bg);font-size:0.75rem;font-weight:800;line-height:1.5;vertical-align:0.3em;font-variant-numeric:tabular-nums" style-hover="background:var(--color-text)">{{ x.label }}</button></sc-if>
+              </sc-for>
+            </p>
+          </div>
+          <sc-if value="{{ e.showModules }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));border-top:1px solid var(--color-divider)">
+              <div style="padding:var(--space-3) var(--space-4) var(--space-3) 0">
+                <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:var(--space-2)">Evidence</div>
+                <sc-for list="{{ e.refs }}" as="r" hint-placeholder-count="3">
+                  <button onClick="{{ r.onClick }}" style="appearance:none;cursor:pointer;display:flex;gap:var(--space-2);align-items:baseline;width:100%;text-align:left;padding:var(--space-1) 0;border:0;background:transparent;color:var(--color-text);font-size:0.8125rem" style-hover="color:var(--color-accent-700)">
+                    <span style="font-weight:800;font-variant-numeric:tabular-nums;color:var(--color-accent-700)">{{ r.n }}</span>
+                    <span><span style="font-weight:800">{{ r.rep }}</span> · p.{{ r.page }} · chars {{ r.span }}</span>
+                  </button>
+                </sc-for>
+              </div>
+              <div style="padding:var(--space-3) var(--space-4);border-left:1px solid var(--color-divider)">
+                <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:var(--space-2)">Limitations</div>
+                <div style="font-size:0.8125rem;line-height:1.5">{{ e.limits }}</div>
+              </div>
+              <div style="padding:var(--space-3) 0 var(--space-3) var(--space-4);border-left:1px solid var(--color-divider)">
+                <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:var(--space-2)">Safety</div>
+                <div style="font-size:0.8125rem;line-height:1.5">{{ e.safety }}</div>
+              </div>
+            </div>
+            <sc-for list="{{ e.openSlips }}" as="r" hint-placeholder-count="0">
+              <div style="margin-top:var(--space-3);background:var(--color-surface);border-top:2px solid var(--color-text);padding:var(--space-4)">
+                <div style="display:flex;flex-wrap:wrap;gap:var(--space-4);font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)"><span>Reference {{ r.n }}</span><span>{{ r.slip.rep }}</span><span>Page {{ r.slip.page }}</span><span>Characters {{ r.slip.start }}–{{ r.slip.end }}</span></div>
+                <div style="margin-top:var(--space-3);white-space:pre-wrap;font-size:0.9375rem;line-height:1.75;font-variant-numeric:tabular-nums"><span>{{ r.slip.pre }}</span><mark style="background:var(--color-accent-200);color:var(--color-text);box-shadow:inset 0 -2px 0 var(--color-accent);padding:0 2px">{{ r.slip.hit }}</mark><span>{{ r.slip.post }}</span></div>
+              </div>
+            </sc-for>
+          </sc-if>
+        </sc-if>
+        <sc-if value="{{ e.isRefuse }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--color-accent-100);border-top:2px solid var(--color-accent);padding:var(--space-4);margin-bottom:var(--space-4)">
+            <span class="tag tag-accent" style="font-weight:800;background:var(--color-accent-200)">Declined by policy</span>
+            <p style="margin:var(--space-3) 0 0;font-size:1.125rem;line-height:1.5;color:var(--color-accent-800)">VitaGraph does not diagnose, recommend treatment or advise on medication. Please take this question to a clinician.</p>
+          </div>
+        </sc-if>
+        <sc-if value="{{ e.isNone }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--color-surface);padding:var(--space-4);margin-bottom:var(--space-4)">
+            <span class="tag tag-neutral" style="font-weight:800">No supporting passage</span>
+            <p style="margin:var(--space-3) 0 0;font-size:1.0625rem;line-height:1.5">None of the three indexed reports addresses this question, so no answer is given.</p>
+          </div>
+        </sc-if>
+      </article>
+    </sc-for>
+  </div>
+</section>
+</sc-if>
+
+<!-- ============ 05 GRAPH ============ -->
+<sc-if value="{{ s5 }}" hint-placeholder-val="{{ false }}">
+<section data-screen-label="05 Graph" style="flex:1;display:flex;flex-wrap:wrap;align-items:stretch;min-height:700px">
+  <div style="flex:2 1 560px;min-width:0;position:relative;min-height:640px;border-right:2px solid var(--color-divider);background-image:linear-gradient(color-mix(in srgb,var(--color-text) 7%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--color-text) 7%,transparent) 1px,transparent 1px);background-size:48px 48px;overflow:hidden">
+    <canvas ref="{{ setCanvas }}" style="position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab"></canvas>
+    <div style="position:absolute;top:var(--space-6);left:var(--space-6);pointer-events:none">
+      <h6 style="color:var(--color-accent-700);margin-bottom:var(--space-2)">05 / Graph</h6>
+      <div style="font-size:0.9375rem;font-weight:800;font-variant-numeric:tabular-nums">23 nodes · 34 edges</div>
+    </div>
+    <div style="position:absolute;top:var(--space-6);right:var(--space-6);display:flex;gap:var(--space-2)">
+      <button class="btn btn-secondary" onClick="{{ replay }}" style="background:var(--color-bg)">Replay build</button>
+      <button class="btn btn-secondary" onClick="{{ toggleAuto }}" style="background:var(--color-bg)">{{ autoLabel }}</button>
+    </div>
+    <div style="position:absolute;left:var(--space-6);bottom:var(--space-6);font-size:0.8125rem;font-weight:600;color:var(--color-neutral-800);pointer-events:none">Drag to rotate · scroll to zoom · select a node</div>
+  </div>
+
+  <div style="flex:1 1 340px;min-width:0;max-width:100%;padding:calc(var(--space-8) + var(--space-2)) var(--space-8);display:flex;flex-direction:column;gap:var(--space-6)">
+    <div>
+      <h1 style="font-size:clamp(2.25rem,3.6vw,3.25rem);line-height:0.98;letter-spacing:-0.035em;margin:0">Concept graph.</h1>
+      <p style="margin:var(--space-3) 0 0;font-size:1rem;color:var(--color-neutral-800)">Subject, reports, sections, biomarkers and measurements, linked by where each value was found. Pick a subgraph to dim everything else to 40%.</p>
+    </div>
+    <div>
+      <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700);padding-bottom:var(--space-2);border-bottom:2px solid var(--color-divider)">Subgraph</div>
+      <sc-for list="{{ focuses }}" as="f" hint-placeholder-count="5">
+        <sc-if value="{{ f.on }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ f.pick }}" style="appearance:none;width:100%;cursor:pointer;text-align:left;display:flex;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-2);border:0;border-bottom:1px solid var(--color-divider);background:var(--color-text);color:var(--color-bg);font-size:0.9375rem;font-weight:800"><span>{{ f.label }}</span><span style="font-variant-numeric:tabular-nums">{{ f.count }}</span></button>
+        </sc-if>
+        <sc-if value="{{ f.off }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ f.pick }}" style="appearance:none;width:100%;cursor:pointer;text-align:left;display:flex;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-2);border:0;border-bottom:1px solid var(--color-divider);background:transparent;color:var(--color-text);font-size:0.9375rem;font-weight:600" style-hover="background:color-mix(in srgb,var(--color-text) 5%,transparent)"><span>{{ f.label }}</span><span style="font-variant-numeric:tabular-nums;color:var(--color-neutral-700)">{{ f.count }}</span></button>
+        </sc-if>
+      </sc-for>
+    </div>
+    <sc-if value="{{ hasNode }}" hint-placeholder-val="{{ false }}">
+      <div style="border-top:2px solid var(--color-text);padding-top:var(--space-3)">
+        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-accent-700)">{{ node.kind }}</span>
+          <button class="btn btn-ghost" onClick="{{ clearNode }}" style="padding:0 var(--space-1);font-size:0.8125rem">Clear</button></div>
+        <h3 style="margin:var(--space-1) 0 var(--space-2);font-size:1.75rem;letter-spacing:-0.02em">{{ node.label }}</h3>
+        <p style="margin:0 0 var(--space-3);font-size:0.9375rem">{{ node.about }}</p>
+        <div style="display:flex;flex-wrap:wrap;gap:var(--space-2)">
+          <sc-for list="{{ node.nbs }}" as="nb" hint-placeholder-count="0"><button class="btn btn-secondary" onClick="{{ nb.go }}" style="padding:var(--space-1) var(--space-2);font-size:0.8125rem">{{ nb.label }}</button></sc-for>
+        </div>
+        <sc-if value="{{ node.slip }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:var(--space-3);background:var(--color-surface);border-top:2px solid var(--color-text);padding:var(--space-3)">
+            <div style="display:flex;flex-wrap:wrap;gap:var(--space-3);font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)"><span>{{ node.slip.rep }}</span><span>Page {{ node.slip.page }}</span><span>Chars {{ node.slip.start }}–{{ node.slip.end }}</span></div>
+            <div style="margin-top:var(--space-2);white-space:pre-wrap;font-size:0.875rem;line-height:1.7;font-variant-numeric:tabular-nums"><span>{{ node.slip.pre }}</span><mark style="background:var(--color-accent-200);color:var(--color-text);box-shadow:inset 0 -2px 0 var(--color-accent);padding:0 2px">{{ node.slip.hit }}</mark><span>{{ node.slip.post }}</span></div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+    <div style="margin-top:auto">
+      <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700);padding-bottom:var(--space-2);border-bottom:2px solid var(--color-divider)">Legend</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--space-2) var(--space-4);padding-top:var(--space-3)">
+        <sc-for list="{{ legend }}" as="g" hint-placeholder-count="6">
+          <div style="display:flex;align-items:center;gap:var(--space-2);font-size:0.8125rem"><span style="{{ g.css }}"></span>{{ g.label }}</div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</section>
+</sc-if>
+
+<!-- ============ 06 RECORD ============ -->
+<sc-if value="{{ s6 }}" hint-placeholder-val="{{ false }}">
+<section data-screen-label="06 Record" style="flex:1;display:flex;flex-wrap:wrap;align-items:stretch;min-height:660px">
+  <div style="flex:1 1 400px;min-width:0;max-width:100%;padding:calc(var(--space-8) + var(--space-4)) var(--space-8);border-right:2px solid var(--color-divider);display:flex;flex-direction:column;gap:var(--space-6)">
+    <div>
+      <h6 style="color:var(--color-accent-700);margin-bottom:var(--space-4)">06 / Record</h6>
+      <h1 style="font-size:clamp(2.75rem,5.2vw,4.75rem);line-height:0.98;letter-spacing:-0.035em;margin:0">Arjun R.</h1>
+      <p style="margin:var(--space-3) 0 0;font-size:1.0625rem;color:var(--color-neutral-800)">VG-2026-001 · 24 years · Male · Chennai</p>
+    </div>
+    <div>
+      <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700);padding-bottom:var(--space-2);border-bottom:2px solid var(--color-divider)">Reports</div>
+      <sc-for list="{{ reports }}" as="r" hint-placeholder-count="3">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--space-3);align-items:center;padding:var(--space-4) var(--space-2);border-bottom:1px solid var(--color-divider)">
+          <div><div style="font-size:1.5rem;font-weight:800;letter-spacing:-0.02em">{{ r.date }}</div><div style="font-size:0.8125rem;color:var(--color-neutral-700)">{{ r.desc }}</div></div>
+          <span class="tag" style="{{ r.tagCss }}">{{ r.status }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:var(--space-3);margin-top:auto">
+      <sc-if value="{{ notSaved }}" hint-placeholder-val="{{ true }}">
+        <button class="btn btn-primary" onClick="{{ confirmSave }}" style="justify-content:space-between">Save latest report to archive
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><rect width="18" height="11" x="3" y="11" rx="0"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        </button>
+      </sc-if>
+      <sc-if value="{{ isSaved }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:var(--space-3) var(--space-4);background:var(--color-surface);border-top:2px solid var(--color-text);font-size:0.9375rem;font-weight:600">Saved to the immutable archive. Entries are append-only.</div>
+      </sc-if>
+      <button class="btn btn-secondary" onClick="{{ restart }}" style="justify-content:space-between">Start over
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+      </button>
+    </div>
+  </div>
+
+  <div style="flex:1.7 1 560px;min-width:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-content:start">
+    <sc-for list="{{ charts }}" as="c" hint-placeholder-count="2">
+      <div style="padding:calc(var(--space-8) + var(--space-4)) var(--space-6) var(--space-6);border-right:2px solid var(--color-divider);border-bottom:2px solid var(--color-divider)">
+        <div style="font-size:0.6875rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-700)">{{ c.name }}</div>
+        <div style="margin:var(--space-1) 0 var(--space-1);font-size:2rem;font-weight:800;letter-spacing:-0.03em;font-variant-numeric:tabular-nums">{{ c.delta }}</div>
+        <div style="font-size:0.8125rem;color:var(--color-neutral-700)">{{ c.range }}</div>
+        <div style="position:relative;margin-top:var(--space-3)">
+        <svg viewBox="0 0 400 320" style="width:100%;height:auto;display:block">
+          <polygon points="{{ c.iso.floor }}" style="fill:var(--color-neutral-200);stroke:var(--color-divider);stroke-width:1.5"></polygon>
+          <polygon points="{{ c.iso.back }}" style="fill:var(--color-neutral-100);stroke:var(--color-divider);stroke-width:1.5"></polygon>
+          <polygon points="{{ c.iso.left }}" style="fill:var(--color-neutral-200);stroke:var(--color-divider);stroke-width:1.5"></polygon>
+          <polygon points="{{ c.iso.bandBack }}" style="fill:var(--color-accent-200)"></polygon>
+          <polygon points="{{ c.iso.bandLeft }}" style="fill:var(--color-accent-300)"></polygon>
+          <sc-for list="{{ c.iso.grid }}" as="gl" hint-placeholder-count="0"><line x1="{{ gl.x1 }}" y1="{{ gl.y1 }}" x2="{{ gl.x2 }}" y2="{{ gl.y2 }}" style="stroke:var(--color-divider);stroke-width:0.8"></line></sc-for>
+          <sc-for list="{{ c.iso.bars }}" as="b" hint-placeholder-count="0">
+            <polygon points="{{ b.front }}" style="{{ b.ffCss }}"></polygon>
+            <polygon points="{{ b.right }}" style="{{ b.rfCss }}"></polygon>
+            <polygon points="{{ b.top }}" style="{{ b.tfCss }}"></polygon>
+          </sc-for>
+        </svg>
+        <sc-for list="{{ c.iso.labels }}" as="lb" hint-placeholder-count="0"><span style="{{ lb.css }}">{{ lb.text }}</span></sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+</sc-if>
+
+<!-- ============ ACTION BAR + TRACE ============ -->
+<div style="position:sticky;bottom:0;z-index:30">
+  <div style="display:flex;flex-wrap:wrap;gap:var(--space-3);justify-content:space-between;align-items:center;padding:var(--space-3) var(--space-8);background:var(--color-bg);border-top:2px solid var(--color-divider)">
+    <button class="btn btn-secondary" onClick="{{ back }}" disabled="{{ noBack }}" style="min-width:150px;justify-content:space-between">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>Back
+    </button>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-4)">
+      <span style="font-size:0.8125rem;color:var(--color-neutral-700)">{{ hint }}</span>
+      <button class="btn btn-primary" onClick="{{ next }}" disabled="{{ noNext }}" style="min-width:270px;justify-content:space-between">{{ nextLabel }}
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+      </button>
+    </div>
+  </div>
+  <div style="background:var(--color-text);color:var(--color-bg)">
+    <button onClick="{{ toggleTrace }}" style="appearance:none;cursor:pointer;display:flex;gap:var(--space-4);align-items:center;width:100%;text-align:left;padding:var(--space-2) var(--space-8);border:0;background:transparent;color:var(--color-bg);font-size:0.75rem" style-hover="background:var(--color-neutral-900)">
+      <span style="font-weight:800;letter-spacing:0.1em;text-transform:uppercase">Trace</span>
+      <span style="font-variant-numeric:tabular-nums;color:var(--color-neutral-400)">{{ traceCount }} events</span>
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-neutral-300)">{{ traceLast }}</span>
+      <span style="font-weight:800;color:var(--color-accent-400)">{{ traceToggle }}</span>
+    </button>
+    <sc-if value="{{ traceOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="max-height:200px;overflow:auto;padding:var(--space-2) var(--space-8) var(--space-4);border-top:1px solid var(--color-neutral-800);font-size:0.75rem;font-variant-numeric:tabular-nums">
+        <sc-for list="{{ traceRows }}" as="t" hint-placeholder-count="0">
+          <div style="display:grid;grid-template-columns:3.5rem 4.5rem minmax(0,1fr);gap:var(--space-3);padding:2px 0"><span style="color:var(--color-neutral-500)">{{ t.t }}s</span><span style="font-weight:800;color:var(--color-accent-400);text-transform:uppercase;letter-spacing:0.06em">{{ t.tag }}</span><span style="color:var(--color-neutral-200)">{{ t.msg }}</span></div>
+        </sc-for>
+      </div>
+    </sc-if>
+  </div>
+</div>
+
+<!-- ============ MODEL DIALOG ============ -->
+<sc-if value="{{ aiOpen }}" hint-placeholder-val="{{ false }}">
+  <div class="dialog-backdrop" style="z-index:50">
+    <div class="dialog" style="width:min(480px,100%)">
+      <div class="dialog-title">Model and API key</div>
+      <div class="dialog-body">Queries send only retrieved passages from VG-2026-001. Keys stay in this browser.</div>
+      <div style="display:flex;flex-direction:column;gap:var(--space-2)">
+        <sc-for list="{{ providers }}" as="p" hint-placeholder-count="5">
+          <label class="radio"><input type="radio" name="prov" checked="{{ p.on }}" onChange="{{ p.pick }}"></input><span class="dot"></span>{{ p.label }}</label>
+        </sc-for>
+      </div>
+      <div class="field"><label>API key</label><input class="input" type="password" value="{{ keyDraft }}" onChange="{{ onKey }}" placeholder="Paste a key"></input></div>
+      <div class="dialog-actions"><button class="btn btn-secondary" onClick="{{ closeAi }}">Cancel</button><button class="btn btn-primary" onClick="{{ saveAi }}">Save</button></div>
+    </div>
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;ingestSpeed&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;fast&quot;,&quot;normal&quot;,&quot;slow&quot;],&quot;default&quot;:&quot;normal&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;autoRotate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;traceOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;}}">
+class Component extends DCLogic {
+  t0 = Date.now();
+  timers = [];
+  state = { step: 0, fileName: 'Arjun_Lab_Report_Feb2026.pdf', busy: false, ingest: 0, scan: 0, drag: false, tilt: 0, save: null, reparse: 99, bioOpen: null, qa: [], input: '', evOpen: {}, trace: [], traceOpen: false, aiOpen: false, provider: 'gemini', pick: 'gemini', keyDraft: '', focus: 'all', node: null, auto: true };
+
+  STEPS = [{ k: 'Ingest' }, { k: 'Archive' }, { k: 'Understand' }, { k: 'Ask' }, { k: 'Graph' }, { k: 'Record' }];
+  PIPE = [
+    { name: 'Parse digital text', out: '5 pages, 4 with a text layer' },
+    { name: 'Read scanned pages (OCR)', out: 'Page 5, 312 characters' },
+    { name: 'Chunk with provenance', out: '24 chunks, page and character spans kept' },
+    { name: 'Embed passages', out: '24 vectors, 384 dimensions' },
+    { name: 'Index, scoped to user', out: '24 upserts where user_id = VG-2026-001' }
+  ];
+  PROVIDERS = { gemini: 'Gemini 1.5 Flash', openai: 'OpenAI gpt-4o-mini', groq: 'Groq llama-3.3-70b', openrouter: 'OpenRouter llama-3-8b', custom: 'Custom endpoint' };
+  BIO = [
+    { id: 'hb', name: 'Hemoglobin', val: 14.0, disp: '14.0', unit: 'g/dL', lo: 13, hi: 17, page: 1, ev: 'e1' },
+    { id: 'wbc', name: 'White blood cells', val: 6200, disp: '6,200', unit: '/µL', lo: 4500, hi: 11000, page: 1, ev: 'e8' },
+    { id: 'plt', name: 'Platelets', val: 245000, disp: '245,000', unit: '/µL', lo: 150000, hi: 450000, page: 1, ev: 'e7' },
+    { id: 'vd', name: 'Vitamin D (25-OH)', val: 32, disp: '32.0', unit: 'ng/mL', lo: 30, hi: 100, page: 4, ev: 'e4', note: '18 in Jan 2024' },
+    { id: 'b12', name: 'Vitamin B12', val: 480, disp: '480', unit: 'pg/mL', lo: 200, hi: 900, page: 4, ev: 'e6' },
+    { id: 'glu', name: 'Fasting glucose', val: 94, disp: '94', unit: 'mg/dL', lo: 70, hi: 99, page: 2, ev: 'e9' }
+  ];
+  EV = (() => {
+    const mk = (rep, page, start, pre, hit, post) => ({ rep, page, start, end: start + hit.length, pre, hit, post });
+    return {
+      e1: mk('Feb 2026', 1, 412, 'COMPLETE BLOOD COUNT\nHemoglobin        ', '14.0 g/dL', '   13.0 - 17.0 g/dL\nWBC               6,200 /µL'),
+      e2: mk('Aug 2024', 2, 188, 'HEMATOLOGY\nHemoglobin        ', '13.2 g/dL', '   13.0 - 17.0 g/dL'),
+      e3: mk('Jan 2024', 2, 203, 'HEMATOLOGY\nHemoglobin        ', '13.1 g/dL', '   13.0 - 17.0 g/dL'),
+      e4: mk('Feb 2026', 4, 276, 'VITAMINS\n25-OH Vitamin D   ', '32.0 ng/mL', '   30.0 - 100.0 ng/mL\nVitamin B12       480 pg/mL'),
+      e5: mk('Jan 2024', 4, 301, 'VITAMINS\n25-OH Vitamin D   ', '18 ng/mL', '   30.0 - 100.0 ng/mL\nFlag: LOW'),
+      e6: mk('Feb 2026', 4, 351, '25-OH Vitamin D   32.0 ng/mL\nVitamin B12       ', '480 pg/mL', '   200 - 900 pg/mL'),
+      e7: mk('Feb 2026', 1, 498, 'WBC               6,200 /µL\nPlatelet count    ', '245,000 /µL', '   150,000 - 450,000 /µL'),
+      e8: mk('Feb 2026', 1, 455, 'Hemoglobin        14.0 g/dL\nWBC               ', '6,200 /µL', '   4,500 - 11,000 /µL'),
+      e9: mk('Feb 2026', 2, 143, 'METABOLIC PANEL\nFasting glucose  ', '94 mg/dL', '   70 - 99 mg/dL')
+    };
+  })();
+  SAFETY = 'Educational summary of report text. Discuss any decision with a clinician.';
+  TOPICS = {
+    hb: { q: 'What does my hemoglobin trend show over time?', segs: ['Hemoglobin rose across the three indexed visits: 13.1 g/dL in Jan 2024', 1, ', 13.2 g/dL in Aug 2024', 2, ' and 14.0 g/dL in Feb 2026', 3, '. The latest value is inside the 13.0–17.0 g/dL reference range.'], refs: ['e3', 'e2', 'e1'], limits: 'Three data points. Reference ranges are the ones printed on each report.' },
+    vit: { q: 'Are there any low vitamin levels in my records?', segs: ['In Jan 2024, 25-OH Vitamin D was 18 ng/mL, below the 30–100 ng/mL reference range', 1, '. The Feb 2026 report lists 32.0 ng/mL', 2, '. Vitamin B12 is 480 pg/mL, inside its 200–900 pg/mL range', 3, '.'], refs: ['e5', 'e4', 'e6'], limits: 'The reports do not state a cause for the change in Vitamin D.' },
+    feb: { q: 'Summarize my latest Feb 2026 lab report', segs: ['All six values extracted from the Feb 2026 report are inside the printed reference ranges: hemoglobin 14.0 g/dL', 1, ', fasting glucose 94 mg/dL', 2, ', WBC 6,200 /µL', 3, ', platelets 245,000 /µL', 4, ', Vitamin D 32.0 ng/mL', 5, ' and Vitamin B12 480 pg/mL', 6, '.'], refs: ['e1', 'e9', 'e8', 'e7', 'e4', 'e6'], limits: 'Covers the six values extracted from this report.' },
+    plt: { q: 'Is my platelet count in the normal reference range?', segs: ['Platelet count is 245,000 /µL against a reference range of 150,000–450,000 /µL', 1, '. WBC is 6,200 /µL against 4,500–11,000 /µL', 2, '.'], refs: ['e7', 'e8'], limits: 'These values come from the Feb 2026 report only.' }
+  };
+  NODES = [
+    { id: 'p', k: 'person', label: 'Arjun R', pos: [-0.056, -0.097, -0.073], about: 'Subject. Every report and passage is scoped to VG-2026-001.' },
+    { id: 'rj', k: 'report', label: 'Jan 2024', pos: [-0.056, -0.298, 0.32], about: 'Baseline report. 5 pages: blood count and vitamins.' },
+    { id: 'ra', k: 'report', label: 'Aug 2024', pos: [0.064, -0.198, -0.47], about: 'Follow-up report. 4 pages.' },
+    { id: 'rf', k: 'report', label: 'Feb 2026', pos: [-0.028, 0.223, 0.068], about: 'Latest report. 5 pages; page 5 was read by OCR.' },
+    { id: 'sc', k: 'section', label: 'CBC', pos: [0.426, -0.177, -0.1], about: 'Complete blood count section.' },
+    { id: 'sm', k: 'section', label: 'Metabolic', pos: [0.238, 0.525, -0.208], about: 'Metabolic panel section.' },
+    { id: 'sv', k: 'section', label: 'Vitamins', pos: [-0.365, 0.056, 0.398], about: 'Vitamin panel section.' },
+    { id: 'bhb', k: 'bio', label: 'Hemoglobin', pos: [0.317, -0.686, -0.238], about: 'Reference range 13.0–17.0 g/dL.', ev: 'e1' },
+    { id: 'bwbc', k: 'bio', label: 'WBC', pos: [0.751, -0.021, 0.291], about: 'Reference range 4,500–11,000 /µL.', ev: 'e8' },
+    { id: 'bplt', k: 'bio', label: 'Platelets', pos: [0.544, 0.101, -0.588], about: 'Reference range 150,000–450,000 /µL.', ev: 'e7' },
+    { id: 'bvd', k: 'bio', label: 'Vitamin D', pos: [-0.776, -0.111, -0.011], about: 'Reference range 30–100 ng/mL.', ev: 'e4' },
+    { id: 'bb12', k: 'bio', label: 'Vitamin B12', pos: [-0.271, 0.292, 0.778], about: 'Reference range 200–900 pg/mL.', ev: 'e6' },
+    { id: 'bglu', k: 'bio', label: 'Glucose', pos: [0.429, 0.828, -0.08], about: 'Reference range 70–99 mg/dL.', ev: 'e9' },
+    { id: 'mhbj', k: 'meas', label: '13.1', pos: [0.293, -0.77, 0.279], about: 'Hemoglobin, Jan 2024, g/dL.', ev: 'e3' },
+    { id: 'mhba', k: 'meas', label: '13.2', pos: [0.133, -0.571, -0.728], about: 'Hemoglobin, Aug 2024, g/dL.', ev: 'e2' },
+    { id: 'mhbf', k: 'meas', label: '14.0', pos: [-0.141, -0.691, -0.159], about: 'Hemoglobin, Feb 2026, g/dL.', ev: 'e1' },
+    { id: 'mvdj', k: 'meas', label: '18', pos: [-0.792, -0.048, 0.403], about: 'Vitamin D, Jan 2024, ng/mL.', ev: 'e5' },
+    { id: 'mvdf', k: 'meas', label: '32.0', pos: [-0.602, -0.42, 0.241], about: 'Vitamin D, Feb 2026, ng/mL.', ev: 'e4' },
+    { id: 'mb12f', k: 'meas', label: '480', pos: [-0.275, 0.632, 0.5], about: 'Vitamin B12, Feb 2026, pg/mL.', ev: 'e6' },
+    { id: 'mwbcf', k: 'meas', label: '6,200', pos: [0.521, 0.313, 0.514], about: 'WBC, Feb 2026, /µL.', ev: 'e8' },
+    { id: 'mpltf', k: 'meas', label: '245,000', pos: [0.121, 0.386, -0.679], about: 'Platelets, Feb 2026, /µL.', ev: 'e7' },
+    { id: 'mgluf', k: 'meas', label: '94', pos: [-0.008, 0.869, 0.019], about: 'Fasting glucose, Feb 2026, mg/dL.', ev: 'e9' },
+    { id: 'u', k: 'unc', label: 'Cause not stated', pos: [-0.842, -0.273, -0.465], about: 'The reports record the Vitamin D change but do not state a cause.' }
+  ];
+  EDGES = [['p','rj'],['p','ra'],['p','rf'],['rj','sc'],['rj','sv'],['ra','sc'],['rf','sc'],['rf','sm'],['rf','sv'],['sc','bhb'],['sc','bwbc'],['sc','bplt'],['sm','bglu'],['sv','bvd'],['sv','bb12'],['bhb','mhbj'],['bhb','mhba'],['bhb','mhbf'],['bvd','mvdj'],['bvd','mvdf'],['bb12','mb12f'],['bwbc','mwbcf'],['bplt','mpltf'],['bglu','mgluf'],['mhbj','rj'],['mhba','ra'],['mhbf','rf'],['mvdj','rj'],['mvdf','rf'],['mb12f','rf'],['mwbcf','rf'],['mpltf','rf'],['mgluf','rf'],['u','bvd']];
+  FOCUS = {
+    hb: ['bhb', 'mhbj', 'mhba', 'mhbf', 'rj', 'ra', 'rf'],
+    vit: ['bvd', 'mvdj', 'mvdf', 'bb12', 'mb12f', 'rj', 'rf', 'u'],
+    feb: ['rf', 'mhbf', 'mvdf', 'mb12f', 'mwbcf', 'mpltf', 'mgluf', 'bhb', 'bvd', 'bb12', 'bwbc', 'bplt', 'bglu'],
+    plt: ['bplt', 'mpltf', 'bwbc', 'mwbcf', 'rf']
+  };
+  KIND = { person: 'Subject', report: 'Report', section: 'Section', bio: 'Biomarker', meas: 'Measurement', unc: 'Uncertainty' };
+
+  stamp() { return ((Date.now() - this.t0) / 1000).toFixed(2); }
+  log(tag, msg) { this.setState(s => ({ trace: [...s.trace, { t: this.stamp(), tag, msg }].slice(-80) })); }
+  later(fn, ms) { const id = setTimeout(fn, ms); this.timers.push(id); return id; }
+  speed() { const v = this.props.ingestSpeed || 'normal'; return v === 'fast' ? 240 : v === 'slow' ? 1000 : 560; }
+
+  componentDidMount() {
+    this.setState({ traceOpen: !!this.props.traceOpen });
+    this.log('session', 'Opened workspace VG-2026-001');
+  }
+  componentWillUnmount() { this.timers.forEach(clearTimeout); this.teardown(); }
+
+  go = (i) => { this.setState({ step: i }); try { window.scrollTo(0, 0); } catch (e) {} this.log('nav', 'Step ' + (i + 1) + ' · ' + this.STEPS[i].k); };
+  resetDemo = () => { this.timers.forEach(clearTimeout); this.timers = []; this.setState({ step: 0, busy: false, ingest: 0, scan: 0, save: null, reparse: 99, bioOpen: null, qa: [], input: '', evOpen: {}, focus: 'all', node: null }); this.log('session', 'Demo reset'); try { window.scrollTo(0, 0); } catch (e) {} };
+
+  onFile = (e) => { const f = e.target.files && e.target.files[0]; if (f) { this.setState({ fileName: f.name, ingest: 0, busy: false }); this.log('file', 'Selected ' + f.name); } };
+  onDragOver = (e) => { e.preventDefault(); if (!this.state.drag) this.setState({ drag: true }); };
+  onDragLeave = () => this.setState({ drag: false });
+  onDrop = (e) => { e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; this.setState({ drag: false }); if (f) { this.setState({ fileName: f.name, ingest: 0 }); this.log('file', 'Dropped ' + f.name); this.later(this.startIngest, 150); } };
+  onTilt = (e) => { const r = e.currentTarget.getBoundingClientRect(); this.setState({ tilt: ((e.clientX - r.left) / r.width - 0.5) * 2 }); };
+  offTilt = () => this.setState({ tilt: 0 });
+
+  startIngest = () => {
+    if (this.state.busy) return;
+    const d = this.speed();
+    this.setState({ busy: true, ingest: 0, scan: 0 });
+    this.log('ingest', 'POST /api/reports/upload ' + this.state.fileName);
+    let i = 0;
+    const kick = () => this.later(() => this.setState({ scan: 1 }), 40);
+    kick();
+    const adv = () => {
+      this.log('stage ' + (i + 1), this.PIPE[i].name + ' · ' + this.PIPE[i].out);
+      i++;
+      if (i < 5) { this.setState({ ingest: i, scan: 0 }); kick(); this.later(adv, d); }
+      else { this.setState({ ingest: 5, busy: false, scan: 0 }); this.log('ingest', 'Report indexed and ready'); }
+    };
+    this.later(adv, d);
+  };
+
+  choose = (v) => { this.setState({ save: v }); this.log('archive', v === 'now' ? 'Report sealed in immutable archive' : 'Preview mode, nothing written'); };
+  reparse = () => {
+    if (this.state.reparse < 99) return;
+    this.setState({ reparse: 0 }); this.log('parse', 'Re-extracting biomarkers from report text');
+    let n = 0;
+    const tick = () => { n++; this.setState({ reparse: n >= this.BIO.length ? 99 : n }); if (n < this.BIO.length) this.later(tick, 220); else this.log('parse', '6 biomarkers grounded'); };
+    this.later(tick, 220);
+  };
+  toggleEv = (qid, n) => this.setState(s => { const k = qid + ':' + n; return { evOpen: { ...s.evOpen, [k]: !s.evOpen[k] } }; });
+
+  route(q) {
+    const l = q.toLowerCase();
+    if (/diagnos|prescri|medicat|dosage|\bdose\b|should i (take|stop|start)|treat|cure|do i have|am i sick|symptom/.test(l)) return 'refuse';
+    if (/hemoglobin|haemoglobin|\bhb\b|trend/.test(l)) return 'hb';
+    if (/vitamin|b12|\blow\b|deficien/.test(l)) return 'vit';
+    if (/platelet|wbc|white blood|cbc/.test(l)) return 'plt';
+    if (/latest|summar|feb|2026|overall/.test(l)) return 'feb';
+    return 'none';
+  }
+  ask = (text) => {
+    const q = (text || '').trim(); if (!q) return;
+    const key = this.route(q);
+    const id = 'q' + (this.state.qa.length + 1);
+    const kind = key === 'refuse' ? 'refuse' : key === 'none' ? 'none' : 'answer';
+    this.setState(s => ({ qa: [...s.qa, { id, q, key, kind, pend: 0, shown: 0 }], input: '' }));
+    this.log('ask', 'POST /api/questions user_id=VG-2026-001');
+    const upd = (patch) => this.setState(s => ({ qa: s.qa.map(e => e.id === id ? { ...e, ...patch } : e) }));
+    this.later(() => { upd({ pend: 1 }); this.log('retrieve', 'Chroma query top_k=5 where user_id=VG-2026-001'); }, 380);
+    this.later(() => { upd({ pend: 2 }); this.log('rank', key === 'refuse' ? 'Policy check: clinical advice' : 'Ranking passages by similarity'); }, 800);
+    this.later(() => {
+      upd({ shown: 1 });
+      if (key === 'refuse') this.log('refuse', 'Declined by policy (fail-closed)');
+      else if (key === 'none') this.log('answer', 'No supporting passage, no answer');
+      else { this.log('answer', '4-part grounded answer, ' + this.TOPICS[key].refs.length + ' references'); this.setState({ focus: key }); }
+    }, 1300);
+    this.later(() => upd({ shown: 2 }), 1650);
+  };
+  submit = (e) => { e.preventDefault(); this.ask(this.state.input); };
+  onInput = (e) => this.setState({ input: e.target.value });
+
+  teardown() { if (this.raf) cancelAnimationFrame(this.raf); this.raf = 0; if (this.off) this.off(); this.off = null; }
+  replay = () => { if (this.g) this.g.t0 = performance.now(); this.log('graph', 'Replaying ontology reveal'); };
+  toggleAuto = () => this.setState(s => ({ auto: !s.auto }));
+  setFocus = (k) => { this.setState({ focus: k }); this.log('graph', 'Subgraph: ' + k); };
+
+  setCanvas = (el) => {
+    if (this.cv === el) return;
+    this.teardown(); this.cv = el;
+    if (!el) { this.g = null; return; }
+    const css = getComputedStyle(el);
+    const v = (n, d) => css.getPropertyValue(n).trim() || d;
+    this.col = { ink: v('--color-text', '#201e1d'), acc: v('--color-accent', '#ec3013'), bg: v('--color-bg', '#f3f2f2'), n7: v('--color-neutral-700', '#605d5d'), n4: v('--color-neutral-400', '#bab6b6') };
+    const g = this.g = { rx: 0.4, ry: 0.7, zoom: 1, drag: null, moved: false, hover: null, t0: performance.now(), focusT0: -9999, lastFocus: this.state.focus, proj: {} };
+    this.idx = {}; this.NODES.forEach((n, i) => { this.idx[n.id] = i; });
+    const ord = { person: 0, report: 1, section: 2, bio: 3, meas: 4, unc: 5 }, cnt = {};
+    this.NODES.forEach(n => { cnt[n.k] = (cnt[n.k] || 0); n.delay = ord[n.k] * 340 + cnt[n.k] * 50; cnt[n.k]++; });
+    const loc = (e) => { const r = el.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    const hit = (x, y) => { let best = null, bd = 1e9; for (const id in g.proj) { const p = g.proj[id]; const d = Math.hypot(p.x - x, p.y - y); if (d < p.r + 7 && (d < bd || (best && p.z < g.proj[best].z && d < bd + 6))) { bd = d; best = id; } } return best; };
+    const down = (e) => { g.drag = { x: e.clientX, y: e.clientY }; g.moved = false; try { el.setPointerCapture(e.pointerId); } catch (x) {} el.style.cursor = 'grabbing'; };
+    const move = (e) => {
+      if (g.drag) { const dx = e.clientX - g.drag.x, dy = e.clientY - g.drag.y; if (Math.abs(dx) + Math.abs(dy) > 2) g.moved = true; g.ry += dx * 0.008; g.rx = Math.max(-1.2, Math.min(1.2, g.rx + dy * 0.006)); g.drag.x = e.clientX; g.drag.y = e.clientY; }
+      else { const [x, y] = loc(e); g.hover = hit(x, y); el.style.cursor = g.hover ? 'pointer' : 'grab'; }
+    };
+    const up = (e) => {
+      if (g.drag && !g.moved) { const [x, y] = loc(e); const h = hit(x, y); this.setState({ node: h }); if (h) this.log('graph', 'Inspect ' + this.NODES[this.idx[h]].label); }
+      g.drag = null; el.style.cursor = g.hover ? 'pointer' : 'grab';
+    };
+    const wheel = (e) => { e.preventDefault(); g.zoom = Math.max(0.6, Math.min(1.9, g.zoom * (e.deltaY > 0 ? 0.94 : 1.06))); };
+    el.addEventListener('pointerdown', down); el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('wheel', wheel, { passive: false });
+    this.off = () => { el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('wheel', wheel); };
+    const loop = (now) => { this.raf = requestAnimationFrame(loop); this.draw(now); };
+    this.raf = requestAnimationFrame(loop);
+  };
+
+  draw(now) {
+    const g = this.g, el = this.cv; if (!g || !el) return;
+    const r = el.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
+    if (el.width !== Math.round(w * dpr) || el.height !== Math.round(h * dpr)) { el.width = Math.round(w * dpr); el.height = Math.round(h * dpr); }
+    const ctx = el.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+    const c = this.col, st = this.state;
+    if (st.focus !== g.lastFocus) { g.lastFocus = st.focus; g.focusT0 = now; }
+    if (!g.drag && this.props.autoRotate !== false && st.auto) g.ry += 0.0032;
+    const cy = Math.cos(g.ry), sy = Math.sin(g.ry), cx = Math.cos(g.rx), sx = Math.sin(g.rx);
+    const S = Math.min(w, h) * 0.34 * g.zoom, F = 3.4, ox = w / 2, oy = h / 2;
+    const proj = (p) => { const x1 = p[0] * cy + p[2] * sy, z1 = -p[0] * sy + p[2] * cy; const y2 = p[1] * cx - z1 * sx, z2 = p[1] * sx + z1 * cx; const k = F / (F + z2); return [ox + x1 * S * k, oy + y2 * S * k, z2, k]; };
+    const act = st.focus === 'all' ? null : new Set(this.FOCUS[st.focus]);
+    const near = (z) => Math.max(0, Math.min(1, 1 - (z + 1.2) / 2.4));
+    // ground grid
+    ctx.strokeStyle = c.ink; ctx.lineWidth = 1;
+    for (let i = -4; i <= 4; i++) {
+      const t = i * 0.4;
+      [[[t, 1.3, -1.6], [t, 1.3, 1.6]], [[-1.6, 1.3, t], [1.6, 1.3, t]]].forEach(([a, b]) => {
+        const A = proj(a), B = proj(b); ctx.globalAlpha = 0.07 + 0.16 * near((A[2] + B[2]) / 2); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
+      });
+    }
+    const P = {}; this.NODES.forEach(n => { P[n.id] = proj(n.pos); });
+    const vis = (n) => { const t = (now - g.t0 - n.delay) / 420; return t <= 0 ? 0 : t >= 1 ? 1 : 1 - Math.pow(1 - t, 3); };
+    const V = {}; this.NODES.forEach(n => { V[n.id] = vis(n); });
+    // edges
+    this.EDGES.forEach(([a, b]) => {
+      const A = P[a], B = P[b], v = Math.min(V[a], V[b]); if (v <= 0) return;
+      const both = act && act.has(a) && act.has(b);
+      const base = act ? (both ? 0.85 : 0.07) : 0.14 + 0.4 * near((A[2] + B[2]) / 2);
+      ctx.globalAlpha = base * v; ctx.strokeStyle = both ? c.acc : c.ink; ctx.lineWidth = both ? 1.8 : 1;
+      const mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2, dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1;
+      ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.quadraticCurveTo(mx - dy / L * L * 0.08, my + dx / L * L * 0.08, B[0], B[1]); ctx.stroke();
+    });
+    // nodes far -> near
+    const order = this.NODES.slice().sort((a, b) => P[b.id][2] - P[a.id][2]);
+    g.proj = {};
+    const pulseT = (now - g.focusT0) / 1200;
+    order.forEach(n => {
+      const p = P[n.id], v = V[n.id]; if (v <= 0) return;
+      const k = p[3], isAct = !act || act.has(n.id), sel = st.node === n.id, hov = g.hover === n.id;
+      const a = (act ? (isAct ? 1 : 0.4) : 0.55 + 0.45 * near(p[2])) * v;
+      const base = { person: 11, report: 12, section: 7, bio: 9, meas: 5, unc: 9 }[n.k] * k * (0.4 + 0.6 * v);
+      g.proj[n.id] = { x: p[0], y: p[1], r: Math.max(base, 8), z: p[2] };
+      const hot = act && isAct;
+      ctx.globalAlpha = a; ctx.lineWidth = 2.5;
+      ctx.fillStyle = hot ? c.acc : c.ink; ctx.strokeStyle = hot ? c.acc : c.ink;
+      ctx.beginPath();
+      if (n.k === 'person') { ctx.rect(p[0] - base, p[1] - base, base * 2, base * 2); ctx.fill(); }
+      else if (n.k === 'report') { ctx.arc(p[0], p[1], base, 0, 6.2832); ctx.fillStyle = c.bg; ctx.fill(); ctx.stroke(); }
+      else if (n.k === 'section') { ctx.moveTo(p[0], p[1] - base); ctx.lineTo(p[0] + base, p[1]); ctx.lineTo(p[0], p[1] + base); ctx.lineTo(p[0] - base, p[1]); ctx.closePath(); ctx.fillStyle = c.bg; ctx.fill(); ctx.lineWidth = 2; ctx.stroke(); }
+      else if (n.k === 'bio') { ctx.arc(p[0], p[1], base, 0, 6.2832); ctx.fill(); }
+      else if (n.k === 'meas') { ctx.arc(p[0], p[1], base, 0, 6.2832); ctx.fillStyle = hot ? c.acc : c.n7; ctx.fill(); }
+      else { ctx.setLineDash([3, 3]); ctx.arc(p[0], p[1], base, 0, 6.2832); ctx.fillStyle = c.bg; ctx.fill(); ctx.strokeStyle = c.acc; ctx.stroke(); ctx.setLineDash([]); }
+      if (act && isAct && pulseT >= 0 && pulseT < 1) { ctx.globalAlpha = (1 - pulseT) * 0.8; ctx.strokeStyle = c.acc; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p[0], p[1], base + 4 + pulseT * 26, 0, 6.2832); ctx.stroke(); }
+      if (sel || hov) { ctx.globalAlpha = 1; ctx.strokeStyle = sel ? c.acc : c.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p[0], p[1], base + 6, 0, 6.2832); ctx.stroke(); }
+      const showLabel = n.k !== 'meas' ? (!act || isAct || sel || hov) : (sel || hov || (act ? isAct : p[2] < 0.1));
+      if (showLabel && v > 0.6) {
+        const fs = Math.max(10, 12.5 * k); ctx.font = (n.k === 'report' || n.k === 'person' ? '800 ' : '600 ') + fs + 'px Archivo, system-ui, sans-serif';
+        ctx.globalAlpha = Math.max(a, sel || hov ? 1 : 0); ctx.lineWidth = 4; ctx.strokeStyle = c.bg; ctx.lineJoin = 'round';
+        const tx = p[0] + base + 7, ty = p[1] + fs * 0.35; ctx.strokeText(n.label, tx, ty); ctx.fillStyle = hot ? c.acc : c.ink; ctx.fillText(n.label, tx, ty);
+      }
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  iso(bars, o) {
+    const c = 0.866, LX = 260, LY = 70, LZ = 120, ox = 100, oy = 135;
+    const P = (x, y, z) => [ox + (x - y) * c, oy + (x + y) * 0.5 - z];
+    const pt = (a) => a.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' ');
+    const f = (v) => Math.min(1, v / o.max) * LZ;
+    const out = { floor: pt([P(0, 0, 0), P(LX, 0, 0), P(LX, LY, 0), P(0, LY, 0)]), back: pt([P(0, 0, 0), P(LX, 0, 0), P(LX, 0, LZ), P(0, 0, LZ)]), left: pt([P(0, 0, 0), P(0, LY, 0), P(0, LY, LZ), P(0, 0, LZ)]) };
+    const zl = f(o.lo), zh = f(o.hi);
+    out.bandBack = pt([P(0, 0, zl), P(LX, 0, zl), P(LX, 0, zh), P(0, 0, zh)]);
+    out.bandLeft = pt([P(0, 0, zl), P(0, LY, zl), P(0, LY, zh), P(0, 0, zh)]);
+    out.grid = []; for (let i = 1; i < 8; i++) { const x = LX * i / 8, a = P(x, 0, 0), b = P(x, LY, 0); out.grid.push({ x1: a[0], y1: a[1], x2: b[0], y2: b[1] }); }
+    const l1 = P(0, LY, zl), l2 = P(0, LY, zh);
+    const lab = (x, y, text, size, color, tx, ls) => ({ text, css: 'position:absolute;left:' + (x / 400 * 100).toFixed(2) + '%;top:' + (y / 320 * 100).toFixed(2) + '%;transform:translate(' + tx + ',-50%);font-size:' + size + 'px;font-weight:800;line-height:1;white-space:nowrap;pointer-events:none;color:' + color + ';font-variant-numeric:tabular-nums;letter-spacing:' + (ls || 0) + 'em' });
+    out.labels = [lab(l1[0] - 6, l1[1], o.loText, 11, 'var(--color-accent-700)', '-100%'), lab(l2[0] - 6, l2[1], o.hiText, 11, 'var(--color-accent-700)', '-100%')];
+    const bw = 34, bd = 34, y0 = (LY - bd) / 2, y1 = y0 + bd;
+    out.bars = bars.map(b => {
+      const x0 = 20 + b.t * (LX - 40 - bw), x1 = x0 + bw, hh = Math.max(2, f(b.v));
+      const tp = P(x0 + bw / 2, y0 + bd / 2, hh), bp = P(x0 + bw / 2, y1, 0);
+      const ft = b.hot ? 'var(--color-accent-400)' : 'var(--color-neutral-400)', ff = b.hot ? 'var(--color-accent)' : 'var(--color-neutral-700)', rf = b.hot ? 'var(--color-accent-700)' : 'var(--color-neutral-900)';
+      return {
+        top: pt([P(x0, y0, hh), P(x1, y0, hh), P(x1, y1, hh), P(x0, y1, hh)]),
+        front: pt([P(x0, y1, 0), P(x1, y1, 0), P(x1, y1, hh), P(x0, y1, hh)]),
+        right: pt([P(x1, y0, 0), P(x1, y1, 0), P(x1, y1, hh), P(x1, y0, hh)]),
+        tfCss: 'fill:' + ft + ';stroke:var(--color-text);stroke-width:1', ffCss: 'fill:' + ff + ';stroke:var(--color-text);stroke-width:1', rfCss: 'fill:' + rf + ';stroke:var(--color-text);stroke-width:1',
+        _l: [lab(tp[0], tp[1] - 14, b.val, 17, 'var(--color-text)', '-50%'), lab(bp[0] - 10, bp[1] + 24, b.date, 11, 'var(--color-neutral-800)', '-50%', 0.04)]
+      };
+    });
+    out.bars.forEach(b => { out.labels.push(...b._l); });
+    return out;
+  }
+
+  render_unused() {}
+
+  renderVals() {
+    const s = this.state, p = this.props, step = s.step;
+    const steps = this.STEPS.map((x, i) => ({ n: String(i + 1).padStart(2, '0'), k: x.k, done: i < step, active: i === step, idle: i !== step, go: () => this.go(i) }));
+
+    // 01 ingest
+    const busy = s.busy, ing = s.ingest, d = this.speed();
+    const gap = busy ? 74 : ing >= 5 ? 58 : 14;
+    const texs = [
+      'background-image:linear-gradient(var(--color-text),var(--color-text)),repeating-linear-gradient(to bottom,var(--color-neutral-700) 0 3px,transparent 3px 13px);background-size:42% 14px,calc(100% - 56px) calc(100% - 130px);background-position:28px 28px,28px 66px;background-repeat:no-repeat;',
+      'background-image:linear-gradient(var(--color-accent),var(--color-accent)),linear-gradient(var(--color-accent),var(--color-accent)),repeating-linear-gradient(to bottom,var(--color-text) 0 2px,transparent 2px 10px);background-size:36% 5px,52% 5px,calc(100% - 56px) calc(100% - 120px);background-position:28px 104px,28px 190px,28px 40px;background-repeat:no-repeat;',
+      'background-image:linear-gradient(to right,var(--color-text) 2px,transparent 2px),linear-gradient(to bottom,var(--color-text) 2px,transparent 2px);background-size:33.333% 100%,100% 16.666%;',
+      'background-image:radial-gradient(circle,var(--color-text) 2.5px,transparent 3px);background-size:32px 32px;background-position:16px 16px;',
+      'background-image:radial-gradient(circle,var(--color-accent) 0 11px,transparent 12px),radial-gradient(circle,transparent 0 62px,var(--color-accent) 62px 64px,transparent 65px),radial-gradient(circle,var(--color-text) 2.5px,transparent 3px);background-size:100% 100%,100% 100%,32px 32px;background-position:center,center,16px 16px;background-repeat:no-repeat,no-repeat,repeat;'
+    ];
+    const names = ['Pages', 'Text', 'Chunks', 'Vectors', 'Index'];
+    const layers = names.map((k, i) => {
+      const running = busy && ing === i, done = i < ing;
+      const dim = (busy || ing > 0) && !running && !done ? 0.5 : 1;
+      return {
+        k, n: String(i + 1).padStart(2, '0'), scanning: running,
+        lblCss: 'position:absolute;left:14px;bottom:12px;padding:0 8px;background:var(--color-bg);font-size:1.375rem;font-weight:800;letter-spacing:-0.02em;line-height:1.3;display:' + (busy || ing >= 5 ? 'block' : 'none') + ';',
+        css: 'position:absolute;inset:0;border:2px solid ' + (running ? 'var(--color-accent)' : 'var(--color-text)') + ';background-color:color-mix(in srgb,var(--color-bg) 92%,transparent);' + texs[i] + 'transform:translateZ(' + (i * gap) + 'px);opacity:' + dim + ';transition:transform .9s cubic-bezier(.2,.8,.2,1),opacity .4s,border-color .3s;' + (running ? 'box-shadow:0 0 0 3px var(--color-accent);' : ''),
+        scanCss: 'position:absolute;left:0;right:0;height:5px;background:var(--color-accent);top:' + (s.scan ? '100%' : '0%') + ';transition:' + (s.scan ? 'top ' + d + 'ms linear' : 'none') + ';'
+      };
+    });
+    const pipe = this.PIPE.map((x, i) => {
+      const running = busy && ing === i, done = i < ing;
+      return { n: String(i + 1).padStart(2, '0'), name: x.name, out: x.out, status: done ? 'Done' : running ? 'Running' : 'Waiting', tagCss: done ? 'background:var(--color-text);color:var(--color-bg);font-weight:800' : running ? 'background:var(--color-accent);color:var(--color-bg);font-weight:800' : 'background:var(--color-neutral-200);color:var(--color-neutral-800)' };
+    });
+    const stageNum = String(busy ? Math.min(5, ing + 1) : ing).padStart(2, '0');
+    const stageName = busy ? names[Math.min(4, ing)] + ' · running' : ing >= 5 ? 'Report indexed' : 'Waiting for a report';
+    const stageCss = 'flex:1.3 1 520px;min-width:0;position:relative;overflow:hidden;min-height:620px;background-image:linear-gradient(color-mix(in srgb,var(--color-text) 7%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--color-text) 7%,transparent) 1px,transparent 1px);background-size:48px 48px;' + (s.drag ? 'outline:3px solid var(--color-accent);outline-offset:-12px;' : '');
+    const sceneCss = 'position:relative;width:320px;height:410px;transform-style:preserve-3d;transform:rotateX(58deg) rotateZ(' + (-36 + s.tilt * 14) + 'deg) translateZ(-140px);transition:transform .5s cubic-bezier(.2,.8,.2,1);';
+    const ingestLabel = busy ? 'Ingesting…' : ing >= 5 ? 'Run again' : 'Start ingestion';
+
+    // 02 archive
+    const facts = [{ k: 'File', v: s.fileName }, { k: 'Pages', v: '5 (4 text layer, 1 OCR)' }, { k: 'Size', v: '2.3 MB' }, { k: 'Version', v: '3' }];
+    const mkOpt = (key, title, desc) => ({ title, desc, on: s.save === key, off: s.save !== key, pick: () => this.choose(key) });
+    const choices = [mkOpt('now', 'Save now', 'Writes to the immutable archive. The assistant can search it straight away.'), mkOpt('preview', 'Preview first', 'Review the extracted findings, then decide at the end.')];
+    const open = s.save === 'preview', sealed = s.save === 'now';
+    const pages = []; for (let i = 0; i < 8; i++) {
+      const top = i === 7;
+      pages.push({ css: 'position:absolute;inset:0;transform-origin:0 50%;transform:translateZ(' + (i * 6) + 'px) rotateY(' + (open ? -(i * 5.5) : 0) + 'deg);transition:transform 1s cubic-bezier(.2,.8,.2,1);border:2px solid var(--color-text);background-color:var(--color-bg);' + (top ? 'background-image:linear-gradient(var(--color-text),var(--color-text)),linear-gradient(var(--color-accent),var(--color-accent)),repeating-linear-gradient(to bottom,var(--color-neutral-700) 0 3px,transparent 3px 14px);background-size:48% 18px,22% 6px,calc(100% - 56px) calc(100% - 170px);background-position:28px 30px,28px 62px,28px 100px;background-repeat:no-repeat;' : '') });
+    }
+    const bookCss = 'position:relative;width:300px;height:390px;transform-style:preserve-3d;transform:rotateX(16deg) rotateY(-30deg) translateX(-20px);transition:transform 1s cubic-bezier(.2,.8,.2,1);';
+    const sealCss = 'position:absolute;left:64%;top:-10px;bottom:-10px;width:72px;background:var(--color-accent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-4);transform:translateZ(' + (sealed ? 56 : 240) + 'px);opacity:' + (sealed ? 1 : 0) + ';transition:transform .7s cubic-bezier(.3,1.3,.5,1),opacity .4s;';
+    const bookState = sealed ? 'Sealed' : open ? 'Preview' : 'Undecided';
+    const bookSub = sealed ? 'Append-only archive' : open ? 'Held in this session' : 'Choose an option';
+
+    // 03 understand
+    const rp = s.reparse;
+    const bios = this.BIO.map((b, i) => {
+      const shown = rp >= 99 || i < rp, span = b.hi - b.lo, mn = b.lo - span * 0.35, mx = b.hi + span * 0.35, pc = (v) => ((v - mn) / (mx - mn) * 100).toFixed(1);
+      const isOpen = s.bioOpen === b.id;
+      return {
+        name: b.name, page: b.page, unit: b.unit, note: b.note || '', valText: shown ? b.disp : '···', lo: b.lo.toLocaleString('en-US'), hi: b.hi.toLocaleString('en-US'),
+        bandCss: 'position:absolute;top:0;bottom:0;left:' + pc(b.lo) + '%;width:' + (pc(b.hi) - pc(b.lo)).toFixed(1) + '%;background:var(--color-neutral-500)',
+        markCss: 'position:absolute;top:-6px;width:4px;height:20px;margin-left:-2px;background:var(--color-accent);left:' + pc(b.val) + '%;opacity:' + (shown ? 1 : 0) + ';transition:opacity .3s',
+        open: isOpen, slip: isOpen ? this.EV[b.ev] : null,
+        toggle: () => this.setState({ bioOpen: isOpen ? null : b.id })
+      };
+    });
+    const pageStrip = [1, 2, 3, 4, 5].map(n => ({ n, kind: n === 5 ? 'OCR' : 'Native', css: 'width:56px;height:74px;border:2px solid ' + (n === 5 ? 'var(--color-accent)' : 'var(--color-text)') + ';background-image:repeating-linear-gradient(to bottom,' + (n === 5 ? 'var(--color-accent)' : 'var(--color-neutral-700)') + ' 0 2px,transparent 2px 8px);background-size:calc(100% - 16px) calc(100% - 24px);background-position:8px 12px;background-repeat:no-repeat;background-color:var(--color-bg)' }));
+
+    // 04 ask
+    const asked = new Set(s.qa.map(e => e.q));
+    const suggestions = ['hb', 'vit', 'feb', 'plt'].map(k => ({ text: this.TOPICS[k].q, go: () => this.ask(this.TOPICS[k].q) }));
+    const entries = s.qa.slice().reverse().map(e => {
+      const T = this.TOPICS[e.key], isA = e.kind === 'answer';
+      const refs = isA ? T.refs.map((id, i) => { const ev = this.EV[id], o = !!s.evOpen[e.id + ':' + (i + 1)]; return { n: i + 1, rep: ev.rep, page: ev.page, span: ev.start + '–' + ev.end, open: o, slip: ev, onClick: () => this.toggleEv(e.id, i + 1) }; }) : [];
+      const stg = ['Retrieve', 'Rank', 'Compose'].map((label, i) => ({ label, css: i < e.pend ? 'background:var(--color-text);color:var(--color-bg);font-weight:800' : i === e.pend ? 'background:var(--color-accent);color:var(--color-bg);font-weight:800' : 'background:var(--color-neutral-200);color:var(--color-neutral-800)' }));
+      return {
+        n: s.qa.indexOf(e) + 1, q: e.q, pending: e.shown < 1, stages: stg,
+        isAnswer: isA && e.shown >= 1, isRefuse: e.kind === 'refuse' && e.shown >= 1, isNone: e.kind === 'none' && e.shown >= 1,
+        segs: isA ? T.segs.map(x => typeof x === 'number' ? { isRef: true, isText: false, label: String(x), onClick: () => this.toggleEv(e.id, x) } : { isRef: false, isText: true, text: x }) : [],
+        showModules: e.shown >= 2, refs, openSlips: refs.filter(r => r.open), limits: isA ? T.limits : '', safety: this.SAFETY
+      };
+    });
+
+    // 05 graph
+    const cnt = (k) => k === 'all' ? 23 : this.FOCUS[k].length;
+    const focuses = [['all', 'All nodes'], ['hb', 'Hemoglobin trend'], ['vit', 'Vitamin D and B12'], ['feb', 'Feb 2026 summary'], ['plt', 'Platelets and WBC']].map(([k, label]) => ({ label, count: cnt(k), on: s.focus === k, off: s.focus !== k, pick: () => this.setFocus(k) }));
+    const nd = s.node ? this.NODES.find(n => n.id === s.node) : null;
+    const node = nd ? { kind: this.KIND[nd.k], label: nd.label, about: nd.about, slip: nd.ev ? this.EV[nd.ev] : null, nbs: this.EDGES.filter(e => e[0] === nd.id || e[1] === nd.id).map(e => { const o = this.NODES.find(n => n.id === (e[0] === nd.id ? e[1] : e[0])); return { label: o.label, go: () => this.setState({ node: o.id }) }; }) } : { kind: '', label: '', about: '', slip: null, nbs: [] };
+    const legend = [['Subject', 'width:12px;height:12px;background:var(--color-text);display:inline-block'], ['Report', 'width:12px;height:12px;border-radius:50%;border:2.5px solid var(--color-text);display:inline-block'], ['Section', 'width:9px;height:9px;border:2px solid var(--color-text);transform:rotate(45deg);display:inline-block;margin:2px'], ['Biomarker', 'width:12px;height:12px;border-radius:50%;background:var(--color-text);display:inline-block'], ['Measurement', 'width:8px;height:8px;border-radius:50%;background:var(--color-neutral-700);display:inline-block;margin:2px'], ['Uncertainty', 'width:12px;height:12px;border-radius:50%;border:2px dashed var(--color-accent);display:inline-block']].map(([label, css]) => ({ label, css }));
+
+    // 06 record
+    const saved = s.save === 'now';
+    const reports = [
+      { date: 'Jan 2024', desc: 'Baseline · blood count and vitamins · 5 pages', status: 'Archived', tagCss: 'background:var(--color-neutral-200);color:var(--color-neutral-800)' },
+      { date: 'Aug 2024', desc: 'Follow-up review · 4 pages', status: 'Archived', tagCss: 'background:var(--color-neutral-200);color:var(--color-neutral-800)' },
+      { date: 'Feb 2026', desc: 'Latest · version 3 · 5 pages', status: saved ? 'Sealed' : s.save === 'preview' ? 'Preview' : 'Pending', tagCss: saved ? 'background:var(--color-text);color:var(--color-bg);font-weight:800' : 'background:var(--color-accent-100);color:var(--color-accent-800);font-weight:800' }
+    ];
+    const charts = [
+      { name: 'Hemoglobin · g/dL', delta: '13.1 → 14.0', range: 'Reference 13.0–17.0. Three reports, Jan 2024 to Feb 2026.', iso: this.iso([{ t: 0, v: 13.1, val: '13.1', date: 'Jan 2024' }, { t: 7 / 25, v: 13.2, val: '13.2', date: 'Aug 2024' }, { t: 1, v: 14.0, val: '14.0', date: 'Feb 2026', hot: true }], { max: 18, lo: 13, hi: 17, loText: '13', hiText: '17' }) },
+      { name: 'Vitamin D (25-OH) · ng/mL', delta: '18 → 32.0', range: 'Reference 30–100. Two reports with a value; axis cut at 40.', iso: this.iso([{ t: 0, v: 18, val: '18', date: 'Jan 2024' }, { t: 1, v: 32, val: '32.0', date: 'Feb 2026', hot: true }], { max: 40, lo: 30, hi: 40, loText: '30', hiText: '100' }) }
+    ];
+
+    // chrome
+    const last = s.trace[s.trace.length - 1];
+    const lastStep = step === 5;
+    const hint = step === 0 ? (busy ? 'Ingestion running' : ing >= 5 ? 'Report indexed' : 'Start ingestion to continue') : step === 1 ? (s.save ? (s.save === 'now' ? 'Will be sealed' : 'Preview mode') : 'Choose an option to continue') : '';
+    const noNext = (step === 0 && ing < 5) || (step === 1 && !s.save);
+    return {
+      steps, s1: step === 0, s2: step === 1, s3: step === 2, s4: step === 3, s5: step === 4, s6: step === 5,
+      providerLabel: this.PROVIDERS[s.provider], openAi: () => this.setState({ aiOpen: true, pick: s.provider, keyDraft: '' }), closeAi: () => this.setState({ aiOpen: false }),
+      saveAi: () => { this.setState({ provider: s.pick, aiOpen: false }); this.log('model', 'Provider set to ' + this.PROVIDERS[s.pick]); },
+      aiOpen: s.aiOpen, keyDraft: s.keyDraft, onKey: (e) => this.setState({ keyDraft: e.target.value }),
+      providers: Object.keys(this.PROVIDERS).map(k => ({ label: this.PROVIDERS[k], on: s.pick === k, pick: () => this.setState({ pick: k }) })),
+      resetDemo: this.resetDemo,
+      fileName: s.fileName, onFile: this.onFile, startIngest: this.startIngest, busy, ingestLabel, pipe, layers, stageNum, stageName, stageCss, sceneCss, onTilt: this.onTilt, offTilt: this.offTilt, onDragOver: this.onDragOver, onDragLeave: this.onDragLeave, onDrop: this.onDrop,
+      facts, choices, pages, bookCss, sealCss, bookState, bookSub,
+      bios, pageStrip, reparse: this.reparse, reparsing: rp < 99,
+      suggestions, entries, noQa: s.qa.length === 0, input: s.input, onInput: this.onInput, submit: this.submit,
+      setCanvas: this.setCanvas, focuses, hasNode: !!nd, node, clearNode: () => this.setState({ node: null }), legend, replay: this.replay, toggleAuto: this.toggleAuto, autoLabel: s.auto ? 'Pause rotation' : 'Rotate',
+      reports, charts, notSaved: !saved, isSaved: saved, confirmSave: () => { this.setState({ save: 'now' }); this.log('archive', 'Feb 2026 report sealed'); }, restart: this.resetDemo,
+      back: () => this.go(Math.max(0, step - 1)), noBack: step === 0, next: () => (lastStep ? this.resetDemo() : this.go(step + 1)), noNext, nextLabel: lastStep ? 'Start over' : 'Continue to ' + this.STEPS[step + 1].k, hint,
+      traceOpen: s.traceOpen, toggleTrace: () => this.setState(x => ({ traceOpen: !x.traceOpen })), traceCount: s.trace.length, traceLast: last ? last.tag + ' · ' + last.msg : '', traceToggle: s.traceOpen ? 'Hide' : 'Show', traceRows: s.trace.slice().reverse()
+    };
+  }
+}
+</script>
+</body>
+</html>

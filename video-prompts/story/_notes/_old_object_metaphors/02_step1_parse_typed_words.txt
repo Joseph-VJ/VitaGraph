@@ -1,0 +1,42 @@
+STEP 1 (ROW 01 PARSE DIGITAL TEXT): THE TYPED WORDS ARE READ
+==========================================================================================
+Position in the film: 0:00-0:04 of the full film (frames 1-24)
+Hero to follow with the eye: the magnifying glass
+Sentence a child should be able to say: see 00_READ_ME_FIRST.txt, the story sentence.
+
+START STATE (for chained / image-to-video generation)
+Nothing before this: this clip starts the film. Start image = keyframe K0 (see 08_keyframes_K0_to_K5.txt) if the generator is image-to-video.
+
+End state: sheet fully ink, left half of the strip full, glass resting at the sheet's bottom. This last frame is the start image of clip 2.
+
+==========================================================================================
+PROMPT (paste this whole block)
+==========================================================================================
+A 4-second silent flat 2D motion-graphics clip in strict Swiss International (Modernist) style, one continuous locked-off take, square 1:1 frame, 24 fps. It is part 1 of a 5-part story that explains how a paper report becomes searchable, using only simple everyday objects. A child with the sound off must be able to say what happens in this clip.
+
+LOOK: the entire frame is one perfectly flat, uniform warm light grey #EAE9E9, edge to edge, no vignette, no gradient, no texture, no noise. All shapes are flat single-colour vector shapes with razor-sharp edges and perfectly square 90-degree corners (zero corner radius on everything; only the magnifying-glass ring and the one pulse ring are round). Colours allowed: paper #F8F4F4, light grey #D7D3D3, faint ink #BBB8B7, divider grey #999796, dark grey #605D5D, ink #201E1D, and ONE vivid vermilion red #EC3013 (deep red #AE1800 only for small marks). No other hue exists. Red marks only the thing that is active right now and never covers more than 8% of the frame. No lighting, no shadows, no glow, no blur, no motion blur, no depth of field, no grain, no reflections, no 3D. Every frame must look like a crisp finished vector screenshot. Writing: no text anywhere except the three letters ABC, the three digits 123 and one question mark, each set very large in heavy geometric sans-serif; all other "writing" is drawn as solid horizontal bars with square ends. No people, no hands, no cursor, no logos.
+
+CAMERA: tripod-static, orthographic, straight-on. No zoom, no pan, no cuts, no fades to black. All objects stay inside x 10%-90% and y 10%-90%. The bottom-right region x 74%-100%, y 86%-100% stays completely empty at all times. Coordinates are percentages of the frame: x from the left edge, y from the top edge.
+
+MOTION: calm, mechanical, ease-out cubic, straight horizontal or vertical movements only, no bounce, no overshoot, no particles. Objects appear by fading in over 0.4 s.
+
+FIXED STAGE: a long paper strip lies at x 10-90, y 58-70 for the whole film (paper #F8F4F4, 4 px divider-grey #999796 outline). At its left end sits a square ink tile (x 10-19, y 58-70, fill ink #201E1D) showing the three letters ABC in paper colour: this tile means "text". The empty text area of the strip is x 21-90.
+
+STEP 1, "the typed words are read". At the start the viewer sees: a portrait paper sheet at x 14-46, y 16-50 with one short thick ink heading bar, seven faint-ink #BBB8B7 text bars of different lengths, and a tiny red square (2.5%) in its top-left corner; a flat magnifying glass (round ink ring 13% wide, 6 px stroke, thick square-ended ink handle at 45 degrees) resting at the sheet's top-left corner; below, the strip with its ABC tile. From 0:00.5 the glass slides down the sheet line by line. Each bar the glass passes turns from faint to solid ink, and an ink copy of that bar lifts straight out of the sheet and drops straight down into the LEFT half of the strip (x 21-55), which fills with three rows of ink bars. At 0:04 every bar of the sheet is ink, the left half of the strip is full, the glass rests at the sheet's bottom.
+
+Duration 4 seconds. Hold perfectly still for the first 0.4 s and the last 0.4 s. Everything that exists at the start stays exactly where it is unless this paragraph moves it.
+
+==========================================================================================
+NEGATIVE PROMPT (paste in the negative field)
+==========================================================================================
+words, sentences, paragraphs, captions, subtitles, small text, gibberish text, extra letters, extra numbers, logo, watermark, signature, emoji, cursor, mouse pointer, hand, fingers, people, face, doctor, rounded corners, rounded rectangle, pill shape, soft corners, gradient, vignette, glow, neon, bloom, lens flare, light rays, bokeh, depth of field, blur, motion blur, film grain, noise, dust, chromatic aberration, scanlines, glitch, 3D render, photorealistic, glossy, glass, reflections, shadows, drop shadow, bevel, metallic, plastic, clay, camera movement, zoom, pan, tilt, dolly, shake, handheld, cuts, transitions, fade to black, flash, flicker, strobe, particles, sparkles, confetti, smoke, liquid, morphing, blobs, wobbly lines, jitter, warping, colour shift, blue, cyan, teal, green, yellow, gold, orange, purple, pink, rainbow, dark mode, black background, cyberpunk, sci-fi, hologram, circuit board, binary code, matrix rain, DNA, brain, heart, heartbeat line, stethoscope, pills, syringe, red cross, hospital, molecules, robot, clip art, cartoon, anime, sketch, watercolour, paper texture, page curl, compression artifacts, low resolution
+
+==========================================================================================
+COMPACT PROMPT (for generators with a short prompt limit, about 900 characters)
+==========================================================================================
+Flat 2D vector motion graphic, strict Swiss Modernist style, square 1:1, 24 fps, silent, locked static orthographic camera, no cuts. Perfectly flat uniform warm grey #EAE9E9 background, sharp square corners, only warm greys, ink #201E1D and one vivid red #EC3013 for the active thing. No text except ABC, 123 and ? (very large, heavy sans); other writing is solid bars. No shadows, blur, glow, gradients, people or cursor. Calm ease-out mechanical motion along straight lines. Objects inside the central 80%, bottom-right corner empty. A portrait paper sheet (left, 14-46%, 16-50%) with faint text bars and a tiny red square corner; a flat magnifying glass slides down it line by line; each bar it passes turns solid ink and an ink copy drops straight down into a long paper strip below (10-90%, 58-70%) whose left end holds a square ink tile with the letters ABC. End: all bars ink, left half of the strip filled. Hero: the magnifying glass.
+
+==========================================================================================
+SETTINGS
+==========================================================================================
+Aspect 1:1, at least 1080 x 1080, 24 fps, 4 s, no audio, no camera-motion preset, no enhance/stylise options, same seed as the other clips if the tool allows it.

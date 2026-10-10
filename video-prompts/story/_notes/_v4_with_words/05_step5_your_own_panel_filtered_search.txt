@@ -1,0 +1,5 @@
+Flat 2D vector animation, clean modern software style. Plain light grey background, only black, grey and one red accent. Static camera, smooth fast motion, no shadows, no glow. The main page stays sharp; the other pages behind it are slightly soft and blurred. Start from the attached first image and keep its text exactly.
+
+3 seconds. Many dots move into one red-outlined box, and a lock closes on it. Two grey dashed boxes beside it stay separate. A question-mark bubble sends a red line that reaches only the red box and is stopped before the grey ones.
+
+Avoid: new or misspelled text, dark background, neon, camera movement, cuts, people, rounded corners.

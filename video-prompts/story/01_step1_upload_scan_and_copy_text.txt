@@ -1,0 +1,5 @@
+Flat 2D vector animation with gentle 3D motion: pieces tilt, flip and fly through space with soft perspective, and the camera drifts slowly. Style of a modern Swiss minimalist software interface: perfectly flat shapes with sharp square corners (no rounded corners), plain warm light grey background, near-black ink, mid greys, and one vivid red accent used only for what is active. No shadows, no glow. No letters, no numbers, no symbols anywhere: text is drawn only as solid bars. Smooth and fast, 3 seconds. Start from the attached first image and end on the attached last image.
+
+A document file drops into the dashed upload box on the left and opens into a fan of four pages floating in 3D. A red scan line sweeps over each page in turn to check it. Three of the pages have real text: a check mark appears on each, and their lines of text lift off, flip in 3D and fly into the dashed text box on the right, stacking up as neat lines. The fourth page is only a picture: it gets a red flag and waits.
+
+Avoid: any letters, numbers or words, rounded corners, dark background, neon, shadows, glow, people.

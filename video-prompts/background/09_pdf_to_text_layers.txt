@@ -1,0 +1,5 @@
+Flat 2D line animation, 6 seconds, pure white background, thin black and grey lines, one red accent, no readable text (use grey bars for text), no shadows, no glow. Static camera, fast and smooth. Keep the left side empty and the action on the right. The main object is sharp; the many copies behind it are slightly soft.
+
+A fan of PDF pages. The text layer of each page lifts off like a transparent sheet and slides into a text column on the right. The last page is a scan with no text layer, so it gets a small red mark.
+
+Avoid: text, people, dark background, gradients, camera movement, cuts, rounded corners.

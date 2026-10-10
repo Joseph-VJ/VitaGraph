@@ -1,0 +1,34 @@
+STYLE LOCK AND NEGATIVE PROMPT (shared by every file in this folder)
+==========================================================================================
+Every step file already contains these paragraphs in full. This file exists so you can edit them in ONE place and see the reasoning.
+
+SOURCES OF THE LOOK: design/reference/app-v3-source.html, site design/src/theme/tokens.css, gemini/DESIGN_LAW.md.
+
+WHY THE RULES
+- Flat field #EAE9E9 and no vignette: the stage panel crops the frame differently on every screen (cover scaling), so the edges must be invisible.
+- No blur, no motion blur: the user stops on single frames while scrubbing; a blurred frame instantly looks like video instead of UI.
+- Only ABC, 123, ?: generators cannot spell, and the app must never show an invented number. Everything else is a solid bar.
+- One red: red always marks the single thing that is active, exactly like the app.
+- Zero radius: the Modernist design has no rounded corners (only true circles).
+
+==========================================================================================
+LOOK (paste)
+==========================================================================================
+LOOK: the entire frame is one perfectly flat, uniform warm light grey #EAE9E9, edge to edge, no vignette, no gradient, no texture, no noise. All shapes are flat single-colour vector shapes with razor-sharp edges and perfectly square 90-degree corners (zero corner radius on everything; only the magnifying-glass ring and the one pulse ring are round). Colours allowed: paper #F8F4F4, light grey #D7D3D3, faint ink #BBB8B7, divider grey #999796, dark grey #605D5D, ink #201E1D, and ONE vivid vermilion red #EC3013 (deep red #AE1800 only for small marks). No other hue exists. Red marks only the thing that is active right now and never covers more than 8% of the frame. No lighting, no shadows, no glow, no blur, no motion blur, no depth of field, no grain, no reflections, no 3D. Every frame must look like a crisp finished vector screenshot. Writing: no text anywhere except the three letters ABC, the three digits 123 and one question mark, each set very large in heavy geometric sans-serif; all other "writing" is drawn as solid horizontal bars with square ends. No people, no hands, no cursor, no logos.
+
+==========================================================================================
+CAMERA and MOTION (paste)
+==========================================================================================
+CAMERA: tripod-static, orthographic, straight-on. No zoom, no pan, no cuts, no fades to black. All objects stay inside x 10%-90% and y 10%-90%. The bottom-right region x 74%-100%, y 86%-100% stays completely empty at all times. Coordinates are percentages of the frame: x from the left edge, y from the top edge.
+
+MOTION: calm, mechanical, ease-out cubic, straight horizontal or vertical movements only, no bounce, no overshoot, no particles. Objects appear by fading in over 0.4 s.
+
+==========================================================================================
+FIXED STAGE (paste in clips 1, 2, 3)
+==========================================================================================
+FIXED STAGE: a long paper strip lies at x 10-90, y 58-70 for the whole film (paper #F8F4F4, 4 px divider-grey #999796 outline). At its left end sits a square ink tile (x 10-19, y 58-70, fill ink #201E1D) showing the three letters ABC in paper colour: this tile means "text". The empty text area of the strip is x 21-90.
+
+==========================================================================================
+NEGATIVE PROMPT (paste in the negative field of every clip)
+==========================================================================================
+words, sentences, paragraphs, captions, subtitles, small text, gibberish text, extra letters, extra numbers, logo, watermark, signature, emoji, cursor, mouse pointer, hand, fingers, people, face, doctor, rounded corners, rounded rectangle, pill shape, soft corners, gradient, vignette, glow, neon, bloom, lens flare, light rays, bokeh, depth of field, blur, motion blur, film grain, noise, dust, chromatic aberration, scanlines, glitch, 3D render, photorealistic, glossy, glass, reflections, shadows, drop shadow, bevel, metallic, plastic, clay, camera movement, zoom, pan, tilt, dolly, shake, handheld, cuts, transitions, fade to black, flash, flicker, strobe, particles, sparkles, confetti, smoke, liquid, morphing, blobs, wobbly lines, jitter, warping, colour shift, blue, cyan, teal, green, yellow, gold, orange, purple, pink, rainbow, dark mode, black background, cyberpunk, sci-fi, hologram, circuit board, binary code, matrix rain, DNA, brain, heart, heartbeat line, stethoscope, pills, syringe, red cross, hospital, molecules, robot, clip art, cartoon, anime, sketch, watercolour, paper texture, page curl, compression artifacts, low resolution

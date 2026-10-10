@@ -1,0 +1,49 @@
+PAGE 01 UPLOAD & INGEST: five small drawings on one long rule, a red marker moves along as you scroll
+==========================================================================================
+USED ON: Upload & Ingest (left column and gutters) and the hero/splash. It mirrors the five rows 01-05 of the page, so it explains the page while the user scrolls.
+SCROLL MAPPING: frame 1 = page top = marker on station 1; frames 30, 60, 90 and 120 = marker on stations 2, 3, 4 and 5. The marker pauses on each station for about 0.9 s of the clip so scroll positions near a row feel locked.
+
+==========================================================================================
+PROMPT (paste this whole block)
+==========================================================================================
+A calm, minimal, flat 2D vector line-art animation in strict Swiss International (Modernist) style, 16:9 landscape (1920 x 1080), 24 fps, 8 seconds, silent, to be used as a quiet scroll-driven page background. The entire frame is one perfectly flat, uniform PURE WHITE field #FFFFFF, identical in every pixel, no vignette, no gradient, no texture, no noise. Everything drawn is thin line work and small flat marks with razor-sharp edges and perfectly square 90-degree corners (zero corner radius; only true circles, dots and rings are round). Colours allowed: ink #201E1D, darkest grey #2D2B2B, dark grey #605D5D, divider grey #999796, mid grey #BAB6B6, light grey #D7D3D3, and ONE vivid vermilion red #EC3013 (deep red #AE1800 and light red #FF9783 only where stated). No other hue exists. Red covers less than 3% of the frame at any moment. Strokes are hairlines of 2 to 4 px (never thicker than 6 px). No solid filled shape larger than 2% of the frame, except where a prompt says so. At least 55% of the frame stays empty white. The composition is weighted to the RIGHT: the left 38% of the frame is almost empty so a page heading can sit there. Keep every object inside x 10%-90% and y 6%-94%. Absolutely no text, no letters, no digits, no symbols, no logos, no labels of any kind. No lighting, no shading, no shadows, no glow, no blur, no depth of field, no motion blur, no film grain, no reflections, no gradients, no 3D render look.
+
+CAMERA: tripod-static, straight-on, no zoom, no pan, no tilt, no cuts, no fades. The frame never moves; only the objects described below move. MOTION: slow, smooth, continuous and monotonic from the first frame to the last, so that any frame is a beautiful finished still when the viewer scrubs through the clip with the scroll wheel. Ease-in-out only, no bounce, no overshoot, no particles, no flicker. The first and the last frame must each be a complete, balanced composition.
+
+SCENE: an architect's drawing sheet. One long horizontal rule (4 px, ink #201E1D) runs from x 8% to x 92% at y 52%. Five evenly spaced STATIONS sit on it at x 16%, 33%, 50%, 67% and 84%: each is a small hollow square (1.4% wide, 3 px ink outline, white fill) on the rule with two short 2 px tick marks above and below it. Hairline dimension lines (2 px, light grey #D7D3D3, with small end ticks and no numbers) connect neighbouring stations just below the rule, like an architectural drawing.
+FIVE SMALL DRAWINGS, each about 12% wide and 20% tall, drawn in 3 px lines. Drawings 1, 3 and 5 sit ABOVE the rule (y 22-44%), drawings 2 and 4 sit BELOW it (y 60-82%), each centred on its station with a thin vertical 2 px connector line to the station.
+1) A single portrait page with one short thick heading bar and seven thin text bars.
+2) A page tilted 4 degrees inside a square photo frame with four small viewfinder corner brackets, and one thin horizontal scan line across it.
+3) A long thin strip cut by dashed vertical lines into four pieces, two small tags hanging from it on thin strings.
+4) A grid of 6 x 4 small squares, each filled a different grey (from light #D7D3D3 to dark #605D5D): a block of numbers.
+5) Three dashed rectangles side by side, each holding a small grid of dots; the first rectangle has a solid ink outline, the other two are dashed grey: the user's own scope.
+INACTIVE drawings are drawn in mid grey #BAB6B6; the ACTIVE drawing (the one whose station the marker is on) is drawn in ink #201E1D. The change takes 0.4 s.
+MARKER: one red square #EC3013 (2.2% wide) travels along the rule, with a thin 2 px red vertical hairline running from y 18% to y 86% through it. It glides smoothly from station 1 at the start to station 5 at the end, pausing for about 0.9 s on each station (so it rests at about 0 s, 2 s, 4 s, 6 s and 8 s).
+FIRST FRAME: marker on station 1, drawing 1 in ink, the others grey. LAST FRAME: marker on station 5, drawing 5 in ink.
+
+==========================================================================================
+NEGATIVE PROMPT
+==========================================================================================
+text, letters, words, numbers, digits, symbols, labels, captions, logo, watermark, people, face, hand, cursor, rounded corners, rounded rectangle, pill shape, gradient, vignette, glow, neon, bloom, lens flare, bokeh, depth of field, blur, motion blur, film grain, noise, dust, scanlines, glitch, 3D render, photorealistic, glossy, glass, reflections, shadows, drop shadow, bevel, metallic, camera movement, zoom, pan, tilt, shake, cuts, transitions, fade to black, flash, flicker, strobe, particles, sparkles, confetti, smoke, liquid, morphing, wobbly lines, jitter, warping, colour shift, blue, cyan, teal, green, yellow, gold, orange, purple, pink, rainbow, dark mode, black background, grey background, cyberpunk, sci-fi, hologram, circuit board, binary code, matrix rain, DNA, brain, heart, stethoscope, pills, hospital, molecules, robot, cartoon, anime, sketch, watercolour, paper texture, compression artifacts, low resolution, dense, cluttered, busy
+
+==========================================================================================
+COMPACT PROMPT (short-limit generators)
+==========================================================================================
+Flat 2D vector line-art, Swiss Modernist architect's drawing, 16:9, 8 s, static camera, pure white field #FFFFFF. A long thin ink rule across the frame with five small hollow-square stations and hairline dimension lines. Five small 3 px line drawings (page with text bars; tilted page in a photo frame with scan line; strip cut into pieces with tags; 6x4 grid of grey squares; three dashed boxes of dots, first one solid) alternate above and below the rule. A small red square with a thin red vertical hairline glides along the rule, pausing on each station; the drawing at the marker turns ink, the others mid grey. No text or numbers, no shadows, no blur, red under 3%.
+
+==========================================================================================
+SETTINGS
+==========================================================================================
+16:9, 1920 x 1080, 24 fps, 8 s, no audio, no camera preset, no enhance/stylise options, highest quality.
+
+==========================================================================================
+POST-PROCESSING (same for every background)
+  Frames (recommended; same technique as the Upload stage, smooth scrubbing):
+     ffmpeg -i NAME.mp4 -vf "fps=15,scale=1600:-2" -c:v libwebp -quality 72 frame_%04d.webp
+     (an 8 s clip at 15 fps = exactly 120 frames; use fps=11.25 for 90 frames and a lighter download)
+     Put them in  site design/public/assets/bg/NAME/  (frame_0001.webp ... frame_0120.webp)
+  Or one scrub-friendly video (every frame is a key frame, so seeking is instant):
+     ffmpeg -i NAME.mp4 -an -vf "scale=1600:-2" -c:v libx264 -crf 24 -g 1 -pix_fmt yuv420p NAME_scrub.mp4
+  Mirror the composition if a page needs the art on the LEFT:  add  hflip  to the -vf chain.
+  How the app will blend it (decided in the integration task): CSS mix-blend-mode multiply, opacity set by one variable. Because the field is pure white, multiply leaves the page colour untouched, so there is NO visible rectangle even if JPEG/WebP compression shifts the white by a level or two.
+

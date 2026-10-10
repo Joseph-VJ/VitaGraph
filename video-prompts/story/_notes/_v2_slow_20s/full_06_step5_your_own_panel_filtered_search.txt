@@ -1,0 +1,62 @@
+STEP 5 (ROW 05 INDEX, SCOPED TO USER): THE PASSAGES ARE STORED IN YOUR PANEL; A SEARCH ONLY LOOKS INSIDE IT
+==========================================================================================
+Position in the film: 0:16-0:20 of the film (frames 97-120)
+What anyone should be able to say after watching: "The passages are stored in my own panel with a lock, and when a question is asked, the search only looks inside my panel, not in anyone else's."
+
+IMAGES TO GIVE THE GENERATOR (image-to-video, first and last frame)
+Start image = last frame of clip 4 (keyframes/K4.png).
+End image = keyframes/K5.png (three panels: two dashed grey panels with grey dots on the left, my red panel on the right with four ink dots each carrying a small red square, a closed padlock above my panel, a ? bubble at the top left with a red line running to my panel only, two grey branch lines stopped by short ink bars, rail all five ink).
+
+==========================================================================================
+PROMPT (paste this whole block)
+==========================================================================================
+A 4-second silent flat 2D motion-graphics clip, part 5 of a 5-part film that shows, in the simplest literal way, how a lab-report PDF becomes searchable. One continuous locked-off take, square 1:1, 24 fps. Anyone watching with the sound off must be able to say: "The passages are stored in my own panel with a lock, and when a question is asked, the search only looks inside my panel, not in anyone else's."
+
+LOOK: flat 2D vector motion graphics in strict Swiss International (Modernist) style, square 1:1 frame, 24 fps, silent. The entire frame is one perfectly flat, uniform warm light grey #EAE9E9, edge to edge, no vignette, no gradient, no texture, no noise. Every shape is flat single-colour geometry with razor-sharp edges and perfectly square 90-degree corners (zero corner radius; only dots are round). Colours allowed: paper #F8F4F4, light grey #D7D3D3, faint ink #BBB8B7, divider grey #999796, dark grey #605D5D, ink #201E1D, and ONE vivid vermilion red #EC3013 (deep red #AE1800 and pale reds #FFC4B8 / #FFE0D9 only for small marks); no other hue exists. Red marks only the thing that is active right now. No lighting, no shading, no shadows, no glow, no bloom, no blur, no depth of field, no motion blur, no film grain, no reflections, no 3D, no photographic realism, no dark backgrounds, no neon, no holograms. Every frame must look like a crisp finished vector screenshot of a clean software interface. TYPOGRAPHY: all text is set in a clean neo-grotesque sans-serif (Archivo look), regular and extra-bold weights only, ink on paper. The ONLY words and numbers in the film are those of the DOCUMENT TEXT block, spelled exactly, plus the three letters PDF on the file tag and one question mark in step 5.
+
+CAMERA AND SET: tripod-static, orthographic, straight-on; no zoom, no pan, no tilt, no cuts, no fades to black. Coordinates are percentages of the frame (x from the left edge, y from the top edge). Everything stays inside x 4%-96%, y 8%-90%; the bottom-right corner x 74%-100%, y 86%-100% stays empty. The set is always the same: LEFT ZONE x 7-47, y 18-72 holds the source page (portrait, 40% wide, 54% tall); RIGHT ZONE x 53-93, y 18-72 holds the output (a dashed outline box that fills with text, later cards or panels); a PROGRESS RAIL at x 7-70, y 84-87 shows five small squares (36 px at 1600 px) joined by a thin grey line: finished steps are ink, the current step is red, upcoming steps are outlined.
+
+MOTION: rich and dense but precise: many elements move at the same time, with overlapping flights, every element perfectly crisp. Ease-out cubic, straight horizontal or vertical paths, drawn ahead of each flying element as a thin 2 px dashed grey line. No bounce, no overshoot, no particles, no trails other than those dashed paths. Appearing and disappearing elements fade over 0.4 s.
+
+DOCUMENT TEXT (the ONLY words and numbers allowed in the film; spell them exactly; they are the project's own synthetic sample report, all values fictional)
+  Header (extra-bold):  Riverdale Diagnostics          under it (regular, dark grey):  Synthetic Demo Laboratory
+  Title (extra-bold):   Comprehensive Health Panel
+  Three lines:          Patient: Demo Persona A
+                        Collection Date: 15 January 2025
+                        Report ID: SYN-2025-0115-A
+  Table header (extra-bold):  Test | Result | Unit | Reference range
+  Table rows:           Hemoglobin | 13.8 | g/dL | 12.0 - 15.5
+                        Vitamin D, 25-Hydroxy | 18 | ng/mL | 30 - 100 | small ink tag LOW
+                        Cholesterol, Total | 224 | mg/dL | < 200 | small red tag HIGH
+                        LDL Cholesterol | 148 | mg/dL | < 100 | small red tag HIGH
+                        HDL Cholesterol | 44 | mg/dL | > 40
+                        Fasting Glucose | 96 | mg/dL | 70 - 99
+  Footer line (small):  Interpretation of these values is reserved for the treating clinician.
+  File tag on the digital page (white letters on an ink tag):  PDF
+  Step 5 only: one question mark ? in a speech-bubble square.
+  Nothing else: no captions, no titles, no UI labels, no step names, no logos.
+  The ready-made pixel-exact versions of all this are in the keyframes/ folder (see 08_keyframes_how_to_use.txt).
+
+STEP 5: "stored in my own panel; the search only looks there". 0:00-0:00.4 the dimmed cards, the encoder, the red link, the ellipse and the map grid fade out; the four ink dots stay where they are for a moment.
+0:00.4-0:01.0 THREE PANELS fade in side by side, each 26% wide and 48% tall (y 22-70): panel B at x 8-34 and panel C at x 37-63, both with a dashed 3 px grey outline, a mid-grey header square with two grey bars, and their own mid-grey dots (panel B six dots, panel C five dots): other people's data; and MY panel A at x 68-94 with a solid 5 px RED outline, a red header square with an ink bar and a dark grey bar, empty inside.
+0:01.0-0:02.2 STORING: the four ink dots move straight into panel A (staggered 0.2 s, ease-out) and settle in a 3 x 2 grid; as each dot lands, a small red square (1% wide) pops onto its upper-right corner: the owner mark.
+0:02.2-0:02.6 LOCK: a padlock (ink, square body 4.2% wide, square-cornered U-shaped shackle) above panel A's top-right corner closes (the shackle drops 1.4% into the body) and one thin red ring expands once around it and fades.
+0:02.6-0:03.8 SEARCH: a square speech bubble with a single question mark ? fades in at the top left (x 8-17, y 7.5-14). A red line (5 px) draws from it down 1.5%, then right along y 16.5 and down into panel A (0.5 s). Two thin dashed grey branches (3 px) leave the red line above panel B and above panel C, run down toward those panels and are stopped by short thick ink bars (4.3% wide, 0.9% tall) just above them: they never enter. When the red line reaches panel A the four dots flash red one after another (0.12 s apart) and return to ink.
+0:03.8-0:04.0 Hold: all five rail squares ink.
+
+Duration 4 seconds. Hold perfectly still for the first 0.4 s and the last 0.4 s. Everything that exists at the start stays exactly where it is unless this paragraph moves it.
+
+==========================================================================================
+NEGATIVE PROMPT (paste in the negative field)
+==========================================================================================
+misspelled words, wrong spelling, garbled text, extra words, extra numbers, captions, subtitles, titles, UI labels, step names, logo, watermark, signature, emoji, cursor, mouse pointer, hand, people, face, rounded corners, rounded rectangle, pill shape, gradient, vignette, glow, neon, bloom, lens flare, light rays, holographic, hologram, glowing blue, dark background, black background, depth of field, blur, motion blur, film grain, noise, scanlines, glitch, 3D render, photorealistic photograph, glossy, glass, reflections, shadows, drop shadow, bevel, metallic, camera movement, zoom, pan, tilt, dolly, shake, cuts, transitions, fade to black, flash, flicker, strobe, particles, sparkles, confetti, smoke, liquid, morphing, wobbly lines, jitter, warping, colour shift, blue, cyan, teal, green, yellow, gold, orange, purple, pink, rainbow, cyberpunk, sci-fi, circuit board, binary code, matrix rain, DNA, brain, heart, stethoscope, pills, syringe, red cross, hospital, molecules, robot, clip art, cartoon, anime, sketch, watercolour, paper texture, compression artifacts, low resolution
+
+==========================================================================================
+COMPACT PROMPT (generators with a short prompt limit)
+==========================================================================================
+Flat 2D vector motion graphic of a clean software interface, strict Swiss Modernist style, square 1:1, 24 fps, silent, locked static camera. Flat uniform warm grey #EAE9E9 background, sharp square corners, paper #F8F4F4, ink #201E1D, greys, one vivid red #EC3013 only for the active thing. Clean sans-serif text, only the words of the sample lab report (Riverdale Diagnostics, Comprehensive Health Panel, Demo Persona A, Hemoglobin 13.8 g/dL 12.0 - 15.5, Vitamin D 18, Cholesterol Total 224, LDL 148, HDL 44, Fasting Glucose 96). Left: source page (7-47%, 18-72%). Right: output (53-93%, 18-72%). Bottom: five-square progress rail. No shadows, blur, glow, dark background, neon or people. Dense, precise, ease-out motion along straight dashed paths. Cards, encoder and map fade out. Three side-by-side panels appear: two dashed grey ones with grey dots (other people's data) and my solid red-outlined panel on the right. The four ink dots move into my panel and each gets a small red owner square; a padlock above it closes with one red ring. A question-mark bubble appears top left; a red line runs only into my panel and lights its dots red, while two dashed grey branches toward the other panels are stopped by short ink bars. End: rail all done.
+
+==========================================================================================
+SETTINGS
+==========================================================================================
+Aspect 1:1, at least 1080 x 1080 (1600 x 1600 matches the keyframes), 24 fps, 4 s, no audio, no camera-motion preset, no enhance/stylise options, highest quality. If the tool supports "first frame" and "last frame" images, give it both; if it supports only a first frame, give the first.

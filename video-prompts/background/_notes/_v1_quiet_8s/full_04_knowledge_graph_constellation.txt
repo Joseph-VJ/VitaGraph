@@ -1,0 +1,44 @@
+PAGE 04 KNOWLEDGE GRAPH (also reusable for Insights): a quiet 3D knowledge graph that turns slowly as you scroll
+==========================================================================================
+USED ON: Insights, empty Knowledge Graph, hero/splash, empty states. Matches the real Knowledge Graph page language (square subject, ring reports, diamond sections, filled circle biomarkers, small dot values, dotted red ring uncertainty).
+SCROLL MAPPING: frame 1 = page scrolled to the top, frame 120 = scrolled to the bottom. Scrolling turns the graph by about 120 degrees.
+
+==========================================================================================
+PROMPT (paste this whole block)
+==========================================================================================
+A calm, minimal, flat 2D vector line-art animation in strict Swiss International (Modernist) style, 16:9 landscape (1920 x 1080), 24 fps, 8 seconds, silent, to be used as a quiet scroll-driven page background. The entire frame is one perfectly flat, uniform PURE WHITE field #FFFFFF, identical in every pixel, no vignette, no gradient, no texture, no noise. Everything drawn is thin line work and small flat marks with razor-sharp edges and perfectly square 90-degree corners (zero corner radius; only true circles, dots and rings are round). Colours allowed: ink #201E1D, darkest grey #2D2B2B, dark grey #605D5D, divider grey #999796, mid grey #BAB6B6, light grey #D7D3D3, and ONE vivid vermilion red #EC3013 (deep red #AE1800 and light red #FF9783 only where stated). No other hue exists. Red covers less than 3% of the frame at any moment. Strokes are hairlines of 2 to 4 px (never thicker than 6 px). No solid filled shape larger than 2% of the frame, except where a prompt says so. At least 55% of the frame stays empty white. The composition is weighted to the RIGHT: the left 38% of the frame is almost empty so a page heading can sit there. Keep every object inside x 10%-90% and y 6%-94%. Absolutely no text, no letters, no digits, no symbols, no logos, no labels of any kind. No lighting, no shading, no shadows, no glow, no blur, no depth of field, no motion blur, no film grain, no reflections, no gradients, no 3D render look.
+
+CAMERA: tripod-static, straight-on, no zoom, no pan, no tilt, no cuts, no fades. The frame never moves; only the objects described below move. MOTION: slow, smooth, continuous and monotonic from the first frame to the last, so that any frame is a beautiful finished still when the viewer scrubs through the clip with the scroll wheel. Ease-in-out only, no bounce, no overshoot, no particles, no flicker. The first and the last frame must each be a complete, balanced composition.
+
+SCENE: a perspective floor grid and a floating cloud of graph nodes seen from a fixed three-quarter high viewpoint (about 35 degrees above the floor), like a calm architectural model.
+FLOOR: a flat perspective grid on the lower 55% of the frame: 12 lines running away from the viewer and 8 lines across, 2 px, light grey #D7D3D3, converging gently toward a vanishing point above the centre; the floor fades into the white at its far edge by shortening lines, never by gradient.
+NODES: about 42 nodes floating above the floor in a loose cloud centred at x 64%, y 42% with a radius of about 22% of the frame width. Exactly one SQUARE (3% wide, solid ink #201E1D) in the middle: the subject. Three RINGS (2.4% wide, 4 px ink outline, white fill): reports. Eight DIAMONDS (1.8% wide, 2 px ink outline, white fill): sections. Ten SOLID CIRCLES (2% wide, ink or dark grey #605D5D): biomarkers. Eighteen SMALL DOTS (0.9% wide, #605D5D): values. Two DOTTED RED RINGS (2% wide, 3 px dashed red #EC3013): uncertainty. About 60 thin curved edges (2 px, divider grey #999796) connect the nodes into one connected graph. Depth cue: nodes nearer to the viewer are drawn a little larger.
+MOTION: the whole node cloud (nodes and edges together) rotates slowly and steadily around its vertical axis, 120 degrees over the 8 seconds, with correct perspective (nodes closer to the viewer move faster across the frame). The floor stays still. At the same time ONE small subgraph (seven nodes and the edges between them) is drawn in red #EC3013 (edges 3 px) while every other node and edge dims to 40% opacity: this is "a question lights up its own subgraph". At 0:00 the red subgraph is around the first ring; at 2.7 s it cross-fades over 0.6 s to a different cluster; at 5.3 s it cross-fades to a third cluster. Everything else stays calm.
+FIRST FRAME: the complete graph already fully formed with the first red subgraph. LAST FRAME: the same graph rotated 120 degrees with the third red subgraph.
+
+==========================================================================================
+NEGATIVE PROMPT
+==========================================================================================
+text, letters, words, numbers, digits, symbols, labels, captions, logo, watermark, people, face, hand, cursor, rounded corners, rounded rectangle, pill shape, gradient, vignette, glow, neon, bloom, lens flare, bokeh, depth of field, blur, motion blur, film grain, noise, dust, scanlines, glitch, 3D render, photorealistic, glossy, glass, reflections, shadows, drop shadow, bevel, metallic, camera movement, zoom, pan, tilt, shake, cuts, transitions, fade to black, flash, flicker, strobe, particles, sparkles, confetti, smoke, liquid, morphing, wobbly lines, jitter, warping, colour shift, blue, cyan, teal, green, yellow, gold, orange, purple, pink, rainbow, dark mode, black background, grey background, cyberpunk, sci-fi, hologram, circuit board, binary code, matrix rain, DNA, brain, heart, stethoscope, pills, hospital, molecules, robot, cartoon, anime, sketch, watercolour, paper texture, compression artifacts, low resolution, dense, cluttered, busy
+
+==========================================================================================
+COMPACT PROMPT (short-limit generators)
+==========================================================================================
+Flat 2D vector line-art, Swiss Modernist, 16:9, 8 s, static camera, pure white field #FFFFFF. A slowly rotating 3D knowledge graph (about 42 nodes: one solid square, three rings, eight diamonds, ten solid circles, eighteen small dots, two dotted red rings, ~60 thin curved grey edges) floating above a thin light-grey perspective floor grid, right of centre. The cloud rotates 120 degrees with true perspective; one seven-node subgraph glows red while the rest dims to 40%, hopping to a new cluster at 2.7 s and 5.3 s. Hairlines only, no text, no shadows, no blur, red under 3% of the frame, left 38% empty.
+
+==========================================================================================
+SETTINGS
+==========================================================================================
+16:9, 1920 x 1080, 24 fps, 8 s, no audio, no camera preset, no enhance/stylise options, highest quality.
+
+==========================================================================================
+POST-PROCESSING (same for every background)
+  Frames (recommended; same technique as the Upload stage, smooth scrubbing):
+     ffmpeg -i NAME.mp4 -vf "fps=15,scale=1600:-2" -c:v libwebp -quality 72 frame_%04d.webp
+     (an 8 s clip at 15 fps = exactly 120 frames; use fps=11.25 for 90 frames and a lighter download)
+     Put them in  site design/public/assets/bg/NAME/  (frame_0001.webp ... frame_0120.webp)
+  Or one scrub-friendly video (every frame is a key frame, so seeking is instant):
+     ffmpeg -i NAME.mp4 -an -vf "scale=1600:-2" -c:v libx264 -crf 24 -g 1 -pix_fmt yuv420p NAME_scrub.mp4
+  Mirror the composition if a page needs the art on the LEFT:  add  hflip  to the -vf chain.
+  How the app will blend it (decided in the integration task): CSS mix-blend-mode multiply, opacity set by one variable. Because the field is pure white, multiply leaves the page colour untouched, so there is NO visible rectangle even if JPEG/WebP compression shifts the white by a level or two.
+

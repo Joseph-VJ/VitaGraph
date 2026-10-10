@@ -1,0 +1,5 @@
+Clean 3D explainer animation, modern minimal look: light grey background, matte white and charcoal objects, one red accent colour, soft studio light with soft shadows, slow smooth camera drift, bold simple sans-serif title text. The only text allowed is the short title and the one small line given below. No numbers or digits anywhere, no data, no patient or medical details: all document content is drawn as grey bars. A row of seven small circles at the bottom shows progress (finished = charcoal, current = red). 3 seconds, smooth, instantly easy to understand at a glance.
+
+Big title at the top: Extracted. Small line under it: Text pulled from every page. The file opens into a fan of pages. A thin red scanner light sweeps over each page in turn. On pages with real text, the lines lift off and float onto a clean text sheet on the right. One page is only a picture: red boxes outline its lines, the rough lines turn crisp, and they float onto the same sheet. The sheet fills with neat lines and every page gets a check mark.
+
+Avoid: any numbers or digits, medical values or names, extra or misspelled text, clutter, dark neon look, fast cuts.

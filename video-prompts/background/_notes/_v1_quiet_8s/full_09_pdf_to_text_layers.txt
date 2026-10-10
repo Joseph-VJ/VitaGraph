@@ -1,0 +1,45 @@
+PAGE 09 PDF TO TEXT: a stack of pages, the text layer lifts off each page, one scanned page has no layer
+==========================================================================================
+USED ON: PDF to Text (/pdf-to-text). Opacity tier 10-15%; 40% only on its empty state.
+SCROLL MAPPING: frame 1 = page top, frame 120 = page bottom. Scrolling lifts the text layers off page after page.
+
+==========================================================================================
+PROMPT (paste this whole block)
+==========================================================================================
+A calm, minimal, flat 2D vector line-art animation in strict Swiss International (Modernist) style, 16:9 landscape (1920 x 1080), 24 fps, 8 seconds, silent, to be used as a quiet scroll-driven page background. The entire frame is one perfectly flat, uniform PURE WHITE field #FFFFFF, identical in every pixel, no vignette, no gradient, no texture, no noise. Everything drawn is thin line work and small flat marks with razor-sharp edges and perfectly square 90-degree corners (zero corner radius; only true circles, dots and rings are round). Colours allowed: ink #201E1D, darkest grey #2D2B2B, dark grey #605D5D, divider grey #999796, mid grey #BAB6B6, light grey #D7D3D3, and ONE vivid vermilion red #EC3013 (deep red #AE1800 and light red #FF9783 only where stated). No other hue exists. Red covers less than 3% of the frame at any moment. Strokes are hairlines of 2 to 4 px (never thicker than 6 px). No solid filled shape larger than 2% of the frame, except where a prompt says so. At least 55% of the frame stays empty white. The composition is weighted to the RIGHT: the left 38% of the frame is almost empty so a page heading can sit there. Keep every object inside x 10%-90% and y 6%-94%. Absolutely no text, no letters, no digits, no symbols, no logos, no labels of any kind. No lighting, no shading, no shadows, no glow, no blur, no depth of field, no motion blur, no film grain, no reflections, no gradients, no 3D render look.
+
+CAMERA: tripod-static, straight-on, no zoom, no pan, no tilt, no cuts, no fades. The frame never moves; only the objects described below move. MOTION: slow, smooth, continuous and monotonic from the first frame to the last, so that any frame is a beautiful finished still when the viewer scrubs through the clip with the scroll wheel. Ease-in-out only, no bounce, no overshoot, no particles, no flicker. The first and the last frame must each be a complete, balanced composition.
+
+SCENE: four pages stacked like a fanned deck, and a transparent text layer that lifts off each one.
+PAGES: four portrait paper sheets, each 12% wide and 26% tall, with 3 px divider-grey #999796 outlines and white fill, fanned in a row from left to right with 3.2% overlap at x 46-72%, y 24-50% (each sheet drawn in front of the one to its left). Pages 1, 2 and 3 carry six thin ink text bars each. Page 4 carries a faint grey photo pattern instead: six faint #D7D3D3 text bars that are slightly tilted: a scanned page.
+LAYER: a thin transparent sheet drawn as a 2 px dashed outline in ink (same size as a page, no fill) that carries ink text bars exactly where the page's bars are.
+EXTRACTED TEXT: at x 78-92%, y 24-50% an empty outlined column (2 px light-grey #D7D3D3 outline, 12% wide, 26% tall).
+MOTION: starting with page 1: the dashed layer lifts straight up 8% off the page (0.5 s) while the page's bars fade to faint, the layer slides right (0.5 s) into the extracted-text column and merges there (its bars stay as ink-grey #605D5D lines, the dashed outline fades), then page 1 stays faint. Repeat for page 2 (starting 2 s), page 3 (starting 4 s). At 5.8 s the layer reaches page 4: the dashed layer lifts but is EMPTY (no bars), so it falls back down; a small red square corner mark (2% wide) appears on page 4's top-right corner and a thin red hairline underlines the page: "no text layer here". 6.5 s to 8 s: still.
+FIRST FRAME: four pages with bars, empty column. LAST FRAME: three faint pages, a filled column, page 4 with the red corner mark.
+
+==========================================================================================
+NEGATIVE PROMPT
+==========================================================================================
+text, letters, words, numbers, digits, symbols, labels, captions, logo, watermark, people, face, hand, cursor, rounded corners, rounded rectangle, pill shape, gradient, vignette, glow, neon, bloom, lens flare, bokeh, depth of field, blur, motion blur, film grain, noise, dust, scanlines, glitch, 3D render, photorealistic, glossy, glass, reflections, shadows, drop shadow, bevel, metallic, camera movement, zoom, pan, tilt, shake, cuts, transitions, fade to black, flash, flicker, strobe, particles, sparkles, confetti, smoke, liquid, morphing, wobbly lines, jitter, warping, colour shift, blue, cyan, teal, green, yellow, gold, orange, purple, pink, rainbow, dark mode, black background, grey background, cyberpunk, sci-fi, hologram, circuit board, binary code, matrix rain, DNA, brain, heart, stethoscope, pills, hospital, molecules, robot, cartoon, anime, sketch, watercolour, paper texture, compression artifacts, low resolution, dense, cluttered, busy
+
+==========================================================================================
+COMPACT PROMPT (short-limit generators)
+==========================================================================================
+Flat 2D vector line-art, Swiss Modernist, 16:9, 8 s, static camera, pure white field #FFFFFF. Four fanned portrait pages (three with ink text bars, the fourth a faint tilted scan) right of centre and an empty outlined column further right. A dashed transparent text layer lifts off page 1, slides into the column and merges, then page 2 and page 3 in turn; on page 4 the lifted layer is empty, falls back, and a small red corner mark appears. No text or numbers, no shadows, no blur, red under 3%, left 38% empty.
+
+==========================================================================================
+SETTINGS
+==========================================================================================
+16:9, 1920 x 1080, 24 fps, 8 s, no audio, no camera preset, no enhance/stylise options, highest quality.
+
+==========================================================================================
+POST-PROCESSING (same for every background)
+  Frames (recommended; same technique as the Upload stage, smooth scrubbing):
+     ffmpeg -i NAME.mp4 -vf "fps=15,scale=1600:-2" -c:v libwebp -quality 72 frame_%04d.webp
+     (an 8 s clip at 15 fps = exactly 120 frames; use fps=11.25 for 90 frames and a lighter download)
+     Put them in  site design/public/assets/bg/NAME/  (frame_0001.webp ... frame_0120.webp)
+  Or one scrub-friendly video (every frame is a key frame, so seeking is instant):
+     ffmpeg -i NAME.mp4 -an -vf "scale=1600:-2" -c:v libx264 -crf 24 -g 1 -pix_fmt yuv420p NAME_scrub.mp4
+  Mirror the composition if a page needs the art on the LEFT:  add  hflip  to the -vf chain.
+  How the app will blend it (decided in the integration task): CSS mix-blend-mode multiply, opacity set by one variable. Because the field is pure white, multiply leaves the page colour untouched, so there is NO visible rectangle even if JPEG/WebP compression shifts the white by a level or two.
+

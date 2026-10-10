@@ -1,0 +1,46 @@
+PAGE 03 AI AGENT: a question goes out to four helpers and comes back as an answer with receipts
+==========================================================================================
+USED ON: AI Agent (/agent). The page has its own scrolling column, so use this one as a slow time loop at 10-15%, or only on the empty 'What would you like to know?' state at 40-55%.
+SCROLL MAPPING: if scroll-driven: frame 1 = top, frame 120 = bottom. If looped: play 8 s forward then 8 s backward. The red dot visits one helper per 1.6 s.
+
+==========================================================================================
+PROMPT (paste this whole block)
+==========================================================================================
+A calm, minimal, flat 2D vector line-art animation in strict Swiss International (Modernist) style, 16:9 landscape (1920 x 1080), 24 fps, 8 seconds, silent, to be used as a quiet scroll-driven page background. The entire frame is one perfectly flat, uniform PURE WHITE field #FFFFFF, identical in every pixel, no vignette, no gradient, no texture, no noise. Everything drawn is thin line work and small flat marks with razor-sharp edges and perfectly square 90-degree corners (zero corner radius; only true circles, dots and rings are round). Colours allowed: ink #201E1D, darkest grey #2D2B2B, dark grey #605D5D, divider grey #999796, mid grey #BAB6B6, light grey #D7D3D3, and ONE vivid vermilion red #EC3013 (deep red #AE1800 and light red #FF9783 only where stated). No other hue exists. Red covers less than 3% of the frame at any moment. Strokes are hairlines of 2 to 4 px (never thicker than 6 px). No solid filled shape larger than 2% of the frame, except where a prompt says so. At least 55% of the frame stays empty white. The composition is weighted to the RIGHT: the left 38% of the frame is almost empty so a page heading can sit there. Keep every object inside x 10%-90% and y 6%-94%. Absolutely no text, no letters, no digits, no symbols, no logos, no labels of any kind. No lighting, no shading, no shadows, no glow, no blur, no depth of field, no motion blur, no film grain, no reflections, no gradients, no 3D render look.
+
+CAMERA: tripod-static, straight-on, no zoom, no pan, no tilt, no cuts, no fades. The frame never moves; only the objects described below move. MOTION: slow, smooth, continuous and monotonic from the first frame to the last, so that any frame is a beautiful finished still when the viewer scrubs through the clip with the scroll wheel. Ease-in-out only, no bounce, no overshoot, no particles, no flicker. The first and the last frame must each be a complete, balanced composition.
+
+SCENE: a question, four helpers, one answer, drawn as a calm diagram of everyday objects.
+QUESTION: a square-cornered speech bubble (12% wide, 8% tall, 3 px ink outline, white fill) at x 46-58%, y 14-22%, containing one short thick ink bar. A small triangle tail points down-right.
+FOUR HELPERS, each about 9% wide and drawn in 3 px lines, arranged in a gentle arc below the bubble at y 42-62%: (1) x 50% a magnifying glass over a small page: it searches the passages; (2) x 62% three short vertical measuring bars with a thin horizontal baseline: it reads the values; (3) x 74% four small nodes joined by lines: it follows the graph; (4) x 86% a short stack of three folders: it lists the reports.
+PATHS: a thin 2 px divider-grey #999796 line runs from the bubble's tail to each helper (four lines fanning out), and from each helper a second thin line returns to the answer card.
+ANSWER: a rectangular card (22% wide, 14% tall, 3 px ink outline, white fill) at x 56-78%, y 74-88% with one thick heading bar, three thin ink text bars, and a row of two small square chips (1.6%) in deep red #AE1800 at its right end: the numbered receipts.
+MOTION: one small red dot (1%) starts in the bubble. Every 1.6 s it travels down the path to the next helper (in order 1, 2, 3, 4); on arrival that helper changes from mid grey #BAB6B6 to ink #201E1D for 1 s, then the red dot returns along the return path to the answer card, where one more text bar draws on (from left to right, 0.6 s). After the fourth helper all four helpers are ink, the answer card is full and the two red chips pulse once (a thin red ring expands and fades). Everything starts in mid grey: the first frame shows all four helpers grey and the card empty except the heading bar.
+FIRST FRAME: bubble, four grey helpers, empty card. LAST FRAME: four ink helpers, full card with two red chips.
+
+==========================================================================================
+NEGATIVE PROMPT
+==========================================================================================
+text, letters, words, numbers, digits, symbols, labels, captions, logo, watermark, people, face, hand, cursor, rounded corners, rounded rectangle, pill shape, gradient, vignette, glow, neon, bloom, lens flare, bokeh, depth of field, blur, motion blur, film grain, noise, dust, scanlines, glitch, 3D render, photorealistic, glossy, glass, reflections, shadows, drop shadow, bevel, metallic, camera movement, zoom, pan, tilt, shake, cuts, transitions, fade to black, flash, flicker, strobe, particles, sparkles, confetti, smoke, liquid, morphing, wobbly lines, jitter, warping, colour shift, blue, cyan, teal, green, yellow, gold, orange, purple, pink, rainbow, dark mode, black background, grey background, cyberpunk, sci-fi, hologram, circuit board, binary code, matrix rain, DNA, brain, heart, stethoscope, pills, hospital, molecules, robot, cartoon, anime, sketch, watercolour, paper texture, compression artifacts, low resolution, dense, cluttered, busy
+
+==========================================================================================
+COMPACT PROMPT (short-limit generators)
+==========================================================================================
+Flat 2D vector line-art, Swiss Modernist, 16:9, 8 s, static camera, pure white field #FFFFFF. A speech bubble at top; below it four small line-drawn helpers in an arc (magnifier over a page, three measuring bars, four joined nodes, stack of three folders) joined to it by thin grey paths; an answer card at the bottom with text bars and two small deep-red chip squares. A small red dot visits each helper in turn and returns; each helper turns from grey to ink and a new text bar draws on the card; finally the chips pulse once. No text, no shadows, no blur, red under 3%, left 38% empty.
+
+==========================================================================================
+SETTINGS
+==========================================================================================
+16:9, 1920 x 1080, 24 fps, 8 s, no audio, no camera preset, no enhance/stylise options, highest quality.
+
+==========================================================================================
+POST-PROCESSING (same for every background)
+  Frames (recommended; same technique as the Upload stage, smooth scrubbing):
+     ffmpeg -i NAME.mp4 -vf "fps=15,scale=1600:-2" -c:v libwebp -quality 72 frame_%04d.webp
+     (an 8 s clip at 15 fps = exactly 120 frames; use fps=11.25 for 90 frames and a lighter download)
+     Put them in  site design/public/assets/bg/NAME/  (frame_0001.webp ... frame_0120.webp)
+  Or one scrub-friendly video (every frame is a key frame, so seeking is instant):
+     ffmpeg -i NAME.mp4 -an -vf "scale=1600:-2" -c:v libx264 -crf 24 -g 1 -pix_fmt yuv420p NAME_scrub.mp4
+  Mirror the composition if a page needs the art on the LEFT:  add  hflip  to the -vf chain.
+  How the app will blend it (decided in the integration task): CSS mix-blend-mode multiply, opacity set by one variable. Because the field is pure white, multiply leaves the page colour untouched, so there is NO visible rectangle even if JPEG/WebP compression shifts the white by a level or two.
+

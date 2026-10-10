@@ -1,0 +1,37 @@
+A 3-second silent flat 2D motion-graphics clip, part 3 of a 5-part, 15-second film that shows, in the simplest literal way and at a fast, busy pace, how a whole batch of lab-report papers becomes searchable. One continuous locked-off take, square 1:1, 24 fps. Anyone watching with the sound off must be able to say: "The copied text of every paper is cut into short passages, and each passage keeps a note of where on its page it came from."
+
+LOOK: flat 2D vector motion graphics in strict Swiss International (Modernist) style, square 1:1 frame, 24 fps, silent. The entire frame is one perfectly flat, uniform warm light grey #EAE9E9, edge to edge, no vignette, no gradient, no texture, no noise. Every shape is flat single-colour geometry with perfectly square 90-degree corners (zero corner radius; only dots are round). Colours allowed: paper #F8F4F4, light grey #D7D3D3, faint ink #BBB8B7, divider grey #999796, dark grey #605D5D, ink #201E1D, and ONE vivid vermilion red #EC3013 (deep red #AE1800 and pale reds #FFC4B8 / #FFE0D9 only for small marks); no other hue exists. Red marks only the thing that is active right now. No lighting, no shading, no shadows, no glow, no bloom, no film grain, no 3D, no photographic realism, no dark backgrounds, no neon, no holograms. It must look like a crisp, finished, modern software interface.
+SOFTNESS (important): the hero page and the words being read stay sharp and fully legible at all times. Everything secondary is slightly soft, like a very shallow depth of field: the other pages of the stack, the cards and thumbnails behind the hero cards, the extra dots, and small background details carry a light blur of about 1 to 2 px at 1600 px. Fast-moving word tiles, strips and dots carry a short, light motion blur along their direction of travel (about 3 to 6 px). Never heavy blur, never blur on the hero text.
+TYPOGRAPHY: all text is set in a clean neo-grotesque sans-serif (Archivo look), regular and extra-bold weights only. The ONLY readable words and numbers in the film are those of the DOCUMENT TEXT block, spelled exactly, plus the three letters PDF on the file tag and one question mark in step 5; text on the soft background pages is simply the same text, too soft to read.
+
+CAMERA AND SET: tripod-static, orthographic, straight-on; no zoom, no pan, no tilt, no cuts, no fades to black. Coordinates are percentages of the frame (x from the left edge, y from the top edge). Everything stays inside x 4%-96%, y 8%-90%; the bottom-right corner x 74%-100%, y 86%-100% stays empty. The set is always the same: LEFT ZONE x 7-47, y 18-72 holds the source: ONE sharp hero page (portrait, 40% wide, 54% tall) on top of a STACK of about five more pages offset up and to the right by 1% steps; RIGHT ZONE x 53-93, y 18-72 holds the output (a dashed outline box that fills with text, later cards, a map, or panels); a PROGRESS RAIL at x 7-70, y 84-87 shows five small squares joined by a thin grey line: finished steps are ink, the current step is red, upcoming steps are outlined.
+
+PACE AND MOTION: fast and busy, like a machine working through a whole batch of papers, not one page. Every step shows the hero page first and then, immediately, a rapid burst of the same action over the rest of the stack. Many elements move at the same time with overlapping flights. Ease-out cubic, straight horizontal or vertical paths, each flying element preceded by a thin 2 px dashed grey path. No bounce, no overshoot, no particles. Appearing and disappearing elements fade over 0.25 s.
+
+DOCUMENT TEXT (the ONLY words and numbers allowed in the film; spell them exactly; they are the project's own synthetic sample report, all values fictional)
+  Header (extra-bold):  Riverdale Diagnostics          under it (regular, dark grey):  Synthetic Demo Laboratory
+  Title (extra-bold):   Comprehensive Health Panel
+  Three lines:          Patient: Demo Persona A
+                        Collection Date: 15 January 2025
+                        Report ID: SYN-2025-0115-A
+  Table header (extra-bold):  Test | Result | Unit | Reference range
+  Table rows:           Hemoglobin | 13.8 | g/dL | 12.0 - 15.5
+                        Vitamin D, 25-Hydroxy | 18 | ng/mL | 30 - 100 | small ink tag LOW
+                        Cholesterol, Total | 224 | mg/dL | < 200 | small red tag HIGH
+                        LDL Cholesterol | 148 | mg/dL | < 100 | small red tag HIGH
+                        HDL Cholesterol | 44 | mg/dL | > 40
+                        Fasting Glucose | 96 | mg/dL | 70 - 99
+  Footer line (small):  Interpretation of these values is reserved for the treating clinician.
+  File tag on the digital page (white letters on an ink tag):  PDF
+  Step 5 only: one question mark ? in a speech-bubble square.
+  Nothing else: no captions, no titles, no UI labels, no step names, no logos.
+  The ready-made pixel-exact versions of all this are in the keyframes/ folder (see 08_keyframes_how_to_use.txt).
+
+STEP 3 (0:00-0:03): "cut into passages, each with its address". 0:00.15-0:00.7 the faded scan and its pile shrink smoothly into a small stack of pages (22% wide, 28% tall) at x 5-27, y 24-52: one small sharp hero page on top of three soft pages behind it; the output text stays where it is.
+0:00.7-1.3 CUTTING: one thin red knife line (4 px, 4% wider than the text on each side) sweeps once down the output text (0.35 s) and leaves three red dashed cuts (after the line "Report ID: SYN-2025-0115-A", after the Vitamin D row, after the HDL Cholesterol row). The text splits into FOUR paper cards (2 px divider outline, x 52-94) that slide apart vertically to 2.5% gaps (0.25 s): card 1 holds the header, title and three patient lines (y 19-33); card 2 the Hemoglobin and Vitamin D rows (y 35.5-43.5); card 3 the three cholesterol rows (y 46-56); card 4 the Fasting Glucose row and the footer line (y 58.5-67). At once, behind every sharp hero card, a deck of two soft blurred cards appears, offset 1% down and right: the same cuts happen on every other page.
+0:01.3-0:02.3 ADDRESSES: card by card (0.12 s apart) a small page thumbnail (6% wide, 8.5% tall, 2 px outline) fades in at x 43-49 with a red band across it at the height where that passage sits on the real page, a dashed red line (2 px) draws from the small page to it, and a short thick red bar marks the span on the small page's left edge. In a quick burst (0.4 s) about 20 soft small thumbnails with dashed red lines flash in for the deck cards, then fade out by 0:02.7: every passage of every page gets an address.
+0:02.3-0:03.0 the last frame equals keyframe K3 (small page stack with red bars, four sharp cards with thumbnails and dashed red lines, soft decks behind the cards, rail steps 1-3 ink, step 4 red). Hold.
+
+Duration 3 seconds. Hold perfectly still for the first 0.25 s and the last 0.25 s. Everything that exists at the start stays exactly where it is unless this paragraph moves it.
+
+AVOID: misspelled, garbled or extra text; blurred hero text or heavy blur; captions or labels; dark or black backgrounds; neon, glow or bloom; shadows; gradients; rounded corners; people or hands; camera movement, zoom, pan or cuts; 3D or photographic realism.

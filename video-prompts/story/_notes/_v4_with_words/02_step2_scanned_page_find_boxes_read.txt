@@ -1,0 +1,5 @@
+Flat 2D vector animation, clean modern software style. Plain light grey background, only black, grey and one red accent. Static camera, smooth fast motion, no shadows, no glow. The main page stays sharp; the other pages behind it are slightly soft and blurred. Start from the attached first image and keep its text exactly.
+
+3 seconds. A pile of scanned, slightly tilted papers. A red line sweeps over the top one, red boxes pop around every word, and the words turn into clean text that flies into the text box on the right. The other papers in the pile are scanned the same way, quickly.
+
+Avoid: new or misspelled text, dark background, neon, camera movement, cuts, people, rounded corners.

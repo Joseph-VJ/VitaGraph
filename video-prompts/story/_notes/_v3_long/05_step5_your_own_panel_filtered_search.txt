@@ -1,0 +1,39 @@
+A 3-second silent flat 2D motion-graphics clip, part 5 of a 5-part, 15-second film that shows, in the simplest literal way and at a fast, busy pace, how a whole batch of lab-report papers becomes searchable. One continuous locked-off take, square 1:1, 24 fps. Anyone watching with the sound off must be able to say: "All the passages are stored in my own locked panel, and a search only looks inside my panel, never in anyone else's."
+
+LOOK: flat 2D vector motion graphics in strict Swiss International (Modernist) style, square 1:1 frame, 24 fps, silent. The entire frame is one perfectly flat, uniform warm light grey #EAE9E9, edge to edge, no vignette, no gradient, no texture, no noise. Every shape is flat single-colour geometry with perfectly square 90-degree corners (zero corner radius; only dots are round). Colours allowed: paper #F8F4F4, light grey #D7D3D3, faint ink #BBB8B7, divider grey #999796, dark grey #605D5D, ink #201E1D, and ONE vivid vermilion red #EC3013 (deep red #AE1800 and pale reds #FFC4B8 / #FFE0D9 only for small marks); no other hue exists. Red marks only the thing that is active right now. No lighting, no shading, no shadows, no glow, no bloom, no film grain, no 3D, no photographic realism, no dark backgrounds, no neon, no holograms. It must look like a crisp, finished, modern software interface.
+SOFTNESS (important): the hero page and the words being read stay sharp and fully legible at all times. Everything secondary is slightly soft, like a very shallow depth of field: the other pages of the stack, the cards and thumbnails behind the hero cards, the extra dots, and small background details carry a light blur of about 1 to 2 px at 1600 px. Fast-moving word tiles, strips and dots carry a short, light motion blur along their direction of travel (about 3 to 6 px). Never heavy blur, never blur on the hero text.
+TYPOGRAPHY: all text is set in a clean neo-grotesque sans-serif (Archivo look), regular and extra-bold weights only. The ONLY readable words and numbers in the film are those of the DOCUMENT TEXT block, spelled exactly, plus the three letters PDF on the file tag and one question mark in step 5; text on the soft background pages is simply the same text, too soft to read.
+
+CAMERA AND SET: tripod-static, orthographic, straight-on; no zoom, no pan, no tilt, no cuts, no fades to black. Coordinates are percentages of the frame (x from the left edge, y from the top edge). Everything stays inside x 4%-96%, y 8%-90%; the bottom-right corner x 74%-100%, y 86%-100% stays empty. The set is always the same: LEFT ZONE x 7-47, y 18-72 holds the source: ONE sharp hero page (portrait, 40% wide, 54% tall) on top of a STACK of about five more pages offset up and to the right by 1% steps; RIGHT ZONE x 53-93, y 18-72 holds the output (a dashed outline box that fills with text, later cards, a map, or panels); a PROGRESS RAIL at x 7-70, y 84-87 shows five small squares joined by a thin grey line: finished steps are ink, the current step is red, upcoming steps are outlined.
+
+PACE AND MOTION: fast and busy, like a machine working through a whole batch of papers, not one page. Every step shows the hero page first and then, immediately, a rapid burst of the same action over the rest of the stack. Many elements move at the same time with overlapping flights. Ease-out cubic, straight horizontal or vertical paths, each flying element preceded by a thin 2 px dashed grey path. No bounce, no overshoot, no particles. Appearing and disappearing elements fade over 0.25 s.
+
+DOCUMENT TEXT (the ONLY words and numbers allowed in the film; spell them exactly; they are the project's own synthetic sample report, all values fictional)
+  Header (extra-bold):  Riverdale Diagnostics          under it (regular, dark grey):  Synthetic Demo Laboratory
+  Title (extra-bold):   Comprehensive Health Panel
+  Three lines:          Patient: Demo Persona A
+                        Collection Date: 15 January 2025
+                        Report ID: SYN-2025-0115-A
+  Table header (extra-bold):  Test | Result | Unit | Reference range
+  Table rows:           Hemoglobin | 13.8 | g/dL | 12.0 - 15.5
+                        Vitamin D, 25-Hydroxy | 18 | ng/mL | 30 - 100 | small ink tag LOW
+                        Cholesterol, Total | 224 | mg/dL | < 200 | small red tag HIGH
+                        LDL Cholesterol | 148 | mg/dL | < 100 | small red tag HIGH
+                        HDL Cholesterol | 44 | mg/dL | > 40
+                        Fasting Glucose | 96 | mg/dL | 70 - 99
+  Footer line (small):  Interpretation of these values is reserved for the treating clinician.
+  File tag on the digital page (white letters on an ink tag):  PDF
+  Step 5 only: one question mark ? in a speech-bubble square.
+  Nothing else: no captions, no titles, no UI labels, no step names, no logos.
+  The ready-made pixel-exact versions of all this are in the keyframes/ folder (see 08_keyframes_how_to_use.txt).
+
+STEP 5 (0:00-0:03): "stored in my own panel; the search only looks there". 0:00-0:00.3 the dimmed cards, the encoder, the red link, the ellipse and the map grid fade out; the dots stay for a moment.
+0:00.2-0:00.6 THREE PANELS fade in side by side, each 26% wide and 48% tall (y 22-70): panel B at x 8-34 and panel C at x 37-63 with a dashed 3 px grey outline, a mid-grey header square with two grey bars, and their own mid-grey dots (panel B 18 dots, panel C 14 dots in a grid): other people's data; and MY panel A at x 68-94 with a solid 5 px RED outline, a red header square with an ink bar and a dark grey bar, empty inside.
+0:00.6-1.4 STORING: all 34 dots (the four sharp hero dots and the 30 soft grey ones, which turn ink as they move) stream from the map into panel A in a fast cascade (0.02 s apart, short light motion blur) and settle in a grid of six columns; as each lands a small red square (1% wide) pops onto its upper-right corner: the owner mark.
+0:01.4-0:01.7 LOCK: a padlock (ink, square body 4.2% wide, square-cornered U-shaped shackle) above panel A's top-right corner closes (the shackle drops 1.4% into the body) and one thin red ring expands once around it and fades.
+0:01.7-0:02.8 SEARCH: a square speech bubble with a single question mark ? fades in at the top left (x 8-17, y 7.5-14). A red line (5 px) draws from it down 1.5%, then right along y 16.5 and down into panel A (0.4 s). Two thin dashed grey branches (3 px) leave the red line above panel B and above panel C and run down toward those panels, stopped by short thick ink bars (4.3% wide, 0.9% tall) just above them: they never enter. When the red line reaches panel A, a red wave sweeps across the dots in A row by row (0.5 s) and each dot returns to ink.
+0:02.8-0:03.0 the last frame equals keyframe K5 (two grey panels, my red panel with 34 ink dots with red owner squares, closed padlock, ? bubble, red line only to my panel, blocked branches, rail all five ink). Hold.
+
+Duration 3 seconds. Hold perfectly still for the first 0.25 s and the last 0.25 s. Everything that exists at the start stays exactly where it is unless this paragraph moves it.
+
+AVOID: misspelled, garbled or extra text; blurred hero text or heavy blur; captions or labels; dark or black backgrounds; neon, glow or bloom; shadows; gradients; rounded corners; people or hands; camera movement, zoom, pan or cuts; 3D or photographic realism.

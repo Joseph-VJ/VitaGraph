@@ -1,0 +1,32 @@
+TURN THE VIDEO INTO THE 120 FRAMES, AND REPAIR TEXT
+==========================================================================================
+1) Join the five clips (skip if you made one 20 s film). In a file list.txt, one line per clip:  file 'clip1.mp4' ... then
+     ffmpeg -f concat -safe 0 -i list.txt -c copy story.mp4
+   If the clips differ slightly in encoding, re-encode:  ffmpeg -f concat -safe 0 -i list.txt -c:v libx264 -crf 14 -pix_fmt yuv420p story.mp4
+
+2) Extract exactly 120 frames (20 s at 6 fps):
+     ffmpeg -i story.mp4 -vf "fps=6,scale=1600:1600" -q:v 3 frame_%04d.jpg
+   Result: frame_0001.jpg ... frame_0120.jpg. Step 01 = frames 1-24, step 02 = 25-48, step 03 = 49-72, step 04 = 73-96, step 05 = 97-120.
+
+3) Install in the app: copy the 120 files to  site design/public/assets/frames/  and reload /upload. The stage (site design/src/components/upload/FrameStage.tsx) probes frame_0001.jpg and starts scrubbing; no code change is needed. Keep important content in the central 80%: the stage (about 780 x 666 px) crops the square frame with cover scaling.
+
+4) If the film is not 20 s, change fps so that duration x fps = 120 (24 s -> fps=5).
+
+==========================================================================================
+IF THE GENERATOR MISSPELLS TEXT
+==========================================================================================
+Option A (best): regenerate only the clip that is wrong, giving it the first and last keyframe images (file 08). Text that is already correct in the first frame normally stays correct.
+Option B: use the keyframe itself as the frame. Frames 1 and 24-25 of every step can simply be the K-images (copy K0.png to frame_0001.jpg after converting to JPG: ffmpeg -i K0.png -q:v 2 frame_0001.jpg).
+Option C: ask the generator for the version without words (replace every word by a solid ink bar of the same length) and overlay the real text afterwards in a video editor with the font Archivo (files in site design/node_modules/@fontsource/archivo/files/), using the keyframes as the position guide.
+
+==========================================================================================
+ACCEPTANCE CHECKLIST
+==========================================================================================
+[ ] Anyone with the sound off can say the sentence of each step (printed at the top of files 02-06).
+[ ] Frame 1 alone is a meaningful still (the lab report page with the PDF tag).
+[ ] Every word and number on screen is one of the DOCUMENT TEXT lines, spelled exactly; no other text anywhere.
+[ ] Background #EAE9E9 and flat; no dark background, no glow, no blur on any frame (pause on 10 random frames).
+[ ] Zero rounded corners; only the listed colours; red only on the active thing.
+[ ] Static camera, no cuts; nothing in the bottom-right corner x 74-100%, y 86-100%.
+[ ] The rail advances: step 1 red at 0:00, step 2 red at 0:04, step 3 red at 0:08, step 4 red at 0:12, step 5 red at 0:16, all ink at the end.
+[ ] Step boundaries land at 4 s, 8 s, 12 s and 16 s so the scrub matches the five rows beside the stage.

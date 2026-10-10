@@ -1,0 +1,45 @@
+PAGE 06 COMPARE: two report sheets side by side, matching rows join up, changes appear as bars
+==========================================================================================
+USED ON: Compare (/compare). Opacity tier 10-15% (dense table).
+SCROLL MAPPING: frame 1 = page top, frame 120 = page bottom. Scrolling draws one row connection after another and grows the change bars.
+
+==========================================================================================
+PROMPT (paste this whole block)
+==========================================================================================
+A calm, minimal, flat 2D vector line-art animation in strict Swiss International (Modernist) style, 16:9 landscape (1920 x 1080), 24 fps, 8 seconds, silent, to be used as a quiet scroll-driven page background. The entire frame is one perfectly flat, uniform PURE WHITE field #FFFFFF, identical in every pixel, no vignette, no gradient, no texture, no noise. Everything drawn is thin line work and small flat marks with razor-sharp edges and perfectly square 90-degree corners (zero corner radius; only true circles, dots and rings are round). Colours allowed: ink #201E1D, darkest grey #2D2B2B, dark grey #605D5D, divider grey #999796, mid grey #BAB6B6, light grey #D7D3D3, and ONE vivid vermilion red #EC3013 (deep red #AE1800 and light red #FF9783 only where stated). No other hue exists. Red covers less than 3% of the frame at any moment. Strokes are hairlines of 2 to 4 px (never thicker than 6 px). No solid filled shape larger than 2% of the frame, except where a prompt says so. At least 55% of the frame stays empty white. The composition is weighted to the RIGHT: the left 38% of the frame is almost empty so a page heading can sit there. Keep every object inside x 10%-90% and y 6%-94%. Absolutely no text, no letters, no digits, no symbols, no logos, no labels of any kind. No lighting, no shading, no shadows, no glow, no blur, no depth of field, no motion blur, no film grain, no reflections, no gradients, no 3D render look.
+
+CAMERA: tripod-static, straight-on, no zoom, no pan, no tilt, no cuts, no fades. The frame never moves; only the objects described below move. MOTION: slow, smooth, continuous and monotonic from the first frame to the last, so that any frame is a beautiful finished still when the viewer scrubs through the clip with the scroll wheel. Ease-in-out only, no bounce, no overshoot, no particles, no flicker. The first and the last frame must each be a complete, balanced composition.
+
+SCENE: two paper sheets, matching lines joined by thin lines, and a row of change bars.
+SHEETS: two portrait paper sheets, each 13% wide and 30% tall, with 3 px divider-grey #999796 outlines and white fill: the left one at x 46-59%, y 14-44%, the right one at x 72-85%, y 14-44%. Each carries one short thick ink heading bar and six thin ink text bars at EXACTLY the same heights on both sheets, but with slightly different lengths between the sheets (the right sheet's bars 5-20% longer or shorter).
+CONNECTORS: six thin 2 px horizontal lines in light grey #D7D3D3 join each left bar's end to the matching right bar's start across the 13% gap between the sheets; each has a small hollow square (0.8%) at its middle.
+CHANGE BARS: below the sheets, six small vertical bars stand on a thin 2 px baseline at y 82% from x 48% to x 84%, one under each connector's x-position spread evenly. Final heights (as a share of 14% of the frame): 20%, 45%, 10%, 70%, 35%, 90%. Five bars are mid grey #605D5D, the tallest (sixth) is red #EC3013.
+MOTION: at the start only the two sheets are visible. The six connectors draw on one after another from left to right (each takes 0.35 s, the next starts 0.45 s later, from 0.3 s to 3.1 s); as each connector finishes, the hollow square at its middle fills ink and the matching change bar grows straight up from the baseline to its final height (0.6 s ease-out). At 5.5 s the red bar's top edge gets a thin red ring that expands and fades once. 5.6 s to 8 s: still.
+FIRST FRAME: two sheets only. LAST FRAME: all six connectors and all six bars, the sixth red.
+
+==========================================================================================
+NEGATIVE PROMPT
+==========================================================================================
+text, letters, words, numbers, digits, symbols, labels, captions, logo, watermark, people, face, hand, cursor, rounded corners, rounded rectangle, pill shape, gradient, vignette, glow, neon, bloom, lens flare, bokeh, depth of field, blur, motion blur, film grain, noise, dust, scanlines, glitch, 3D render, photorealistic, glossy, glass, reflections, shadows, drop shadow, bevel, metallic, camera movement, zoom, pan, tilt, shake, cuts, transitions, fade to black, flash, flicker, strobe, particles, sparkles, confetti, smoke, liquid, morphing, wobbly lines, jitter, warping, colour shift, blue, cyan, teal, green, yellow, gold, orange, purple, pink, rainbow, dark mode, black background, grey background, cyberpunk, sci-fi, hologram, circuit board, binary code, matrix rain, DNA, brain, heart, stethoscope, pills, hospital, molecules, robot, cartoon, anime, sketch, watercolour, paper texture, compression artifacts, low resolution, dense, cluttered, busy
+
+==========================================================================================
+COMPACT PROMPT (short-limit generators)
+==========================================================================================
+Flat 2D vector line-art, Swiss Modernist, 16:9, 8 s, static camera, pure white field #FFFFFF. Two portrait paper sheets side by side (right of centre) with six matching text bars each; six thin horizontal connectors draw across the gap one by one, each ending in a hollow square that fills ink; under each a small vertical change bar grows from a baseline, five dark grey and the sixth red, then a thin red ring pulses once. No text or numbers, no shadows, no blur, red under 3%, left 38% empty.
+
+==========================================================================================
+SETTINGS
+==========================================================================================
+16:9, 1920 x 1080, 24 fps, 8 s, no audio, no camera preset, no enhance/stylise options, highest quality.
+
+==========================================================================================
+POST-PROCESSING (same for every background)
+  Frames (recommended; same technique as the Upload stage, smooth scrubbing):
+     ffmpeg -i NAME.mp4 -vf "fps=15,scale=1600:-2" -c:v libwebp -quality 72 frame_%04d.webp
+     (an 8 s clip at 15 fps = exactly 120 frames; use fps=11.25 for 90 frames and a lighter download)
+     Put them in  site design/public/assets/bg/NAME/  (frame_0001.webp ... frame_0120.webp)
+  Or one scrub-friendly video (every frame is a key frame, so seeking is instant):
+     ffmpeg -i NAME.mp4 -an -vf "scale=1600:-2" -c:v libx264 -crf 24 -g 1 -pix_fmt yuv420p NAME_scrub.mp4
+  Mirror the composition if a page needs the art on the LEFT:  add  hflip  to the -vf chain.
+  How the app will blend it (decided in the integration task): CSS mix-blend-mode multiply, opacity set by one variable. Because the field is pure white, multiply leaves the page colour untouched, so there is NO visible rectangle even if JPEG/WebP compression shifts the white by a level or two.
+

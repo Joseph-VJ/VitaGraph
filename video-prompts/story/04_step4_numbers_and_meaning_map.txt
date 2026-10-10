@@ -1,0 +1,5 @@
+Flat 2D vector animation with gentle 3D motion: pieces tilt, flip and fly through space with soft perspective, and the camera drifts slowly. Style of a modern Swiss minimalist software interface: perfectly flat shapes with sharp square corners (no rounded corners), plain warm light grey background, near-black ink, mid greys, and one vivid red accent used only for what is active. No shadows, no glow. No letters, no numbers, no symbols anywhere: text is drawn only as solid bars. Smooth and fast, 3 seconds. Start from the attached first image and end on the attached last image.
+
+Each card flies into a small machine and comes out as a row of small squares in different greys and a few reds, which folds into a single dot on a floating 3D map with a thin grid. Many more cards follow, so the map fills with dots. Two dots that sit close together join with a red line.
+
+Avoid: any letters, numbers or words, rounded corners, dark background, neon, shadows, glow, people.

@@ -1,0 +1,45 @@
+KEYFRAMES K0 to K5 (stills for image-to-video, or to check a clip before animating)
+==========================================================================================
+Generate each still with an image model at 1:1 (1600 x 1600), same LOOK paragraph, then use K0 as the start image of clip 1, and use the last frame of each clip as the start image of the next. K1..K5 are the targets each clip must reach.
+
+==========================================================================================
+LOOK (paste before every keyframe)
+==========================================================================================
+LOOK: the entire frame is one perfectly flat, uniform warm light grey #EAE9E9, edge to edge, no vignette, no gradient, no texture, no noise. All shapes are flat single-colour vector shapes with razor-sharp edges and perfectly square 90-degree corners (zero corner radius on everything; only the magnifying-glass ring and the one pulse ring are round). Colours allowed: paper #F8F4F4, light grey #D7D3D3, faint ink #BBB8B7, divider grey #999796, dark grey #605D5D, ink #201E1D, and ONE vivid vermilion red #EC3013 (deep red #AE1800 only for small marks). No other hue exists. Red marks only the thing that is active right now and never covers more than 8% of the frame. No lighting, no shadows, no glow, no blur, no motion blur, no depth of field, no grain, no reflections, no 3D. Every frame must look like a crisp finished vector screenshot. Writing: no text anywhere except the three letters ABC, the three digits 123 and one question mark, each set very large in heavy geometric sans-serif; all other "writing" is drawn as solid horizontal bars with square ends. No people, no hands, no cursor, no logos.
+
+Keep every object inside x 10-90%, y 10-90%, bottom-right corner (x 74-100%, y 86-100%) empty. Still image, no motion.
+
+==========================================================================================
+K0 start of step 1
+==========================================================================================
+A portrait paper sheet at x 14-46, y 16-50 with one short thick ink heading bar and seven faint-ink text bars of different lengths, a tiny red square (2.5%) in its top-left corner. A flat magnifying glass (round ink ring 13% wide, square-ended handle at 45 degrees) at the sheet's top-left corner. Below: a long paper strip at x 10-90, y 58-70 that is empty except for a square ink tile at its left end showing the letters ABC.
+
+==========================================================================================
+K1 end of step 1
+==========================================================================================
+Same as K0, but all seven bars of the sheet are solid ink, the magnifying glass rests at the bottom of the sheet, and the left half of the strip (x 21-55) holds three rows of ink bars.
+
+==========================================================================================
+K2 end of step 2
+==========================================================================================
+No sheet, no glass. A square photo frame (6 px ink outline) at x 54-88, y 16-50 with four viewfinder corner brackets and a 4-degree tilted sheet holding six solid ink bars. The long strip below is full of ink bars on both halves; ABC tile at its left end.
+
+==========================================================================================
+K3 end of step 3
+==========================================================================================
+No photo frame. Six separate paper slips (each 9% wide, 12% tall) in a row at x 21-90, y 58-70, each with ink bars, each hanging a thin string to y 77 ending in a small paper tag with one red square and one short ink bar. ABC tile at the left end.
+
+==========================================================================================
+K4 end of step 4
+==========================================================================================
+The same six slips, but each now shows the three digits 123, very large, in ink instead of the bars. Tags still hanging. No stamp.
+
+==========================================================================================
+K5 end of step 5
+==========================================================================================
+A cabinet at x 58-88, y 12-50 with four drawers and grey padlocks; the lowest drawer has a red outline, red padlock and red marker. A thin tall ink barrier at x 50, y 12-56. A plain grey square (7%) with a small speech bubble holding a question mark stands left of the barrier at about x 42. Nothing else.
+
+==========================================================================================
+NEGATIVE PROMPT
+==========================================================================================
+words, sentences, paragraphs, captions, subtitles, small text, gibberish text, extra letters, extra numbers, logo, watermark, signature, emoji, cursor, mouse pointer, hand, fingers, people, face, doctor, rounded corners, rounded rectangle, pill shape, soft corners, gradient, vignette, glow, neon, bloom, lens flare, light rays, bokeh, depth of field, blur, motion blur, film grain, noise, dust, chromatic aberration, scanlines, glitch, 3D render, photorealistic, glossy, glass, reflections, shadows, drop shadow, bevel, metallic, plastic, clay, camera movement, zoom, pan, tilt, dolly, shake, handheld, cuts, transitions, fade to black, flash, flicker, strobe, particles, sparkles, confetti, smoke, liquid, morphing, blobs, wobbly lines, jitter, warping, colour shift, blue, cyan, teal, green, yellow, gold, orange, purple, pink, rainbow, dark mode, black background, cyberpunk, sci-fi, hologram, circuit board, binary code, matrix rain, DNA, brain, heart, heartbeat line, stethoscope, pills, syringe, red cross, hospital, molecules, robot, clip art, cartoon, anime, sketch, watercolour, paper texture, page curl, compression artifacts, low resolution

@@ -1,0 +1,5 @@
+Clean 3D explainer animation, modern minimal look: light grey background, matte white and charcoal objects, one red accent colour, soft studio light with soft shadows, slow smooth camera drift, bold simple sans-serif title text. The only text allowed is the short title and the one small line given below. No numbers or digits anywhere, no data, no patient or medical details: all document content is drawn as grey bars. A row of seven small circles at the bottom shows progress (finished = charcoal, current = red). 3 seconds, smooth, instantly easy to understand at a glance.
+
+Big title at the top: Indexed. Small line under it: Stored for search, only for you. The strips fly into a tall database cylinder. Inside it, one compartment with a red outline and a closing lock takes all of them; the other compartments stay grey and locked. A search light sweeps over the cylinder and lights up only the strips inside the red compartment.
+
+Avoid: any numbers or digits, medical values or names, extra or misspelled text, clutter, dark neon look, fast cuts.

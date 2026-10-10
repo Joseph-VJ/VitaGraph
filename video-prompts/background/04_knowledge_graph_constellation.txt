@@ -1,0 +1,5 @@
+Flat 2D line animation, 6 seconds, pure white background, thin black and grey lines, one red accent, no readable text (use grey bars for text), no shadows, no glow. Static camera, fast and smooth. Keep the left side empty and the action on the right. The main object is sharp; the many copies behind it are slightly soft.
+
+Many small paper cards fly in and each turns into a dot. The dots join with thin curved lines into a 3D network that turns slowly over a thin floor grid. One small group lights up red while the rest fade.
+
+Avoid: text, people, dark background, gradients, camera movement, cuts, rounded corners.

@@ -1,0 +1,44 @@
+PAGE 10 TEXT TO GRAPH: a paragraph of bars, key words lift out as dots, join into a small turning graph
+==========================================================================================
+USED ON: Text to Graph (/text-to-graph). Opacity tier 10-15%; 40% only on its empty state.
+SCROLL MAPPING: frame 1 = page top, frame 120 = page bottom. Scrolling lifts words out and joins them.
+
+==========================================================================================
+PROMPT (paste this whole block)
+==========================================================================================
+A calm, minimal, flat 2D vector line-art animation in strict Swiss International (Modernist) style, 16:9 landscape (1920 x 1080), 24 fps, 8 seconds, silent, to be used as a quiet scroll-driven page background. The entire frame is one perfectly flat, uniform PURE WHITE field #FFFFFF, identical in every pixel, no vignette, no gradient, no texture, no noise. Everything drawn is thin line work and small flat marks with razor-sharp edges and perfectly square 90-degree corners (zero corner radius; only true circles, dots and rings are round). Colours allowed: ink #201E1D, darkest grey #2D2B2B, dark grey #605D5D, divider grey #999796, mid grey #BAB6B6, light grey #D7D3D3, and ONE vivid vermilion red #EC3013 (deep red #AE1800 and light red #FF9783 only where stated). No other hue exists. Red covers less than 3% of the frame at any moment. Strokes are hairlines of 2 to 4 px (never thicker than 6 px). No solid filled shape larger than 2% of the frame, except where a prompt says so. At least 55% of the frame stays empty white. The composition is weighted to the RIGHT: the left 38% of the frame is almost empty so a page heading can sit there. Keep every object inside x 10%-90% and y 6%-94%. Absolutely no text, no letters, no digits, no symbols, no logos, no labels of any kind. No lighting, no shading, no shadows, no glow, no blur, no depth of field, no motion blur, no film grain, no reflections, no gradients, no 3D render look.
+
+CAMERA: tripod-static, straight-on, no zoom, no pan, no tilt, no cuts, no fades. The frame never moves; only the objects described below move. MOTION: slow, smooth, continuous and monotonic from the first frame to the last, so that any frame is a beautiful finished still when the viewer scrubs through the clip with the scroll wheel. Ease-in-out only, no bounce, no overshoot, no particles, no flicker. The first and the last frame must each be a complete, balanced composition.
+
+SCENE: a paragraph on the left of the art, a small graph forming on the right.
+PARAGRAPH: a block of nine thin text bars at x 44-62%, y 22-52% (each 1.2% tall, spaced 3.4%, lengths varying between 60% and 100% of 18% frame width), colour mid grey #BAB6B6. Eight short segments of the bars are "key words": drawn darker (ink #201E1D) and slightly thicker (1.8% tall) at fixed places in the bars.
+GRAPH AREA: x 68-90%, y 20-62%, empty at the start, with a faint perspective floor grid of 6 x 6 light-grey #D7D3D3 2 px lines beneath it.
+MOTION: the eight key words lift out one after another (one every 0.7 s from 0.4 s): each becomes a small solid circle (1.6% wide, ink, for a thing) or a small square (1.6%, dark grey #605D5D, for a name) and travels along a gentle curved path to its place in the graph area, leaving a faint gap in the paragraph line behind it. When two key words have arrived, a thin curved 2 px edge in divider grey #999796 draws between them; edges draw between words that were in the same line of the paragraph. By 6 s all eight nodes are connected into one graph of about eleven edges. From 6 s to 8 s the finished graph turns slowly 40 degrees around its vertical axis (true perspective, floor still) and ONE node with its edges is drawn in red #EC3013.
+FIRST FRAME: paragraph with the eight darker key words, empty graph area. LAST FRAME: connected turning graph with one red node, paragraph with gaps.
+
+==========================================================================================
+NEGATIVE PROMPT
+==========================================================================================
+text, letters, words, numbers, digits, symbols, labels, captions, logo, watermark, people, face, hand, cursor, rounded corners, rounded rectangle, pill shape, gradient, vignette, glow, neon, bloom, lens flare, bokeh, depth of field, blur, motion blur, film grain, noise, dust, scanlines, glitch, 3D render, photorealistic, glossy, glass, reflections, shadows, drop shadow, bevel, metallic, camera movement, zoom, pan, tilt, shake, cuts, transitions, fade to black, flash, flicker, strobe, particles, sparkles, confetti, smoke, liquid, morphing, wobbly lines, jitter, warping, colour shift, blue, cyan, teal, green, yellow, gold, orange, purple, pink, rainbow, dark mode, black background, grey background, cyberpunk, sci-fi, hologram, circuit board, binary code, matrix rain, DNA, brain, heart, stethoscope, pills, hospital, molecules, robot, cartoon, anime, sketch, watercolour, paper texture, compression artifacts, low resolution, dense, cluttered, busy
+
+==========================================================================================
+COMPACT PROMPT (short-limit generators)
+==========================================================================================
+Flat 2D vector line-art, Swiss Modernist, 16:9, 8 s, static camera, pure white field #FFFFFF. A paragraph of nine grey text bars (right of centre) with eight darker key-word segments; one by one the key words lift out as small ink circles and dark squares, travel along curved paths to a faint floor grid on the right and join with thin curved edges into one connected graph; finally the graph turns slowly and one node with its edges turns red. No text, no shadows, no blur, red under 3%, left 38% empty.
+
+==========================================================================================
+SETTINGS
+==========================================================================================
+16:9, 1920 x 1080, 24 fps, 8 s, no audio, no camera preset, no enhance/stylise options, highest quality.
+
+==========================================================================================
+POST-PROCESSING (same for every background)
+  Frames (recommended; same technique as the Upload stage, smooth scrubbing):
+     ffmpeg -i NAME.mp4 -vf "fps=15,scale=1600:-2" -c:v libwebp -quality 72 frame_%04d.webp
+     (an 8 s clip at 15 fps = exactly 120 frames; use fps=11.25 for 90 frames and a lighter download)
+     Put them in  site design/public/assets/bg/NAME/  (frame_0001.webp ... frame_0120.webp)
+  Or one scrub-friendly video (every frame is a key frame, so seeking is instant):
+     ffmpeg -i NAME.mp4 -an -vf "scale=1600:-2" -c:v libx264 -crf 24 -g 1 -pix_fmt yuv420p NAME_scrub.mp4
+  Mirror the composition if a page needs the art on the LEFT:  add  hflip  to the -vf chain.
+  How the app will blend it (decided in the integration task): CSS mix-blend-mode multiply, opacity set by one variable. Because the field is pure white, multiply leaves the page colour untouched, so there is NO visible rectangle even if JPEG/WebP compression shifts the white by a level or two.
+

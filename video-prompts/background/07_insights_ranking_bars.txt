@@ -1,0 +1,5 @@
+Flat 2D line animation, 6 seconds, pure white background, thin black and grey lines, one red accent, no readable text (use grey bars for text), no shadows, no glow. Static camera, fast and smooth. Keep the left side empty and the action on the right. The main object is sharp; the many copies behind it are slightly soft.
+
+Six horizontal bars of different lengths sort themselves quickly, longest to the top, and the top one turns red. Beside them a small network of dots where the middle dot and its lines turn red.
+
+Avoid: text, people, dark background, gradients, camera movement, cuts, rounded corners.

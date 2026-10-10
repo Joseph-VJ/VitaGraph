@@ -1,0 +1,44 @@
+PAGE 07 INSIGHTS: bars sort themselves into a ranking while one node in a small network lights up
+==========================================================================================
+USED ON: Insights (/insights): plain lists with dividers, art shows through. Opacity tier 15%.
+SCROLL MAPPING: frame 1 = page top, frame 120 = page bottom. Scrolling sorts the bars and moves the highlight along the network.
+
+==========================================================================================
+PROMPT (paste this whole block)
+==========================================================================================
+A calm, minimal, flat 2D vector line-art animation in strict Swiss International (Modernist) style, 16:9 landscape (1920 x 1080), 24 fps, 8 seconds, silent, to be used as a quiet scroll-driven page background. The entire frame is one perfectly flat, uniform PURE WHITE field #FFFFFF, identical in every pixel, no vignette, no gradient, no texture, no noise. Everything drawn is thin line work and small flat marks with razor-sharp edges and perfectly square 90-degree corners (zero corner radius; only true circles, dots and rings are round). Colours allowed: ink #201E1D, darkest grey #2D2B2B, dark grey #605D5D, divider grey #999796, mid grey #BAB6B6, light grey #D7D3D3, and ONE vivid vermilion red #EC3013 (deep red #AE1800 and light red #FF9783 only where stated). No other hue exists. Red covers less than 3% of the frame at any moment. Strokes are hairlines of 2 to 4 px (never thicker than 6 px). No solid filled shape larger than 2% of the frame, except where a prompt says so. At least 55% of the frame stays empty white. The composition is weighted to the RIGHT: the left 38% of the frame is almost empty so a page heading can sit there. Keep every object inside x 10%-90% and y 6%-94%. Absolutely no text, no letters, no digits, no symbols, no logos, no labels of any kind. No lighting, no shading, no shadows, no glow, no blur, no depth of field, no motion blur, no film grain, no reflections, no gradients, no 3D render look.
+
+CAMERA: tripod-static, straight-on, no zoom, no pan, no tilt, no cuts, no fades. The frame never moves; only the objects described below move. MOTION: slow, smooth, continuous and monotonic from the first frame to the last, so that any frame is a beautiful finished still when the viewer scrubs through the clip with the scroll wheel. Ease-in-out only, no bounce, no overshoot, no particles, no flicker. The first and the last frame must each be a complete, balanced composition.
+
+SCENE: a ranking on the left of the art, a tiny network beside it.
+RANKING: six horizontal bars stacked at x 46-70%, y 20-62%, each 1.8% tall with 4.2% spacing, on thin 2 px light-grey #D7D3D3 tracks 24% wide. Final bar lengths (share of track): 100%, 78%, 56%, 41%, 33%, 22%. The first (longest) bar is red #EC3013, the other five ink #201E1D.
+NETWORK: at x 74-90%, y 24-60% a small graph of nine nodes (circles 1.4% wide, ink outline, white fill; one larger 2.6% central node) joined by about twelve thin curved 2 px edges in divider grey #999796, like the real graph's centrality view.
+MOTION: at the start the six bars have the SAME mixed-up order (their final lengths shuffled: 33%, 100%, 22%, 56%, 78%, 41%) and are all ink, and the network is all grey. From 0.5 s to 5 s the bars race-sort: they glide vertically past each other (each swap 0.5 s, ease-in-out) until the longest is on top and red, the shortest at the bottom. While they sort, the network's central node grows slightly (2.6% to 3.4%) and turns red, and the thin edges touching it turn red #EC3013 one after another (0.15 s apart): the node with the highest betweenness. 5 s to 8 s: still.
+FIRST FRAME: shuffled ink bars, grey network. LAST FRAME: sorted bars with the red top bar, central node red with red edges.
+
+==========================================================================================
+NEGATIVE PROMPT
+==========================================================================================
+text, letters, words, numbers, digits, symbols, labels, captions, logo, watermark, people, face, hand, cursor, rounded corners, rounded rectangle, pill shape, gradient, vignette, glow, neon, bloom, lens flare, bokeh, depth of field, blur, motion blur, film grain, noise, dust, scanlines, glitch, 3D render, photorealistic, glossy, glass, reflections, shadows, drop shadow, bevel, metallic, camera movement, zoom, pan, tilt, shake, cuts, transitions, fade to black, flash, flicker, strobe, particles, sparkles, confetti, smoke, liquid, morphing, wobbly lines, jitter, warping, colour shift, blue, cyan, teal, green, yellow, gold, orange, purple, pink, rainbow, dark mode, black background, grey background, cyberpunk, sci-fi, hologram, circuit board, binary code, matrix rain, DNA, brain, heart, stethoscope, pills, hospital, molecules, robot, cartoon, anime, sketch, watercolour, paper texture, compression artifacts, low resolution, dense, cluttered, busy
+
+==========================================================================================
+COMPACT PROMPT (short-limit generators)
+==========================================================================================
+Flat 2D vector line-art, Swiss Modernist, 16:9, 8 s, static camera, pure white field #FFFFFF. Six thin horizontal bars on light tracks (right of centre) start shuffled and glide vertically into sorted order, the longest ending on top in red, the rest ink; beside them a small network of nine nodes where the central node grows and turns red and its edges turn red one by one. No text or numbers, no shadows, no blur, red under 3%, left 38% empty.
+
+==========================================================================================
+SETTINGS
+==========================================================================================
+16:9, 1920 x 1080, 24 fps, 8 s, no audio, no camera preset, no enhance/stylise options, highest quality.
+
+==========================================================================================
+POST-PROCESSING (same for every background)
+  Frames (recommended; same technique as the Upload stage, smooth scrubbing):
+     ffmpeg -i NAME.mp4 -vf "fps=15,scale=1600:-2" -c:v libwebp -quality 72 frame_%04d.webp
+     (an 8 s clip at 15 fps = exactly 120 frames; use fps=11.25 for 90 frames and a lighter download)
+     Put them in  site design/public/assets/bg/NAME/  (frame_0001.webp ... frame_0120.webp)
+  Or one scrub-friendly video (every frame is a key frame, so seeking is instant):
+     ffmpeg -i NAME.mp4 -an -vf "scale=1600:-2" -c:v libx264 -crf 24 -g 1 -pix_fmt yuv420p NAME_scrub.mp4
+  Mirror the composition if a page needs the art on the LEFT:  add  hflip  to the -vf chain.
+  How the app will blend it (decided in the integration task): CSS mix-blend-mode multiply, opacity set by one variable. Because the field is pure white, multiply leaves the page colour untouched, so there is NO visible rectangle even if JPEG/WebP compression shifts the white by a level or two.
+

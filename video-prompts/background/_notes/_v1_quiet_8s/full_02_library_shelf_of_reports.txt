@@ -1,0 +1,46 @@
+PAGE 02 LIBRARY: a shelf of report folders; one is picked and the exact line is highlighted
+==========================================================================================
+USED ON: Library (/library): the report table and the selected report's values. Opacity tier 10-15% (dense table).
+SCROLL MAPPING: frame 1 = page top, frame 120 = page bottom. Scrolling moves the red tab along the shelf and lifts one folder after another.
+
+==========================================================================================
+PROMPT (paste this whole block)
+==========================================================================================
+A calm, minimal, flat 2D vector line-art animation in strict Swiss International (Modernist) style, 16:9 landscape (1920 x 1080), 24 fps, 8 seconds, silent, to be used as a quiet scroll-driven page background. The entire frame is one perfectly flat, uniform PURE WHITE field #FFFFFF, identical in every pixel, no vignette, no gradient, no texture, no noise. Everything drawn is thin line work and small flat marks with razor-sharp edges and perfectly square 90-degree corners (zero corner radius; only true circles, dots and rings are round). Colours allowed: ink #201E1D, darkest grey #2D2B2B, dark grey #605D5D, divider grey #999796, mid grey #BAB6B6, light grey #D7D3D3, and ONE vivid vermilion red #EC3013 (deep red #AE1800 and light red #FF9783 only where stated). No other hue exists. Red covers less than 3% of the frame at any moment. Strokes are hairlines of 2 to 4 px (never thicker than 6 px). No solid filled shape larger than 2% of the frame, except where a prompt says so. At least 55% of the frame stays empty white. The composition is weighted to the RIGHT: the left 38% of the frame is almost empty so a page heading can sit there. Keep every object inside x 10%-90% and y 6%-94%. Absolutely no text, no letters, no digits, no symbols, no logos, no labels of any kind. No lighting, no shading, no shadows, no glow, no blur, no depth of field, no motion blur, no film grain, no reflections, no gradients, no 3D render look.
+
+CAMERA: tripod-static, straight-on, no zoom, no pan, no tilt, no cuts, no fades. The frame never moves; only the objects described below move. MOTION: slow, smooth, continuous and monotonic from the first frame to the last, so that any frame is a beautiful finished still when the viewer scrubs through the clip with the scroll wheel. Ease-in-out only, no bounce, no overshoot, no particles, no flicker. The first and the last frame must each be a complete, balanced composition.
+
+SCENE: a long shelf with report folders standing on it, and one open report page above it.
+SHELF: one thick horizontal rule (4 px, ink #201E1D) from x 38% to x 92% at y 70%.
+FOLDERS: fourteen upright report folders stand on the shelf side by side like books: thin rectangles, each 2.2% wide, heights varying between 18% and 28% of the frame, 3 px mid-grey #BAB6B6 outline, white fill, the tops aligned to nothing in particular (uneven heights). Four of them have a small square tab (0.9%) on top, outlined in dark grey #605D5D.
+OPEN PAGE: above the shelf, a portrait paper sheet 15% wide and 24% tall at x 62-77%, y 14-38% with a 3 px divider-grey #999796 outline, one short thick ink heading bar and seven thin ink text bars of different lengths.
+RED TAB: one small red square #EC3013 (1.6% wide) sits on top of folder 2.
+MOTION: the red tab travels along the tops of the folders and stops on folders 2, 5, 8, 11 and 14, pausing about 0.9 s on each (so it rests at about 0 s, 2 s, 4 s, 6 s and 8 s). When it arrives, that folder lifts straight up by 6% of the frame (0.4 s), a thin dotted 2 px line draws from the lifted folder up to the open page, and ONE of the page's text bars (a different bar each time) gets a pale red #FFC4B8 highlight band 1.2% tall behind it, while the previous highlight fades out and the previous folder sinks back. This is "find the exact line in the exact report".
+FIRST FRAME: red tab on folder 2, folder 2 lifted, first bar highlighted. LAST FRAME: red tab on folder 14, folder 14 lifted, a lower bar highlighted.
+
+==========================================================================================
+NEGATIVE PROMPT
+==========================================================================================
+text, letters, words, numbers, digits, symbols, labels, captions, logo, watermark, people, face, hand, cursor, rounded corners, rounded rectangle, pill shape, gradient, vignette, glow, neon, bloom, lens flare, bokeh, depth of field, blur, motion blur, film grain, noise, dust, scanlines, glitch, 3D render, photorealistic, glossy, glass, reflections, shadows, drop shadow, bevel, metallic, camera movement, zoom, pan, tilt, shake, cuts, transitions, fade to black, flash, flicker, strobe, particles, sparkles, confetti, smoke, liquid, morphing, wobbly lines, jitter, warping, colour shift, blue, cyan, teal, green, yellow, gold, orange, purple, pink, rainbow, dark mode, black background, grey background, cyberpunk, sci-fi, hologram, circuit board, binary code, matrix rain, DNA, brain, heart, stethoscope, pills, hospital, molecules, robot, cartoon, anime, sketch, watercolour, paper texture, compression artifacts, low resolution, dense, cluttered, busy
+
+==========================================================================================
+COMPACT PROMPT (short-limit generators)
+==========================================================================================
+Flat 2D vector line-art, Swiss Modernist, 16:9, 8 s, static camera, pure white field #FFFFFF. A long shelf (thick ink rule) with fourteen thin upright outlined report folders of uneven heights, right of centre; above it an open paper sheet with one heading bar and seven text bars. A small red square travels along the folder tops and stops on five folders; each stopped folder lifts straight up, a dotted line draws to the sheet, and one text bar gets a pale red highlight. Hairlines, no text, no shadows, no blur, red under 3%, left 38% empty.
+
+==========================================================================================
+SETTINGS
+==========================================================================================
+16:9, 1920 x 1080, 24 fps, 8 s, no audio, no camera preset, no enhance/stylise options, highest quality.
+
+==========================================================================================
+POST-PROCESSING (same for every background)
+  Frames (recommended; same technique as the Upload stage, smooth scrubbing):
+     ffmpeg -i NAME.mp4 -vf "fps=15,scale=1600:-2" -c:v libwebp -quality 72 frame_%04d.webp
+     (an 8 s clip at 15 fps = exactly 120 frames; use fps=11.25 for 90 frames and a lighter download)
+     Put them in  site design/public/assets/bg/NAME/  (frame_0001.webp ... frame_0120.webp)
+  Or one scrub-friendly video (every frame is a key frame, so seeking is instant):
+     ffmpeg -i NAME.mp4 -an -vf "scale=1600:-2" -c:v libx264 -crf 24 -g 1 -pix_fmt yuv420p NAME_scrub.mp4
+  Mirror the composition if a page needs the art on the LEFT:  add  hflip  to the -vf chain.
+  How the app will blend it (decided in the integration task): CSS mix-blend-mode multiply, opacity set by one variable. Because the field is pure white, multiply leaves the page colour untouched, so there is NO visible rectangle even if JPEG/WebP compression shifts the white by a level or two.
+

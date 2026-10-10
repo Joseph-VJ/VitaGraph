@@ -1,0 +1,47 @@
+STYLE LOCK, DOCUMENT TEXT AND NEGATIVE PROMPT (shared by every file in this folder)
+==========================================================================================
+Every step file already contains these paragraphs in full. This file exists so that you can edit them in ONE place and see the reasoning.
+
+WHAT CHANGED FROM THE FIRST VERSION
+The first version explained the five steps with objects (magnifying glass, scissors, stamp, drawer). The new version shows the REAL thing happening to a REAL, readable lab report: words are copied out of a PDF, a scanned picture is boxed and read, the text is cut into passages that keep their address, passages become numbers and a place on a meaning map, and they are stored in your own panel. The old files are kept in _old_object_metaphors/.
+The visual style is unchanged: flat Modernist, same palette, zero radius, one red. (The example image in this folder, with the dark neon look, is the reference for WHAT is shown, not for HOW it looks.)
+
+WHY THE TEXT IS ALLOWED NOW
+Readable document text is what makes the conversion visible. Image and video generators spell short words correctly most of the time, but not always, so (1) every text is listed exactly below, (2) pixel-exact keyframes with the correct text are provided in keyframes/ so the generator only has to MOVE what already exists, and (3) 09_frames_ffmpeg_and_text_fix.txt explains how to repair text afterwards. The values come from the project's own synthetic sample (site design/public/synthetic_panel_2025-01-15.pdf), which states that all values are fictional.
+
+==========================================================================================
+DOCUMENT TEXT (the ONLY words and numbers allowed in the film; spell them exactly; they are the project's own synthetic sample report, all values fictional)
+  Header (extra-bold):  Riverdale Diagnostics          under it (regular, dark grey):  Synthetic Demo Laboratory
+  Title (extra-bold):   Comprehensive Health Panel
+  Three lines:          Patient: Demo Persona A
+                        Collection Date: 15 January 2025
+                        Report ID: SYN-2025-0115-A
+  Table header (extra-bold):  Test | Result | Unit | Reference range
+  Table rows:           Hemoglobin | 13.8 | g/dL | 12.0 - 15.5
+                        Vitamin D, 25-Hydroxy | 18 | ng/mL | 30 - 100 | small ink tag LOW
+                        Cholesterol, Total | 224 | mg/dL | < 200 | small red tag HIGH
+                        LDL Cholesterol | 148 | mg/dL | < 100 | small red tag HIGH
+                        HDL Cholesterol | 44 | mg/dL | > 40
+                        Fasting Glucose | 96 | mg/dL | 70 - 99
+  Footer line (small):  Interpretation of these values is reserved for the treating clinician.
+  File tag on the digital page (white letters on an ink tag):  PDF
+  Step 5 only: one question mark ? in a speech-bubble square.
+  Nothing else: no captions, no titles, no UI labels, no step names, no logos.
+  The ready-made pixel-exact versions of all this are in the keyframes/ folder (see 08_keyframes_how_to_use.txt).
+
+==========================================================================================
+LOOK (paste)
+==========================================================================================
+LOOK: flat 2D vector motion graphics in strict Swiss International (Modernist) style, square 1:1 frame, 24 fps, silent. The entire frame is one perfectly flat, uniform warm light grey #EAE9E9, edge to edge, no vignette, no gradient, no texture, no noise. Every shape is flat single-colour geometry with razor-sharp edges and perfectly square 90-degree corners (zero corner radius; only dots are round). Colours allowed: paper #F8F4F4, light grey #D7D3D3, faint ink #BBB8B7, divider grey #999796, dark grey #605D5D, ink #201E1D, and ONE vivid vermilion red #EC3013 (deep red #AE1800 and pale reds #FFC4B8 / #FFE0D9 only for small marks); no other hue exists. Red marks only the thing that is active right now. No lighting, no shading, no shadows, no glow, no bloom, no blur, no depth of field, no motion blur, no film grain, no reflections, no 3D, no photographic realism, no dark backgrounds, no neon, no holograms. Every frame must look like a crisp finished vector screenshot of a clean software interface. TYPOGRAPHY: all text is set in a clean neo-grotesque sans-serif (Archivo look), regular and extra-bold weights only, ink on paper. The ONLY words and numbers in the film are those of the DOCUMENT TEXT block, spelled exactly, plus the three letters PDF on the file tag and one question mark in step 5.
+
+==========================================================================================
+CAMERA, SET AND MOTION (paste)
+==========================================================================================
+CAMERA AND SET: tripod-static, orthographic, straight-on; no zoom, no pan, no tilt, no cuts, no fades to black. Coordinates are percentages of the frame (x from the left edge, y from the top edge). Everything stays inside x 4%-96%, y 8%-90%; the bottom-right corner x 74%-100%, y 86%-100% stays empty. The set is always the same: LEFT ZONE x 7-47, y 18-72 holds the source page (portrait, 40% wide, 54% tall); RIGHT ZONE x 53-93, y 18-72 holds the output (a dashed outline box that fills with text, later cards or panels); a PROGRESS RAIL at x 7-70, y 84-87 shows five small squares (36 px at 1600 px) joined by a thin grey line: finished steps are ink, the current step is red, upcoming steps are outlined.
+
+MOTION: rich and dense but precise: many elements move at the same time, with overlapping flights, every element perfectly crisp. Ease-out cubic, straight horizontal or vertical paths, drawn ahead of each flying element as a thin 2 px dashed grey line. No bounce, no overshoot, no particles, no trails other than those dashed paths. Appearing and disappearing elements fade over 0.4 s.
+
+==========================================================================================
+NEGATIVE PROMPT (paste in the negative field of every clip)
+==========================================================================================
+misspelled words, wrong spelling, garbled text, extra words, extra numbers, captions, subtitles, titles, UI labels, step names, logo, watermark, signature, emoji, cursor, mouse pointer, hand, people, face, rounded corners, rounded rectangle, pill shape, gradient, vignette, glow, neon, bloom, lens flare, light rays, holographic, hologram, glowing blue, dark background, black background, depth of field, blur, motion blur, film grain, noise, scanlines, glitch, 3D render, photorealistic photograph, glossy, glass, reflections, shadows, drop shadow, bevel, metallic, camera movement, zoom, pan, tilt, dolly, shake, cuts, transitions, fade to black, flash, flicker, strobe, particles, sparkles, confetti, smoke, liquid, morphing, wobbly lines, jitter, warping, colour shift, blue, cyan, teal, green, yellow, gold, orange, purple, pink, rainbow, cyberpunk, sci-fi, circuit board, binary code, matrix rain, DNA, brain, heart, stethoscope, pills, syringe, red cross, hospital, molecules, robot, clip art, cartoon, anime, sketch, watercolour, paper texture, compression artifacts, low resolution

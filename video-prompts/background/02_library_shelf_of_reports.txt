@@ -1,0 +1,5 @@
+Flat 2D line animation, 6 seconds, pure white background, thin black and grey lines, one red accent, no readable text (use grey bars for text), no shadows, no glow. Static camera, fast and smooth. Keep the left side empty and the action on the right. The main object is sharp; the many copies behind it are slightly soft.
+
+A long list of reports. A red frame jumps quickly down the list and stops on one. Its test values appear as short bars with a red tick showing the value. One value is picked and a dotted red line points to a small slip with a highlighted line.
+
+Avoid: text, people, dark background, gradients, camera movement, cuts, rounded corners.

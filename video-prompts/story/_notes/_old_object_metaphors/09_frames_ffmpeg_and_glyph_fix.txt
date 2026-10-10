@@ -1,0 +1,38 @@
+TURN THE VIDEO INTO THE 120 FRAMES, AND FIX GARBLED GLYPHS
+==========================================================================================
+1) Join the clips (only if you made five): put their names in a file list.txt, one line each:  file 'clip1.mp4'  ... then
+     ffmpeg -f concat -safe 0 -i list.txt -c copy story.mp4
+
+2) Extract exactly 120 frames (a 20 s film at 6 fps):
+     ffmpeg -i story.mp4 -vf "fps=6,scale=1600:1600" -q:v 3 frame_%04d.jpg
+   Check: 120 files, frame_0001.jpg ... frame_0120.jpg.
+   Step 01 = frames 1-24, step 02 = 25-48, step 03 = 49-72, step 04 = 73-96, step 05 = 97-120.
+
+3) Install in the app:
+     copy the 120 files to  site design/public/assets/frames/
+   Reload /upload. The stage (site design/src/components/upload/FrameStage.tsx) probes frame_0001.jpg and starts scrubbing. No code change is needed.
+
+4) If the film is longer or shorter than 20 s, change fps so that duration x fps = 120. Example: 24 s -> fps=5.
+
+==========================================================================================
+IF THE GENERATOR GARBLES ABC / 123 / ?
+==========================================================================================
+Ask for a BLANK ink tile, BLANK slips (the stamp still presses, the slip stays empty) and a speech bubble with nothing inside. Then add the glyphs with the app's own font (Archivo ExtraBold, files in site design/node_modules/@fontsource/archivo/files/archivo-latin-800-normal.woff2; ffmpeg drawtext needs a .ttf/.otf, so convert once or use any Archivo Black/ExtraBold TTF).
+Example for the ABC tile (adjust x, y, size to your frame; times in seconds):
+  drawtext=fontfile=Archivo-ExtraBold.ttf:text='ABC':fontcolor=0xF8F4F4:fontsize=96:x=190:y=1010:enable='between(t,0,16.5)'
+  one drawtext per slip for 123 with enable='gte(t,<time of that press>)' (presses land at about 12.6, 13.1, 13.6, 14.1, 14.6, 15.1; check against your clip)
+  drawtext for ? with enable='gte(t,18.4)'
+Real glyphs are always better than AI-drawn ones, and they stay correct if the generator redraws the clip.
+
+==========================================================================================
+ACCEPTANCE CHECKLIST
+==========================================================================================
+[ ] Child test: someone with the sound off can say the story sentence.
+[ ] Frame 1 alone is a meaningful still (paper sheet, magnifying glass, empty strip with ABC).
+[ ] Background identical #EAE9E9 in every pixel of every frame.
+[ ] Zero rounded corners (except the lens ring and the single pulse ring).
+[ ] Only the listed colours; red only on the active thing, under about 8% of the frame.
+[ ] Only ABC, 123 and ? as writing.
+[ ] Nothing in the reserved corner x 74-100%, y 86-100%; nothing outside x/y 10-90%.
+[ ] Camera never moves; no cuts; no blur on any frame (pause on 10 random frames).
+[ ] Step boundaries land at 4 s, 8 s, 12 s, 16 s so the scrub matches the five rows beside the stage.

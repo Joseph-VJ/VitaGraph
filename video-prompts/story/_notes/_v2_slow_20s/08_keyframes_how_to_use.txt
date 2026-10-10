@@ -1,0 +1,21 @@
+KEYFRAMES: pixel-exact start and end images (already made)
+==========================================================================================
+The folder keyframes/ contains seven 1600 x 1600 PNG images, rendered with the app's own font (Archivo) and the app's colours, with the exact text of the sample report. Use them as first frames and last frames of the clips, so the generator never has to invent or spell the document: it only moves what already exists.
+
+  keyframes/K0.png    start of step 1: digital page with the PDF tag, empty output box, rail step 1 red
+  keyframes/K1.png    end of step 1: page faded 35% with check square, output box full of clean text
+  keyframes/K1b.png   start of step 2 (after the cross-fade): the page as a scan (tilted, blocky text, specks, corner brackets), empty output box
+  keyframes/K2.png    end of step 2: scan faded with check square, output full, red underline under 18
+  keyframes/K3.png    end of step 3: small page with red bars, four passage cards with thumbnails and dashed red address lines
+  keyframes/K4.png    end of step 4: dimmed cards, encoder, meaning map with four dots, the two nearest joined by a red line in a dashed ellipse
+  keyframes/K5.png    end of step 5: three panels (two grey, mine red with four dots and red owner squares), closed padlock, ? bubble, red line only to my panel, blocked grey branches
+
+Which image goes where:
+  clip 1 (file 02): first = K0, last = K1
+  clip 2 (file 03): first = K1b (clip 1's last frame cross-fades into it during the first 0.6 s), last = K2
+  clip 3 (file 04): first = K2, last = K3
+  clip 4 (file 05): first = K3, last = K4
+  clip 5 (file 06): first = K4, last = K5
+
+If your generator has NO image input, use the text prompts only, and read 09 (text repair).
+If you want to regenerate the keyframes with an image model instead, give it the DOCUMENT TEXT block from file 01, the LOOK paragraph, and the layout of the matching image above.

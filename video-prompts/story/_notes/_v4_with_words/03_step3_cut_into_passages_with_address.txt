@@ -1,0 +1,5 @@
+Flat 2D vector animation, clean modern software style. Plain light grey background, only black, grey and one red accent. Static camera, smooth fast motion, no shadows, no glow. The main page stays sharp; the other pages behind it are slightly soft and blurred. Start from the attached first image and keep its text exactly.
+
+3 seconds. The clean text is cut by a red line into four short cards. Next to each card a tiny page appears with a red mark showing where that text came from, joined by a dotted red line. Soft copies of the same happen for the other pages.
+
+Avoid: new or misspelled text, dark background, neon, camera movement, cuts, people, rounded corners.
