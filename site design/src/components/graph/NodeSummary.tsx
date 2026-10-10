@@ -69,7 +69,15 @@ function waitMessage(phase: string, sourcesCount: number, filesCount: number): s
   return "";
 }
 
-export function NodeSummary({ userId, nodeId }: { userId: string; nodeId: string }) {
+export function NodeSummary({
+  userId,
+  nodeId,
+  autoScroll = true,
+}: {
+  userId: string;
+  nodeId: string;
+  autoScroll?: boolean;
+}) {
   const s = useNodeSummary(userId, nodeId);
   const prefs = usePreferences();
   const rootRef = useRef<HTMLElement | null>(null);
@@ -77,6 +85,7 @@ export function NodeSummary({ userId, nodeId }: { userId: string; nodeId: string
   const [open, setOpen] = useState<Set<number>>(new Set());
 
   useEffect(() => {
+    if (!autoScroll) return;
     const reduceMotion =
       prefs.reduceMotion ||
       (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -84,7 +93,7 @@ export function NodeSummary({ userId, nodeId }: { userId: string; nodeId: string
       block: "nearest",
       behavior: reduceMotion ? "auto" : "smooth",
     });
-  }, [prefs.reduceMotion]);
+  }, [prefs.reduceMotion, autoScroll]);
 
   const busy = s.phase !== "done" && s.phase !== "error";
   const fromAi = s.status === "ai" || s.status === "cached";

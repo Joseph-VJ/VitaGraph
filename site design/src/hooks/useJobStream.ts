@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { PipelineStep } from "../components/gallery/PipelineStepper";
 import { BASE_URL } from "../api/client";
+import { getActivity, setActivity } from "../lib/appActivity";
 
 export interface JobStreamEvent {
   stage: string;
@@ -101,6 +102,9 @@ export function useJobStream(): UseJobStreamReturn {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      if (getActivity().upload && !isDoneRef.current) {
+        setActivity({ upload: null });
+      }
       disconnect();
     };
   }, [disconnect]);
@@ -136,6 +140,7 @@ export function useJobStream(): UseJobStreamReturn {
       (typeof evt.description === "string" && evt.description.startsWith("Error:"));
 
     if (isEventFailure) {
+      setActivity({ upload: null });
       const errMsg =
         metaError ||
         evt.description ||
@@ -152,6 +157,20 @@ export function useJobStream(): UseJobStreamReturn {
     }
 
     if (evt.stage) {
+      if (evt.stage === "received" || evt.stage === "extracting") {
+        setActivity({ upload: { stage: 0 } });
+      } else if (evt.stage === "extracted") {
+        setActivity({ upload: { stage: 1 } });
+      } else if (evt.stage === "chunked") {
+        setActivity({ upload: { stage: 2 } });
+      } else if (evt.stage === "embedded") {
+        setActivity({ upload: { stage: 3 } });
+      } else if (evt.stage === "indexed" || evt.stage === "graphed") {
+        setActivity({ upload: { stage: 4 } });
+      } else if (evt.stage === "done") {
+        setActivity({ upload: null, finished: getActivity().finished + 1 });
+      }
+
       setSteps((prev) => {
         const next = [...prev];
         if (evt.stage === "received") {
@@ -360,6 +379,7 @@ export function useJobStream(): UseJobStreamReturn {
       const failInterrupted = () => {
         if (!isMountedRef.current || isDoneRef.current) return;
         disconnect();
+        setActivity({ upload: null });
         setError("Backend connection lost. Pipeline interrupted mid-upload.");
         setStatus("error");
         setSteps((prev) =>

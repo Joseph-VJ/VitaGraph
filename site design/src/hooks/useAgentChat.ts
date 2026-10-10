@@ -10,6 +10,8 @@ import {
   replaySavedFeed,
   settleItems,
 } from "../lib/agentFeed";
+import { setActivity } from "../lib/appActivity";
+import { saveLastAnswer } from "../lib/lastAnswer";
 
 export interface AgentEvidence {
   ref: number;
@@ -103,6 +105,19 @@ function isEvidence(value: unknown): value is AgentEvidence {
   return typeof record.ref === "number" && typeof record.chunk_id === "string";
 }
 
+function extractDistinctChunkIds(evidence: AgentEvidence[]): string[] {
+  const sorted = [...evidence].sort((a, b) => (a.ref ?? 0) - (b.ref ?? 0));
+  const seen = new Set<string>();
+  const chunkIds: string[] = [];
+  for (const card of sorted) {
+    if (card.chunk_id && !seen.has(card.chunk_id)) {
+      seen.add(card.chunk_id);
+      chunkIds.push(card.chunk_id);
+    }
+  }
+  return chunkIds;
+}
+
 // A saved turn keeps the backend's names (elapsed_ms, tool_calls); the page uses its own.
 function savedStats(raw: unknown): AgentStats | null {
   const s = asRecord(raw);
@@ -129,6 +144,7 @@ export function useAgentChat(): UseAgentChatReturn {
   const mountedRef = useRef(true);
   const conversationIdRef = useRef<string | null>(null);
   const stepSeqRef = useRef(0);
+  const userIdRef = useRef<string | null>(null);
   // text_delta tokens arrive many times per frame; coalesce them into one state write per frame.
   const bufferRef = useRef("");
   const rafRef = useRef<number | null>(null);
@@ -266,16 +282,33 @@ export function useAgentChat(): UseAgentChatReturn {
           flushNow();
           const status: EntryStatus =
             p.status === "refused" ? "refused" : p.status === "insufficient_evidence" ? "insufficient_evidence" : "answered";
-          patch(id, (e) => ({
-            ...e,
-            status,
-            answer: String(p.summary_text ?? "").trim() ? String(p.summary_text) : e.answer,
-            evidence: Array.isArray(p.evidence) ? p.evidence.filter(isEvidence) : e.evidence,
-            withheld: p.safety_passed === false,
-            safetyNote: typeof p.safety_note === "string" ? p.safety_note : null,
-            aiStatus: typeof p.ai_status === "string" ? p.ai_status : null,
-            title: typeof p.session_title === "string" && p.session_title.trim() ? p.session_title.trim() : null,
-          }));
+          const incomingEv = Array.isArray(p.evidence) ? p.evidence.filter(isEvidence) : null;
+          // Save the last answer once, here, and only for an answer that was not withheld by the safety gate.
+          const current = entriesRef.current.find((x) => x.id === id);
+          if (current && status === "answered" && p.safety_passed !== false && userIdRef.current) {
+            const saveCards = incomingEv ?? current.evidence;
+            const chunkIds = extractDistinctChunkIds(saveCards);
+            if (chunkIds.length > 0) {
+              saveLastAnswer({
+                userId: userIdRef.current,
+                question: current.question,
+                chunkIds,
+              });
+            }
+          }
+          patch(id, (e) => {
+            const evCards = incomingEv ?? e.evidence;
+            return {
+              ...e,
+              status,
+              answer: String(p.summary_text ?? "").trim() ? String(p.summary_text) : e.answer,
+              evidence: evCards,
+              withheld: p.safety_passed === false,
+              safetyNote: typeof p.safety_note === "string" ? p.safety_note : null,
+              aiStatus: typeof p.ai_status === "string" ? p.ai_status : null,
+              title: typeof p.session_title === "string" && p.session_title.trim() ? p.session_title.trim() : null,
+            };
+          });
           break;
         }
         case "done": {
@@ -284,7 +317,10 @@ export function useAgentChat(): UseAgentChatReturn {
             conversationIdRef.current = p.conversation_id;
             setConversationId(p.conversation_id);
           }
-          patch(id, (e) => settle({ ...e, status: e.status === "streaming" ? "answered" : e.status, endedAt: e.endedAt ?? Date.now() }));
+          patch(id, (e) => {
+            const finalStatus: EntryStatus = e.status === "streaming" ? "answered" : e.status;
+            return settle({ ...e, status: finalStatus, endedAt: e.endedAt ?? Date.now() });
+          });
           break;
         }
         default:
@@ -298,6 +334,7 @@ export function useAgentChat(): UseAgentChatReturn {
     (userId: string, text: string, reportId?: string | null) => {
       const question = text.trim();
       if (!question || controllerRef.current) return;
+      userIdRef.current = userId;
 
       const prior = entriesRef.current
         .filter((e) => e.status === "answered" && !e.withheld && e.answer.trim())
@@ -419,6 +456,7 @@ export function useAgentChat(): UseAgentChatReturn {
 
   const load = useCallback(
     async (userId: string, targetConvId: string) => {
+      userIdRef.current = userId;
       teardown();
       activeIdRef.current = null;
       conversationIdRef.current = targetConvId;
@@ -475,9 +513,18 @@ export function useAgentChat(): UseAgentChatReturn {
     commit([]);
   }, [teardown, commit]);
 
+  const isStreaming = entries.some((e) => e.status === "streaming");
+
+  useEffect(() => {
+    setActivity({ agentBusy: isStreaming });
+    return () => {
+      setActivity({ agentBusy: false });
+    };
+  }, [isStreaming]);
+
   return {
     entries,
-    isStreaming: entries.some((e) => e.status === "streaming"),
+    isStreaming,
     conversationId,
     load,
     send,

@@ -31,6 +31,30 @@ export function sortReports(list: Report[]): Report[] {
 
 const monthYear = (d: Date) => d.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
 
+/** Full printed date e.g. "15 June 2025", or "Undated" */
+export function formatReportDate(r?: Pick<Report, "report_date"> | null): string {
+  if (!r) return "Undated";
+  const d = parseReportDate(r);
+  if (!d) return "Undated";
+  const day = d.getUTCDate();
+  const month = d.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
+  const year = d.getUTCFullYear();
+  return `${day} ${month} ${year}`;
+}
+
+/** Format unambiguous report name for lists: "Report: 15 January 2025 · synthetic_panel_2025-01-15.pdf" (or "Report: Undated · file name") */
+export function formatReportOption(dateLabel: string, filename?: string): string {
+  const file = filename || "report";
+  return `Report: ${dateLabel} · ${file}`;
+}
+
+/** Short month-year e.g. "Jun 2025", or "Undated" */
+export function formatReportMonthYear(r?: Pick<Report, "report_date"> | null): string {
+  if (!r) return "Undated";
+  const d = parseReportDate(r);
+  return d ? monthYear(d) : "Undated";
+}
+
 /** "Jan 2025", or "Undated". If two reports would get the same label, the filename is appended. */
 export function makeLabeler(reports: Report[]): (r: Report) => string {
   const base = (r: Report) => {

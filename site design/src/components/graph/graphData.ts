@@ -1,7 +1,17 @@
 import type { GraphNode, GraphResponse } from "../../api/graph";
 import type { Report } from "../../types";
 import { layout3D, type NodeKind } from "./layout3d";
-import type { GEdge, GNode } from "./GraphCanvas";
+
+/** A node of the 3D graph: id, kind, label and its laid-out position. */
+export interface GNode {
+  id: string;
+  k: NodeKind;
+  label: string;
+  pos: [number, number, number];
+}
+
+/** A link between two node ids. */
+export type GEdge = [string, string];
 
 export interface FocusItem {
   id: string;

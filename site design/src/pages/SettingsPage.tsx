@@ -4,7 +4,14 @@ import { usersApi } from "../api/users";
 import { reportsApi } from "../api/reports";
 import { PageState } from "../components/ui";
 import { useActiveUser } from "../context/UserContext";
-import { setPreference, usePreferences, type ProcessSpeed } from "../lib/preferences";
+import {
+  BACKGROUND_LEVEL_DEFAULT,
+  BACKGROUND_LEVEL_MAX,
+  BACKGROUND_LEVEL_MIN,
+  setPreference,
+  usePreferences,
+  type ProcessSpeed,
+} from "../lib/preferences";
 
 export const SettingsPage: React.FC = () => {
   const { user, setUser, refreshUsers } = useActiveUser();
@@ -171,42 +178,6 @@ export const SettingsPage: React.FC = () => {
         }}
       >
         Ingestion
-      </div>
-
-      {/* Cinematic ingestion */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "var(--space-3) var(--space-6)",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "var(--space-4) 0",
-          borderBottom: "1px solid var(--color-divider)",
-        }}
-      >
-        <div style={{ flex: "1 1 300px", minWidth: 0 }}>
-          <div style={{ fontSize: "1.0625rem", fontWeight: 800 }}>Cinematic ingestion</div>
-          <div style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)" }}>
-            Run the full-screen show when a report is ingested.
-          </div>
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-          <button
-            type="button"
-            className={prefs.cinematic ? "btn btn-primary" : "btn btn-secondary"}
-            onClick={() => setPreference("cinematic", true)}
-          >
-            On
-          </button>
-          <button
-            type="button"
-            className={!prefs.cinematic ? "btn btn-primary" : "btn btn-secondary"}
-            onClick={() => setPreference("cinematic", false)}
-          >
-            Off
-          </button>
-        </div>
       </div>
 
       {/* Process speed */}
@@ -432,7 +403,7 @@ export const SettingsPage: React.FC = () => {
         <div style={{ flex: "1 1 300px", minWidth: 0 }}>
           <div style={{ fontSize: "1.0625rem", fontWeight: 800 }}>Reduce motion</div>
           <div style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)" }}>
-            Shortens the ingestion show and stops graph rotation.
+            Shortens animations and stops graph rotation.
           </div>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
@@ -449,6 +420,183 @@ export const SettingsPage: React.FC = () => {
             onClick={() => setPreference("reduceMotion", false)}
           >
             Off
+          </button>
+        </div>
+      </div>
+
+      {/* Living background */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "var(--space-3) var(--space-6)",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "var(--space-4) 0",
+          borderBottom: "1px solid var(--color-divider)",
+        }}
+      >
+        <div style={{ flex: "1 1 300px", minWidth: 0 }}>
+          <div style={{ fontSize: "1.0625rem", fontWeight: 800 }}>Living background</div>
+          <div style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)" }}>
+            A quiet moving layer behind the pages. It never covers text.
+          </div>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+          <button
+            type="button"
+            className={prefs.background === "off" ? "btn btn-primary" : "btn btn-secondary"}
+            onClick={() => setPreference("background", "off")}
+          >
+            Off
+          </button>
+          <button
+            type="button"
+            className={prefs.background === "soft" ? "btn btn-primary" : "btn btn-secondary"}
+            onClick={() => setPreference("background", "soft")}
+          >
+            Soft
+          </button>
+          <button
+            type="button"
+            className={prefs.background === "full" ? "btn btn-primary" : "btn btn-secondary"}
+            onClick={() => setPreference("background", "full")}
+          >
+            Full
+          </button>
+        </div>
+      </div>
+
+      {/* Background intensity: lighter or darker */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "var(--space-3) var(--space-6)",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "var(--space-4) 0",
+          borderBottom: "1px solid var(--color-divider)",
+          opacity: prefs.background === "off" ? 0.5 : 1,
+        }}
+      >
+        <div style={{ flex: "1 1 300px", minWidth: 0 }}>
+          <div style={{ fontSize: "1.0625rem", fontWeight: 800 }}>Background intensity</div>
+          <div style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)" }}>
+            Make the background lighter or darker. 100 % is the designed look.
+          </div>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-3)" }}>
+          <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-neutral-700)" }}>Lighter</span>
+          <input
+            type="range"
+            aria-label="Background intensity"
+            min={BACKGROUND_LEVEL_MIN}
+            max={BACKGROUND_LEVEL_MAX}
+            step={5}
+            value={prefs.backgroundLevel}
+            disabled={prefs.background === "off"}
+            onChange={(e) => setPreference("backgroundLevel", Number(e.target.value))}
+            style={{ width: 200, accentColor: "var(--color-accent)" }}
+          />
+          <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-neutral-700)" }}>Darker</span>
+          <span style={{ width: "3.5rem", fontWeight: 800, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+            {prefs.backgroundLevel} %
+          </span>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={prefs.background === "off" || prefs.backgroundLevel === BACKGROUND_LEVEL_DEFAULT}
+            onClick={() => setPreference("backgroundLevel", BACKGROUND_LEVEL_DEFAULT)}
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {/* Background style */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "var(--space-3) var(--space-6)",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          padding: "var(--space-4) 0",
+          borderBottom: "1px solid var(--color-divider)",
+        }}
+      >
+        <div style={{ flex: "1 1 300px", minWidth: 0 }}>
+          <div style={{ fontSize: "1.0625rem", fontWeight: 800 }}>Background style</div>
+          <div style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)" }}>
+            Choose the pattern and motion of the decorative canvas.
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "var(--space-2)", flex: "2 1 320px" }}>
+          <button
+            type="button"
+            className={prefs.backgroundEngine === "warp" ? "btn btn-primary" : "btn btn-secondary"}
+            style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", padding: "var(--space-2) var(--space-3)" }}
+            onClick={() => setPreference("backgroundEngine", "warp")}
+          >
+            <span style={{ fontWeight: 800 }}>Rubber grid</span>
+            <span style={{ fontSize: "0.75rem", opacity: 0.85, fontWeight: 400 }}>Page grid bends</span>
+          </button>
+          <button
+            type="button"
+            className={prefs.backgroundEngine === "flow" ? "btn btn-primary" : "btn btn-secondary"}
+            style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", padding: "var(--space-2) var(--space-3)" }}
+            onClick={() => setPreference("backgroundEngine", "flow")}
+          >
+            <span style={{ fontWeight: 800 }}>Ink currents</span>
+            <span style={{ fontSize: "0.75rem", opacity: 0.85, fontWeight: 400 }}>Flowing ink lines</span>
+          </button>
+          <button
+            type="button"
+            className={prefs.backgroundEngine === "stars" ? "btn btn-primary" : "btn btn-secondary"}
+            style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", padding: "var(--space-2) var(--space-3)" }}
+            onClick={() => setPreference("backgroundEngine", "stars")}
+          >
+            <span style={{ fontWeight: 800 }}>Constellation</span>
+            <span style={{ fontSize: "0.75rem", opacity: 0.85, fontWeight: 400 }}>Connected data dots</span>
+          </button>
+          <button
+            type="button"
+            className={prefs.backgroundEngine === "type" ? "btn btn-primary" : "btn btn-secondary"}
+            style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", padding: "var(--space-2) var(--space-3)" }}
+            onClick={() => setPreference("backgroundEngine", "type")}
+          >
+            <span style={{ fontWeight: 800 }}>Living type</span>
+            <span style={{ fontSize: "0.75rem", opacity: 0.85, fontWeight: 400 }}>Spells app actions</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Play mode */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "var(--space-3) var(--space-6)",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "var(--space-4) 0",
+          borderBottom: "1px solid var(--color-divider)",
+        }}
+      >
+        <div style={{ flex: "1 1 300px", minWidth: 0 }}>
+          <div style={{ fontSize: "1.0625rem", fontWeight: 800 }}>Play mode</div>
+          <div style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)" }}>
+            Fill the page and play with the layer. Esc leaves.
+          </div>
+        </div>
+        <div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => window.dispatchEvent(new CustomEvent("vitagraph:enter-play"))}
+          >
+            Enter play mode
           </button>
         </div>
       </div>

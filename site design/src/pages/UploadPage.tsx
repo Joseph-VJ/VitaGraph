@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { CinematicIngestionShow } from "../components/upload/CinematicIngestionShow";
 import { useToast } from "../components/gallery/Toast";
 import { reportsApi } from "../api/reports";
 import { useActiveUser } from "../context/UserContext";
@@ -33,7 +32,6 @@ export const UploadPage: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingCohort, setIsLoadingCohort] = useState(false);
-  const [isPopupOpen, setIsPopupOpen] = useState(false);
   // Stage the process film is on while it follows an upload (null when it is not following one).
   const [pacedStage, setPacedStage] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -146,10 +144,7 @@ export const UploadPage: React.FC = () => {
     // 1. Subscribe to the job's event stream before the upload starts.
     jobStream.connect(jobId);
 
-    // 2. Open the full-screen show, unless "Cinematic ingestion" is off in Settings.
-    if (getPreferences().cinematic) setIsPopupOpen(true);
-
-    // 3. Send the file; the backend runs the pipeline in the background.
+    // 2. Send the file; the backend runs the pipeline in the background.
     try {
       const isPdf = selectedFile.name.toLowerCase().endsWith(".pdf");
       const currentChunkSize = getPreferences().chunkSize;
@@ -641,18 +636,6 @@ export const UploadPage: React.FC = () => {
           </table>
         </div>
       )}
-
-      <CinematicIngestionShow
-        isOpen={isPopupOpen}
-        filename={file?.name || "Report"}
-        jobStream={jobStream}
-        userId={userId ?? undefined}
-        onClose={() => setIsPopupOpen(false)}
-        onContinueToLibrary={() => {
-          setIsPopupOpen(false);
-          transitionNavigate(navigate, "/library", { direction: "forward" });
-        }}
-      />
     </div>
   );
 };

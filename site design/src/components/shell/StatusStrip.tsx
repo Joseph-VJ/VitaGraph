@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BASE_URL } from "../../api/client";
+import { useHealth } from "../../lib/healthMonitor";
 import { useActiveUser } from "../../context/UserContext";
 import { reportsApi } from "../../api/reports";
 
@@ -16,51 +16,12 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
   const { user } = useActiveUser();
   const [counts, setCounts] = useState<{ reports: number; chunks: number } | null>(null);
 
-  const [health, setHealth] = useState<HealthState>({
-    online: backendOnline,
-    latencyMs: null,
-  });
-
-  // Probe live backend /api/health and measure real client latency
-  useEffect(() => {
-    let mounted = true;
-    if (!backendOnline) {
-      setHealth({
-        online: false,
-        latencyMs: null,
-      });
-      return;
-    }
-    const checkHealth = async () => {
-      const startTime = performance.now();
-      try {
-        const res = await fetch(`${BASE_URL}/api/health`, {
-          signal: AbortSignal.timeout(8000),
-        });
-        const duration = Math.round(performance.now() - startTime);
-        if (res.ok && mounted) {
-          setHealth({
-            online: true,
-            latencyMs: duration,
-          });
-        }
-      } catch {
-        if (mounted) {
-          setHealth({
-            online: false,
-            latencyMs: null,
-          });
-        }
-      }
-    };
-
-    checkHealth();
-    const interval = setInterval(checkHealth, 5000);
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
-  }, [backendOnline]);
+  // Latency comes from the shared health check (one request for the whole shell).
+  const shared = useHealth();
+  const health: HealthState = {
+    online: backendOnline && shared.online,
+    latencyMs: backendOnline && shared.online ? shared.latencyMs : null,
+  };
 
   useEffect(() => {
     if (!user?.id || !backendOnline) {
@@ -84,7 +45,9 @@ export const StatusStrip: React.FC<StatusStripProps> = ({ backendOnline = true }
     };
 
     fetchCounts();
-    const interval = setInterval(fetchCounts, 15000);
+    const interval = setInterval(() => {
+      if (!document.hidden) void fetchCounts();
+    }, 15000);
 
     return () => {
       cancelled = true;

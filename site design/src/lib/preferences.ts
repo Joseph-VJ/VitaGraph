@@ -2,20 +2,31 @@ import { useSyncExternalStore } from "react";
 import { governor } from "../motion";
 
 export type ProcessSpeed = "fast" | "normal" | "slow";
+export type BackgroundStrength = "off" | "soft" | "full";
+export type BackgroundEngine = "warp" | "flow" | "stars" | "type";
 
 export interface Preferences {
-  cinematic: boolean;
   reduceMotion: boolean;
   speed: ProcessSpeed;
   chunkSize: number;
+  background: BackgroundStrength;
+  backgroundEngine: BackgroundEngine;
+  /** How light or dark the background shows, in percent: 30 (lighter) to 200 (darker), 100 = as designed. */
+  backgroundLevel: number;
 }
+
+export const BACKGROUND_LEVEL_MIN = 30;
+export const BACKGROUND_LEVEL_MAX = 200;
+export const BACKGROUND_LEVEL_DEFAULT = 100;
 
 const STORAGE_KEY = "vitagraph_preferences";
 const DEFAULTS: Preferences = {
-  cinematic: false, // the Upload page shows the process in its own panel; the full-screen show is opt-in
   reduceMotion: false,
   speed: "normal",
   chunkSize: 200,
+  background: "soft",
+  backgroundEngine: "warp",
+  backgroundLevel: BACKGROUND_LEVEL_DEFAULT,
 };
 
 function load(): Preferences {
@@ -33,11 +44,30 @@ function load(): Preferences {
       typeof stored.chunkSize === "number" && stored.chunkSize >= 120 && stored.chunkSize <= 600
         ? stored.chunkSize
         : DEFAULTS.chunkSize;
+    const background =
+      stored.background === "off" || stored.background === "soft" || stored.background === "full"
+        ? (stored.background as BackgroundStrength)
+        : DEFAULTS.background;
+    const backgroundEngine =
+      stored.backgroundEngine === "warp" ||
+      stored.backgroundEngine === "flow" ||
+      stored.backgroundEngine === "stars" ||
+      stored.backgroundEngine === "type"
+        ? (stored.backgroundEngine as BackgroundEngine)
+        : DEFAULTS.backgroundEngine;
+    const backgroundLevel =
+      typeof stored.backgroundLevel === "number" &&
+      stored.backgroundLevel >= BACKGROUND_LEVEL_MIN &&
+      stored.backgroundLevel <= BACKGROUND_LEVEL_MAX
+        ? stored.backgroundLevel
+        : DEFAULTS.backgroundLevel;
     return {
-      cinematic: typeof stored.cinematic === "boolean" ? stored.cinematic : DEFAULTS.cinematic,
       reduceMotion: typeof stored.reduceMotion === "boolean" ? stored.reduceMotion : DEFAULTS.reduceMotion,
       speed,
       chunkSize,
+      background,
+      backgroundEngine,
+      backgroundLevel,
     };
   } catch {
     return DEFAULTS;

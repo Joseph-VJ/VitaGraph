@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useActiveUser } from "../../context/UserContext";
 import { supportsViewTransitions, governor } from "../../motion";
 import { transitionNavigate } from "../../motion/navigation";
-import { BASE_URL } from "../../api/client";
+import { useHealth } from "../../lib/healthMonitor";
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
@@ -55,30 +55,15 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
     location.search.includes("replay=true") ||
     localStorage.getItem("vitagraph_replay") === "true";
 
-  // Check allow_api status from backend (§US-12)
+  // The AI tag follows the shared backend health check (§US-12); one request serves the whole shell.
+  const health = useHealth();
   useEffect(() => {
-    let isMounted = true;
     if (!backendOnline) {
       setAllowApi(false);
       return;
     }
-    fetch(`${BASE_URL}/api/health`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (isMounted && typeof data.allow_api === "boolean") {
-          setAllowApi(data.allow_api);
-          if (typeof sessionStorage !== "undefined") {
-            sessionStorage.setItem("vg_allow_api", String(data.allow_api));
-          }
-        }
-      })
-      .catch(() => {
-        if (isMounted) setAllowApi(false);
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, [backendOnline]);
+    if (typeof health.allowApi === "boolean") setAllowApi(health.allowApi);
+  }, [backendOnline, health.allowApi]);
 
   // Settings announces a privacy change so the "AI explanations" tag updates at once
   useEffect(() => {

@@ -67,10 +67,51 @@ export type NodeSummaryEvent =
   | { type: "completed"; status: NodeSummaryStatus; text: string; reason: string | null }
   | { type: "error"; message: string };
 
+export interface SeriesReport {
+  report_id: string;
+  filename: string;
+  date: string | null;
+  date_iso: string | null;
+  order: number;
+}
+
+export type SeriesPointFlag = "NORMAL" | "HIGH" | "LOW" | "CRITICAL" | "ABNORMAL" | string;
+
+export interface SeriesPoint {
+  report_id: string;
+  order: number;
+  date: string | null;
+  value: number;
+  flag: SeriesPointFlag;
+  range_text: string | null;
+  range_low: number | null;
+  range_high: number | null;
+  page_number: number;
+  chunk_id: string | null;
+  char_start: number | null;
+  char_end: number | null;
+}
+
+export interface SeriesTest {
+  node_id: string;
+  name: string;
+  unit: string;
+  category: string;
+  points: SeriesPoint[];
+}
+
+export interface SeriesResponse {
+  reports: SeriesReport[];
+  tests: SeriesTest[];
+}
+
 export const graphApi = {
   getGraph: (userId: string) => api.get<GraphResponse>(`/api/graph/${userId}`),
   getSubgraph: (userId: string, chunkIds: string[]) =>
     api.post<GraphResponse>("/api/graph/subgraph", { user_id: userId, chunk_ids: chunkIds }),
+
+  series: (userId: string): Promise<SeriesResponse> =>
+    api.get<SeriesResponse>(`/api/graph/${userId}/series`),
 
   /** Stream the AI summary of one node. Resolves when the stream ends; abort with `signal`. */
   streamNodeSummary: async (
@@ -99,3 +140,4 @@ export const graphApi = {
     });
   },
 };
+

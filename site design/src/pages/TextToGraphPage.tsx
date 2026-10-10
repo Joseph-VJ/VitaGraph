@@ -1,20 +1,34 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { GraphStage, type GraphStageHandle } from "../components/graph/stage/GraphStage";
 import {
-  GraphCanvas,
-  type GraphCanvasHandle,
-  type GEdge,
-} from "../components/graph/GraphCanvas";
-import { extractGraph, type Entity, type TextGraphNode } from "../components/graph/textGraph";
-import { aiGraphToTextGraph } from "../components/graph/aiGraph";
+  type StageNode,
+  type StageEdge,
+  type NodeKind,
+  type StageOptions,
+} from "../components/graph/stage/GraphStageEngine";
+import { TextNodeCard } from "../components/graph/TextNodeCard";
+import {
+  buildStageFromPattern,
+  componentRepresentatives,
+  createHubNode,
+  entityToStageNode,
+  edgeToStageEdge,
+  hubEdges,
+  HUB_ID,
+} from "../components/graph/textStageData";
+import { type Entity } from "../components/graph/textGraph";
 import { toolsApi } from "../api/tools";
+import { aiApi } from "../api/ai";
 import { usePreferences } from "../lib/preferences";
-
-type T2GNode = TextGraphNode;
 
 const LAB_SAMPLE =
   "Report date: 12 March 2026\nHemoglobin 13.8 g/dL\nFasting Glucose 96 mg/dL\nTSH 2.4 uIU/mL";
 const FREE_SAMPLE =
   "Arjun visited Dr. Meera at Apollo Hospital in Chennai on 12 March 2026. He complained of fatigue and headache. Dr. Meera prescribed Metformin and advised a diet change. Apollo Hospital will follow up in April.";
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const countsPhrase = (entities: number, relations: number) =>
+  `${plural(entities, "entity", "entities")}, ${plural(relations, "relation", "relations")}`;
 
 const swatch = (extra: React.CSSProperties): React.CSSProperties => ({
   width: 12,
@@ -25,26 +39,24 @@ const swatch = (extra: React.CSSProperties): React.CSSProperties => ({
 });
 
 const T2G_LEGEND_ITEMS = [
-  { label: "Document", css: swatch({ background: "var(--color-text)" }) },
   {
-    label: "Sentence",
-    css: swatch({ background: "var(--color-text)", transform: "rotate(45deg) scale(0.8)" }),
+    label: "Document",
+    css: swatch({ background: "var(--color-text)", borderRadius: "var(--r-circle, 50%)" }),
   },
   {
-    label: "Name or term",
-    css: swatch({ borderRadius: "var(--r-circle, 50%)", background: "var(--color-text)" }),
-  },
-  {
-    label: "Date",
+    label: "Section or Concept",
     css: swatch({
-      borderRadius: "var(--r-circle, 50%)",
-      border: "2.5px solid var(--color-text)",
-      background: "var(--color-bg)",
+      background: "var(--color-surface)",
+      border: "2px solid var(--color-text)",
       boxSizing: "border-box",
     }),
   },
   {
-    label: "Value",
+    label: "Biomarker or Term",
+    css: swatch({ borderRadius: "var(--r-circle, 50%)", background: "var(--color-neutral-700)" }),
+  },
+  {
+    label: "Value or Date",
     css: swatch({
       width: 8,
       height: 8,
@@ -57,114 +69,408 @@ const T2G_LEGEND_ITEMS = [
 
 export const TextToGraphPage: React.FC = () => {
   const prefs = usePreferences();
-  const canvasHandleRef = useRef<GraphCanvasHandle>(null);
+  const stageHandleRef = useRef<GraphStageHandle | null>(null);
 
   const [text, setText] = useState<string>("");
-  const [nodes, setNodes] = useState<T2GNode[]>([]);
-  const [edges, setEdges] = useState<GEdge[]>([]);
+  const [stageNodes, setStageNodes] = useState<StageNode[]>([]);
+  const [stageEdges, setStageEdges] = useState<StageEdge[]>([]);
   const [entities, setEntities] = useState<Entity[]>([]);
   const [message, setMessage] = useState<string>("");
   const [dateStr, setDateStr] = useState<string | null>(null);
-  // Relation words from the AI graph, keyed "source|target"; empty for the pattern graph.
-  const [edgeLabels, setEdgeLabels] = useState<Record<string, string>>({});
-  const [aiStartedAt, setAiStartedAt] = useState<number | null>(null);
-  const [aiNow, setAiNow] = useState<number>(0);
-  const aiBusy = aiStartedAt !== null;
-
-  useEffect(() => {
-    if (aiStartedAt === null) return;
-    const timer = window.setInterval(() => setAiNow(Date.now()), 200);
-    return () => window.clearInterval(timer);
-  }, [aiStartedAt]);
-
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [autoRotate, setAutoRotate] = useState<boolean>(true);
-  const [replayToken, setReplayToken] = useState<number>(0);
+
+  // Stage appearance and controls state
+  const [activeLayout, setActiveLayout] = useState<string>("sphere");
+  const [themeInk, setThemeInk] = useState<boolean>(true);
+  const [lensOn, setLensOn] = useState<boolean>(false);
+  const [stageOptions, setStageOptions] = useState<StageOptions>({
+    size: true,
+    breath: true,
+    drop: false,
+    hover: true,
+    fly: true,
+    clu: false,
+    flow: false,
+    lens: false,
+    heat: false,
+    ghost: false,
+    hideTimeline: true,
+  });
+
+  const [kindFilters, setKindFilters] = useState<Record<NodeKind, boolean>>({
+    person: true,
+    report: true,
+    section: true,
+    bio: true,
+    meas: true,
+    unc: true,
+  });
+
+  const [pathFrom, setPathFrom] = useState<string>("");
+  const [pathTo, setPathTo] = useState<string>("");
+  const [modalImage, setModalImage] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
+
+  // Streaming and building state
+  const [isGrowing, setIsGrowing] = useState<boolean>(false);
+  const [liveStatus, setLiveStatus] = useState<string | null>(null);
+  const [aiStartedAt, setAiStartedAt] = useState<number | null>(null);
+  const [, setAiNow] = useState<number>(0);
+  const aiBusy = aiStartedAt !== null || isGrowing;
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const pendingNodesRef = useRef<StageNode[]>([]);
+  const pendingEdgesRef = useRef<StageEdge[]>([]);
+  // Entities and relations the AI has stated so far (the hub is not in these; its links are derived from them).
+  const realNodesRef = useRef<StageNode[]>([]);
+  const realEdgesRef = useRef<StageEdge[]>([]);
+  const hubNodeRef = useRef<StageNode>(createHubNode("Text"));
+  // Ids of the entities the hub is linked to right now: one per connected group.
+  const hubRepsRef = useRef<Set<string>>(new Set());
+  const nodeCountRef = useRef<number>(0);
+  const edgeCountRef = useRef<number>(0);
 
   const systemReduced =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const isReducedMotion = prefs.reduceMotion || systemReduced;
 
+  // Real-time timer update while AI stream is active
+  useEffect(() => {
+    if (aiStartedAt === null) return;
+    const timer = window.setInterval(() => {
+      const now = performance.now();
+      setAiNow(now);
+      const elapsed = ((now - aiStartedAt) / 1000).toFixed(1);
+      setLiveStatus((cur) => {
+        if (!cur) return `Reading... ${elapsed} s`;
+        if (cur.startsWith("Reading")) return `Reading... ${elapsed} s`;
+        return cur;
+      });
+    }, 200);
+    return () => window.clearInterval(timer);
+  }, [aiStartedAt]);
+
+  // Clean up streaming & RAF on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, []);
+
+  // Flush pending batched nodes/edges to stage and state. The hub is linked to one representative of every
+  // connected group of entities; that is recomputed here. Only a merge that makes an old hub link stale needs
+  // a full redraw of the stage; otherwise new hub links are appended with the new items.
+  const flushBatch = useCallback(() => {
+    const toAddNodes = [...pendingNodesRef.current];
+    const toAddEdges = [...pendingEdgesRef.current];
+    pendingNodesRef.current = [];
+    pendingEdgesRef.current = [];
+
+    if (toAddNodes.length > 0 || toAddEdges.length > 0) {
+      realNodesRef.current = [...realNodesRef.current, ...toAddNodes];
+      realEdgesRef.current = [...realEdgesRef.current, ...toAddEdges];
+      const reps = componentRepresentatives(realNodesRef.current, realEdgesRef.current);
+      const repSet = new Set(reps);
+      const links = hubEdges(reps);
+      const stale = [...hubRepsRef.current].some((rep) => !repSet.has(rep));
+      const added = links.filter((e) => !hubRepsRef.current.has(e.b));
+      const hub = hubNodeRef.current;
+
+      if (stageHandleRef.current) {
+        if (stale) {
+          stageHandleRef.current.setData([hub, ...realNodesRef.current], [...realEdgesRef.current, ...links]);
+        } else {
+          stageHandleRef.current.appendData(toAddNodes, [...toAddEdges, ...added]);
+        }
+      }
+      hubRepsRef.current = repSet;
+      setStageNodes([hub, ...realNodesRef.current]);
+      setStageEdges([...realEdgesRef.current, ...links]);
+      setEntities((prev) => [
+        ...prev,
+        ...toAddNodes
+          .filter((n) => n.id !== HUB_ID)
+          .map((n) => ({
+            id: n.id,
+            label: n.label,
+            kind: (n.group === "measurement" ? "Value" : n.group === "date" ? "Date" : n.group === "person" ? "Name" : "Term") as any,
+            mentions: 1,
+            start: n.start ?? 0,
+            end: n.end ?? 0,
+            snippet: n.quote ?? "",
+          })),
+      ]);
+    }
+  }, []);
+
+  const scheduleFlush = useCallback(() => {
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      flushBatch();
+    });
+  }, [flushBatch]);
+
+  // Instant Pattern Build
   const buildGraphFromText = useCallback((rawText: string) => {
     if (!rawText.trim()) {
-      setNodes([]);
-      setEdges([]);
+      setStageNodes([]);
+      setStageEdges([]);
       setEntities([]);
       setDateStr(null);
       setSelectedId(null);
       setMessage("Type or paste some text first.");
       return;
     }
-    const g = extractGraph(rawText);
-    setEdgeLabels({});
+    const g = buildStageFromPattern(rawText);
+    // Push the pattern graph to the stage now. After a streamed build the stage skips its own data update when
+    // growing stops, so a fallback from a failed AI build would otherwise keep the hub alone on the stage.
+    stageHandleRef.current?.setData(g.nodes, g.edges);
     setMessage("");
-    setNodes(g.nodes);
-    setEdges(g.edges);
+    setLiveStatus(null);
+    setStageNodes(g.nodes);
+    setStageEdges(g.edges);
     setEntities(g.entities);
     setDateStr(g.date);
     setSelectedId(null);
-    setReplayToken(performance.now());
+    setIsGrowing(false);
+    setAiStartedAt(null);
   }, []);
 
+  // Live Streamed AI Build
   const buildWithAI = useCallback(
     async (rawText: string) => {
       if (!rawText.trim()) {
         setMessage("Type or paste some text first.");
         return;
       }
-      setMessage("");
-      setAiNow(Date.now());
-      setAiStartedAt(Date.now());
+
+      // Check privacy switch: if AI disabled in Settings, never call backend!
+      let allowApi = true;
       try {
-        const ai = await toolsApi.graph(rawText);
-        const g = aiGraphToTextGraph(rawText, ai);
-        setNodes(g.nodes);
-        setEdges(g.edges);
-        setEntities(g.entities);
-        setEdgeLabels(g.edgeLabels);
-        setDateStr(null);
-        setSelectedId(null);
-        setReplayToken(performance.now());
-        setMessage(`Built by the AI: ${ai.nodes.length} entities, ${g.relationCount} relations, each tied to exact words in your text.`);
-      } catch (err) {
-        // The pattern graph needs no AI, so the person always gets a graph.
+        const cached = sessionStorage.getItem("vg_allow_api");
+        if (cached !== null) {
+          allowApi = cached === "true";
+        } else {
+          const cfg = await aiApi.getConfig();
+          allowApi = cfg.allow_api;
+          sessionStorage.setItem("vg_allow_api", String(cfg.allow_api));
+        }
+      } catch {
+        /* proceed if check fails; backend gates anyway */
+      }
+
+      if (!allowApi) {
         buildGraphFromText(rawText);
-        const reason = err instanceof Error ? err.message : "The AI could not build the graph.";
-        setMessage(`${reason} Showing the pattern graph instead.`);
-      } finally {
+        setMessage("The AI model is turned off in Settings. Showing the pattern graph instead.");
+        return;
+      }
+
+      // Cancel previous stream if running
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      const ac = new AbortController();
+      abortControllerRef.current = ac;
+
+      // Clear stage first and start fresh with hub
+      setMessage("");
+      setSelectedId(null);
+      setIsGrowing(true);
+      const startT = performance.now();
+      setAiStartedAt(startT);
+      setAiNow(startT);
+      setLiveStatus("Reading... 0.0 s");
+
+      pendingNodesRef.current = [];
+      pendingEdgesRef.current = [];
+      realNodesRef.current = [];
+      realEdgesRef.current = [];
+      hubRepsRef.current = new Set();
+
+      const snippet = rawText.trim().slice(0, 30).split("\n")[0] || "Text";
+      const hub = createHubNode(snippet);
+      hubNodeRef.current = hub;
+      nodeCountRef.current = 0;
+      edgeCountRef.current = 0;
+
+      if (stageHandleRef.current) {
+        stageHandleRef.current.setData([hub], []);
+      }
+      setStageNodes([hub]);
+      setStageEdges([]);
+      setEntities([]);
+
+      let terminalSeen = false;
+      try {
+        await toolsApi.graphStream(
+          rawText,
+          {
+            onStatus: (phase) => {
+              const elapsed = ((performance.now() - startT) / 1000).toFixed(1);
+              if (phase === "reading") {
+                setLiveStatus(`Reading... ${elapsed} s`);
+              } else if (phase === "writing") {
+                setLiveStatus(`Writing the graph...`);
+              }
+            },
+            onTitle: (title) => {
+              if (title) {
+                hubNodeRef.current = { ...hubNodeRef.current, label: title, name: title };
+                setStageNodes((prev) => prev.map((n) => (n.id === HUB_ID ? hubNodeRef.current : n)));
+                if (typeof window !== "undefined" && (window as any).__graphStage) {
+                  const hubNode = (window as any).__graphStage.byId?.get(HUB_ID);
+                  if (hubNode) {
+                    hubNode.label = title;
+                    hubNode.name = title;
+                  }
+                }
+              }
+            },
+            onNode: (node) => {
+              const idx = nodeCountRef.current++;
+              const sn = entityToStageNode(node, idx);
+              pendingNodesRef.current.push(sn);
+              scheduleFlush();
+              const elapsed = ((performance.now() - startT) / 1000).toFixed(1);
+              setLiveStatus(`Writing the graph... ${countsPhrase(nodeCountRef.current, edgeCountRef.current)} (${elapsed} s)`);
+            },
+            onEdge: (edge) => {
+              const idx = edgeCountRef.current++;
+              const se = edgeToStageEdge(edge, idx);
+              pendingEdgesRef.current.push(se);
+              scheduleFlush();
+              const elapsed = ((performance.now() - startT) / 1000).toFixed(1);
+              setLiveStatus(`Writing the graph... ${countsPhrase(nodeCountRef.current, edgeCountRef.current)} (${elapsed} s)`);
+            },
+            onCompleted: (meta) => {
+              terminalSeen = true;
+              flushBatch();
+              setIsGrowing(false);
+              setAiStartedAt(null);
+              setLiveStatus(null);
+              const elapsed = ((performance.now() - startT) / 1000).toFixed(1);
+              const droppedMsg =
+                meta.dropped > 0
+                  ? `; ${meta.dropped} item${meta.dropped === 1 ? "" : "s"} dropped because the words were not in your text`
+                  : "";
+              setMessage(`Done in ${elapsed} s: ${countsPhrase(meta.nodes, meta.edges)}${droppedMsg}`);
+            },
+            onError: (err) => {
+              terminalSeen = true;
+              // A Stop aborts the request; that is not an error to report (Stop has already set its own message).
+              if (ac.signal.aborted) return;
+              flushBatch();
+              setIsGrowing(false);
+              setAiStartedAt(null);
+              setLiveStatus(null);
+              if (nodeCountRef.current === 0) {
+                // If NOTHING was drawn, build the pattern graph instead
+                buildGraphFromText(rawText);
+                setMessage(`${err.message} Showing the pattern graph instead.`);
+              } else {
+                // Keep every node already drawn and show reason
+                setMessage(err.message);
+              }
+            },
+          },
+          ac.signal
+        );
+        if (!terminalSeen && !ac.signal.aborted) {
+          flushBatch();
+          setIsGrowing(false);
+          setAiStartedAt(null);
+          setLiveStatus(null);
+          const reason = "The AI stream ended before the graph was finished.";
+          if (nodeCountRef.current === 0) {
+            buildGraphFromText(rawText);
+            setMessage(`${reason} Showing the pattern graph instead.`);
+          } else {
+            setMessage(reason);
+          }
+        }
+      } catch (err) {
+        if (ac.signal.aborted) return;
+        flushBatch();
+        setIsGrowing(false);
         setAiStartedAt(null);
+        setLiveStatus(null);
+        const reason = err instanceof Error ? err.message : "The AI could not build the graph.";
+        if (nodeCountRef.current === 0) {
+          buildGraphFromText(rawText);
+          setMessage(`${reason} Showing the pattern graph instead.`);
+        } else {
+          setMessage(reason);
+        }
       }
     },
-    [buildGraphFromText]
+    [buildGraphFromText, scheduleFlush, flushBatch]
   );
 
-  const loadExample = (sample: string) => {
-    setText(sample);
-    buildGraphFromText(sample);
+  const handleStop = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    flushBatch();
+    setIsGrowing(false);
+    setAiStartedAt(null);
+    setLiveStatus(null);
+    setMessage(`Stopped. ${plural(realNodesRef.current.length, "node", "nodes")} kept.`);
+  }, [flushBatch]);
+
+  // Abort a running AI stream before a pattern build replaces the graph.
+  const abortRunningStream = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    pendingNodesRef.current = [];
+    pendingEdgesRef.current = [];
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    setIsGrowing(false);
+    setAiStartedAt(null);
+    setLiveStatus(null);
   };
 
-  const handleFile = (file: File | undefined | null) => {
+  const loadExample = (sampleText: string) => {
+    abortRunningStream();
+    setText(sampleText);
+    buildGraphFromText(sampleText);
+  };
+
+  const handleFile = (file?: File) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
       const content = String(reader.result || "");
+      abortRunningStream();
       setText(content);
       buildGraphFromText(content);
     };
     reader.readAsText(file);
   };
 
+  // Download JSON matching the stage graph counts
   const handleDownload = () => {
-    if (nodes.length === 0) return;
+    if (stageNodes.length === 0) return;
     const payload = JSON.stringify(
       {
-        nodes: nodes.map((q) => ({ id: q.id, type: q.k, label: q.label })),
-        edges,
-        ...(Object.keys(edgeLabels).length > 0
-          ? { relations: edges.filter(([a, b]) => edgeLabels[`${a}|${b}`]).map(([a, b]) => ({ source: a, target: b, label: edgeLabels[`${a}|${b}`] })) }
-          : {}),
+        title: stageNodes[0]?.label || "Text",
+        nodes: stageNodes.map((q) => ({ id: q.id, type: q.group || q.k, label: q.label })),
+        edges: stageEdges.map((e) => ({ source: e.a, target: e.b, label: e.label })),
         entities,
       },
       null,
@@ -179,52 +485,77 @@ export const TextToGraphPage: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const selectedNode = useMemo(() => {
-    if (!selectedId) return null;
-    const nd = nodes.find((n) => n.id === selectedId);
-    if (!nd) return null;
-
-    let kind = "Node";
-    if (nd.k === "person") kind = "Document";
-    else if (nd.k === "report") kind = "Date";
-    else if (nd.k === "section") kind = "Sentence";
-    else if (nd.k === "bio") kind = "Name or term";
-    else if (nd.k === "meas") kind = "Value";
-
-    const nbs = edges
-      .filter((e) => e[0] === nd.id || e[1] === nd.id)
-      .map((e) => {
-        const otherId = e[0] === nd.id ? e[1] : e[0];
-        const other = nodes.find((n) => n.id === otherId);
-        const word = edgeLabels[`${e[0]}|${e[1]}`];
-        return {
-          id: otherId,
-          label: word ? `${e[0] === nd.id ? "" : "← "}${word} · ${other?.label || otherId}` : other?.label || otherId,
-        };
-      })
-      .slice(0, 8);
-
-    return {
-      kind,
-      label: nd.label,
-      about: nd.about,
-      nbs,
-    };
-  }, [selectedId, nodes, edges, edgeLabels]);
-
-  const summaryText = useMemo(() => {
-    if (nodes.length === 0) return "";
-    if (Object.keys(edgeLabels).length > 0) {
-      return `${entities.length} entit${entities.length === 1 ? "y" : "ies"} · ${Object.keys(edgeLabels).length} relations · ${nodes.length} nodes, ${edges.length} edges`;
+  // Options toggles
+  const handleOptionChange = (key: keyof StageOptions, val: boolean) => {
+    const next = { ...stageOptions, [key]: val };
+    setStageOptions(next);
+    if (stageHandleRef.current) {
+      stageHandleRef.current.setOptions({ [key]: val });
     }
-    const sentences = nodes.filter((n) => n.k === "section").length;
-    return `${entities.length} entit${entities.length === 1 ? "y" : "ies"} · ${sentences} sentence${sentences === 1 ? "" : "s"}${dateStr ? ` · ${dateStr}` : ""} · ${nodes.length} nodes, ${edges.length} edges`;
-  }, [nodes, edges.length, entities.length, dateStr, edgeLabels]);
+  };
 
-  const countLabel = useMemo(() => {
-    if (nodes.length === 0) return "0 nodes · 0 edges";
-    return `${nodes.length} nodes · ${edges.length} edges`;
-  }, [nodes.length, edges.length]);
+  const handleToggleKind = (k: NodeKind) => {
+    const next = !kindFilters[k];
+    setKindFilters((prev) => ({ ...prev, [k]: next }));
+    if (stageHandleRef.current) {
+      stageHandleRef.current.setKindVisibility(k, next);
+    }
+  };
+
+  // Path finding
+  const handleShowPath = () => {
+    if (!pathFrom || !pathTo || !stageHandleRef.current) return;
+    stageHandleRef.current.showPath(pathFrom, pathTo);
+  };
+
+  const handleClearPath = () => {
+    if (!stageHandleRef.current) return;
+    stageHandleRef.current.clearPath();
+  };
+
+  // Save image modal
+  const handleSaveImage = () => {
+    if (!stageHandleRef.current) return;
+    const dataUrl = stageHandleRef.current.getSnapshotDataUrl();
+    if (dataUrl) {
+      setModalImage(dataUrl);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setModalImage(null);
+  };
+
+  // Esc closes modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && modalImage) {
+        handleCloseModal();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [modalImage]);
+
+  // Real entities and the relations between them; the hub's own links are structure, not relations.
+  const summaryText = useMemo(() => {
+    if (stageNodes.length === 0) return "";
+    const relations = stageEdges.filter((e) => e.a !== HUB_ID && e.b !== HUB_ID).length;
+    return `${countsPhrase(entities.length, relations)}${dateStr ? ` · ${dateStr}` : ""}`;
+  }, [stageNodes.length, stageEdges, entities.length, dateStr]);
+
+  const presentKinds = useMemo(() => {
+    const set = new Set<NodeKind>();
+    stageNodes.forEach((n) => set.add(n.k));
+    return set;
+  }, [stageNodes]);
+
+  const pathOptions = useMemo(() => {
+    return stageNodes.map((n) => ({
+      id: n.id,
+      text: `${n.label} (${n.group || n.k})`,
+    }));
+  }, [stageNodes]);
 
   return (
     <div
@@ -237,7 +568,7 @@ export const TextToGraphPage: React.FC = () => {
         flexWrap: "wrap",
       }}
     >
-      {/* Left Canvas Area */}
+      {/* Left Area: GraphStage Canvas or Empty State */}
       <div
         style={{
           flex: "1 1 520px",
@@ -245,23 +576,42 @@ export const TextToGraphPage: React.FC = () => {
           minHeight: 520,
           position: "relative",
           overflow: "hidden",
-          backgroundImage:
-            "linear-gradient(color-mix(in srgb,var(--color-text) 7%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--color-text) 7%,transparent) 1px,transparent 1px)",
-          backgroundSize: "48px 48px",
         }}
       >
-        {nodes.length > 0 ? (
-          <GraphCanvas
-            ref={canvasHandleRef}
-            nodes={nodes}
-            edges={edges}
-            focusIds={null}
+        {stageNodes.length > 0 ? (
+          <GraphStage
+            ref={stageHandleRef}
+            userId="text-to-graph"
+            personName={stageNodes[0]?.label || "Text"}
+            customIntroTitle={stageNodes[0]?.label || "Text"}
+            searchPlaceholder="Find an entity"
+            nodes={stageNodes}
+            edges={stageEdges}
+            reports={[]}
             selectedId={selectedId}
-            onSelect={setSelectedId}
-            autoRotate={autoRotate && !isReducedMotion}
-            reducedMotion={isReducedMotion}
-            replayToken={replayToken}
-            edgeLabels={edgeLabels}
+            onSelectNode={setSelectedId}
+            focusIds={null}
+            activeLayout={activeLayout}
+            onLayoutChange={setActiveLayout}
+            lensOn={lensOn}
+            onToggleLens={setLensOn}
+            themeInk={themeInk}
+            onToggleTheme={setThemeInk}
+            stageOptions={stageOptions}
+            barMessage={liveStatus ? <span>{liveStatus}</span> : message ? <span>{message}</span> : null}
+            reduceMotion={isReducedMotion}
+            hideTimeline={true}
+            isGrowing={isGrowing}
+            customCard={(cardProps) => (
+              <TextNodeCard
+                node={cardProps.node}
+                allNodes={stageNodes}
+                edges={stageEdges}
+                fullText={text}
+                onSelectNode={cardProps.onSelectNode}
+                onClose={cardProps.onClose}
+              />
+            )}
           />
         ) : (
           <div
@@ -277,6 +627,9 @@ export const TextToGraphPage: React.FC = () => {
               fontSize: "0.9375rem",
               padding: "var(--space-6)",
               textAlign: "center",
+              backgroundImage:
+                "linear-gradient(color-mix(in srgb,var(--color-text) 7%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--color-text) 7%,transparent) 1px,transparent 1px)",
+              backgroundSize: "48px 48px",
             }}
           >
             <div style={{ fontWeight: 800, fontSize: "1.125rem", color: "var(--color-text)" }}>
@@ -287,85 +640,26 @@ export const TextToGraphPage: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Counter Top Left */}
-        <div
-          style={{
-            position: "absolute",
-            top: "var(--space-4)",
-            left: "var(--space-6)",
-            pointerEvents: "none",
-            fontSize: "0.9375rem",
-            fontWeight: 800,
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          {countLabel}
-        </div>
-
-        {/* Action Buttons Top Right */}
-        <div
-          style={{
-            position: "absolute",
-            top: "var(--space-4)",
-            right: "var(--space-6)",
-            display: "flex",
-            gap: "var(--space-2)",
-          }}
-        >
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => {
-              setReplayToken(performance.now());
-              canvasHandleRef.current?.replay();
-            }}
-            style={{ background: "var(--color-bg)" }}
-          >
-            Replay build
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => setAutoRotate((prev) => !prev)}
-            style={{ background: "var(--color-bg)" }}
-          >
-            {autoRotate ? "Pause rotation" : "Resume rotation"}
-          </button>
-        </div>
-
-        {/* Interaction Hint Bottom Left */}
-        <div
-          style={{
-            position: "absolute",
-            left: "var(--space-6)",
-            bottom: "var(--space-4)",
-            fontSize: "0.8125rem",
-            fontWeight: 600,
-            color: "var(--color-neutral-800)",
-            pointerEvents: "none",
-          }}
-        >
-          Drag to rotate · scroll to zoom · select a node
-        </div>
       </div>
 
-      {/* Right Panel: Text Tool */}
-      <div
+      {/* Right Panel: Text Tool and Graph Options */}
+      <aside
+        className="panel"
+        aria-label="Text to graph options"
         style={{
           flex: "0 0 340px",
           maxWidth: "100%",
           height: "100%",
           maxHeight: "100%",
           boxSizing: "border-box",
-          borderLeft: "2px solid var(--color-divider)",
           padding: "var(--space-6)",
           display: "flex",
           flexDirection: "column",
           gap: "var(--space-6)",
-          overflow: "auto",
+          overflowY: "auto",
         }}
       >
+        {/* Section: Text input and build */}
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           <div
             style={{
@@ -434,18 +728,19 @@ export const TextToGraphPage: React.FC = () => {
             onChange={(e) => setText(e.target.value)}
             placeholder="Paste or type any text, such as a report, a note or an email"
             style={{
-              minHeight: 190,
+              minHeight: 180,
               fontSize: "0.875rem",
               lineHeight: 1.6,
               fontVariantNumeric: "tabular-nums",
             }}
           />
 
-          {/* Build Graph Button */}
+          {/* Build Buttons & Stop */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
             <button
               type="button"
               className="btn btn-primary"
+              disabled={aiBusy}
               onClick={() => buildGraphFromText(text)}
               style={{ gap: "var(--space-6)" }}
             >
@@ -473,10 +768,21 @@ export const TextToGraphPage: React.FC = () => {
               onClick={() => void buildWithAI(text)}
               title="The AI reads the text and names the connections. Needs AI switched on in Settings."
             >
-              {aiBusy ? `Asking the AI… ${((Math.max(0, aiNow - (aiStartedAt ?? aiNow))) / 1000).toFixed(1)} s` : "Build with AI"}
+              {aiBusy ? "Building with AI..." : "Build with AI"}
             </button>
+            {aiBusy && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-small"
+                onClick={handleStop}
+                style={{ color: "var(--color-accent)", fontWeight: 700 }}
+              >
+                Stop
+              </button>
+            )}
           </div>
 
+          {/* Example Buttons */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
             <button
               type="button"
@@ -496,6 +802,7 @@ export const TextToGraphPage: React.FC = () => {
             </button>
           </div>
 
+          {/* Messages */}
           {message && (
             <div role="status" style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>
               {message}
@@ -546,10 +853,10 @@ export const TextToGraphPage: React.FC = () => {
           )}
 
           {/* Download JSON */}
-          {nodes.length > 0 && (
+          {stageNodes.length > 0 && (
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn btn-secondary btn-small"
               onClick={handleDownload}
             >
               Download JSON
@@ -557,138 +864,213 @@ export const TextToGraphPage: React.FC = () => {
           )}
         </div>
 
-        {/* Selected Node Card */}
-        {selectedNode && (
-          <div
-            style={{
-              borderTop: "2px solid var(--color-text)",
-              paddingTop: "var(--space-3)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "0.6875rem",
-                  fontWeight: 800,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  color: "var(--color-accent-700)",
-                }}
+        {/* Section: Modes */}
+        {stageNodes.length > 0 && (
+          <>
+            <section>
+              <h2 className="label">Modes</h2>
+              <label className="sw">
+                <input
+                  type="checkbox"
+                  id="m-flow"
+                  checked={stageOptions.flow}
+                  onChange={(e) => handleOptionChange("flow", e.target.checked)}
+                />
+                <span className="box"></span>
+                <span>
+                  <b>Data flow</b>
+                  <small>Small dots travel along every line.</small>
+                </span>
+              </label>
+
+              <label className="sw">
+                <input
+                  type="checkbox"
+                  id="m-lens"
+                  checked={lensOn}
+                  onChange={(e) => setLensOn(e.target.checked)}
+                />
+                <span className="box"></span>
+                <span>
+                  <b>Lens</b>
+                  <small>A magnifier follows the pointer and names everything under it. Key: L.</small>
+                </span>
+              </label>
+            </section>
+
+            {/* Section: Find a connection */}
+            <section>
+              <h2 className="label">Find a connection</h2>
+              <label className="muted" htmlFor="pathFrom">
+                From
+              </label>
+              <select
+                className="select"
+                id="pathFrom"
+                value={pathFrom}
+                onChange={(e) => setPathFrom(e.target.value)}
               >
-                {selectedNode.kind}
-              </span>
+                <option value="">Select node...</option>
+                {pathOptions.map((opt) => (
+                  <option key={`from-${opt.id}`} value={opt.id}>
+                    {opt.text}
+                  </option>
+                ))}
+              </select>
+
+              <label className="muted" htmlFor="pathTo">
+                To
+              </label>
+              <select
+                className="select"
+                id="pathTo"
+                value={pathTo}
+                onChange={(e) => setPathTo(e.target.value)}
+              >
+                <option value="">Select node...</option>
+                {pathOptions.map((opt) => (
+                  <option key={`to-${opt.id}`} value={opt.id}>
+                    {opt.text}
+                  </option>
+                ))}
+              </select>
+
+              <div className="row" style={{ marginTop: "var(--space-2)" }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-small"
+                  id="pathGo"
+                  onClick={handleShowPath}
+                >
+                  Show the path
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-small"
+                  id="pathClear"
+                  onClick={handleClearPath}
+                >
+                  Clear
+                </button>
+              </div>
+              <p className="muted" style={{ margin: 0, fontSize: "0.8125rem" }}>
+                Or click one dot, then Shift-click another.
+              </p>
+            </section>
+
+            {/* Section: Filter by kind & Save image */}
+            <section>
+              <h2 className="label">Filters & Snapshot</h2>
+              <div
+                className="row"
+                id="chips"
+                role="group"
+                aria-label="Show or hide node types"
+              >
+                {presentKinds.has("person") && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-small"
+                    aria-pressed={kindFilters.person}
+                    onClick={() => handleToggleKind("person")}
+                  >
+                    Subjects
+                  </button>
+                )}
+                {presentKinds.has("section") && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-small"
+                    aria-pressed={kindFilters.section}
+                    onClick={() => handleToggleKind("section")}
+                  >
+                    Sections
+                  </button>
+                )}
+                {presentKinds.has("bio") && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-small"
+                    aria-pressed={kindFilters.bio}
+                    onClick={() => handleToggleKind("bio")}
+                  >
+                    Biomarkers
+                  </button>
+                )}
+                {presentKinds.has("meas") && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-small"
+                    aria-pressed={kindFilters.meas}
+                    onClick={() => handleToggleKind("meas")}
+                  >
+                    Values
+                  </button>
+                )}
+              </div>
+
               <button
                 type="button"
-                className="btn btn-ghost"
-                onClick={() => setSelectedId(null)}
-                style={{ fontSize: "0.8125rem" }}
+                className="btn btn-secondary btn-small"
+                id="snap"
+                data-testid="graph-save"
+                onClick={handleSaveImage}
+                style={{ marginTop: "var(--space-2)" }}
               >
-                Clear
+                Save as image
               </button>
-            </div>
-            <h3
-              style={{
-                margin: "var(--space-1) 0 var(--space-2)",
-                fontSize: "1.5rem",
-              }}
-            >
-              {selectedNode.label}
-            </h3>
-            <p
-              style={{
-                margin: "0 0 var(--space-3)",
-                fontSize: "0.9375rem",
-                whiteSpace: "pre-line",
-              }}
-            >
-              {selectedNode.about}
-            </p>
-            {selectedId ? (
-              <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>
-                {(() => {
-                  const n = edges.filter((e) => e[0] === selectedId || e[1] === selectedId).length;
-                  return n === 0 ? "Not connected to anything else." : `Connected to ${n} node${n === 1 ? "" : "s"}. Its lines are drawn in red.`;
-                })()}
-              </p>
-            ) : null}
-            {selectedNode.nbs.length > 0 && (
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "var(--space-2)",
-                }}
-              >
-                {selectedNode.nbs.map((nb) => (
-                  <button
-                    key={nb.id}
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setSelectedId(nb.id)}
-                    style={{
-                      padding: "var(--space-1) var(--space-2)",
-                      fontSize: "0.8125rem",
-                    }}
-                  >
-                    {nb.label}
-                  </button>
+            </section>
+
+            {/* Section: Legend */}
+            <section style={{ marginTop: "auto" }}>
+              <h2 className="label">Legend</h2>
+              <div className="legend" id="legend">
+                {T2G_LEGEND_ITEMS.map((item) => (
+                  <span key={item.label}>
+                    <i className="sym" style={item.css}></i>
+                    {item.label}
+                  </span>
                 ))}
               </div>
-            )}
-          </div>
+            </section>
+          </>
         )}
+      </aside>
 
-        {/* Legend */}
-        <div style={{ marginTop: "auto" }}>
-          <div
-            style={{
-              paddingBottom: "var(--space-2)",
-              borderBottom: "2px solid var(--color-divider)",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "0.6875rem",
-                fontWeight: 800,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: "var(--color-neutral-700)",
-              }}
-            >
-              Legend
-            </div>
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2,1fr)",
-              gap: "var(--space-2) var(--space-3)",
-              paddingTop: "var(--space-3)",
-            }}
-          >
-            {T2G_LEGEND_ITEMS.map((g) => (
-              <div
-                key={g.label}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-2)",
-                  fontSize: "0.8125rem",
-                }}
-              >
-                <span style={g.css} />
-                {g.label}
+      {/* Snapshot Image Preview Modal */}
+      {modalImage && (
+        <div
+          className="graph-modal"
+          role="dialog"
+          aria-label="Text to graph snapshot"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) handleCloseModal();
+          }}
+        >
+          <div className="sheet">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span className="label">Graph Snapshot</span>
+              <div style={{ display: "flex", gap: "var(--space-2)" }}>
+                <a
+                  href={modalImage}
+                  download="text-graph-snapshot.png"
+                  className="btn btn-primary btn-small"
+                >
+                  Download PNG
+                </a>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-small"
+                  onClick={handleCloseModal}
+                >
+                  Close
+                </button>
               </div>
-            ))}
+            </div>
+            <img src={modalImage} alt="Text to graph snapshot preview" />
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

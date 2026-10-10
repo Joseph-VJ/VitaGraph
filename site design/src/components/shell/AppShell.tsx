@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { Suspense, useEffect, useRef } from "react";
 import { useLocation, Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
@@ -9,7 +9,9 @@ import {
   useMotionGovernor,
   getCurrentNavDirection,
 } from "../../motion";
-import { BASE_URL } from "../../api/client";
+import { useHealth } from "../../lib/healthMonitor";
+import { LivingBackground } from "../background/LivingBackground";
+import { usePreferences } from "../../lib/preferences";
 
 const ROUTE_TITLES: Record<string, string> = {
   "/": "Overview",
@@ -47,7 +49,7 @@ interface AppShellProps {
 }
 
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
-  const [backendOnline, setBackendOnline] = useState(true);
+  const { online: backendOnline } = useHealth();
   const location = useLocation();
   const motion = useMotionGovernor();
 
@@ -103,31 +105,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     };
   }, []);
 
-  useEffect(() => {
-    let isMounted = true;
-    const probeBackend = async () => {
-      try {
-        const res = await fetch(`${BASE_URL}/api/health`, {
-          signal: AbortSignal.timeout(8000),
-        });
-        if (isMounted) {
-          setBackendOnline(res.ok);
-        }
-      } catch {
-        if (isMounted) {
-          setBackendOnline(false);
-        }
-      }
-    };
-
-    probeBackend();
-    const timer = setInterval(probeBackend, 8000);
-    return () => {
-      isMounted = false;
-      clearInterval(timer);
-    };
-  }, []);
-
   // Dual-path route transitions (§M6.2, WS-1)
   const ownLayout = OWN_LAYOUT.has(location.pathname);
   const vtActive = supportsViewTransitions() && motion.tier !== "T0";
@@ -135,59 +112,70 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const routeAnimClass = isFallback ? "m-route-enter" : "";
   const navDir = getCurrentNavDirection();
   const routeTitle = ROUTE_TITLES[location.pathname] || "VitaGraph";
+  const prefs = usePreferences();
+  const isGraphRoute = location.pathname === "/graph" || location.pathname === "/text-to-graph";
 
   return (
-    <div className="flex h-screen w-screen text-[var(--color-text)] overflow-hidden relative">
-      {/* Route change announcer for assistive technology (WCAG a11y, WS-5) */}
-      <div data-testid="route-announcer" aria-live="polite" aria-atomic="true" className="sr-only">
-        Navigated to {routeTitle}
-      </div>
+    <div className="relative h-screen w-screen overflow-hidden">
+      {/* Living background canvas layer (z-index 0) */}
+      <LivingBackground />
 
-      {/* 3% opacity grain overlay (§4.7) */}
-      <div ref={grainRef} className="absolute inset-0 grain-overlay z-50 pointer-events-none" />
+      {/* App Shell Content (z-index 1, fades in play mode) */}
+      <div className="app flex h-full w-full text-[var(--color-text)] overflow-hidden relative z-[1]">
+        {/* Route change announcer for assistive technology (WCAG a11y, WS-5) */}
+        <div data-testid="route-announcer" aria-live="polite" aria-atomic="true" className="sr-only">
+          Navigated to {routeTitle}
+        </div>
 
-      {/* Sidebar (§5.1, shared chrome) */}
-      <Sidebar />
+        {/* 3% opacity grain overlay (§4.7) */}
+        <div ref={grainRef} className="absolute inset-0 grain-overlay z-50 pointer-events-none" />
 
-      {/* Main Area: Top Banner + Header + Content + Status Strip */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        {/* Failure-injection backend-down banner (§US-12, §M7.10) */}
-        {!backendOnline && (
-          <div
-            data-testid="backend-down-banner"
-            className="animate-banner-drop"
-            style={{
-              flex: "none", display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-2) var(--space-6)",
-              backgroundColor: "var(--color-accent-100)",
-              backgroundImage: "repeating-linear-gradient(45deg, color-mix(in srgb, var(--color-accent) 22%, transparent) 0 6px, transparent 6px 16px)",
-              borderBottom: "2px solid var(--color-accent)", fontSize: "0.875rem",
-            }}
-          >
-            <span style={{ background: "var(--color-accent-100)", padding: "2px 8px", color: "var(--color-accent-800)" }}>
-              <b>Backend offline.</b> Answers, search and uploads are paused. The graph, library and timeline stay readable.
-            </span>
-          </div>
-        )}
+        {/* Sidebar (§5.1, shared chrome) */}
+        <Sidebar />
 
-        <Header backendOnline={backendOnline} />
-        <main
-          ref={mainRef}
-          id="main-content"
-          key={location.pathname}
-          data-nav-dir={navDir}
-          className={`flex-1 min-h-0 overflow-y-auto relative ${ownLayout ? "" : "p-4 sm:p-8"} ${routeAnimClass}`}
+        {/* Main Area: Top Banner + Header + Content + Status Strip */}
+        <div
+          data-living-bg={prefs.background !== "off" && !isGraphRoute ? prefs.background : "off"}
+          className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden"
         >
-          {ownLayout ? (
-            children || <Outlet />
-          ) : (
-            <div className={`mx-auto flex flex-col ${location.pathname === "/agent" || location.pathname === "/graph" ? "max-w-[1440px]" : "max-w-[1280px]"} ${location.pathname === "/agent" ? "h-full" : "min-h-full"}`}>
-              {children || <Outlet />}
+          {/* Failure-injection backend-down banner (§US-12, §M7.10) */}
+          {!backendOnline && (
+            <div
+              data-testid="backend-down-banner"
+              className="animate-banner-drop"
+              style={{
+                flex: "none", display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-2) var(--space-6)",
+                backgroundColor: "var(--color-accent-100)",
+                backgroundImage: "repeating-linear-gradient(45deg, color-mix(in srgb, var(--color-accent) 22%, transparent) 0 6px, transparent 6px 16px)",
+                borderBottom: "2px solid var(--color-accent)", fontSize: "0.875rem",
+              }}
+            >
+              <span style={{ background: "var(--color-accent-100)", padding: "2px 8px", color: "var(--color-accent-800)" }}>
+                <b>Backend offline.</b> Answers, search and uploads are paused. The graph, library and timeline stay readable.
+              </span>
             </div>
           )}
-        </main>
-        <StatusStrip backendOnline={backendOnline} />
-      </div>
 
+          <Header backendOnline={backendOnline} />
+          <main
+            ref={mainRef}
+            id="main-content"
+            key={location.pathname}
+            data-nav-dir={navDir}
+            className={`flex-1 min-h-0 overflow-y-auto relative ${ownLayout ? "" : "p-4 sm:p-8"} ${routeAnimClass} ${prefs.background !== "off" && !isGraphRoute ? "bg-[color-mix(in_srgb,var(--color-bg)_72%,transparent)]" : ""}`}
+          >
+            {ownLayout ? (
+              <Suspense fallback={null}>{children || <Outlet />}</Suspense>
+            ) : (
+              <div className={`mx-auto flex flex-col ${location.pathname === "/agent" || location.pathname === "/graph" ? "max-w-[1440px]" : "max-w-[1280px]"} ${location.pathname === "/agent" ? "h-full" : "min-h-full"}`}>
+                <Suspense fallback={null}>{children || <Outlet />}</Suspense>
+              </div>
+            )}
+          </main>
+          <StatusStrip backendOnline={backendOnline} />
+        </div>
+
+      </div>
     </div>
   );
 };
