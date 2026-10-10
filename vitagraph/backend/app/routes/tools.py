@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
+from app.core.sse import sse_stream
 from app.ingestion import ocr_image
 from app.services import graph_ai
 
@@ -48,3 +50,18 @@ async def text_to_graph(payload: GraphTextRequest) -> dict:
         return await graph_ai.build_graph(payload.text)
     except graph_ai.GraphAIError as exc:
         raise HTTPException(status_code=exc.status, detail=exc.message) from exc
+
+
+@router.post("/graph/stream")
+async def text_to_graph_stream(payload: GraphTextRequest) -> StreamingResponse:
+    """The same graph, streamed over SSE: each entity and relation is sent the moment the model writes it and has
+    passed the quote check. The gates run before the stream opens, so a refusal is a plain HTTP error."""
+    try:
+        text = graph_ai.check_input(payload.text)
+    except graph_ai.GraphAIError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.message) from exc
+    return StreamingResponse(
+        sse_stream(graph_ai.stream_graph(text)),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

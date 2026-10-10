@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -32,12 +33,25 @@ async def _reap_loop(pool: RuntimePool, interval: float) -> None:
             logger.exception("Reaping idle agent runtimes failed")
 
 
+def _warm_graphs() -> None:
+    try:
+        from app.graph import builder
+
+        count = builder.warm_all_graphs()
+        logger.info("Warmed %d persona graphs", count)
+    except Exception:
+        logger.exception("Warming persona graphs failed")
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     settings.ensure_dirs()
     init_db()
     pool = get_pool()
     reaper = asyncio.create_task(_reap_loop(pool, 60.0))
+    # Betweenness centrality takes seconds for a persona with many reports; do it once in the background
+    # so the first visit to the Knowledge Graph or Insights page is as fast as every later one.
+    threading.Thread(target=_warm_graphs, name="warm-graphs", daemon=True).start()
     try:
         yield
     finally:

@@ -493,6 +493,12 @@ class _TypedStream:
     async def __anext__(self) -> ChatCompletionChunk:
         return ChatCompletionChunk.model_validate(await self._chunks.__anext__())
 
+    async def aclose(self) -> None:
+        """Close the wrapped chunk stream (and with it the upstream HTTP response)."""
+        closer = getattr(self._chunks, "aclose", None)
+        if closer is not None:
+            await closer()
+
 
 class ResponsesClient:
     """Minimal stand-in for AsyncOpenAI: only `client.chat.completions.create`."""

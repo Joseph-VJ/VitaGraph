@@ -7,6 +7,8 @@ and extracts question-activated subgraphs for retrieved evidence chunks.
 
 from __future__ import annotations
 
+import threading
+from collections import OrderedDict
 from typing import Any
 import networkx as nx
 
@@ -327,6 +329,88 @@ def serialize_graph(g: nx.Graph) -> dict[str, Any]:
             "density": density_val,
         },
     }
+
+
+_SERIALIZED_MAX = 24
+_serialized_cache: "OrderedDict[str, tuple[tuple, dict[str, Any]]]" = OrderedDict()
+_cache_guard = threading.Lock()
+_compute_locks: dict[str, threading.Lock] = {}
+
+
+def graph_fingerprint(user_id: str) -> tuple:
+    """A cheap summary of everything the graph is built from: the reports and the chunk texts.
+
+    It changes whenever a report is added, removed, re-dated or changes status, or any chunk is added or
+    removed, so a cached serialization can never outlive the data it was computed from.
+    """
+    with get_db() as db:
+        reports = db.execute(
+            "SELECT id, status, report_date, original_filename, version FROM reports WHERE user_id = ? ORDER BY id",
+            (user_id,),
+        ).fetchall()
+        chunks = db.execute(
+            "SELECT COUNT(*), COALESCE(SUM(LENGTH(text)), 0), COALESCE(SUM(char_end), 0) "
+            "FROM report_chunks WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()
+    return (tuple(tuple(r) for r in reports), tuple(chunks))
+
+
+def serialize_user_graph(user_id: str) -> dict[str, Any]:
+    """The serialized whole graph of a persona, cached until that persona's data changes.
+
+    Betweenness centrality dominates the cost (seconds for a persona with 50 reports), so every page that needs
+    the graph (Knowledge Graph, Insights, the upload summary) shares one computation. The returned dict is a
+    shallow copy; callers may add keys but must not edit the node and edge lists.
+    """
+    key = graph_fingerprint(user_id)
+    with _cache_guard:
+        hit = _serialized_cache.get(user_id)
+        if hit and hit[0] == key:
+            _serialized_cache.move_to_end(user_id)
+            return dict(hit[1])
+        lock = _compute_locks.setdefault(user_id, threading.Lock())
+    with lock:  # a second request for the same persona waits here and then finds the result
+        with _cache_guard:
+            hit = _serialized_cache.get(user_id)
+            if hit and hit[0] == key:
+                return dict(hit[1])
+        g, _ = build_user_graph(user_id)
+        result = serialize_graph(g)
+        with _cache_guard:
+            _serialized_cache[user_id] = (key, result)
+            _serialized_cache.move_to_end(user_id)
+            while len(_serialized_cache) > _SERIALIZED_MAX:
+                evicted, _unused = _serialized_cache.popitem(last=False)
+                _compute_locks.pop(evicted, None)
+        return dict(result)
+
+
+def warm_all_graphs() -> int:
+    """Compute the serialized graph of every persona that has chunks, smallest first (used once at start-up).
+
+    Returns how many were computed. Errors on one persona never stop the others.
+    """
+    with get_db() as db:
+        rows = db.execute(
+            "SELECT user_id FROM report_chunks GROUP BY user_id ORDER BY COUNT(*) DESC LIMIT ?",
+            (_SERIALIZED_MAX,),
+        ).fetchall()
+    done = 0
+    for row in reversed(rows):
+        try:
+            serialize_user_graph(row[0])
+            done += 1
+        except Exception:  # a broken persona must not block the rest
+            continue
+    return done
+
+
+def forget_user_graph(user_id: str) -> None:
+    """Drop a persona's cached graph (for example when the persona is deleted)."""
+    with _cache_guard:
+        _serialized_cache.pop(user_id, None)
+        _compute_locks.pop(user_id, None)
 
 
 def get_question_subgraph(

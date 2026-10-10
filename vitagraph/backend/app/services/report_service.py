@@ -339,17 +339,19 @@ def _graph_payload(user_id: str, report_id: str, label_limit: int = 40) -> dict:
     try:
         from app.graph import builder
 
-        graph, _ = builder.build_user_graph(user_id)
-        metrics = builder.serialize_graph(graph)["metrics"]
+        # One serialized build (also warms the cache for the graph pages); read only, never edit the cached nodes.
+        serialized = builder.serialize_user_graph(user_id)
+        metrics = serialized["metrics"]
         labels = []
-        for node_id, data in graph.nodes(data=True):
+        for node in serialized["nodes"]:
             if len(labels) >= label_limit:
                 break
+            node_id = node.get("id")
             labels.append({
                 "id": node_id,
-                "label": data.get("label") or data.get("name") or str(node_id),
-                "type": data.get("type") or data.get("category") or "node",
-                "report_id": data.get("report_id"),
+                "label": node.get("label") or node.get("name") or str(node_id),
+                "type": node.get("type") or node.get("category") or "node",
+                "report_id": node.get("report_id"),
             })
         return {
             "total_nodes": metrics["total_nodes"],

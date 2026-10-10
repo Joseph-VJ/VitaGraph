@@ -119,5 +119,8 @@ def delete_user(user_id: str) -> dict:
         db.execute("DELETE FROM node_summaries WHERE user_id = ?", (user_id,))
         db.execute("DELETE FROM users WHERE id = ?", (user_id,))
 
+    from app.graph import builder  # local import: the graph module imports the database layer
+    builder.forget_user_graph(user_id)
+
     return {"deleted": user_id,
             "records": "reports, pages, chunks, questions, answers, timeline, vectors, raw files, agent conversations, artifacts, AI call records"}

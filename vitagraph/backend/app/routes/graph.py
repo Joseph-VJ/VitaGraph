@@ -7,21 +7,28 @@ from fastapi.responses import StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
 from app.core.sse import sse_stream
-from app.graph.builder import build_user_graph, get_question_subgraph, serialize_graph
-from app.schemas.graph import GraphResponse, NodeSummaryRequest, SubgraphRequest
-from app.services import node_summary, user_service
+from app.graph.builder import get_question_subgraph, serialize_user_graph
+from app.schemas.graph import GraphResponse, NodeSummaryRequest, SeriesOut, SubgraphRequest
+from app.services import node_summary, series_service, user_service
 
 router = APIRouter(prefix="/api/graph", tags=["graph"])
+
+
+@router.get("/{user_id}/series", response_model=SeriesOut)
+async def get_user_series(user_id: str) -> dict:
+    """Time-series of test measurements across all reports for a user."""
+    user_service.user_exists(user_id)
+    return await run_in_threadpool(series_service.get_series, user_id)
 
 
 @router.get("/{user_id}", response_model=GraphResponse)
 def get_user_graph(user_id: str) -> dict:
     """Retrieve the full knowledge graph and topological analytics for a user."""
     user_service.user_exists(user_id)
-    g, _ = build_user_graph(user_id)
-    res = serialize_graph(g)
+    res = serialize_user_graph(user_id)
     res["active_concepts"] = []
     return res
+
 
 
 @router.post("/subgraph", response_model=GraphResponse)
