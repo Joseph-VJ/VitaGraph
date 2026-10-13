@@ -1594,3 +1594,9 @@ Before saving, origin was fetched. Local main and origin/main both pointed to c4
 Verification: backend app/test SHA256 matches the baseline that passed 791 tests in section 44; fresh production build passed (402 modules, 807ms), design audit passed (106 files, 0 errors), staged-file secret scan passed. The whitespace gate identified trailing spaces in the new video clip notes; these were trimmed without changing their text, then the gate passed. Main is pushed with a normal fast-forward push, never force. Final local HEAD/origin main equality and remaining workspace changes are checked after publication; the exact checkpoint is available from `git log -1 main` and GitHub. If publication fails, do not infer success from this prepared handover; use command output and resolve the failure.
 
 Current working branch is main. Theme is complete; section 44 has implementation and browser evidence. T4 connection-reliability defects remain READY, NOT implemented. This request saves the current verified state; it does not implement T4 or erase its documented limitations. Future commits/pushes still require owner authorization for their scope.
+
+### 45.1 Confirmed publication
+- Application/evidence checkpoint: **acd7bbdcef873b087993928d85b1a0c1da4d9369** (`feat: save privacy tools, agent upgrades, AI settings and global themes`), **231 files**, 22,088 insertions / 1,270 deletions.
+- Normal push succeeded: `c4fca21..acd7bbd main -> main`. `git rev-parse main` and `git ls-remote origin refs/heads/main` both returned that exact hash.
+- Only remaining workspace change is the excluded generated `site design/tsconfig.tsbuildinfo`. All project source, documentation, screenshots and video prompts are saved.
+- This publication receipt is saved in a following documentation commit on main and pushed to the same remote. Use the latest main log for its hash; no application changes were made after the verified checkpoint.
