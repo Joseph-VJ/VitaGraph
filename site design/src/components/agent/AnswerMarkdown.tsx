@@ -2,8 +2,10 @@ import React, { useMemo, useState } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { AgentEvidence } from "../../hooks/useAgentChat";
-import { markVerified, reportTitle, type Fact } from "../../lib/answerFormat";
+import { markVerified, openChartStart, reportTitle, type Fact } from "../../lib/answerFormat";
+import { parseChartSpec, type ChartSpec } from "../../lib/chartSpec";
 import { CodeBlock } from "./CodeBlock";
+import { ChartCard } from "./ChartCard";
 import { linkCitations } from "../../lib/linkCitations";
 
 export { citedRefs } from "../../lib/linkCitations";
@@ -42,6 +44,13 @@ function plainText(children: React.ReactNode): string {
     .map((c) => (typeof c === "string" || typeof c === "number" ? String(c) : ""))
     .join("");
 }
+
+/** A quiet note in the answer's own style, used for a chart that cannot be drawn or is still arriving. */
+const ChartNote: React.FC<{ children: React.ReactNode; testId?: string }> = ({ children, testId = "agent-chart-note" }) => (
+  <div data-testid={testId} className="vg-general" style={{ maxWidth: MEASURE, margin: "0 0 var(--space-3)", fontSize: "0.9375rem" }}>
+    {children}
+  </div>
+);
 
 // A citation chip; hovering or focusing it previews the quoted passage, clicking opens the full page.
 const CiteChip: React.FC<{ n: number; card: AgentEvidence | undefined; onCite: (ref: number) => void; children: React.ReactNode }> = ({
@@ -125,9 +134,25 @@ interface AnswerMarkdownProps {
   onReport?: (markdown: string) => void;
   /** Set the first sentence larger. Off while the answer streams, so narration is not shown at answer size. */
   emphasizeLede?: boolean;
+  /** The person's user id; needed to draw a ```chart block. */
+  userId?: string;
+  /** Open a ```chart block in the side panel. */
+  onChart?: (spec: ChartSpec) => void;
+  /** True while the answer is still arriving: an unfinished ```chart block then shows "Drawing a chart…". */
+  streaming?: boolean;
 }
 
-export const AnswerMarkdown: React.FC<AnswerMarkdownProps> = ({ text, cards, facts, onCite, onReport, emphasizeLede = true }) => {
+export const AnswerMarkdown: React.FC<AnswerMarkdownProps> = ({
+  text,
+  cards,
+  facts,
+  onCite,
+  onReport,
+  emphasizeLede = true,
+  userId,
+  onChart,
+  streaming = false,
+}) => {
   const refs = useMemo(() => new Set(cards.keys()), [cards]);
 
   const make = useMemo(
@@ -207,6 +232,12 @@ export const AnswerMarkdown: React.FC<AnswerMarkdownProps> = ({ text, cards, fac
                 </div>
               );
             }
+            // A chart holds names only; the server draws it from the person's stored values.
+            if (language === "chart") {
+              const spec = parseChartSpec(code);
+              if (userId && onChart && spec) return <ChartCard userId={userId} spec={spec} onOpen={onChart} />;
+              return <ChartNote>This chart could not be drawn.</ChartNote>;
+            }
             return <CodeBlock code={code} language={language} />;
           },
           code: ({ children }) => (
@@ -234,10 +265,13 @@ export const AnswerMarkdown: React.FC<AnswerMarkdownProps> = ({ text, cards, fac
           },
         };
       },
-    [cards, facts, onCite, onReport]
+    [cards, facts, onCite, onReport, userId, onChart]
   );
 
-  const linked = linkCitations(text, refs);
+  // A ```chart block still arriving is held back and shown as a note, never as raw JSON.
+  const openAt = openChartStart(text);
+  const body = openAt === null ? text : text.slice(0, openAt);
+  const linked = linkCitations(body, refs);
   const { lede, rest } = emphasizeLede ? splitLede(linked) : { lede: "", rest: linked };
   const ledeComponents = useMemo(() => make(true), [make]);
   const restComponents = useMemo(() => make(false), [make]);
@@ -253,6 +287,9 @@ export const AnswerMarkdown: React.FC<AnswerMarkdownProps> = ({ text, cards, fac
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={restComponents}>
           {rest}
         </ReactMarkdown>
+      ) : null}
+      {openAt !== null ? (
+        <ChartNote testId="agent-chart-pending">{streaming ? "Drawing a chart…" : "This chart could not be drawn."}</ChartNote>
       ) : null}
     </div>
   );

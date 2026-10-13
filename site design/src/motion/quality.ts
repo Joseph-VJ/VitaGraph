@@ -8,6 +8,7 @@
 import { useState, useEffect } from "react";
 import { ticker } from "./ticker";
 import { isReducedMotion } from "./features";
+import { readStorage, writeStorage, removeStorage } from "../lib/browserStorage";
 
 export type MotionTier = "T3" | "T2" | "T1" | "T0";
 export type MotionMode = "auto" | "manual";
@@ -57,7 +58,7 @@ class QualityGovernor {
     this.reducedMotion = isReducedMotion();
 
     // 2. Read saved manual override from localStorage
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = readStorage(STORAGE_KEY);
     if (saved && ["T3", "T2", "T1", "T0"].includes(saved)) {
       this.mode = "manual";
       this.tier = saved as MotionTier;
@@ -82,7 +83,7 @@ class QualityGovernor {
           this.setTier("T0", "auto");
         } else {
           // Restore auto or manual setting
-          const override = localStorage.getItem(STORAGE_KEY);
+          const override = readStorage(STORAGE_KEY);
           if (override && ["T3", "T2", "T1", "T0"].includes(override)) {
             this.setTier(override as MotionTier, "manual");
           } else {
@@ -214,7 +215,7 @@ class QualityGovernor {
 
   public setOverride(override: "auto" | MotionTier): void {
     if (override === "auto") {
-      localStorage.removeItem(STORAGE_KEY);
+      removeStorage(STORAGE_KEY);
       this.mode = "auto";
       if (this.reducedMotion) {
         this.setTier("T0", "auto");
@@ -222,7 +223,7 @@ class QualityGovernor {
         this.setTier(this.calculateInitialTier(), "auto");
       }
     } else {
-      localStorage.setItem(STORAGE_KEY, override);
+      writeStorage(STORAGE_KEY, override);
       // Hard-lock: if reducedMotion is active, tier stays T0 even if override says T3 (§M11, WS-5)
       const targetTier = this.reducedMotion ? "T0" : override;
       this.setTier(targetTier, "manual");

@@ -13,6 +13,7 @@
 
 import { Sequence } from "./sequence";
 import { governor } from "./quality";
+import { readStorage, writeStorage } from "../lib/browserStorage";
 
 const SESSION_KEY = "vg_booted";
 
@@ -32,7 +33,7 @@ export interface BootTargets {
  */
 function shouldSkipBoot(): boolean {
   // Already booted this session
-  if (typeof sessionStorage !== "undefined" && sessionStorage.getItem(SESSION_KEY)) {
+  if (readStorage(SESSION_KEY, "session")) {
     return true;
   }
 
@@ -92,7 +93,7 @@ function showAllFinal(targets: BootTargets): void {
 
   // Mark booted
   if (typeof sessionStorage !== "undefined") {
-    sessionStorage.setItem(SESSION_KEY, "1");
+    writeStorage(SESSION_KEY, "1", "session");
   }
 }
 
@@ -366,7 +367,7 @@ export function runBoot(targets: BootTargets): Promise<void> {
   // Final: mark booted
   seq.addAction(() => {
     if (!skipped && typeof sessionStorage !== "undefined") {
-      sessionStorage.setItem(SESSION_KEY, "1");
+      writeStorage(SESSION_KEY, "1", "session");
     }
     cleanup();
   });

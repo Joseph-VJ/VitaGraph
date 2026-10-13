@@ -19,6 +19,9 @@ const pageLoaders = {
   textToGraph: () => import("./pages/TextToGraphPage"),
   imageToText: () => import("./pages/ImageToTextPage"),
   pdfToText: () => import("./pages/PdfToTextPage"),
+  privacy: () => import("./pages/PrivacyPage"),
+  lab: () => import("./pages/LabPage"),
+  data: () => import("./pages/DataPage"),
 };
 const KnowledgeGraphPage = lazy(() => pageLoaders.graph().then((m) => ({ default: m.KnowledgeGraphPage })));
 const AgentPage = lazy(() => pageLoaders.agent().then((m) => ({ default: m.AgentPage })));
@@ -30,6 +33,9 @@ const InsightsPage = lazy(() => pageLoaders.insights().then((m) => ({ default: m
 const TextToGraphPage = lazy(() => pageLoaders.textToGraph().then((m) => ({ default: m.TextToGraphPage })));
 const ImageToTextPage = lazy(() => pageLoaders.imageToText().then((m) => ({ default: m.ImageToTextPage })));
 const PdfToTextPage = lazy(() => pageLoaders.pdfToText().then((m) => ({ default: m.PdfToTextPage })));
+const PrivacyPage = lazy(() => pageLoaders.privacy().then((m) => ({ default: m.PrivacyPage })));
+const LabPage = lazy(() => pageLoaders.lab().then((m) => ({ default: m.LabPage })));
+const DataPage = lazy(() => pageLoaders.data().then((m) => ({ default: m.DataPage })));
 
 function prefetchPages(): void {
   Object.values(pageLoaders).forEach((load) => {
@@ -86,12 +92,15 @@ export const App: React.FC = () => {
               <Route path="/ask" element={<AskRedirect />} />
               <Route path="/timeline" element={<TimelinePage />} />
               <Route path="/library" element={<LibraryPage />} />
+              <Route path="/data" element={<DataPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/insights" element={<InsightsPage />} />
               <Route path="/text-to-graph" element={<TextToGraphPage />} />
               <Route path="/image-to-text" element={<ImageToTextPage />} />
               <Route path="/pdf-to-text" element={<PdfToTextPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/lab" element={<LabPage />} />
             </Route>
 
             {/* Catch-all fallback */}

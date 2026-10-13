@@ -16,6 +16,7 @@ import re
 from typing import Any, AsyncIterator
 
 from app.core.config import settings
+from app.privacy import shield
 from app.services import llm_service
 
 logger = logging.getLogger(__name__)
@@ -203,16 +204,17 @@ async def build_graph(text: str) -> dict[str, Any]:
     if settings.api_format == "responses":
         extra["reasoning_effort"] = "minimal"  # reading entities out of text needs no deep thinking
     try:
-        reply = await client.chat.completions.create(
-            model=settings.effective_model,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"<text>\n{text}\n</text>"},
-            ],
-            stream=False,
-            temperature=0.1,
-            **extra,
-        )
+        with shield.scope(None, "text_to_graph"):
+            reply = await client.chat.completions.create(
+                model=settings.effective_model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": f"<text>\n{text}\n</text>"},
+                ],
+                stream=False,
+                temperature=0.1,
+                **extra,
+            )
         content = reply.choices[0].message.content or ""
     except Exception as exc:
         logger.warning("Text to graph: model call failed: %s", exc)
@@ -316,16 +318,17 @@ async def stream_graph(text: str) -> AsyncIterator[tuple[str, dict[str, Any]]]:
         extra: dict[str, Any] = {}
         if settings.api_format == "responses":
             extra["reasoning_effort"] = "minimal"
-        upstream = await client.chat.completions.create(
-            model=settings.effective_model,
-            messages=[
-                {"role": "system", "content": STREAM_SYSTEM_PROMPT},
-                {"role": "user", "content": f"<text>\n{text}\n</text>"},
-            ],
-            stream=True,
-            temperature=0.1,
-            **extra,
-        )
+        with shield.scope(None, "text_to_graph"):
+            upstream = await client.chat.completions.create(
+                model=settings.effective_model,
+                messages=[
+                    {"role": "system", "content": STREAM_SYSTEM_PROMPT},
+                    {"role": "user", "content": f"<text>\n{text}\n</text>"},
+                ],
+                stream=True,
+                temperature=0.1,
+                **extra,
+            )
         async for chunk in upstream:
             piece = _piece(chunk)
             if not piece:

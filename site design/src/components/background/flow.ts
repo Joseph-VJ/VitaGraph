@@ -250,6 +250,9 @@ export function createFlowEngine(ctx: EngineContext): BackgroundEngineInstance {
       }
       fx.globalAlpha = 1;
     },
+    refreshPalette() {
+      bx.clearRect(0, 0, buf.width, buf.height);
+    },
     still() {
       const f = ctx.freeArea();
       fr = { cx: (f.x0 + f.x1) / 2, cy: (f.y0 + f.y1) / 2 };

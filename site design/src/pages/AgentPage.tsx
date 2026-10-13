@@ -4,17 +4,23 @@ import { useActiveUser } from "../context/UserContext";
 import { reportsApi } from "../api/reports";
 import { graphApi } from "../api/graph";
 import type { Report, ReportPage } from "../types";
-import { useAgentChat, type AgentEntry } from "../hooks/useAgentChat";
+import { useAgentChat, type AgentEntry, type AgentEvidence } from "../hooks/useAgentChat";
 import { AnswerMarkdown, citedRefs } from "../components/agent/AnswerMarkdown";
 import { EvidenceModules } from "../components/agent/EvidenceModules";
 import { PassageSlip } from "../components/agent/PassageSlip";
 import { TrajectoryPanel } from "../components/agent/TrajectoryPanel";
-import { ConversationList } from "../components/agent/ConversationList";
+import { ConversationList, useConversationList } from "../components/agent/ConversationList";
+import { ScopePicker } from "../components/agent/ScopePicker";
+import { SidePanel, chartTabKey, chartTabTitle, pageTabKey, reportTabKey, REPORTS_TAB_KEY, type PanelTab } from "../components/agent/SidePanel";
+import type { ChartSpec } from "../lib/chartSpec";
+import { useAgentActivity } from "../hooks/useAgentActivity";
+import { agentRuns } from "../lib/agentRuns";
 import { PageState, PersonaState } from "../components/ui";
 import { clearLoadedReport, getLoadedReportId } from "../lib/loadedReport";
 import { extractReport, reportTitle, splitFollowUps, stabilizeMarkdown, verifiedFacts } from "../lib/answerFormat";
-import { ReportPanel, type ReportView } from "../components/agent/ReportPanel";
 import { agentApi, type ReportRequest } from "../api/agent";
+import { LedgerDrawer } from "../components/privacy/LedgerDrawer";
+import { formatNumber } from "../lib/privacyFormat";
 
 const MIN_QUESTION_CHARS = 2;
 const MAX_QUESTION_CHARS = 2000;
@@ -73,6 +79,16 @@ const NoteCard: React.FC<{ tone: "accent" | "neutral"; tag: string; children: Re
   </div>
 );
 
+/** A report title from the question: whole words only, with an ellipsis when it was shortened. */
+function shortTitle(question: string, limit = 80): string {
+  const text = question.trim().replace(/\s+/g, " ");
+  if (text.length <= limit) return text;
+  let cut = text.slice(0, limit - 1);
+  const space = cut.lastIndexOf(" ");
+  if (space > limit / 2) cut = cut.slice(0, space);
+  return `${cut.replace(/[\s,.;:-]+$/, "")}…`;
+}
+
 interface EntryViewProps {
   entry: AgentEntry;
   isLast: boolean;
@@ -81,6 +97,9 @@ interface EntryViewProps {
   onSaveReport: (payload: Pick<ReportRequest, "title" | "markdown" | "refs">) => void;
   canRetry: boolean;
   getPages: (reportId: string) => Promise<ReportPage[]>;
+  userId: string;
+  onOpenChart: (spec: ChartSpec) => void;
+  onOpenPage: (card: AgentEvidence) => void;
 }
 
 const CopyIcon: React.FC = () => (
@@ -90,7 +109,8 @@ const CopyIcon: React.FC = () => (
   </svg>
 );
 
-const EntryView: React.FC<EntryViewProps> = ({ entry, isLast, onRetry, onAsk, onSaveReport, canRetry, getPages }) => {
+const EntryView: React.FC<EntryViewProps> = ({ entry, isLast, onRetry, onAsk, onSaveReport, canRetry, getPages, userId, onOpenChart, onOpenPage }) => {
+  const [showSent, setShowSent] = useState(false);
   const [openRefs, setOpenRefs] = useState<number[]>([]);
   const [showDetails, setShowDetails] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -139,7 +159,7 @@ const EntryView: React.FC<EntryViewProps> = ({ entry, isLast, onRetry, onAsk, on
   // A report the agent wrote, or else this answer turned into a report, is rendered and saved by the server.
   const saveReport = (markdown?: string) => {
     const written = markdown ?? extractReport(answerBody);
-    const shortQuestion = entry.question.trim().slice(0, 80);
+    const shortQuestion = shortTitle(entry.question);
     const text = written ?? `# ${shortQuestion}\n\n${answerBody}`;
     onSaveReport({
       title: reportTitle(text, shortQuestion),
@@ -179,16 +199,23 @@ const EntryView: React.FC<EntryViewProps> = ({ entry, isLast, onRetry, onAsk, on
   } else if (shown.trim()) {
     body = (
       <div style={{ paddingBottom: "var(--space-3)" }} data-testid="agent-answer">
-        <AnswerMarkdown text={shown} cards={byRef} facts={facts} onCite={toggleRef} onReport={(markdown) => saveReport(markdown)} emphasizeLede={!streaming} />
+        <AnswerMarkdown text={shown} cards={byRef} facts={facts} onCite={toggleRef} onReport={(markdown) => saveReport(markdown)} emphasizeLede={!streaming} userId={userId} onChart={onOpenChart} streaming={streaming} />
       </div>
     );
   }
 
   const answered = entry.status === "answered" && !entry.withheld && shown.trim().length > 0;
 
+  // What the Privacy Shield did for this answer, summed over its model calls.
+  const privacyItems = entry.trajectory.filter((i) => i.kind === "privacy" && i.privacy);
+  const privacyCalls = privacyItems.length;
+  const privacyRemoved = privacyItems.reduce((sum, i) => sum + (i.privacy?.removed ?? 0), 0);
+  const privacyChars = privacyItems.reduce((sum, i) => sum + (i.privacy?.charsSent ?? 0), 0);
+  const privacyIds = privacyItems.map((i) => i.privacy?.ledgerId ?? "").filter(Boolean);
+
   return (
     <article style={{ paddingBottom: "var(--space-8)" }} data-testid="agent-entry">
-      <div style={{ display: "flex", justifyContent: "flex-end", paddingBottom: "var(--space-5)" }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", paddingBottom: "var(--space-6)" }}>
         <div
           data-testid="agent-question"
           style={{
@@ -216,7 +243,7 @@ const EntryView: React.FC<EntryViewProps> = ({ entry, isLast, onRetry, onAsk, on
             display: "grid",
             placeItems: "center",
             background: "var(--color-accent)",
-            color: "var(--color-bg)",
+            color: "var(--agent-on-accent, var(--color-bg))",
             fontSize: "0.75rem",
             fontWeight: 800,
           }}
@@ -271,13 +298,31 @@ const EntryView: React.FC<EntryViewProps> = ({ entry, isLast, onRetry, onAsk, on
             </div>
           ) : null}
 
+          {!streaming && privacyCalls > 0 ? (
+            <div data-testid="agent-privacy" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-2)", padding: "var(--space-1) 0" }}>
+              <span aria-hidden="true" style={{ width: 8, height: 8, flex: "none", background: "var(--color-accent)" }} />
+              <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", fontVariantNumeric: "tabular-nums" }}>
+                Privacy Shield ·{" "}
+                {privacyRemoved > 0
+                  ? `${privacyRemoved} ${privacyRemoved === 1 ? "detail" : "details"} hidden in ${privacyCalls} AI ${privacyCalls === 1 ? "call" : "calls"} · ${formatNumber(privacyChars)} characters sent`
+                  : `nothing personal found in ${privacyCalls} AI ${privacyCalls === 1 ? "call" : "calls"} · ${formatNumber(privacyChars)} characters sent`}
+              </span>
+              {privacyIds.length > 0 && userId ? (
+                <button type="button" className="vg-action" onClick={() => setShowSent(true)} data-testid="agent-privacy-open">
+                  See what was sent
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          {showSent && userId ? <LedgerDrawer userId={userId} scope="persona" rowIds={privacyIds} onClose={() => setShowSent(false)} /> : null}
+
           {answered && showDetails && citedCards.length > 0 ? (
             <EvidenceModules cards={citedCards} openRefs={openRefs} onToggle={toggleRef} aiUsed={entry.aiStatus === "ok"} />
           ) : null}
           {openCards.length > 0 ? (
             <div ref={slipsRef}>
               {openCards.map((card) => (
-                <PassageSlip key={card.ref} card={card} getPages={getPages} />
+                <PassageSlip key={card.ref} card={card} getPages={getPages} onOpenPage={() => onOpenPage(card)} />
               ))}
             </div>
           ) : null}
@@ -333,20 +378,31 @@ function useIsDesktop(): boolean {
   return isDesktop;
 }
 
+const CHART_PREFILL = "Show a chart of ";
+const REPORT_PREFILL = "Write a report about ";
+const HISTORY_WIDTH = 264;
+
+const Glyph: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ strokeWidth: 2, strokeLinecap: "square" }} aria-hidden="true">
+    {children}
+  </svg>
+);
+
 export const AgentPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading: personaLoading, refreshUsers } = useActiveUser();
   const effectiveUserId = user?.id ?? "";
   const chat = useAgentChat();
+  const activity = useAgentActivity();
   const [searchParams, setSearchParams] = useSearchParams();
   const reportParam = searchParams.get("report");
   const qParam = searchParams.get("q");
 
-  const [input, setInput] = useState("");
   const [reports, setReports] = useState<Report[]>([]);
   const [reportsState, setReportsState] = useState<ReportsState>("loading");
   const [reportsTick, setReportsTick] = useState(0);
   const [topTests, setTopTests] = useState<string[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const stickRef = useRef(true);
   const pagesCache = useRef(new Map<string, Promise<ReportPage[]>>());
@@ -370,53 +426,121 @@ export const AgentPage: React.FC = () => {
       return !open;
     });
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const input = chat.draft;
+  const setInput = chat.setDraft;
 
-  // The report beside the chat.
-  const [reportView, setReportView] = useState<ReportView | null>(null);
-  const fail = (e: unknown): ReportView => ({ kind: "error", message: e instanceof Error ? e.message : "Something went wrong." });
+  /* ---------- the chat list (History and the title in the top bar) ---------- */
+  const [refreshSignal, setRefreshSignal] = useState(0);
+  const convs = useConversationList(effectiveUserId, refreshSignal);
+  // A new chat shows in History as soon as it starts, and the list refreshes whenever any answer starts or ends.
+  const runningKey = chat.runningIds.join(",");
+  useEffect(() => {
+    setRefreshSignal((s) => s + 1);
+  }, [chat.conversationId, runningKey, activity.running.length, activity.ready.length]);
+
+  const runningIds = useMemo(
+    () => Array.from(new Set([...activity.running.map((r) => r.conversationId), ...chat.runningIds])),
+    [activity.running, chat.runningIds]
+  );
+  const readyIds = useMemo(() => activity.ready.map((r) => r.conversationId), [activity.ready]);
+
+  // Looking at a chat whose answer finished clears its "ready" mark.
+  const { markSeen } = activity;
+  useEffect(() => {
+    if (chat.conversationId && readyIds.includes(chat.conversationId)) markSeen(chat.conversationId);
+  }, [chat.conversationId, readyIds, markSeen]);
+
+  /* ---------- the side panel ---------- */
+  const [tabs, setTabs] = useState<PanelTab[]>([]);
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelFull, setPanelFull] = useState(false);
+  const [reportsVersion, setReportsVersion] = useState(0);
+  const pendingSeq = useRef(0);
+
+  // Opening something that is already open focuses its tab instead of adding a copy.
+  const openTab = useCallback((tab: PanelTab) => {
+    setTabs((current) => (current.some((t) => t.key === tab.key) ? current : [...current, tab]));
+    setActiveKey(tab.key);
+    setPanelOpen(true);
+    setShowMobileList(false);
+  }, []);
+
+  const closeTab = useCallback((key: string) => {
+    setTabs((current) => {
+      const index = current.findIndex((t) => t.key === key);
+      if (index < 0) return current;
+      const next = current.filter((t) => t.key !== key);
+      setActiveKey((active) => (active === key ? next[Math.min(index, next.length - 1)]?.key ?? null : active));
+      if (next.length === 0) setPanelOpen(false);
+      return next;
+    });
+  }, []);
+
+  const openReportsList = useCallback(() => openTab({ key: REPORTS_TAB_KEY, kind: "reports", title: "Saved reports" }), [openTab]);
+  const openSavedReport = useCallback(
+    (id: string, title: string) => openTab({ key: reportTabKey(id), kind: "report", title, reportId: id }),
+    [openTab]
+  );
+  const openChart = useCallback(
+    (spec: ChartSpec) => openTab({ key: chartTabKey(spec), kind: "chart", title: chartTabTitle(spec), spec }),
+    [openTab]
+  );
+  const openPage = useCallback(
+    (card: AgentEvidence) =>
+      openTab({
+        key: pageTabKey(card.report_id, card.page_number, card.char_start, card.char_end),
+        kind: "page",
+        title: `${card.report_filename} · p.${card.page_number}`,
+        reportId: card.report_id,
+        page: card.page_number,
+        charStart: card.char_start,
+        charEnd: card.char_end,
+        label: card.report_filename,
+      }),
+    [openTab]
+  );
+
+  // A report the agent wrote, or an answer turned into a report. The server saves it once; saving again
+  // returns the same report, so its tab is focused rather than doubled.
   const saveReport = async (payload: Pick<ReportRequest, "title" | "markdown" | "refs">) => {
-    setReportView({ kind: "loading", title: payload.title });
+    const pendingKey = `pending:${++pendingSeq.current}`;
+    openTab({ key: pendingKey, kind: "report", title: payload.title, reportId: null });
     try {
       const saved = await agentApi.createReport({ ...payload, user_id: effectiveUserId, conversation_id: chat.conversationId });
-      setReportView({ kind: "ready", report: saved });
+      const key = reportTabKey(saved.id);
+      const tab: PanelTab = { key, kind: "report", title: saved.title, reportId: saved.id, report: saved };
+      setTabs((current) => {
+        if (current.some((t) => t.key === key)) return current.filter((t) => t.key !== pendingKey);
+        return current.map((t) => (t.key === pendingKey ? tab : t));
+      });
+      setActiveKey(key);
+      setReportsVersion((v) => v + 1);
     } catch (e) {
-      setReportView(fail(e));
+      const message = e instanceof Error ? e.message : "Something went wrong.";
+      setTabs((current) => current.map((t) => (t.key === pendingKey && t.kind === "report" ? { ...t, error: message } : t)));
     }
   };
-  const showReportList = async () => {
-    setReportView({ kind: "list", items: [], loading: true });
-    try {
-      setReportView({ kind: "list", items: await agentApi.listReports(effectiveUserId), loading: false });
-    } catch (e) {
-      setReportView(fail(e));
-    }
-  };
-  const openSavedReport = async (id: string) => {
-    setReportView({ kind: "loading", title: "Opening" });
-    try {
-      setReportView({ kind: "ready", report: await agentApi.getReport(effectiveUserId, id) });
-    } catch (e) {
-      setReportView(fail(e));
-    }
-  };
-  const deleteSavedReport = async (id: string) => {
-    try {
-      await agentApi.deleteReport(effectiveUserId, id);
-      await showReportList();
-    } catch (e) {
-      setReportView(fail(e));
-    }
-  };
-  const [refreshSignal, setRefreshSignal] = useState(0);
-  const prevStreaming = useRef(chat.isStreaming);
 
-  useEffect(() => {
-    if (prevStreaming.current && !chat.isStreaming && chat.entries.length > 0) {
-      setRefreshSignal((s) => s + 1);
+  const panelNarrow = !isDesktop;
+  const panelShown = panelOpen && tabs.length > 0;
+  const togglePanel = () => {
+    if (panelShown) {
+      setPanelOpen(false);
+    } else if (tabs.length > 0) {
+      setPanelOpen(true);
+      setShowMobileList(false);
+    } else {
+      openReportsList();
     }
-    prevStreaming.current = chat.isStreaming;
-  }, [chat.isStreaming, chat.entries.length]);
+  };
+  const closePanel = useCallback(() => {
+    setPanelOpen(false);
+    setPanelFull(false);
+  }, []);
+  const toggleFull = useCallback(() => setPanelFull((v) => !v), []);
 
+  /* ---------- opening, starting and switching chats ---------- */
   const c = searchParams.get("c");
   const loadedRef = useRef<string | null>(null);
 
@@ -442,6 +566,7 @@ export const AgentPage: React.FC = () => {
 
   const handleNew = useCallback(() => {
     chat.reset();
+    setShowMobileList(false);
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -454,6 +579,7 @@ export const AgentPage: React.FC = () => {
 
   const handleOpen = useCallback(
     (id: string) => {
+      setShowMobileList(false);
       if (id === chat.conversationId) return;
       loadedRef.current = id;
       setSearchParams(
@@ -490,13 +616,17 @@ export const AgentPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qParam]);
 
-  // A different persona starts a fresh conversation.
+  // A different persona starts a fresh conversation and an empty panel.
   const prevUserRef = useRef<string | null>(null);
   useEffect(() => {
     if (prevUserRef.current && prevUserRef.current !== effectiveUserId) {
       chat.reset();
       pagesCache.current.clear();
       loadedRef.current = null;
+      setTabs([]);
+      setActiveKey(null);
+      setPanelOpen(false);
+      setPanelFull(false);
       const next = new URLSearchParams(searchParams);
       if (next.has("c")) {
         next.delete("c");
@@ -571,6 +701,17 @@ export const AgentPage: React.FC = () => {
   const hasReports = reportsState === "ready" && reports.length > 0;
   const composerReady = hasReports;
 
+  const setScope = (id: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (id) {
+      next.set("report", id);
+    } else {
+      next.delete("report");
+      clearLoadedReport();
+    }
+    setSearchParams(next, { replace: true });
+  };
+
   const suggestions = scope
     ? SCOPED_SUGGESTIONS
     : [
@@ -587,17 +728,31 @@ export const AgentPage: React.FC = () => {
     el.style.height = `${Math.min(el.scrollHeight, 168)}px`;
   }, [input]);
 
+  const waiting = chat.isRunningElsewhere;
+
   const submit = (text: string) => {
     const question = text.trim();
-    if (question.length < MIN_QUESTION_CHARS || chat.isStreaming || !composerReady) return;
+    if (question.length < MIN_QUESTION_CHARS || chat.isStreaming || waiting || !composerReady) return;
     stickRef.current = true;
     chat.send(effectiveUserId, question, scope?.id ?? null);
     setInput("");
   };
 
+  // "Chart" and "Write a report" only put the start of a request into the box.
+  const prefill = (prefix: string) => {
+    const rest = [CHART_PREFILL, REPORT_PREFILL].reduce((text, p) => (text.startsWith(p) ? text.slice(p.length) : text), input);
+    setInput(prefix + rest);
+    window.requestAnimationFrame(() => {
+      const el = composerRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(prefix.length, prefix.length);
+    });
+  };
+
   // Follow the answer while the reader is at the bottom; leave them alone once they scroll up.
   useEffect(() => {
-    const scroller = bottomRef.current?.closest("main");
+    const scroller = scrollRef.current;
     if (!scroller) return;
     const onScroll = () => {
       stickRef.current = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < STICK_THRESHOLD_PX;
@@ -607,19 +762,51 @@ export const AgentPage: React.FC = () => {
   }, [effectiveUserId]);
 
   useLayoutEffect(() => {
-    const scroller = bottomRef.current?.closest("main");
+    const scroller = scrollRef.current;
     if (scroller && stickRef.current) scroller.scrollTop = scroller.scrollHeight;
   }, [chat.entries]);
+
+  /* ---------- the chat title in the top bar ---------- */
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const titleButtonRef = useRef<HTMLButtonElement>(null);
+  const currentItem = convs.items.find((i) => i.id === chat.conversationId) ?? null;
+  const firstEntry = chat.entries[0];
+  const chatTitle =
+    currentItem?.title || firstEntry?.title || (firstEntry ? firstEntry.question.trim().slice(0, 70) : "") || "New chat";
+  const canRename = Boolean(chat.conversationId) && chat.entries.length > 0;
+
+  const saveTitle = async () => {
+    const title = titleDraft.trim().slice(0, 120);
+    setEditingTitle(false);
+    titleButtonRef.current?.focus();
+    const id = chat.conversationId;
+    if (!id || !title || title === chatTitle) return;
+    setTitleError(null);
+    try {
+      convs.replace(await agentApi.updateConversation(effectiveUserId, id, { title }));
+      setRefreshSignal((s) => s + 1);
+    } catch (e) {
+      setTitleError(e instanceof Error ? e.message : "Could not rename this chat.");
+    }
+  };
+
+  useEffect(() => {
+    setEditingTitle(false);
+    setTitleError(null);
+  }, [chat.conversationId]);
 
   if (!effectiveUserId) {
     return (
       <div
         data-screen-label="AI Agent"
         data-testid="agent-page"
-        className="vg-pad"
-        style={{ maxWidth: 960, margin: "0 auto" }}
+        className="vg-agent-page vg-agent-persona-state"
       >
-        <PersonaState loading={personaLoading} onRetry={refreshUsers} />
+        <div style={{ maxWidth: 960, margin: "0 auto" }}>
+          <PersonaState loading={personaLoading} onRetry={refreshUsers} />
+        </div>
       </div>
     );
   }
@@ -629,216 +816,220 @@ export const AgentPage: React.FC = () => {
     : reportsState === "loading"
     ? "Loading your reports"
     : "Upload a report to start asking";
-  const canSend = composerReady && input.trim().length >= MIN_QUESTION_CHARS;
-  const historyShown = isDesktop && historyOpen && !reportView;
+  const canSend = composerReady && !waiting && input.trim().length >= MIN_QUESTION_CHARS;
+  const historyShown = isDesktop && historyOpen;
+
+  const list = (
+    <ConversationList
+      userId={effectiveUserId}
+      currentId={chat.conversationId || c}
+      items={convs.items}
+      loading={convs.loading}
+      error={convs.error}
+      onReload={() => void convs.reload()}
+      onUpdated={convs.replace}
+      onRemoved={(id) => {
+        agentRuns.forget(id);
+        convs.remove(id);
+      }}
+      onOpen={handleOpen}
+      onNew={handleNew}
+      runningIds={runningIds}
+      readyIds={readyIds}
+    />
+  );
 
   return (
-    <div
-      data-screen-label="AI Agent"
-      data-testid="agent-page"
-      style={{
-        minHeight: "100%",
-        display: "flex",
-        flexDirection: isDesktop ? "row" : "column",
-        alignItems: "stretch",
-      }}
-    >
+    <div data-screen-label="AI Agent" data-testid="agent-page" className="vg-agent-page">
       {/* History column (desktop) */}
       {historyShown ? (
-        <aside
-          style={{
-            width: 280,
-            flex: "0 0 280px",
-            boxSizing: "border-box",
-            display: "flex",
-            flexDirection: "column",
-            position: "sticky",
-            top: 0,
-            height: "calc(100vh - 114px)",
-            maxHeight: "calc(100vh - 114px)",
-            alignSelf: "flex-start",
-          }}
-        >
-          <ConversationList
-            userId={effectiveUserId}
-            currentId={chat.conversationId || c}
-            onOpen={handleOpen}
-            onNew={handleNew}
-            refreshSignal={refreshSignal}
-          />
+        <aside className="vg-agent-history-col" style={{ width: HISTORY_WIDTH, flex: `0 0 ${HISTORY_WIDTH}px` }}>
+          {list}
         </aside>
       ) : null}
 
-      {/* Conversation column (hidden behind the report on narrow screens) */}
-      <div style={{ flex: 1, minWidth: 0, display: !isDesktop && reportView ? "none" : "flex", flexDirection: "column", minHeight: "100%" }}>
-        <div
-          className="vg-gutter"
-          style={{
-            paddingTop: "var(--space-3)",
-            paddingBottom: "var(--space-3)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "var(--space-3)",
-          }}
-        >
-          <button
-            type="button"
-            className="vg-action"
-            data-testid="agent-history-toggle"
-            aria-expanded={isDesktop ? historyOpen : showMobileList}
-            onClick={() => (isDesktop ? toggleHistory() : setShowMobileList((prev) => !prev))}
+      {/* History drawer (narrow screens) */}
+      {!isDesktop && showMobileList ? (
+        <>
+          <div className="vg-agent-scrim" aria-hidden="true" onClick={() => setShowMobileList(false)} />
+          <aside
+            className="vg-agent-drawer"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setShowMobileList(false);
+            }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" }} aria-hidden="true">
-              <path d="M4 6h16M4 12h16M4 18h10" />
-            </svg>
-            {isDesktop && historyOpen ? "Hide history" : "History"}
-          </button>
-          <button type="button" className="vg-action" data-testid="agent-reports-toggle" onClick={showReportList} style={{ marginRight: "auto" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" }} aria-hidden="true">
-              <path d="M7 3h8l4 4v14H7z" />
-              <path d="M15 3v4h4" />
-            </svg>
-            Reports
-          </button>
-          {chat.entries.length > 0 && !chat.isStreaming ? (
+            {list}
+          </aside>
+        </>
+      ) : null}
+
+      {/* The chat */}
+      <div className="vg-agent-chat">
+        <div className="vg-agent-topbar" data-testid="agent-topbar">
+          <div className="vg-agent-titlewrap">
+            {editingTitle ? (
+              <input
+                autoFocus
+                className="input vg-agent-titleinput"
+                data-testid="agent-title-input"
+                aria-label="Chat name"
+                value={titleDraft}
+                maxLength={120}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onFocus={(e) => e.currentTarget.select()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void saveTitle();
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    setEditingTitle(false);
+                    titleButtonRef.current?.focus();
+                  }
+                }}
+                onBlur={() => setEditingTitle(false)}
+              />
+            ) : (
+              <>
+                <h2 className="vg-agent-title" data-testid="agent-title" title={chatTitle}>
+                  {chatTitle}
+                </h2>
+                {canRename ? (
+                  <button
+                    ref={titleButtonRef}
+                    type="button"
+                    className="vg-action"
+                    aria-label="Rename this chat"
+                    title="Rename this chat"
+                    data-testid="agent-title-edit"
+                    onClick={() => {
+                      setTitleDraft(chatTitle);
+                      setEditingTitle(true);
+                    }}
+                  >
+                    <Glyph>
+                      <path d="M4 20h4L19 9l-4-4L4 16z" />
+                      <path d="m13 7 4 4" />
+                    </Glyph>
+                  </button>
+                ) : null}
+              </>
+            )}
+            {reportParam ? (
+              <span data-testid="agent-scope-chip" className="tag tag-neutral vg-agent-chip">
+                <span className="vg-agent-chip-text">
+                  {scope ? `Report: ${scope.original_filename}` : reportsState === "ready" ? "Report not found" : "Loading the report"}
+                </span>
+                <button type="button" className="vg-action" aria-label="Use all my reports" title="Use all my reports" onClick={() => setScope(null)} style={{ padding: "0 var(--space-1)" }}>
+                  ×
+                </button>
+              </span>
+            ) : null}
+          </div>
+          <div className="vg-agent-topactions">
+            <button
+              type="button"
+              className="vg-action"
+              data-testid="agent-history-toggle"
+              aria-expanded={isDesktop ? historyOpen : showMobileList}
+              onClick={() => (isDesktop ? toggleHistory() : setShowMobileList((prev) => !prev))}
+            >
+              <Glyph>
+                <path d="M4 6h16M4 12h16M4 18h10" />
+              </Glyph>
+              History
+            </button>
+            <button type="button" className="vg-action" data-testid="agent-reports-toggle" aria-expanded={panelShown} onClick={togglePanel}>
+              <Glyph>
+                <path d="M3 4h18v16H3z" />
+                <path d="M15 4v16" />
+              </Glyph>
+              Panel
+            </button>
             <button type="button" className="vg-action" onClick={handleNew} data-testid="agent-new-chat">
               + New chat
             </button>
+          </div>
+          {titleError ? (
+            <div role="alert" className="vg-agent-note vg-agent-note-error" style={{ flexBasis: "100%" }}>
+              {titleError}
+            </div>
           ) : null}
         </div>
 
-        {/* History panel (narrow screens) */}
-        {!isDesktop && showMobileList ? (
-          <div style={{ borderBottom: "2px solid var(--color-divider)", background: "var(--color-surface)", maxHeight: "50vh", overflowY: "auto" }}>
-            <ConversationList
-              userId={effectiveUserId}
-              currentId={chat.conversationId || c}
-              onOpen={(id) => {
-                handleOpen(id);
-                setShowMobileList(false);
-              }}
-              onNew={() => {
-                handleNew();
-                setShowMobileList(false);
-              }}
-              refreshSignal={refreshSignal}
-            />
+        <div ref={scrollRef} className="vg-agent-scroll">
+          <div className="vg-agent-thread">
+            {chat.entries.length === 0 ? (
+              <div data-testid="agent-empty" style={{ padding: "var(--space-8) 0", display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+                {reportsState === "failed" ? (
+                  <PageState
+                    kind="error"
+                    title="Could not load your reports"
+                    detail="Check that the backend is running, then try again."
+                    action={{ label: "Try again", onClick: () => setReportsTick((t) => t + 1) }}
+                  />
+                ) : reportsState === "ready" && reports.length === 0 ? (
+                  <PageState
+                    kind="empty"
+                    title="No reports yet"
+                    detail="Upload a report first, then ask about it here."
+                    action={{ label: "Upload a report", onClick: () => navigate("/upload") }}
+                  />
+                ) : reportsState === "loading" ? (
+                  <PageState kind="loading" title="Loading your reports" />
+                ) : (
+                  <>
+                    <div>
+                      <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em" }}>What would you like to know?</h2>
+                      <p style={{ margin: "var(--space-2) 0 0", fontSize: "1rem", color: "var(--color-neutral-700)", maxWidth: "52ch" }}>
+                        Ask about your reports. Every answer shows how it was found and cites the page it came from.
+                      </p>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(260px,100%),1fr))", gap: "var(--space-3)" }}>
+                      {suggestions.slice(0, 4).map((q) => (
+                        <button key={q} type="button" onClick={() => submit(q)} className="vg-card" disabled={waiting}>
+                          <span style={{ fontSize: "1rem", fontWeight: 600, lineHeight: 1.4 }}>{q}</span>
+                          <span style={{ color: "var(--color-accent-700)" }}>
+                            <Arrow size={16} />
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div data-testid="agent-threads" role="log" aria-live="polite" aria-relevant="additions">
+                {chat.entries.map((entry, index) => (
+                  <EntryView
+                    key={entry.id}
+                    entry={entry}
+                    isLast={index === chat.entries.length - 1}
+                    onRetry={submit}
+                    onAsk={submit}
+                    onSaveReport={saveReport}
+                    canRetry={composerReady && !chat.isStreaming && !waiting}
+                    getPages={getPages}
+                    userId={effectiveUserId}
+                    onOpenChart={openChart}
+                    onOpenPage={openPage}
+                  />
+                ))}
+              </div>
+            )}
+            <div ref={bottomRef} />
           </div>
-        ) : null}
-
-        <div
-          className="vg-gutter"
-          style={{
-            flex: 1,
-            maxWidth: "760px",
-            width: "100%",
-            boxSizing: "border-box",
-            margin: "0 auto",
-            paddingTop: "var(--space-4)",
-            paddingBottom: "var(--space-4)",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          {chat.entries.length === 0 ? (
-            <div data-testid="agent-empty" style={{ padding: "var(--space-8) 0", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
-              {reportsState === "failed" ? (
-                <PageState
-                  kind="error"
-                  title="Could not load your reports"
-                  detail="Check that the backend is running, then try again."
-                  action={{ label: "Try again", onClick: () => setReportsTick((t) => t + 1) }}
-                />
-              ) : reportsState === "ready" && reports.length === 0 ? (
-                <PageState
-                  kind="empty"
-                  title="No reports yet"
-                  detail="Upload a report first, then ask about it here."
-                  action={{ label: "Upload a report", onClick: () => navigate("/upload") }}
-                />
-              ) : reportsState === "loading" ? (
-                <PageState kind="loading" title="Loading your reports" />
-              ) : (
-                <>
-                  <div>
-                    <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em" }}>What would you like to know?</h2>
-                    <p style={{ margin: "var(--space-2) 0 0", fontSize: "1rem", color: "var(--color-neutral-700)", maxWidth: "52ch" }}>
-                      Ask about your reports. Every answer shows how it was found and cites the page it came from.
-                    </p>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: "var(--space-3)" }}>
-                    {suggestions.slice(0, 4).map((q) => (
-                      <button key={q} type="button" onClick={() => submit(q)} className="vg-card">
-                        <span style={{ fontSize: "1rem", fontWeight: 600, lineHeight: 1.4 }}>{q}</span>
-                        <span style={{ color: "var(--color-accent-700)" }}>
-                          <Arrow size={16} />
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
-            <div data-testid="agent-threads" role="log" aria-live="polite" aria-relevant="additions">
-              {chat.entries.map((entry, index) => (
-                <EntryView
-                  key={entry.id}
-                  entry={entry}
-                  isLast={index === chat.entries.length - 1}
-                  onRetry={submit}
-                  onAsk={submit}
-                  onSaveReport={saveReport}
-                  canRetry={composerReady && !chat.isStreaming}
-                  getPages={getPages}
-                />
-              ))}
-            </div>
-          )}
-          <div ref={bottomRef} />
         </div>
 
         <form
           data-testid="agent-composer"
-          className="vg-gutter"
+          className="vg-agent-composer"
           onSubmit={(event) => {
             event.preventDefault();
             if (canSend) submit(input);
           }}
-          style={{
-            position: "sticky",
-            bottom: 0,
-            background: "var(--color-bg)",
-            paddingTop: "var(--space-2)",
-            paddingBottom: "var(--space-3)",
-            margin: 0,
-          }}
         >
-          <div style={{ maxWidth: "760px", margin: "0 auto" }}>
-            {reportParam ? (
-              <div data-testid="agent-scope-chip" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-2)", paddingBottom: "var(--space-2)" }}>
-                <span className="tag tag-neutral" style={{ fontWeight: 800, display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}>
-                  {scope ? `Report: ${scope.original_filename}` : reportsState === "ready" ? "Report not found" : "Loading the report"}
-                  <button
-                    type="button"
-                    className="vg-action"
-                    aria-label="Use all my reports"
-                    title="Use all my reports"
-                    onClick={() => {
-                      clearLoadedReport();
-                      setSearchParams({});
-                    }}
-                    style={{ padding: "0 var(--space-1)" }}
-                  >
-                    ×
-                  </button>
-                </span>
-                <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>
-                  {scope ? "Answers use only this report." : "Answers use all your reports."}
-                </span>
-              </div>
-            ) : null}
+          <div className="vg-agent-composer-inner">
             <div className="vg-composer-box">
               <textarea
                 ref={composerRef}
@@ -857,10 +1048,25 @@ export const AgentPage: React.FC = () => {
                 aria-label="Your question"
                 placeholder={placeholder}
               />
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "var(--space-2) var(--space-2) var(--space-2) var(--space-4)" }}>
-                <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-700)" }}>Enter to send · Shift+Enter for a new line</span>
+              <div className="vg-agent-composer-bar">
+                <div className="vg-agent-tools" role="group" aria-label="Question helpers">
+                  <ScopePicker reports={reports} value={reportParam} loading={reportsState === "loading"} disabled={!composerReady && reportsState !== "ready"} onChange={setScope} />
+                  <button type="button" className="vg-agent-tool" data-testid="agent-prefill-chart" disabled={!composerReady} onClick={() => prefill(CHART_PREFILL)}>
+                    <Glyph>
+                      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+                    </Glyph>
+                    Chart
+                  </button>
+                  <button type="button" className="vg-agent-tool" data-testid="agent-prefill-report" disabled={!composerReady} onClick={() => prefill(REPORT_PREFILL)}>
+                    <Glyph>
+                      <path d="M7 3h8l4 4v14H7z" />
+                      <path d="M10 13h6M10 17h6" />
+                    </Glyph>
+                    Write a report
+                  </button>
+                </div>
                 {chat.isStreaming ? (
-                  <button type="button" className="btn btn-secondary" onClick={chat.stop} aria-label="Stop" style={{ minWidth: 0, padding: "var(--space-2) var(--space-3)", gap: "var(--space-2)" }}>
+                  <button type="button" className="btn btn-secondary vg-agent-sendbtn" onClick={chat.stop} aria-label="Stop" style={{ gap: "var(--space-2)" }}>
                     Stop
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <rect x="4" y="4" width="16" height="16" />
@@ -869,53 +1075,47 @@ export const AgentPage: React.FC = () => {
                 ) : (
                   <button
                     type="submit"
-                    className="btn btn-primary"
+                    className="btn btn-primary vg-agent-sendbtn"
                     aria-label="Send"
                     aria-disabled={!canSend}
                     onClick={(e) => {
                       if (!canSend) e.preventDefault();
                     }}
-                    style={{ minWidth: 0, padding: "var(--space-2) var(--space-3)", opacity: canSend ? 1 : 0.45 }}
+                    style={{ opacity: canSend ? 1 : 0.45 }}
                   >
                     <Arrow size={18} />
                   </button>
                 )}
               </div>
             </div>
-            <div style={{ paddingTop: "var(--space-2)", fontSize: "0.75rem", color: "var(--color-neutral-700)", textAlign: "center" }}>
-              Educational tool. Not a diagnosis. Check the cited passage.
-            </div>
+            {waiting ? (
+              <div role="status" data-testid="agent-waiting" className="vg-agent-hint" style={{ color: "var(--color-accent-800)", fontWeight: 600 }}>
+                Another chat is still answering.
+              </div>
+            ) : null}
+            <div className="vg-agent-hint">Enter to send · Shift+Enter for a new line. Educational tool. Not a diagnosis. Check the cited passage.</div>
           </div>
         </form>
       </div>
 
-      {/* The report beside the chat */}
-      {reportView ? (
-        <aside
-          style={
-            isDesktop
-              ? {
-                  width: 520,
-                  flex: "0 0 520px",
-                  boxSizing: "border-box",
-                  position: "sticky",
-                  top: 0,
-                  height: "calc(100vh - 114px)",
-                  alignSelf: "flex-start",
-                  borderLeft: "2px solid var(--color-divider)",
-                }
-              : { height: "calc(100vh - 114px)", borderTop: "2px solid var(--color-divider)" }
-          }
-        >
-          <ReportPanel
-            view={reportView}
-            pdfUrl={(id) => agentApi.reportPdfUrl(effectiveUserId, id)}
-            onClose={() => setReportView(null)}
-            onOpen={openSavedReport}
-            onDelete={deleteSavedReport}
-            onList={showReportList}
-          />
-        </aside>
+      {/* The side panel */}
+      {panelShown ? (
+        <SidePanel
+          userId={effectiveUserId}
+          tabs={tabs}
+          activeKey={activeKey}
+          onActivate={setActiveKey}
+          onCloseTab={closeTab}
+          onClose={closePanel}
+          onOpenReport={openSavedReport}
+          onOpenList={openReportsList}
+          onReportDeleted={(id) => closeTab(reportTabKey(id))}
+          reportsVersion={reportsVersion}
+          full={panelFull}
+          onToggleFull={toggleFull}
+          narrow={panelNarrow}
+          reserve={historyShown ? HISTORY_WIDTH : 0}
+        />
       ) : null}
     </div>
   );

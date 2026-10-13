@@ -1,0 +1,48 @@
+1
+00:00:00,500 --> 00:00:07,500
+For twenty years, Meena has kept
+every health report she was ever given.
+
+2
+00:00:08,500 --> 00:00:15,500
+Every visit, her doctor searches the pile,
+page after page, for one old value.
+
+3
+00:00:16,500 --> 00:00:23,500
+Most AI tools fix that by sending
+her private data far outside the hospital.
+
+4
+00:00:24,500 --> 00:00:31,500
+VitaGraph is different. It reads
+every page, even the old scanned ones.
+
+5
+00:00:32,500 --> 00:00:39,500
+Then it connects every result,
+from every year, into one clear picture.
+
+6
+00:00:40,500 --> 00:00:43,800
+Ask in plain English,
+and the answer points
+
+7
+00:00:43,800 --> 00:00:47,500
+to the exact line,
+on the exact page.
+
+8
+00:00:48,300 --> 00:00:51,800
+No guessing. No diagnosis.
+Just her own facts.
+
+9
+00:00:52,300 --> 00:00:56,000
+It runs on open models
+inside your hospital. Nothing leaves.
+
+10
+00:00:56,000 --> 00:00:59,500
+VitaGraph: answers you can check.

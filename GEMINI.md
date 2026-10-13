@@ -2,11 +2,13 @@
 - Imperative mode only: act, verify, report.
 - Read order each task: AGENTS.md, gemini/DESIGN_LAW.md, gemini/TASK_*.md, tail progress.txt, then only the files the story touches.
 - Modernist design is the visual law (`VitaGraph-App-v3.html`, `design/reference/app-v3-source.html`, tokens in `site design/src/theme/tokens.css`): Archivo font only, 0px radius, flat surfaces, single red accent (`--color-accent: #ec3013`). Never invent colors, radii, or typography.
-- 11 pages: Upload, Library, AI Agent, Knowledge Graph, Timeline, Compare, Insights, Image to Text, PDF to Text, Text to Graph, Settings.
+- 14 pages: Upload, Library, My Data, AI Agent, Knowledge Graph, Timeline, Compare, Insights, Image to Text, PDF to Text, Text to Graph, Privacy Shield, Accuracy Test, Settings.
 - Reality contract: no setTimeout/fake progress; SSE only (`POST /api/agent/stream`); real 3D canvas graph; no static graph.json.
-- Checkpoint rule: end every turn with `npm run build` exit 0 AND `pytest tests -q` green, then `git commit` staging by explicit path (never `git add .`, never `tsconfig.tsbuildinfo`). If you cannot reach green in 3 verification attempts, STOP, write a BLOCKED entry in progress.txt, `git checkout -- .` to last green commit, and end turn.
+- Checkpoint rule: verify the task with `npm run build`, `npm run audit:design`, backend pytest and the secret scan. Never claim completion without fresh output. No commits during a work round; the reviewer reviews first and commits only on owner instruction. Never discard existing work, reset, stash or clean. Never stage `tsconfig.tsbuildinfo` or use `git add .`.
 - One story per task. Never open a second story. Never paste whole files into replies.
 - Evidence rule: every completion claim includes fresh command output plus a browser screenshot artifact of the touched screen.
 - Never show provider or model names in the UI.
-- Never touch the other folder (`kiruthika final project`) or ports. Use only ports 5174 (frontend) and 8001 (backend) in this worktree.
+- Work only in the checkout named by the task. Current branch: `feature/privacy-shield-and-rag-lab`; do not switch automatically to an old redesign branch. Primary workspace ports are 8000/5173; isolated checks use 8001/5174 and must stop their own scratch processes afterwards.
+- AI Agent has five read-only tools: list_reports, search_reports, get_measurements, graph_lookup, calculate. Keep browser-independent runs, reattachment and explicit Stop intact.
+- AI connection: never print or manually edit the real `.env`. Empty key reuse is limited to the saved host and port. Scratch runs must set DATA_DIR, DB_PATH, CHROMA_DIR, UPLOADS_DIR and VITAGRAPH_ENV_FILE separately.
 - Run `python scripts/plan/secret_scan.py` (must print `RESULT: PASS`).

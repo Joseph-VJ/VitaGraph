@@ -11,23 +11,28 @@ The visual law is the Modernist design system defined by `VitaGraph-App-v3.html`
 - **Geometry:** Strictly flat surfaces with 0px border-radius (`--radius-none: 0px`).
 - **Color:** Neutral stark palette (`--color-bg: #f3f2f2`, `--color-surface: #eae9e9`, `--color-text: #201e1d`) accented by one vivid red (`--color-accent: #ec3013`).
 - **Tokens:** Semantic tokens live in `site design/src/theme/tokens.css` and `modernist.css`.
+- **Whole-app theme:** Settings → Display → Light / Dark; Dark is the default. The browser remembers the choice and synchronizes tabs. All 14 pages, shell, graphs and generated previews adapt without restarting work or animations. Source PDFs/images/videos and document downloads/printing keep their original colours. Graph colour buttons control this same setting.
 - **Reference screens:** Measured at 1440 x 900 in `design/reference/screens/*.png`.
 
-## 3. Application Pages (11 Screens)
+## 3. Application Pages (14 Screens)
 1. **Upload & Ingest** (`/upload`): Ingestion show (5s per stage), dropzone, page quality manifest, interactive stage.
 2. **Library** (`/library`): Report index with SHA-256 hashes, page/chunk counts, biomarker values, reference ranges, and character-level passage preview.
-3. **AI Agent** (`/agent`): Provenance-grounded question answering via `POST /api/agent/stream`.
-4. **Knowledge Graph** (`/graph`): the `/graph` page is the preview-based graph stage (dark ink stage with a Paper switch, opening sequence, four layouts, lens, What changed, time machine, path finder), readable labels with collision pruning and priority sorting, the node card docked at the right of the stage with the AI summary box (numbered citations to exact passages), rotation/pause; see gemini/DESIGN_LAW.md items 9 to 11.
+3. **AI Agent** (`/agent`): Provenance-grounded question answering via `POST /api/agent/stream`. Answers run on the server and keep going when the person leaves the page or closes the tab (`app/agent/runs.py`; re-attach `GET /api/agent/runs/{conversation_id}/events?after=`, `GET /api/agent/runs/active`, `POST /api/agent/runs/{id}/stop`); a run store in the browser (`src/lib/agentRuns.ts`) follows them across pages with a sidebar sign and an "answer ready" toast. History with search, pin and rename (`PATCH /api/agent/conversations/{id}`); a tabbed, resizable side panel for reports, charts and the source page with the cited passage marked (`GET /api/reports/{id}/pages/{n}/highlight`). Charts come from ```chart blocks whose JSON names tests only; the server draws them from stored values (`POST /api/agent/chart`, `chart_service.py`), also inside saved reports and their PDF. Plan: `gemini/PLAN_R_agent_upgrade.md`.
+4. **Knowledge Graph** (`/graph`): the `/graph` page is the preview-based graph stage (global Light/Dark stage with a theme shortcut, opening sequence, four layouts, lens, What changed, time machine, path finder), readable labels with collision pruning and priority sorting, the node card docked at the right of the stage with the AI summary box (numbered citations to exact passages), rotation/pause; see gemini/DESIGN_LAW.md items 9 to 11.
 5. **Timeline** (`/timeline`): Longitudinal reports list and 3D isometric biomarker change charts.
 6. **Compare** (`/compare`): Side-by-side longitudinal report comparisons and change deltas.
 7. **Insights** (`/insights`): Graph size, betweenness centrality rankings, edge type frequencies.
 8. **Image to Text** (`/image-to-text`): Standalone OCR tool.
 9. **PDF to Text** (`/pdf-to-text`): Standalone text-layer extraction tool.
 10. **Text to Graph** (`/text-to-graph`): Standalone clinical text-to-graph extraction tool.
-11. **Settings** (`/settings`): Process speed, chunk size slider (120 to 600), privacy controls, persona management.
+11. **Settings** (`/settings`): Process speed, chunk size slider (120 to 600 characters), privacy controls, persona management, and AI connection (address, key, model name, format and reasoning). Test saves nothing; Save tests first, applies settings to new calls, and closes idle agent workers. Changes are local-only and refused while an answer runs. A blank key keeps the saved key only on the saved host and port; changing either requires pasting the key again. The key is never returned, only its last four characters. Chat format explicitly warns that Privacy Shield does not cover it.
+12. **Privacy Shield** (`/privacy`, sidebar group "Trust"): every model call is masked locally (`app/privacy/`: names, IDs, phones, emails and more become `[PERSON_1]` style tags and are put back before an answer is shown), recorded in a per-persona SHA-256 hash-chain ledger (`/api/privacy/*`), with a live "Try the shield" preview, an "Always hide" word list, chain verification and a tamper test. A privacy line sits under each agent answer.
+13. **Accuracy Test** (`/lab`, group "Trust"; the RAG Lab, renamed in plain words on 2026-10-11): the system grades itself on a fixed gold set (`app/lab/gold.json`) in a temporary hidden persona: "N of 11 questions passed" up front, four main scores, extra scores (retrieval hit rate, MRR, precision) folded away, and a piece-size (chunk-size) experiment chart (`/api/lab/*`, SSE). Quick mode needs no AI; full mode does.
+14. **My Data** (`/data`, group "Workspace", under Library): one plain page with everything the active persona added and asked: Reports (pages, passages, values found, file fingerprint, download the original file, delete one report), Chats (questions and answers, which reports each used, continue or delete), AI reports (PDF download), "Sent to the AI" (link to Privacy Shield) and an Activity feed in plain sentences. Backend: `GET /api/overview/{user_id}`, `GET /api/reports/{id}/file`, `DELETE /api/reports/{id}` (409 while a report is still being read).
 
 ## 4. AI Agent Streaming Protocol
 The frontend consumes Server-Sent Events from `POST /api/agent/stream` (fetch + ReadableStream). Every frame carries `event_type` and a `metadata` payload:
+0. `run`: first frame, `{ "conversation_id", "started_at" }`; every frame has an `index` used to re-attach.
 1. `status`: Lifecycle updates (`starting`, `working`, `retrying`).
 2. `step`: `{ "phase": "start"|"end", "step": n }`.
 3. `model`: Live model activity from the loopback route: `{ "phase": "start"|"end"|"error", "call": n, "ms", "first_ms", "input_tokens", "output_tokens", "tool_calls" }`.
@@ -63,7 +68,7 @@ The frontend consumes Server-Sent Events from `POST /api/agent/stream` (fetch + 
 - **Never Push or Reset:** Never `git push`, merge, rebase, `reset --hard`, clean, or amend.
 
 ## 6. Verification Commands (Windows)
-- **Backend:** `cd vitagraph/backend && .venv\Scripts\python.exe -m pytest tests -q` (426 tests passing)
+- **Backend:** `cd vitagraph/backend && .venv\Scripts\python.exe -m pytest tests -q -p no:cacheprovider` (791 passed on 2026-10-12 after T3)
 - **Frontend:** `cd "site design" && npm run build`
 - **Dev Servers:**
   - Backend: `uvicorn app.main:app --port 8000` (port 8001 for worktree)

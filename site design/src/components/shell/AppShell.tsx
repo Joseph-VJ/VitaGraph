@@ -1,5 +1,6 @@
-import React, { Suspense, useEffect, useRef } from "react";
-import { useLocation, Outlet } from "react-router-dom";
+import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, Outlet } from "react-router-dom";
+import { useAgentActivity } from "../../hooks/useAgentActivity";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { StatusStrip } from "./StatusStrip";
@@ -12,6 +13,7 @@ import {
 import { useHealth } from "../../lib/healthMonitor";
 import { LivingBackground } from "../background/LivingBackground";
 import { usePreferences } from "../../lib/preferences";
+import { readStorage } from "../../lib/browserStorage";
 
 const ROUTE_TITLES: Record<string, string> = {
   "/": "Overview",
@@ -27,6 +29,9 @@ const ROUTE_TITLES: Record<string, string> = {
   "/image-to-text": "Image to Text",
   "/pdf-to-text": "PDF to Text",
   "/text-to-graph": "Text to Graph",
+  "/privacy": "Privacy Shield",
+  "/lab": "Accuracy Test",
+  "/data": "My Data",
 };
 
 // routes already converted to the exact reference layout; each page task adds its route here
@@ -42,7 +47,87 @@ const OWN_LAYOUT = new Set<string>([
   "/image-to-text",
   "/pdf-to-text",
   "/text-to-graph",
+  "/privacy",
+  "/lab",
+  "/data",
 ]);
+
+
+/**
+ * "Your answer is ready": an AI Agent answer finished while the person was on another page or in another chat.
+ * The run store only lists a chat as ready when it was not on screen, so this never shows for the chat being read.
+ */
+const AnswerReadyToast: React.FC = () => {
+  const { ready, markSeen } = useAgentActivity();
+  const navigate = useNavigate();
+  const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
+
+  const item = ready.find((r) => !dismissed.has(`${r.conversationId}:${r.finishedAt}`)) ?? null;
+  const itemKey = item ? `${item.conversationId}:${item.finishedAt}` : null;
+
+  const close = useCallback(() => {
+    if (!itemKey) return;
+    setDismissed((current) => new Set(current).add(itemKey));
+  }, [itemKey]);
+
+  useEffect(() => {
+    if (!itemKey) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !event.defaultPrevented) close();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [itemKey, close]);
+
+  if (!item) return null;
+
+  const open = () => {
+    markSeen(item.conversationId);
+    navigate(`/agent?c=${encodeURIComponent(item.conversationId)}`);
+  };
+  const more = ready.length - 1;
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      data-testid="answer-ready-toast"
+      style={{
+        position: "fixed", right: "var(--space-6)", bottom: "var(--space-6)", zIndex: 60,
+        width: "min(360px, calc(100vw - 2 * var(--space-4)))", boxSizing: "border-box",
+        background: "var(--color-bg)", border: "2px solid var(--color-text)", borderLeft: "6px solid var(--color-accent)",
+        padding: "var(--space-3) var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-2)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-3)" }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: "0.9375rem", fontWeight: 800 }}>Your answer is ready</div>
+          <div
+            title={item.question}
+            style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+          >
+            {item.question}
+          </div>
+          {more > 0 ? (
+            <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-700)" }}>
+              {more === 1 ? "1 more answer is ready" : `${more} more answers are ready`}
+            </div>
+          ) : null}
+        </div>
+        <button type="button" className="vg-action" onClick={close} aria-label="Close" title="Close (Esc)" style={{ flex: "none" }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ strokeWidth: 2, strokeLinecap: "round" }} aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </div>
+      <div>
+        <button type="button" className="btn btn-primary" onClick={open} style={{ minWidth: 0, padding: "var(--space-1) var(--space-4)" }}>
+          Open
+        </button>
+      </div>
+    </div>
+  );
+};
 
 interface AppShellProps {
   children?: React.ReactNode;
@@ -81,7 +166,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    const isBooted = typeof sessionStorage !== "undefined" && sessionStorage.getItem("vg_booted") === "1";
+    const isBooted = readStorage("vg_booted", "session") === "1";
     if (!isBooted && !hasBooted.current) {
       hasBooted.current = true;
       executeBoot();
@@ -176,6 +261,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         </div>
 
       </div>
+
+      <AnswerReadyToast />
     </div>
   );
 };

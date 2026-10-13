@@ -3,12 +3,15 @@ import { aiApi, type AiConfig, type HealthInfo } from "../api/ai";
 import { usersApi } from "../api/users";
 import { reportsApi } from "../api/reports";
 import { PageState } from "../components/ui";
+import { AiConnectionSection } from "../components/settings/AiConnectionSection";
+import { readStorage } from "../lib/browserStorage";
 import { useActiveUser } from "../context/UserContext";
 import {
   BACKGROUND_LEVEL_DEFAULT,
   BACKGROUND_LEVEL_MAX,
   BACKGROUND_LEVEL_MIN,
   setPreference,
+  canPersistPreferences,
   usePreferences,
   type ProcessSpeed,
 } from "../lib/preferences";
@@ -44,8 +47,10 @@ export const SettingsPage: React.FC = () => {
         setConfig(loadedConfig);
         setHealth(loadedHealth);
         if (typeof loadedHealth.chunk_target_chars === "number") {
-          const storedRaw = localStorage.getItem("vitagraph_preferences");
-          if (!storedRaw || !JSON.parse(storedRaw).chunkSize) {
+          const storedRaw = readStorage("vitagraph_preferences");
+          let storedChunkSize: unknown;
+          try { storedChunkSize = JSON.parse(storedRaw || "null")?.chunkSize; } catch { /* Use the backend default. */ }
+          if (!storedChunkSize) {
             setChunkSize(loadedHealth.chunk_target_chars);
             setPreference("chunkSize", loadedHealth.chunk_target_chars);
           }
@@ -299,6 +304,8 @@ export const SettingsPage: React.FC = () => {
         </div>
       </div>
 
+      <AiConnectionSection />
+
       {/* PRIVACY AND ANSWERS */}
       <div
         style={{
@@ -386,6 +393,20 @@ export const SettingsPage: React.FC = () => {
         }}
       >
         Display
+      </div>
+
+      <div data-testid="settings-theme" style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3) var(--space-6)", justifyContent: "space-between", alignItems: "center", padding: "var(--space-4) 0", borderBottom: "1px solid var(--color-divider)" }}>
+        <div style={{ flex: "1 1 300px", minWidth: 0 }}>
+          <div style={{ fontSize: "1.0625rem", fontWeight: 800 }}>Appearance</div>
+          <div style={{ fontSize: "0.9375rem", color: "var(--color-neutral-700)" }}>{canPersistPreferences() ? "Choose light or dark for the whole app. Your choice is remembered on this browser." : "Browser storage is unavailable. Your choice lasts for this visit."}</div>
+        </div>
+        <div role="group" aria-label="Appearance" style={{ display: "flex", gap: "var(--space-2)" }}>
+          {(["light", "dark"] as const).map((theme) => (
+            <button key={theme} type="button" data-testid={`settings-theme-${theme}`} aria-pressed={prefs.theme === theme} className={prefs.theme === theme ? "btn btn-primary" : "btn btn-secondary"} onClick={() => setPreference("theme", theme)}>
+              {theme === "light" ? "Light" : "Dark"}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Reduce motion */}

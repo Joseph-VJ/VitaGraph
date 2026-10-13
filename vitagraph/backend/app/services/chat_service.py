@@ -28,6 +28,7 @@ from openai import (
 from app.core.config import settings
 from app.core.database import get_db
 from app.generation import fallback_composer, safety
+from app.privacy import shield
 from app.rag import retriever
 from app.services import llm_service, question_service
 from app.services.job_service import job_broker
@@ -161,9 +162,10 @@ async def _stream_with_fallback(client: Any, messages: list[dict], tools: list[d
             emitted = False
             try:
                 state["model"] = model
-                stream = await llm_service._call_agentrouter_stream(
-                    client, _wrap_last_user_message(messages, variant), model=model, tools=tools
-                )
+                with shield.scope(state.get("user_id"), "chat"):
+                    stream = await llm_service._call_agentrouter_stream(
+                        client, _wrap_last_user_message(messages, variant), model=model, tools=tools
+                    )
                 async for chunk in stream:
                     emitted = True
                     yield ("chunk", chunk)
@@ -256,7 +258,7 @@ async def stream_chat(
         return
 
     client = llm_service.get_client()
-    state = {"model": settings.effective_model}
+    state = {"model": settings.effective_model, "user_id": user_id}
     messages: list[dict[str, Any]] = [{"role": "system", "content": CHAT_SYSTEM_PROMPT}]
     messages += _clean_history(turns[:-1])
     messages.append({"role": "user", "content": cleaned})

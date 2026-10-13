@@ -1,0 +1,7 @@
+VOICE: this video MUST include a spoken English voiceover by one off-screen narrator, a calm, warm Indian-English woman in her early 30s, studio quality, speaking slowly and clearly. No one on screen speaks.
+Cast and setting: Meena, a 68-year-old South Indian grandmother with silver hair in a low bun, round gold-rimmed glasses and a maroon saree, at the desk in a small white hospital consultation room with a teak desk, a curtained window on the left and a silver laptop, with a thick stack of yellowed lab reports tied with white string, each page printed with faint grey lines. Photorealistic feature film, ARRI Alexa 35, anamorphic lens, Kodak film grain, realistic skin, clean frame without lettering. Late-afternoon sunlight cuts through the curtains from camera-left in a hard diagonal beam with drifting dust.
+[00:00-00:03] Extreme close-up at eye level, static camera, 100mm macro: her wrinkled fingers grip the white string knot. SFX: string creaking.
+[00:03-00:05] Medium shot from a high angle, slow dolly-in, 35mm: she pulls the knot loose. SFX: the knot slipping.
+[00:05-00:08] Wide shot from desk level, static camera, 24mm: the freed pages fan out across the desk toward the lens. SFX: paper sliding over wood.
+VOICEOVER [00:00-00:08]: the off-screen narrator says softly, "For twenty years, Meena has kept every health report she was ever given."
+Emotion: quiet sorrow. Ambient noise: a wall clock ticking. The narrator's voice sits clearly above the sound effects. No music.

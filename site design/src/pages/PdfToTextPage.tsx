@@ -411,7 +411,7 @@ export const PdfToTextPage: React.FC = () => {
                       style={
                         p.hasText
                           ? { background: "var(--color-neutral-200)", color: "var(--color-neutral-800)" }
-                          : { background: "var(--color-accent)", color: "var(--color-bg)", fontWeight: 800 }
+                          : { background: "var(--color-accent)", color: "var(--on-accent)", fontWeight: 800 }
                       }
                     >
                       {p.hasText ? "Native text" : "No text layer"}

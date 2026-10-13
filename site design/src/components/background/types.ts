@@ -61,6 +61,7 @@ export interface BackgroundEngineInstance {
   init?: () => void;
   resize?: () => void;
   reset: () => void;
+  refreshPalette?: () => void;
   setCount?: () => void;
   count: () => string;
   event?: (kind: "think" | "stage" | "done") => void;

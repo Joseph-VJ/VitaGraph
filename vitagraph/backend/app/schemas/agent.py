@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.chat import ChatTurn
 
@@ -25,6 +25,27 @@ class ConversationSummaryOut(BaseModel):
     title: str | None = None
     updated_at: str
     message_count: int
+    # Number of questions the person asked (message_count counts answers too).
+    turns: int = 0
+    pinned: bool = False
+    running: bool = False
+
+
+class ConversationPatch(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    pinned: bool | None = None
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def _trim_title(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+
+class RunOut(BaseModel):
+    conversation_id: str
+    question: str
+    started_at: int
+    status: str = "running"
 
 
 class ConversationMessageOut(BaseModel):
@@ -36,6 +57,8 @@ class ConversationMessageOut(BaseModel):
     evidence: list[dict[str, Any]] = Field(default_factory=list)
     trajectory: list[dict[str, Any]] = Field(default_factory=list)
     stats: dict[str, Any] = Field(default_factory=dict)
+    safety_passed: bool = True
+    safety_note: str | None = None
     created_at: str
 
 

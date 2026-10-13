@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { reportsApi, type MeasurementRow } from "../api/reports";
 import { useActiveUser } from "../context/UserContext";
 import { transitionNavigate } from "../motion/navigation";
@@ -30,6 +30,8 @@ function statusOf(r: MeasurementRow): { label: string; tone: TagTone } {
 
 export const LibraryPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const wantedReport = searchParams.get("report"); // "/library?report=<id>" opens that report (used by My Data)
   const { user, loading: personaLoading, refreshUsers } = useActiveUser();
   const userId = user?.id ?? null;
 
@@ -58,11 +60,12 @@ export const LibraryPage: React.FC = () => {
         const sorted = sortReports(list);
         setReports(sorted);
         const latestDated = [...sorted].reverse().find((r) => parseReportDate(r) !== null);
-        setSelId(latestDated ? latestDated.id : (sorted.length > 0 ? sorted[sorted.length - 1].id : ""));
+        const wanted = wantedReport ? sorted.find((r) => r.id === wantedReport) : undefined;
+        setSelId(wanted ? wanted.id : latestDated ? latestDated.id : (sorted.length > 0 ? sorted[sorted.length - 1].id : ""));
       })
       .catch((err: unknown) => { if (!cancelled) setError(err instanceof Error ? err.message : String(err)); });
     return () => { cancelled = true; };
-  }, [userId, tick]);
+  }, [userId, tick, wantedReport]);
 
   const labelOf = useMemo(() => makeLabeler(reports ?? []), [reports]);
   const selIndex = (reports ?? []).findIndex((r) => r.id === selId);

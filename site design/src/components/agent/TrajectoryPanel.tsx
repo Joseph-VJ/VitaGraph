@@ -224,10 +224,21 @@ export const TrajectoryPanel: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
             {entry.trajectory.map((item) => (
               <div key={item.id} data-row={item.kind} style={rowStyle}>
                 <span style={{ display: "flex", paddingTop: 5 }}>
-                  {item.kind === "note" ? <span style={{ width: 12 }} /> : <Marker status={item.status} />}
+                  {item.kind === "note" ? (
+                    <span style={{ width: 12 }} />
+                  ) : item.kind === "privacy" ? (
+                    <span aria-hidden="true" style={{ display: "block", width: 10, height: 10, margin: 1, flex: "none", background: "var(--color-accent)" }} />
+                  ) : (
+                    <Marker status={item.status} />
+                  )}
                 </span>
                 <span style={{ minWidth: 0, flex: 1 }}>
-                  {item.kind === "tool" ? (
+                  {item.kind === "privacy" ? (
+                    <span data-testid="agent-privacy-row">
+                      <span style={{ fontWeight: 800 }}>{item.label}</span>
+                      <span style={{ display: "block", ...mutedStyle }}>{item.detail}</span>
+                    </span>
+                  ) : item.kind === "tool" ? (
                     <ToolRow item={item} now={now} />
                   ) : item.kind === "model" ? (
                     <ModelRow item={item} now={now} />

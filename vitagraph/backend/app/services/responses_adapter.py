@@ -29,6 +29,8 @@ import openai
 from openai.types.chat import ChatCompletion, ChatCompletionChunk
 
 from app.core.config import settings
+from app.privacy import shield
+from app.privacy.restore import StreamRestorer
 
 # Random per-process secret. The agent worker authenticates to the loopback
 # translation route with it, so the real model key never leaves this process.
@@ -348,9 +350,12 @@ async def open_stream(
     reasoning_effort: str | None = None,
     transport: httpx.AsyncBaseTransport | None = None,
 ) -> tuple[httpx.AsyncClient, httpx.Response]:
-    """Send the request and return once the response head is in; raises on an HTTP error status."""
+    """Send the request and return once the response head is in; raises on an HTTP error status.
+
+    The Privacy Shield masks the messages first, so no personal identifier is ever put into the request body."""
+    protected = shield.protect_messages(messages)
     body = build_request(
-        messages, model=model, tools=tools, tool_choice=tool_choice, stream=True, max_tokens=max_tokens,
+        protected.messages, model=model, tools=tools, tool_choice=tool_choice, stream=True, max_tokens=max_tokens,
         reasoning_effort=reasoning_effort,
     )
     client = httpx.AsyncClient(timeout=_timeout(), transport=transport)
@@ -361,20 +366,91 @@ async def open_stream(
             headers=request_headers(settings.effective_api_key, stream=True),
             json=body,
         )
+        shield.after_send(protected)
         response = await client.send(request, stream=True)
         if response.status_code >= 400:
             payload = await response.aread()
             await response.aclose()
             raise status_error(response, payload)
+        shield.announce(protected)
         return client, response
     except BaseException:
         await client.aclose()
         raise
 
 
-async def iter_chunks(client: httpx.AsyncClient, response: httpx.Response, model: str) -> AsyncIterator[dict]:
-    """Yield chat.completion.chunk dicts and always close the connection."""
+class _Restoring:
+    """Puts masked details back into streamed chunks (text, reasoning and tool-call arguments)."""
+
+    def __init__(self, translator: ChunkTranslator, restore_for: str | None) -> None:
+        vault = shield.vault_for(restore_for) if restore_for is not None else None
+        self.translator = translator
+        self.vault = vault
+        self.active = vault is not None and len(vault) > 0
+        self.text = StreamRestorer(vault)
+        self.reasoning = StreamRestorer(vault)
+        self.arguments: dict[int, StreamRestorer] = {}
+
+    def process(self, chunk: dict) -> list[dict]:
+        if not self.active:
+            return [chunk]
+        choice = (chunk.get("choices") or [{}])[0]
+        delta = choice.get("delta") or {}
+        out: list[dict] = []
+
+        if choice.get("finish_reason"):  # release anything still held back, in a chunk of its own
+            flush: dict[str, Any] = {}
+            if tail := self.text.flush():
+                flush["content"] = tail
+            if tail := self.reasoning.flush():
+                flush["reasoning_content"] = tail
+            calls = [
+                {"index": i, "function": {"arguments": tail}}
+                for i, restorer in sorted(self.arguments.items())
+                if (tail := restorer.flush())
+            ]
+            if calls:
+                flush["tool_calls"] = calls
+            if flush:
+                out.append(self.translator._chunk(flush))
+
+        if delta.get("content"):
+            delta["content"] = self.text.feed(delta["content"])
+            if not delta["content"]:
+                del delta["content"]
+        if delta.get("reasoning_content"):
+            delta["reasoning_content"] = self.reasoning.feed(delta["reasoning_content"])
+            if not delta["reasoning_content"]:
+                del delta["reasoning_content"]
+        if delta.get("tool_calls"):
+            kept = []
+            for call in delta["tool_calls"]:
+                function = call.get("function") or {}
+                if function.get("arguments"):
+                    restorer = self.arguments.setdefault(call.get("index", 0), StreamRestorer(self.vault, json_escape=True))
+                    function["arguments"] = restorer.feed(function["arguments"])
+                    if not function["arguments"] and not call.get("id") and not function.get("name"):
+                        continue
+                kept.append(call)
+            if kept:
+                delta["tool_calls"] = kept
+            else:
+                del delta["tool_calls"]
+
+        if delta or choice.get("finish_reason") or chunk.get("usage"):
+            out.append(chunk)
+        return out
+
+
+async def iter_chunks(
+    client: httpx.AsyncClient, response: httpx.Response, model: str, restore_for: str | None = None
+) -> AsyncIterator[dict]:
+    """Yield chat.completion.chunk dicts and always close the connection.
+
+    `restore_for` names the persona whose masked details are put back into the text as it streams.
+    """
     translator = ChunkTranslator(model)
+    restoring = _Restoring(translator, restore_for)
     event: str | None = None
     try:
         async for line in response.aiter_lines():
@@ -396,9 +472,11 @@ async def iter_chunks(client: httpx.AsyncClient, response: httpx.Response, model
             if not isinstance(data, dict):
                 continue
             for chunk in translator.translate(event, data):
-                yield chunk
+                for restored in restoring.process(chunk):
+                    yield restored
         if not translator.finished:
-            yield translator._chunk({}, finish="stop")
+            for restored in restoring.process(translator._chunk({}, finish="stop")):
+                yield restored
     finally:
         await response.aclose()
         await client.aclose()
@@ -413,10 +491,11 @@ async def stream_chunks(
     max_tokens: int | None = None,
     transport: httpx.AsyncBaseTransport | None = None,
 ) -> AsyncIterator[dict]:
+    key = shield.current().vault_key
     client, response = await open_stream(
         messages, model=model, tools=tools, tool_choice=tool_choice, max_tokens=max_tokens, transport=transport
     )
-    async for chunk in iter_chunks(client, response, model):
+    async for chunk in iter_chunks(client, response, model, restore_for=key):
         yield chunk
 
 
@@ -468,6 +547,7 @@ def aggregate_completion(chunks: list[dict], model: str) -> dict:
 class _Completions:
     async def create(self, **kwargs: Any) -> Any:
         model = kwargs["model"]
+        key = shield.current().vault_key
         client, response = await open_stream(
             kwargs["messages"],
             model=model,
@@ -476,7 +556,7 @@ class _Completions:
             max_tokens=kwargs.get("max_tokens") or kwargs.get("max_completion_tokens"),
             reasoning_effort=kwargs.get("reasoning_effort"),
         )
-        chunks = iter_chunks(client, response, model)
+        chunks = iter_chunks(client, response, model, restore_for=key)
         if kwargs.get("stream"):
             return _TypedStream(chunks)
         collected = [chunk async for chunk in chunks]
@@ -536,7 +616,9 @@ def complete_sync(
     transport: httpx.BaseTransport | None = None,
 ) -> httpx.Response:
     """POST one non-streamed request and return the raw response (caller checks the status)."""
-    body = build_request(messages, model=model, stream=False, max_tokens=max_tokens)
+    protected = shield.protect_messages(messages)
+    body = build_request(protected.messages, model=model, stream=False, max_tokens=max_tokens)
+    shield.after_send(protected)
     with httpx.Client(timeout=timeout or settings.ai_service_timeout_seconds, transport=transport) as client:
         return client.post(
             responses_url(url),

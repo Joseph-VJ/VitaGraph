@@ -19,6 +19,8 @@ from app.agent.pool import RuntimePool, get_pool
 from app.core.config import settings
 from app.core.database import init_db
 from app.routes import agent, ai, chat, demo, graph, jobs, llm_shim, questions, reports, timeline, tools, users
+from app.routes import lab, overview, privacy
+from app.routes import charts
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,14 @@ def _warm_graphs() -> None:
 async def lifespan(_: FastAPI):
     settings.ensure_dirs()
     init_db()
+    # A crash during a RAG Lab run can leave its temporary persona behind; remove it before anything else reads users.
+    from app.lab import runner as lab_runner
+
+    await asyncio.to_thread(lab_runner.cleanup_leftover_personas)
+    # An answer that was being written when the app last closed can never finish: close it as "stopped".
+    from app.services import conversation_service
+
+    await asyncio.to_thread(conversation_service.close_unfinished_turns)
     pool = get_pool()
     reaper = asyncio.create_task(_reap_loop(pool, 60.0))
     # Betweenness centrality takes seconds for a persona with many reports; do it once in the background
@@ -58,6 +68,11 @@ async def lifespan(_: FastAPI):
         reaper.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await reaper
+        # Answers still being written are stopped (and saved as stopped) before their runtimes are closed.
+        from app.agent.runs import get_registry
+
+        with contextlib.suppress(Exception):
+            await get_registry().shutdown()
         await pool.close_all()
 
 
@@ -96,6 +111,10 @@ app.include_router(ai.router)
 app.include_router(jobs.router)
 app.include_router(demo.router)
 app.include_router(tools.router)
+app.include_router(lab.router)
+app.include_router(privacy.router)
+app.include_router(overview.router)
+app.include_router(charts.router)
 
 
 @app.get("/api/health")

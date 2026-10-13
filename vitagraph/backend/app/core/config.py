@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import logging
+import os
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -24,6 +25,44 @@ ALLOWED_AGENTROUTER_MODELS: frozenset[str] = frozenset({
 })
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
+
+
+def _env_file_path() -> Path:
+    """The file settings are saved to: backend/.env, or the path in VITAGRAPH_ENV_FILE (used by scratch servers and tests)."""
+    override = os.environ.get("VITAGRAPH_ENV_FILE", "").strip()
+    return Path(override) if override else BACKEND_DIR / ".env"
+
+
+def write_env_values(updates: dict[str, str]) -> None:
+    """Save KEY=value lines in the .env file.
+
+    The first `KEY=` (or `#KEY=`) line of each key is replaced, repeated `KEY=` lines are dropped, keys that are not in the file are
+    appended. Every other line (comments, other settings) stays as it is. The file is replaced in one step, so a crash never leaves a
+    half-written file. A value must be a single line.
+    """
+    for name, value in updates.items():
+        if any(ch in value for ch in ("\r", "\n", "\x00")):
+            raise ValueError(f"{name} must be a single line")
+    env_file = _env_file_path()
+    lines = env_file.read_text(encoding="utf-8").splitlines() if env_file.exists() else []
+    handled: set[str] = set()
+    out: list[str] = []
+    for line in lines:
+        hit = next((name for name in updates if line.startswith(f"{name}=") or line.startswith(f"#{name}=")), None)
+        if hit is None:
+            out.append(line)
+        elif hit in handled:
+            if not line.startswith(f"{hit}="):
+                out.append(line)  # a second commented example stays; a second active line is a duplicate and goes
+        else:
+            out.append(f"{hit}={updates[hit]}")
+            handled.add(hit)
+    for name, value in updates.items():
+        if name not in handled:
+            out.append(f"{name}={value}")
+    tmp = env_file.with_name(env_file.name + ".tmp")
+    tmp.write_text("\n".join(out) + "\n", encoding="utf-8")
+    os.replace(tmp, env_file)
 
 
 class Settings(BaseSettings):
@@ -69,19 +108,25 @@ class Settings(BaseSettings):
     # Address the agent worker uses to reach this backend's loopback translation route.
     backend_url: str = "http://127.0.0.1:8000"
 
-    @model_validator(mode="after")
-    def _apply_model_api(self) -> "Settings":
+    def _derive_from_model_api(self) -> None:
+        """Copy MODEL_API_URL / MODEL_NAME onto the active fields. Only done together with the key, so an old gateway key can never go to a new host."""
         key = self.model_api_key.strip()
         if not key:
-            if self.model_api_url.strip() or self.model_name.strip():
-                logger.warning("MODEL_API_URL / MODEL_NAME are set but MODEL_API_KEY is empty; ignoring them.")
-            return self
+            return
         self.agentrouter_api_key = key
         if self.model_api_url.strip():
             self.agentrouter_base_url = self.model_api_url.strip()
         if self.model_name.strip():
             self.agentrouter_model = self.model_name.strip()
             self.agentrouter_fallback_models = self.model_fallback_models
+
+    @model_validator(mode="after")
+    def _apply_model_api(self) -> "Settings":
+        if not self.model_api_key.strip():
+            if self.model_api_url.strip() or self.model_name.strip():
+                logger.warning("MODEL_API_URL / MODEL_NAME are set but MODEL_API_KEY is empty; ignoring them.")
+            return self
+        self._derive_from_model_api()
         return self
 
     @staticmethod
@@ -173,11 +218,6 @@ class Settings(BaseSettings):
         self.ai_service_model = model.strip()
 
         if persist:
-            env_file = BACKEND_DIR / ".env"
-            lines: list[str] = []
-            if env_file.exists():
-                lines = env_file.read_text(encoding="utf-8").splitlines()
-
             settings_map = {
                 "ALLOW_API": "true" if self.allow_api else "false",
                 "AI_SERVICE_URL": self.ai_service_url,
@@ -185,25 +225,49 @@ class Settings(BaseSettings):
             }
             if key.strip():
                 settings_map["AI_SERVICE_API_KEY"] = self.ai_service_api_key
+            write_env_values(settings_map)
 
-            new_lines: list[str] = []
-            handled_keys = set()
-            for line in lines:
-                matched = False
-                for k, v in settings_map.items():
-                    if line.startswith(f"{k}=") or line.startswith(f"#{k}="):
-                        new_lines.append(f"{k}={v}")
-                        handled_keys.add(k)
-                        matched = True
-                        break
-                if not matched:
-                    new_lines.append(line)
+    def apply_model_connection(
+        self,
+        *,
+        url: str,
+        key: str,
+        model: str,
+        api_format: str,
+        reasoning_effort: str,
+        persist: bool = True,
+    ) -> None:
+        """Use a new model endpoint at once and (by default) remember it in the .env file.
 
-            for k, v in settings_map.items():
-                if k not in handled_keys:
-                    new_lines.append(f"{k}={v}")
+        `key` empty keeps the key that is already saved. `api_format` is "responses" or "chat". `reasoning_effort` is
+        minimal | low | medium | high, or "" to leave the choice to the provider.
+        """
+        self.model_api_url = url.strip()
+        if key.strip():
+            self.model_api_key = key.strip()
+        self.model_name = model.strip()
+        self.model_api_format = api_format
+        self.model_reasoning_effort = reasoning_effort
+        self._derive_from_model_api()
+        if persist:
+            updates = {
+                "MODEL_API_URL": self.model_api_url,
+                "MODEL_NAME": self.model_name,
+                "MODEL_API_FORMAT": self.model_api_format,
+                "MODEL_REASONING_EFFORT": self.model_reasoning_effort,
+            }
+            if key.strip():
+                updates["MODEL_API_KEY"] = self.model_api_key
+            write_env_values(updates)
 
-            env_file.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+    def forget_model_key(self, persist: bool = True) -> None:
+        """Remove the saved key everywhere it is used."""
+        self.model_api_key = ""
+        self.agentrouter_api_key = ""
+        self.ai_service_api_key = ""
+        if persist:
+            write_env_values({"MODEL_API_KEY": ""})
+
 
     def validate_models(self) -> None:
         """Log warning if effective_model is not in the allowed AgentRouter set."""

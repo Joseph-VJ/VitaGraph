@@ -1,0 +1,64 @@
+VOICE · BACKUP ONLY (v5) · In v5, Veo speaks the narration INSIDE each clip (see the "VOICE:" and "VOICEOVER" lines in clips 01–08).
+Use this file only if the narrator's voice comes out different between clips. Two ways to fix that:
+  (a) ElevenLabs Voice Changer: run each clip's audio through the "VitaGraph Narrator" voice below, so all 8 clips sound like one person. You keep Veo's timing.
+  (b) Replace the voice: mute Veo's narration in the edit and lay these ElevenLabs lines instead (same words, same timings).
+The words below are identical to the quoted lines in the clip prompts.
+Follows ElevenLabs' own Voice Design format: language and regional variant first, then gender and age, then quality, then a 2–5 word persona, then 2–3 emotions.
+
+======================================================================
+STEP 1 · CREATE THE VOICE (ElevenLabs → Voices → Voice Design)
+======================================================================
+VOICE DESCRIPTION (paste into "Describe the voice")
+------------------------------------------------------------
+Native Indian English. Female, early 30s. Studio-quality recording. Persona: warm hospital storyteller. Emotion: calm, kind, reassuring. She speaks slowly and clearly, with soft pauses between sentences, a gentle smile in her voice and precise, unhurried consonants.
+------------------------------------------------------------
+
+PREVIEW TEXT (paste into "Text to preview"; it must match the calm tone, and a longer text gives a steadier voice)
+------------------------------------------------------------
+For twenty years, Meena has kept every health report she was ever given. Every visit, her doctor searches the pile, page after page, for one old value. VitaGraph is different. It reads every page, connects every result, and the answer points to the exact line, on the exact page. Nothing leaves the hospital.
+------------------------------------------------------------
+Generate the 3 previews. Pick the one that sounds warm, slow and clear, with no forced accent and no breathiness. Save it as "VitaGraph Narrator". Use only this voice for the whole film.
+
+======================================================================
+STEP 2 · SETTINGS (Text to Speech)
+======================================================================
+- Model: Eleven v3.
+- Stability: Natural. If the [tags] seem ignored, try Creative. Avoid Robust, because it mutes the tags.
+- Make 3 takes of each line and keep the best one. v3 sounds a little different on every run.
+- One or two tags per sentence at most. A tag carries forward until the next tag.
+- Export each line as its own WAV or MP3 file, named line01 … line08.
+
+======================================================================
+STEP 3 · THE 8 LINES (paste one at a time; the timings match 10_subtitles.srt)
+======================================================================
+LINE 1 · clip 1 · place at 0.5 s, must end by 7.5 s
+[softly] For twenty years, Meena has kept every health report she was ever given.
+
+LINE 2 · clip 2 · place at 8.5 s, must end by 15.5 s
+[tired] Every visit, her doctor searches the pile... page after page... for one old value.
+
+LINE 3 · clip 3 · place at 16.5 s, must end by 23.5 s
+[serious] Most AI tools fix that by sending her private data... far outside the hospital.
+
+LINE 4 · clip 4 · place at 24.5 s, must end by 31.5 s
+[warmly] VitaGraph is different. It reads every page... even the old scanned ones.
+
+LINE 5 · clip 5 · place at 32.5 s, must end by 39.5 s
+[warmly] Then it connects every result, from every year, into one clear picture.
+
+LINE 6 · clip 6 · place at 40.5 s, must end by 47.5 s
+[confident] Ask in plain English... and the answer points to the exact line... on the exact page.
+
+LINE 7 · clip 7 · place at 48.3 s, must end by 51.8 s
+[softly] No guessing. No diagnosis. Just her own facts.
+
+LINE 8 · clip 8 · place at 52.3 s, must end by 59.5 s
+[speaking slowly] It runs on open models, inside your hospital. Nothing leaves. [pause] VitaGraph... answers you can check.
+
+======================================================================
+CHECK EACH TAKE
+======================================================================
+- "VitaGraph" is said "VY-tuh-graf", stressed on the first syllable. If it comes out wrong, write it as "Vita-Graph" in that line only.
+- "AI" is said as two letters, "ay-eye".
+- No line runs past its "must end by" time. If one does, cut words; never speed up the voice.
+- The words match 10_subtitles.srt exactly (without the [tags]).

@@ -119,6 +119,21 @@ class EventMapper:
             ]
         if kind == "model_error":
             return [("model", {"phase": "error", "call": self._live_calls, "message": self._redact(str(ev.get("message", "")))[:300]})]
+        if kind == "privacy":
+            return [
+                (
+                    "privacy",
+                    {
+                        "call": self._live_calls,
+                        "ledger_id": ev.get("ledger_id"),
+                        "purpose": ev.get("purpose"),
+                        "chars_original": ev.get("chars_original"),
+                        "chars_sent": ev.get("chars_sent"),
+                        "removed_total": ev.get("removed_total"),
+                        "by_type": ev.get("by_type") or {},
+                    },
+                )
+            ]
         return []
 
     def _failure_message(self, detail: str) -> tuple[str, str]:

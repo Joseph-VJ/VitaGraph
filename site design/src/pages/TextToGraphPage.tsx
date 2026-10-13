@@ -19,7 +19,7 @@ import {
 import { type Entity } from "../components/graph/textGraph";
 import { toolsApi } from "../api/tools";
 import { aiApi } from "../api/ai";
-import { usePreferences } from "../lib/preferences";
+import { setPreference, usePreferences } from "../lib/preferences";
 
 const LAB_SAMPLE =
   "Report date: 12 March 2026\nHemoglobin 13.8 g/dL\nFasting Glucose 96 mg/dL\nTSH 2.4 uIU/mL";
@@ -81,7 +81,8 @@ export const TextToGraphPage: React.FC = () => {
 
   // Stage appearance and controls state
   const [activeLayout, setActiveLayout] = useState<string>("sphere");
-  const [themeInk, setThemeInk] = useState<boolean>(true);
+  const themeInk = prefs.theme === "dark";
+  const setThemeInk = (ink: boolean) => setPreference("theme", ink ? "dark" : "light");
   const [lensOn, setLensOn] = useState<boolean>(false);
   const [stageOptions, setStageOptions] = useState<StageOptions>({
     size: true,

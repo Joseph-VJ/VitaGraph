@@ -663,8 +663,9 @@ export const GraphStage = forwardRef<GraphStageHandle, GraphStageProps>(
             id="themeBtn"
             onClick={() => onToggleTheme(!themeInk)}
             data-testid="graph-theme"
+            aria-label={themeInk ? "Switch app to Light mode" : "Switch app to Dark mode"}
           >
-            {themeInk ? "Paper stage" : "Ink stage"}
+            {themeInk ? "Light mode" : "Dark mode"}
           </button>
         </div>
 

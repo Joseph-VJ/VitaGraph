@@ -16,6 +16,7 @@ evidence can survive a mid-report crash.
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 from fastapi import HTTPException
 
@@ -434,6 +435,48 @@ def assert_report_owner(report_id: str, user_id: str) -> dict:
     if report.get("user_id") != user_id:
         raise HTTPException(status_code=404, detail="Report not found.")
     return report
+
+
+def original_file(report_id: str, user_id: str) -> tuple[dict, Path]:
+    """The report row and the path of its stored original (404 for another persona or when the file is gone)."""
+    report = assert_report_owner(report_id, user_id)
+    path = uploader.stored_file_path(report)
+    if path is None:
+        raise HTTPException(status_code=404, detail="The original file is no longer stored.")
+    return report, path
+
+
+# A report in one of these states is still being written to by the ingestion pipeline.
+_IN_PROGRESS = ("received", "extracting", "indexing")
+
+
+def delete_report(user_id: str, report_id: str) -> dict:
+    """Delete one report and everything derived from it. Chats that cited it keep their words."""
+    report = assert_report_owner(report_id, user_id)
+    if report["status"] in _IN_PROGRESS:
+        raise HTTPException(status_code=409, detail="This report is still being read.")
+
+    with get_db() as db:
+        chunks_removed = db.execute(
+            "SELECT COUNT(*) AS c FROM report_chunks WHERE report_id = ? AND user_id = ?", (report_id, user_id)
+        ).fetchone()["c"]
+
+    vector_store.delete_report_chunks(report_id)  # outside SQLite first, like delete_user
+    with get_db() as db:
+        db.execute("DELETE FROM report_chunks WHERE report_id = ? AND user_id = ?", (report_id, user_id))
+        db.execute("DELETE FROM report_pages WHERE report_id = ?", (report_id,))
+        db.execute("DELETE FROM reports WHERE id = ? AND user_id = ?", (report_id, user_id))
+        # AI summaries of graph nodes may quote this report; they are rewritten on the next click.
+        db.execute("DELETE FROM node_summaries WHERE user_id = ?", (user_id,))
+    uploader.delete_report_file(report)
+
+    from app.graph import builder  # local import: the graph module imports the database layer
+    builder.forget_user_graph(user_id)
+
+    timeline_service.add_event(
+        user_id, "report_deleted", {"report_id": report_id, "filename": report["original_filename"]}
+    )
+    return {"deleted": report_id, "filename": report["original_filename"], "chunks_removed": chunks_removed}
 
 
 def get_chunk(report_id: str, chunk_id: str) -> dict:

@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
 from datetime import datetime, timezone
-from typing import Any
-from fastapi import APIRouter, HTTPException
+from typing import Any, Literal
+from urllib.parse import urlsplit
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from app.agent.pool import get_pool
+from app.agent.runs import get_registry
 from app.core.config import settings
 from app.core.database import get_db
 from app.generation import ai_client
@@ -338,3 +342,195 @@ def _compose_offline_summary(filename: str, report_date: str, page_count: int, b
     ])
 
     return "\n".join(lines)
+
+
+# --------------------------------------------------------------------------------------------------
+# AI connection (plan T): endpoint, key and model name saved from the Settings page.
+# Changing it is allowed only from the computer that runs the backend: there is no login, and the
+# endpoint decides where the person's report passages are sent.
+# --------------------------------------------------------------------------------------------------
+
+LOCAL_HOSTS = frozenset({"127.0.0.1", "::1", "localhost", "testclient"})
+_LOCAL_URL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+_MODEL_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@+\-]{0,99}$")
+
+
+class ModelConnectionIn(BaseModel):
+    url: str = Field(min_length=1, max_length=500)
+    key: str = Field(default="", max_length=500)
+    model: str = Field(min_length=1, max_length=100)
+    api_format: Literal["auto", "responses", "chat"] = "auto"
+    reasoning: Literal["minimal", "low", "medium", "high", "default"] = "low"
+    skip_test: bool = False
+
+
+class ModelConnectionOut(BaseModel):
+    url: str
+    model: str
+    api_format: Literal["responses", "chat"]
+    reasoning: Literal["minimal", "low", "medium", "high", "default"]
+    has_key: bool
+    masked_key: str
+    allow_api: bool
+    shield_covered: bool
+    can_edit: bool
+    message: str = ""
+
+
+class ModelTestOut(BaseModel):
+    ok: bool
+    message: str
+    api_format: Literal["responses", "chat"]
+
+
+def _is_local(request: Request) -> bool:
+    host = request.client.host if request.client else ""
+    return host in LOCAL_HOSTS
+
+
+def _require_local(request: Request) -> None:
+    if not _is_local(request):
+        raise HTTPException(status_code=403, detail="The AI connection can only be changed from the computer that runs VitaGraph.")
+
+
+def _clean_url(raw: str) -> str:
+    url = raw.strip()
+    if not url or re.search(r"\s", url):
+        raise HTTPException(status_code=422, detail="The endpoint address cannot be empty or contain spaces.")
+    try:
+        parts = urlsplit(url)
+        host = parts.hostname
+    except ValueError:
+        raise HTTPException(status_code=422, detail="The endpoint address is not a valid web address.")
+    if parts.scheme not in ("http", "https") or not host:
+        raise HTTPException(status_code=422, detail="The endpoint address must start with http:// or https://")
+    if parts.username or parts.password:
+        raise HTTPException(status_code=422, detail="Do not put a user name or password in the endpoint address.")
+    if parts.query or parts.fragment:
+        raise HTTPException(status_code=422, detail="Remove everything after ? or # from the endpoint address.")
+    if parts.scheme == "http" and host not in _LOCAL_URL_HOSTS:
+        raise HTTPException(status_code=422, detail="Use https:// for an endpoint that is not on this computer.")
+    return url.rstrip("/")
+
+
+def _clean_model_name(raw: str) -> str:
+    name = raw.strip()
+    if not _MODEL_NAME.match(name):
+        raise HTTPException(status_code=422, detail="The model name can only use letters, digits and the characters . _ : / @ + -")
+    return name
+
+
+def _clean_key(raw: str) -> str:
+    key = raw.strip()
+    if key and (len(key) < 8 or re.search(r"\s", key)):
+        raise HTTPException(status_code=422, detail="The key looks wrong: it is too short or contains spaces or line breaks.")
+    return key
+
+
+def _resolve_format(url: str, requested: str) -> str:
+    if requested in ("responses", "chat"):
+        return requested
+    return "responses" if urlsplit(url).path.rstrip("/").endswith("/responses") else "chat"
+
+
+def _test_url(url: str, api_format: str) -> str:
+    # Same address the app really calls: the base address plus /responses or /chat/completions.
+    base = settings._normalise_base(url)
+    return f"{base}/responses" if api_format == "responses" else f"{base}/chat/completions"
+
+
+def _run_test(url: str, key: str, model: str, api_format: str) -> tuple[bool, str]:
+    use_key = key or settings.effective_api_key
+    ok, message = ai_client.test_connection(url=_test_url(url, api_format), key=use_key, model=model)
+    for secret in (key, settings.effective_api_key):
+        if secret:
+            message = message.replace(secret, "…")
+    return ok, message
+
+
+def _model_out(request: Request, message: str = "") -> dict[str, Any]:
+    key = settings.effective_api_key
+    effort = settings.model_reasoning_effort.strip().lower()
+    return {
+        "url": settings.model_api_url.strip(),
+        "model": settings.model_name.strip(),
+        "api_format": "responses" if settings.model_api_format.strip().lower() == "responses" else "chat",
+        "reasoning": effort if effort in ("minimal", "low", "medium", "high") else "default",
+        "has_key": bool(key),
+        "masked_key": ("••••" + key[-4:]) if len(key) >= 8 else ("••••" if key else ""),
+        "allow_api": settings.allow_api,
+        "shield_covered": settings.api_format == "responses",
+        "can_edit": _is_local(request),
+        "message": message,
+    }
+
+
+def _same_host(a: str, b: str) -> bool:
+    """Same address host and port (scheme and path may differ)."""
+    return urlsplit(a).netloc.lower() == urlsplit(b).netloc.lower()
+
+
+def _checked_input(payload: ModelConnectionIn) -> tuple[str, str, str, str]:
+    url = _clean_url(payload.url)
+    model = _clean_model_name(payload.model)
+    key = _clean_key(payload.key)
+    if not key:
+        if not settings.effective_api_key:
+            raise HTTPException(status_code=422, detail="Enter an API key.")
+        # A saved key is only ever used with the address it was saved for.
+        saved = settings.model_api_url.strip() or settings.effective_base_url
+        if saved and not _same_host(url, saved):
+            raise HTTPException(
+                status_code=422,
+                detail="You changed the address, so paste the key again. A saved key is only used with the address it was saved for.",
+            )
+    return url, key, model, _resolve_format(url, payload.api_format)
+
+
+@router.get("/model", response_model=ModelConnectionOut)
+def get_model_connection(request: Request) -> dict[str, Any]:
+    """The saved connection, without the key."""
+    return _model_out(request)
+
+
+@router.post("/model/test", response_model=ModelTestOut)
+async def test_model_connection(payload: ModelConnectionIn, request: Request) -> dict[str, Any]:
+    """Try the connection with the values typed in. Saves nothing."""
+    _require_local(request)
+    url, key, model, api_format = _checked_input(payload)
+    ok, message = await asyncio.to_thread(_run_test, url, key, model, api_format)
+    return {"ok": ok, "message": message, "api_format": api_format}
+
+
+@router.post("/model", response_model=ModelConnectionOut)
+async def save_model_connection(payload: ModelConnectionIn, request: Request) -> dict[str, Any]:
+    """Test the connection, then use it at once and remember it in the .env file."""
+    _require_local(request)
+    url, key, model, api_format = _checked_input(payload)
+    if get_registry().any_running():
+        raise HTTPException(status_code=409, detail="The AI Agent is still answering. Wait for it to finish, then save.")
+    message = "Saved without a test."
+    if not payload.skip_test:
+        ok, message = await asyncio.to_thread(_run_test, url, key, model, api_format)
+        if not ok:
+            raise HTTPException(status_code=422, detail=message)
+    settings.apply_model_connection(
+        url=url,
+        key=key,
+        model=model,
+        api_format=api_format,
+        reasoning_effort="" if payload.reasoning == "default" else payload.reasoning,
+    )
+    await get_pool().close_all()  # running agent workers keep the old values until they restart
+    return _model_out(request, message)
+
+
+@router.post("/model/remove-key", response_model=ModelConnectionOut)
+async def remove_model_key(request: Request) -> dict[str, Any]:
+    """Forget the saved key (the AI then stays off until a new key is saved)."""
+    _require_local(request)
+    if get_registry().any_running():
+        raise HTTPException(status_code=409, detail="The AI Agent is still answering. Wait for it to finish, then remove the key.")
+    settings.forget_model_key()
+    await get_pool().close_all()
+    return _model_out(request, "The saved key was removed.")

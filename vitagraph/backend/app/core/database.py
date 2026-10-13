@@ -120,7 +120,8 @@ CREATE TABLE IF NOT EXISTS agent_conversations (
     user_id    TEXT NOT NULL,
     title      TEXT,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    pinned     INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_agent_conversations_user ON agent_conversations(user_id);
 
@@ -136,7 +137,9 @@ CREATE TABLE IF NOT EXISTS agent_messages (
     evidence_json   TEXT,
     trajectory_json TEXT,
     stats_json      TEXT,
-    created_at      TEXT NOT NULL
+    created_at      TEXT NOT NULL,
+    safety_passed   INTEGER NOT NULL DEFAULT 1,
+    safety_note     TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_messages_conv_seq ON agent_messages(conversation_id, seq);
 CREATE INDEX IF NOT EXISTS idx_agent_messages_user ON agent_messages(user_id);
@@ -163,6 +166,42 @@ CREATE TABLE IF NOT EXISTS node_summaries (
     created_at   TEXT NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_node_summaries_user_node ON node_summaries(user_id, node_id);
+
+CREATE TABLE IF NOT EXISTS privacy_ledger (
+    id               TEXT PRIMARY KEY,
+    user_id          TEXT NOT NULL,
+    seq              INTEGER NOT NULL,
+    purpose          TEXT NOT NULL,
+    created_at       TEXT NOT NULL,
+    chars_original   INTEGER NOT NULL,
+    chars_sent       INTEGER NOT NULL,
+    removed_total    INTEGER NOT NULL,
+    removed_by_type  TEXT NOT NULL,
+    sent_text        TEXT NOT NULL,
+    prev_hash        TEXT NOT NULL,
+    row_hash         TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_privacy_ledger_user_seq ON privacy_ledger(user_id, seq);
+
+CREATE TABLE IF NOT EXISTS privacy_terms (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL,
+    term       TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_privacy_terms_user_term ON privacy_terms(user_id, term);
+
+CREATE TABLE IF NOT EXISTS lab_runs (
+    id             TEXT PRIMARY KEY,
+    created_at     TEXT NOT NULL,
+    mode           TEXT NOT NULL,
+    chunk_size     INTEGER NOT NULL,
+    top_k          INTEGER NOT NULL,
+    status         TEXT NOT NULL,
+    scorecard_json TEXT,
+    results_json   TEXT,
+    duration_ms    INTEGER
+);
 """
 
 
@@ -196,6 +235,9 @@ def _migrate(db) -> None:
     """Lightweight column migrations for databases created by older versions."""
     migrations = [
         "ALTER TABLE answers ADD COLUMN safety_check_note TEXT",
+        "ALTER TABLE agent_messages ADD COLUMN safety_passed INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE agent_messages ADD COLUMN safety_note TEXT",
+        "ALTER TABLE agent_conversations ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0",
     ]
     for statement in migrations:
         try:

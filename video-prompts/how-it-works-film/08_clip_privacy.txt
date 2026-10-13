@@ -1,0 +1,7 @@
+VOICE: this video MUST include a spoken English voiceover by one off-screen narrator, a calm, warm Indian-English woman in her early 30s, studio quality, speaking slowly and clearly. No one on screen speaks.
+Setting: a four-storey white modern hospital with rows of lit windows and a plain glowing red cross on the roof, at blue-hour night, cool moonlight from top-left, low mist over the lawn. Photorealistic feature film, ARRI Alexa 35, anamorphic lens, Kodak film grain, realistic skin, clean frame without lettering.
+[00:00-00:03] Medium shot from a low angle, slow push-in, 35mm, inside the hospital: a small server rack glows with soft cyan lights in a quiet room. SFX: a gentle server hum.
+[00:03-00:06] Extreme wide shot from a high angle, slow crane up, 24mm: a faint transparent dome of light covers the hospital; cyan particles drift up and bounce back inside it. SFX: soft glass chimes.
+[00:06-00:08] Wide shot from the lawn at a low angle, static camera, 24mm: the glowing dome rests over the building, the top third of the frame open night sky. SFX: a calm breeze.
+VOICEOVER [00:00-00:08]: the off-screen narrator says slowly and warmly, "It runs on open models, inside your hospital. Nothing leaves. VitaGraph... answers you can check." She pronounces VitaGraph as VY-tuh-graf.
+Emotion: calm safety. Ambient noise: crickets. The narrator's voice sits clearly above the sound effects. No music.

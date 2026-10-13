@@ -1,17 +1,40 @@
 # VitaGraph Modernist redesign: session context (written for Claude, to resume later)
 
-**Last updated 2026-10-10: read section 34 first (everything is committed, merged into `main` and pushed). Before that, the newest state is sections 22 to 32 (playground preview, AI node summary, new graph stage, living background and its intensity option, series endpoint, review ledger, process, machine state, review recipe, next steps). Read section 22 FIRST. Sections 17 to 21 are also authoritative for what they cover; the rest is history.** Written 2026-10-04 at the end of a long session and re-verified the same day (every commit hash, referenced file, and the corrected Task 07 text were checked against the repository). The user is closing the session. This file is the single source of truth for what was done, how work was delegated to Gemini, how each task went, what is broken or pending, and exactly what to do first when the session resumes. Read it fully before doing anything.
+**LATEST SAVE, 2026-10-13: read section 45 FIRST, section 44 for the global theme, then section 42 for the connection handover.** Whole-app Light/Dark is implemented and verified. Settings → Display controls all 14 pages, shell, both graphs and generated previews; Dark defaults and persists per browser. This supersedes section 43’s chat-only decision. Build/audit/secret scan passed, full backend 791 tests passed, and 84 theme/page/size checks passed. T4 connection reliability remains READY, NOT implemented. The owner subsequently authorized saving all project work to local main and GitHub main; see section 45.
+
+**T3 implementation history, 2026-10-12: section 40.** The owner asked Codex to complete the last work directly and fully update it. Plan T round 2 (T3 backend and frontend) is implemented, accepted and live-checked. The full backend suite passed 791 tests; build/audit/scan and 32 browser checks passed. The primary app runs current code on 8000/5173. All source and documentation remain uncommitted on `feature/privacy-shield-and-rag-lab`, HEAD `c4fca21`. Sections 36/37 describe the earlier product work; older resume instructions are historical where sections 41/42 differ.
+
+### Historical introduction (superseded by section 42 for current state)
+
+**Last updated 2026-10-12 evening: read section 39 FIRST (closing state, resume checklist), then sections 36, 37 and 38 for the details of the three newest pieces of work (all UNCOMMITTED). The older note follows: read section 35 first (Privacy Shield and RAG Lab are now BUILT and verified, uncommitted on `feature/privacy-shield-and-rag-lab`; see 35.5 and 35.8b), then section 34 (everything before it is committed, merged into `main` and pushed). Before that, the newest state is sections 22 to 32 (playground preview, AI node summary, new graph stage, living background and its intensity option, series endpoint, review ledger, process, machine state, review recipe, next steps). Read section 22 FIRST. Sections 17 to 21 are also authoritative for what they cover; the rest is history.** Written 2026-10-04 at the end of a long session and re-verified the same day (every commit hash, referenced file, and the corrected Task 07 text were checked against the repository). The user is closing the session. This file is the single source of truth for what was done, how work was delegated to Gemini, how each task went, what is broken or pending, and exactly what to do first when the session resumes. Read it fully before doing anything.
 
 ---
 
 ## 0. TL;DR (read this first)
+
+- **UPDATE 19 (2026-10-13, current save): section 45.** Owner explicitly requested all project work saved to local Git main and GitHub main. All source, tests, task/review/report files, screenshots and video prompts are included in the main checkpoint. Theme and earlier Q/R/T work are preserved. Credentials/runtime data and generated tsbuildinfo are excluded. T4 remains pending.
+
+- **UPDATE 18 (2026-10-13, current): section 44.** Whole-app Light/Dark replaces dark-chat-only. Global theme and graph shortcuts, animations, generated chart/report previews, storage-failure handling, real active upload/answer checks and 84 page/theme/viewport checks completed. Default Dark. Native adaptive report preview preserves scroll and sandbox; downloads/print stay original. No commit/push; T4 remains separate and pending.
+
+- **UPDATE 17 (2026-10-12, latest): section 43.** Owner asked for dark chat only, matching Knowledge Graph. Scoped `.vg-agent-page` theme covers History/conversation/composer/menus/dialogs/side panel and persona/offline views. Layout and chat logic unchanged. Full backend 791 passed, build/audit/scan green, no text-contrast violations in sampled views; no overflow at 1440/820/400. T4 remains pending. No commits or pushes.
+
+- **UPDATE 16 (2026-10-12, latest closing handover): section 42.** Owner: "Save all into the session context file". All connection/endpoint/model-name findings and evidence consolidated. T3 done; normal connection and real Agent answer work; model-name forwarding/validation passed 22 checks; three deeper reliability bugs remain; T4 is ready, not implemented. Primary app still running, scratch stopped, real settings unchanged, no commit/merge/push. Resume with section 42, then the T4 review/task; do not rerun T3 or claim the connection is issue-free.
+
+- **UPDATE 15 (2026-10-12, latest): section 41.** The owner asked whether pasting the API key/endpoint works without any issue. Normal frontend flow, scratch restart and a real AI Agent answer passed. Three additional defects were reproduced and documented; T4 correction task is ready, not implemented. Do not use earlier passing tests as an issue-free claim. Primary settings/.env unchanged, temporary persona removed, scratch servers stopped.
+
+- **UPDATE 14 (2026-10-12, latest): section 40.** T3 completed directly by Codex at the owner's request, without sub-agents. Saved-key host/port reuse blocked on both routes, red help and disabled actions implemented, Save without testing guarded too; 13 new regressions, 791 full-suite pass. Real model ping passed. Primary app is running current code; scratch ports free. Reports, review, task/plan status, rules, README and handover memory updated. Nothing committed, merged or pushed.
 
 - **Project:** VitaGraph, a final-year B.Tech project. Privacy-aware RAG over health reports. Backend `vitagraph/backend` (FastAPI, SQLite, ChromaDB, NetworkX, RapidOCR, AgentRouter LLM gateway). Frontend `site design/` (React 19, TS, Vite 8, Tailwind 4).
 - **Goal of this work:** re-skin and rebuild the whole frontend so the LIVE app looks EXACTLY like the Modernist reference design (`VitaGraph-App-v3.html`), but with REAL backend data, not the reference's demo data. The user insists: "full working model, not a demo or fake mock-up".
 - **Working agreement (the user repeated this three times, obey it):** Claude is the senior reviewer. Claude does NOT write the app code. A small model (the user calls it "Gemini 3.8 flash") writes the code. Claude (1) writes very detailed task prompt files in `gemini/`, (2) gives the user a short message to paste into Gemini, (3) when the user pastes Gemini's report or says "check again", reviews the work by building, grepping, diffing, and testing it live against the real backend, and (4) writes the next prompt. The user's words: "you are only going to do the review work and going to give a prompt right". I broke this twice (wrote backend code myself after "ok do it"). Do not do it again unless the user explicitly says to code.
 - **Branch:** all work is on `redesign/modernist-app` (created from `main`). Gemini must never touch `main`, never push, never merge. Nothing has been merged or pushed.
 - **READ ORDER:** section 0, then **section 16 (full status, review ledger and the detailed next work; NEWEST and authoritative)**, then section 15 (detailed log up to AG0), then `gemini/AGENT_PLAN.md`. Sections 5, 9, 10, 11, 14 describe the end of the first session and are historical.
-- **UPDATE 8 (NEWEST, 2026-10-10): read section 34 FIRST.** Rounds P4 to P7 and a final code review (10 findings, all fixed) are done. All the work is committed on `feature/playground-graph-and-backgrounds`, fast-forwarded into `main` and pushed to GitHub (`origin/main`) at the owner's explicit request. Backend suite 426 passed, build exit 0, secret scan PASS.
+- **UPDATE 13 (NEWEST, 2026-10-12 evening): read section 39 FIRST.** The owner closed the session. Section 39 is the map of everything: three uncommitted pieces on `feature/privacy-shield-and-rag-lab` (Privacy Shield/Accuracy Test/My Data; AI Agent upgrade plan R; AI connection plan T), the exact machine state (the owner's backend on 8000 does NOT have the plan T code yet), 778 backend tests, what to do first, how to review round 2, lessons and traps, the paste messages, a suggested commit order and every open item.
+- **UPDATE 12 (2026-10-12): plan T, the AI connection in Settings (section 38).** Round 1 is built by two Gemini sessions and reviewed (accepted with one fix, D1: a saved key could be sent to a different address); round 2 (`gemini/TASK_T3_fixes.md`) is written but NOT run.
+- **UPDATE 11 (2026-10-12): section 37.** AI Agent upgrade (plan `gemini/PLAN_R_agent_upgrade.md`): answers keep running in the background and are saved even when the tab closes, a new layout with searchable and pinnable History and a tabbed resizable side panel, charts drawn from stored values (also in saved reports and PDFs), the cited passage marked on the page image, no duplicate saved reports, held-back answers stay held back when reopened. Built by five sub-agents at the owner's request; 755 tests pass, build and audit clean, live-checked. UNCOMMITTED.
+- **UPDATE 10 (2026-10-11): read section 36 FIRST.** The owner said the two new pages were hard to use and asked for a third page that shows everything uploaded and chatted. Done with four forked sub-agents (owner asked for sub-agents): **Privacy Shield** and **Accuracy Test** (the RAG Lab, renamed) rewritten in plain words with the proof tools folded away, and a new **My Data** page (`/data`) with new backend routes (overview, download original, delete one report). Backend suite 657 passed, build 0, audit 0 errors, secret scan PASS, live browser check passed. Still UNCOMMITTED on `feature/privacy-shield-and-rag-lab`.
+- **UPDATE 9 (2026-10-10 evening): read section 35.** The owner chose two new live features to impress the examiners: **Privacy Shield** (every AI call masked locally, a tamper-evident ledger, a live "Try the shield" box, a privacy line under every agent answer) and **RAG Lab** (the system grades itself live on fixed test questions, plus a chunk-size experiment with a chart). The plan is APPROVED and saved as `gemini/PLAN_Q_privacy_and_lab.md`. Nothing is built, and the four task files are NOT written yet (they come after a scratch-copy proof the owner agreed to). The owner also asked to remove the uncommitted "How It Works" film page; that has NOT been done yet (step 1 of the plan).
+- **UPDATE 8 (2026-10-10): read section 34 FIRST.** Rounds P4 to P7 and a final code review (10 findings, all fixed) are done. All the work is committed on `feature/playground-graph-and-backgrounds`, fast-forwarded into `main` and pushed to GitHub (`origin/main`) at the owner's explicit request. Backend suite 426 passed, build exit 0, secret scan PASS.
 - **UPDATE 7 (2026-10-09): read section 22 FIRST, then 28 to 32.** The Knowledge Graph page was rebuilt as the preview-based dark graph stage (P1, polished in P3a), a living background layer with four engines and a new Background intensity setting exists (P2, P3b, 2026-10-09), `GET /api/graph/{user_id}/series` exists, and the AI node summary box is committed (`ac15d93`, `293002d`). All of the stage/background/series work is UNCOMMITTED on `feature/playground-graph-and-backgrounds` (HEAD `f9cecc0`); round P4 (three real defects: stale series cache, dead evidence button, repeated undated lines, plus six smaller ones) was handed to Gemini and NOT yet reviewed. Backend suite 403 passed. This Claude session is the reviewer; no sub-agents.
 - **UPDATE 6 (NEWEST, 2026-10-06, supersedes everything below where they differ): read section 18 FIRST.** The Upload page stage is no longer the 120-frame scrub panel: it is the new **process theatre** (`ProcessTheatre.tsx`, a 7-stage film made from the user's own AI-generated videos) that follows the REAL upload job, with the five pipeline rows, tile bars, file tag and pages table paced to the film. The full-screen ingestion show is now opt-in. Also a real bug fixed in `useJobStream.ts`. All of it is UNCOMMITTED (code + media + `video-prompts/`). On this day the user explicitly let me do the video/design work myself (not Gemini) and gave full design freedom with ONE rule: no numbers or data on the video.
 - **UPDATE 5 (2026-10-05):** read section 17. The app is essentially complete: all pages rebuilt to the reference (`VitaGraph-App-v3.html`), AI Agent with conversations, three Tools pages, 3D knowledge graph, live ingestion show, privacy fix F1, any-text Text to Graph. Two Gemini sessions ran in parallel (main folder + git worktree), I merged them. Backend suite 222 passed. Main folder is `redesign/modernist-app` at `580f71f`, nothing pushed since the early push. Only owner inputs and optional polish remain (section 17.7).
@@ -1020,3 +1043,554 @@ Backend: `app/graph/builder.py` (cache, fingerprint, warm, forget), `app/routes/
 1. Browser re-check of the code-review fixes with the section 31 recipe (time machine on a 3-report persona, Text to Graph example click during an AI build, leaving Upload mid-job).
 2. Owner tasks still open from 32.4: revoke the old gateway key in public history, remove the retired worktree, tidy the zips and root screenshots.
 3. Stale docs remaining: `AGENTS.md`, `GEMINI.md`, `docs/ui-ux-design-notes.md`.
+
+---
+
+## 35. PLAN 2026-10-10 (EVENING): PRIVACY SHIELD AND RAG LAB (THE PLAN AND THE RESEARCH FACTS; BUILT ON 2026-10-11, SEE 35.5 AND SECTION 39)
+
+**The full design is in `gemini/PLAN_Q_privacy_and_lab.md`** (repo copy of the approved plan; the original is `C:\Users\Admin\.claude\plans\i-love-the-1-hazy-lagoon.md`). This section records the request, the decisions, the facts found while researching, the work order and exactly how to resume. Read the plan file before writing any task file.
+
+### 35.1 The owner's request (in order, 2026-10-10)
+1. "understand this project and tell me what are the things we can add to impress a college staff ... a working thing that i can show in the frontend ... very most real time". I proposed three ideas: (1) Privacy Shield, (2) scan from your phone via QR, (3) RAG Lab. I also advised against browser voice input (Chrome sends audio to an outside server) and against predicting values or risk scores (breaks the no-clinical-advice rule).
+2. "i love the 1 and 3 idea ... write a task file and also ... update the session context file but before start doing read the session context file and gemini folder ... write in more and more detailed way that even a very low level model will do this work fully ... 0 to 100% of all works ... in what code ... ui ux each and everythings".
+3. Answers to my questions: **"Yes, test in a scratch copy"** (prove the code before it goes into the task files); **"i need to remove this how to works page and go back"** (the uncommitted film page).
+4. "for now i only need you to write the plan for this new update end to end plan in most detialed". The plan was then APPROVED. Last instruction: "for this update into the session context file and the task area". Done: the plan is in `gemini/` and this section exists. Nothing else was changed.
+
+### 35.2 Decisions and defaults
+- Ideas chosen: **Q1 Privacy Shield** and **Q2 RAG Lab**. The QR phone scan (idea 2) was not chosen.
+- Defaults I set for questions the owner left open (written in the plan; the owner approved the plan with them): **D1** masked names are put back locally before an answer is shown (the model only sees `[PERSON_1]`); **D2** the prompt folder `video-prompts/how-it-works-film/` is kept when the film page is removed; **D3** no privacy record ever stores an original identifier (only the "Try the shield" preview shows both sides, and it is never saved); **D4** the shield has no off switch; **D5** a new sidebar group "Trust" between Tools and System with "Privacy Shield" (`/privacy`) and "RAG Lab" (`/lab`).
+- Process: Claude proves the code in a scratch copy (owner's yes), then writes four task files from the proven code. A low-level model implements, Claude reviews. No sub-agents. Commits only when the owner asks, by explicit paths.
+
+### 35.3 Facts found while researching (do not re-derive)
+- **One exit door for model traffic:** with `MODEL_API_FORMAT=responses` (the owner's setting), every model call goes through `vitagraph/backend/app/services/responses_adapter.py`:
+  - `open_stream()` (async) is used by `routes/llm_shim.py` (AI Agent via the harness) and by `_Completions.create()` (`llm_service.get_client()` → `ResponsesClient`). That covers `node_summary.py` (~line 1168), `graph_ai.py` (`build_graph` ~201, `stream_graph` ~315) and `chat_service.py` (~258).
+  - `complete_sync()` is used by `ai_client.generate_answer()` and `ai_client.test_connection()`.
+  - The shield goes inside `open_stream()`/`complete_sync()`, **not** inside `build_request()`.
+  - In chat-completions mode (the test default: `tests/conftest.py` sets `MODEL_API_FORMAT=chat`) the adapter is bypassed, so the shield must report `covered: false`.
+- **Tests that constrain the design (never edit them):** `tests/test_agent_live.py:212` requires `events[0] == {"kind": "model_start"}` (so publish the `privacy` live event after `model_start`). `tests/test_responses_adapter.py:101` requires `body["instructions"] == "Be careful."` (so `build_request` stays unchanged and the shield's system note is added only when something was masked).
+- **Today's privacy features:** consent before upload, the `allow_api` switch (`POST /api/ai/privacy`), local embeddings, and the `ai_calls` audit table with `GET /api/timeline/{uid}/ai-calls` (no page shows it). The only redaction is the API key (`agent_service._redact`, line 25). Sample report text that would leave unmasked: `Patient: Demo Persona A`, `Report ID: SYN-2025-0115-A` / `SYN-2025-0620-A`.
+- **Sample PDFs (text layer read 2026-10-10):**
+  - January panel: Hb 13.8 g/dL, Vit D 18 ng/mL LOW, Total chol 224 HIGH, LDL 148 HIGH, HDL 44, Glucose 96, TSH 2.4 uIU/mL, "occasional fatigue" note.
+  - June panel: Hb 14.1, Vit D 34, Total 198, LDL 126 HIGH, HDL 51, Glucose 92, TSH 2.1, B12 410 pg/mL, "improved energy" note.
+  - The scanned report has a 175-character text layer containing `Report ID: VITATEST-2024-1201-SCAN-004`; whether OCR also reads the image is to be checked in the scratch proof.
+- **Evaluation assets that already exist (keep them untouched):** `vitagraph/sample_data/questions.json` (6 questions; `config.py` cites it for the 0.40 score threshold) and the CLI `vitagraph/backend/tests/hit_rate_eval.py` (`HIT_TERMS` approach). The RAG Lab gets its own gold set, `app/lab/gold.json`.
+- **Reusable backend pieces:**
+  - `report_service.process_upload(user_id, filename, data, job_id=None, chunk_size=None)` (sync)
+  - `retriever.retrieve(user_id, question, top_k, report_id)` (applies `min_evidence_score` 0.40; `top_k_results` 5)
+  - `safety.classify_question` / `needs_boundary_response` / `sanitize_question_for_retrieval`
+  - `agent_service.stream_agent(user_id, turns, pool=get_pool())` yields `(type, payload)` tuples (usable without HTTP)
+  - `app/core/sse.py` `sse_stream()` frames tuples as SSE
+  - `live_bus.publish(persona, event)`, `mapper.feed_live()` and `_TurnRecorder.observe()` (saved `{"event": ...}` items replay in the browser)
+  - the `users.status` column already exists (default `active`), so lab personas can be marked `lab` and hidden
+  - `user_service.delete_user()` is the cascade to extend; `routes/users.py` calls `pool.forget_persona` before deleting.
+- **Frontend anchors:**
+  - `App.tsx` `pageLoaders` + routes
+  - `components/shell/Sidebar.tsx` `navGroups`
+  - `components/shell/Header.tsx` `getHeaderConfig` switch
+  - `components/shell/AppShell.tsx` `ROUTE_TITLES` and `OWN_LAYOUT`
+  - `pages/AgentPage.tsx` Sources row (`data-testid="agent-sources"`, about lines 256 to 272)
+  - `hooks/useAgentChat.ts` `handleEvent` switch (about line 224), `TrajectoryKind`/`TrajectoryItem`
+  - `lib/agentFeed.ts` `applyFeedEvent`
+  - `lib/sse.ts` `readSse`
+  - `components/ui` (`PageFrame`, `PageState`, `SectionHead`, `PersonaState`, `Tag`)
+  - Modernist classes in `theme/modernist.css`: `btn btn-primary|secondary|ghost|icon|block`, `input`, `field`, `tag tag-neutral|accent|outline`, `table`, `seg seg-opt`, `card`, `dialog*`, `hr`, `elev-*`; the agent page's `vg-action` and `vg-chip` live in `index.css`.
+
+### 35.4 The work, in order (the plan's section 1)
+1. **Remove the film page** (owner request, NOT done yet): confirm with `git diff` that `site design/src/App.tsx`, `components/shell/Header.tsx` and `components/shell/Sidebar.tsx` contain only the `/film` lines (they did on 2026-10-10: +3, +1, +2 lines). Then `git checkout --` those three files, delete the untracked `site design/src/pages/FilmPage.tsx`, keep `video-prompts/how-it-works-film/` (D2), run `npm run build`, and update memory `project-explainer-film.md`.
+2. Create the branch `feature/privacy-shield-and-rag-lab` from `c4fca21`.
+3. Prove Q1 in a scratch copy (recipe in the plan, section 6): backend copy under `<scratchpad>/vgproof/vitagraph/{backend,sample_data}`, tests run with the real `.venv` interpreter, frontend copy with a `node_modules` junction (remove with `cmd /c rmdir`), a live scratch backend on **8001** with a fresh `DATA_DIR` and `--env-file` pointing at the real `.env` (never copied, never printed; first prove the scratch DB is fresh), and a scratch frontend on **5174** with `VITE_API_URL=http://127.0.0.1:8001`. Never touch the owner's 8000/5173.
+4. Prove Q2 the same way; fix the gold set to the real behaviour (a real miss stays a visible FAIL, and no question is tuned to pass).
+5. Write the four task files from the proven code: `gemini/TASK_Q1a_privacy_backend.md`, `TASK_Q1b_privacy_frontend.md`, `TASK_Q2a_lab_backend.md` and `TASK_Q2b_lab_frontend.md`. Each must contain:
+   - the branch guard for `feature/privacy-shield-and-rag-lab` (this overrides the stale `redesign/modernist-app` text in `gemini/RULES.md` 3b)
+   - a closed file list and a 0-to-100 % progress ladder with a check command per rung
+   - full code for new files and exact old/new blocks for edits
+   - the full UI/UX spec per component (text, tokens, states, keyboard, aria, testids, 400/820/1000/1440)
+   - a ready-to-run Playwright script, STOP rules, and a report template
+6. Update this section with the proof results (35.5), the exact test counts and the paste messages. Update memory.
+7. Clean up the scratch copy (junction first, then ports 8001/5174, then the scratch data).
+8. Commit only on the owner's word.
+
+**Run order for the model:** Q1a → review → Q1b and Q2a in parallel (disjoint files; Q2a needs `app/privacy/redactor.py` from Q1a) → review → Q2b (shares shell files with Q1b) → review.
+
+**Paste messages (use once the task files exist; adapt the id):** "Read gemini/RULES.md sections 2, 4, 5b, 5c, 5d and gemini/PLAN_Q_privacy_and_lab.md, then gemini/TASK_Q1a_privacy_backend.md completely. Do ONLY Q1a, step by step, in the order of its progress ladder. Copy the code exactly. The branch is feature/privacy-shield-and-rag-lab. Do not commit, push, merge, rebase, reset, stash or clean. Never open, print or edit vitagraph/backend/.env. Write gemini/reports/Q1a_summary.md and tell me."
+
+### 35.5 BUILT AND VERIFIED (2026-10-11; this replaces the old "scratch proof" step)
+**What changed in the process:** on 2026-10-11 the owner said "check the session context file and start working on it yourself and also use subagent of 3 to 4". So no scratch proof and no four task files were written. Claude built both features directly on `feature/privacy-shield-and-rag-lab` (created from `c4fca21`) with four forked sub-agents in parallel (A: privacy backend, B: lab backend, C: privacy frontend, D: lab frontend), after doing the shared wiring itself (3 DB tables, `/privacy` and `/lab` routes, the "Trust" sidebar group, header and shell entries). Nothing is committed.
+- **Film page removed.** The `/film` lines were reversed by hand (the auto-mode classifier blocked `git checkout --` and `rm`) and `FilmPage.tsx` was moved to the scratchpad, not deleted. `video-prompts/how-it-works-film/` is kept (D2).
+- **Gates:** backend suite **625 passed** (426 + 199 new: redactor 88, restore 10, ledger 20, adapter 15, privacy routes 16, lab metrics 23, lab runner 14, lab routes 13) in 7 min 18 s; `npm run build` exit 0; `npm run audit:design` 0 errors; secret scan PASS.
+- **Live check** (scratch backend 8001 with a fresh data folder and `BACKEND_URL=http://127.0.0.1:8001`, scratch frontend 5174, Playwright `channel="chrome"`, 1440x900; both servers stopped afterwards; the owner's 8000/5173 never touched). IMPORTANT: the agent worker reaches the backend through `settings.backend_url` (default port 8000), so a scratch backend on another port needs `BACKEND_URL` set or every agent call fails with TRANSPORT.
+  - Privacy: preview masks name/phone/email and keeps `13.8 g/dL` and `15 January 2025`; an "Always hide" word masks and un-masks; a real agent call on the January PDF sent `[PERSON_1]`, `[ID_1]`, `[ID_2]` and the ledger text had neither `Demo Persona A` nor `SYN-2025-0115-A`, while the streamed answer showed the real name and id (restore works); "Verify the chain" intact; the tamper test detects at the changed record and leaves the stored row hashes unchanged; a reopened conversation keeps the shield line; the drawer opens on the call that masked the most; Esc closes it; no horizontal scroll at 400/820/1000/1440; console clean.
+  - Lab: a quick run takes about 8 to 40 s (first run loads the embedding model); 11 of 11 pass, hit rate 7/7, MRR 0.857, context precision 0.274 (honest, not tuned), refusals 3/3, false refusals 0, identifier leaks 0; the lab persona is never listed in `/api/users`, users and the Chroma chunk count are unchanged after runs; Stop removes the persona (the active flag clears in about 5 s because ingestion must finish its current step); leaving the page and coming back re-follows the run; the 5-size sweep saves 5 runs (120, 200, 300, 450, 600) and fills the chart.
+- **Bug found only in the browser and fixed by Claude:** `followRun` in `site design/src/api/lab.ts` spread the `scorecard` frame flat, so `ev.scorecard` was undefined and `<Scorecard>` crashed ("reading 'passed'") when a run finished. Now the scorecard frame is wrapped as `{type: "scorecard", scorecard}`.
+- **Gold set facts:** the scanned report is included (its text layer holds `Report ID: VITATEST-2024-1201-SCAN-004`, 4 chunks), so 3 files; every value in 35.3 was re-verified against the real text layers.
+- **NOT verified:** Lab **full mode** (AI on) against the real AI (only a faked `stream_agent` in tests); Node summary and Text to Graph appearing in the ledger as "Node summary" / "Tools" (covered by the adapter tests only); saved lab runs hold no passage text, so snippets show only for live runs; a persona is briefly `active` for a few milliseconds before `mark_lab`.
+- **Deviations:** the `privacy` live event is published after the model endpoint answers (so a failed call has a ledger row but no live frame; `test_an_upstream_error_is_reported_to_the_persona` needs `model_error` second); `asyncio.Lock` replaced by a plain busy flag in the lab runner; added `site design/src/lib/privacyFormat.ts`.
+
+### 35.6 Review recipe for Q1 and Q2 (on top of section 31)
+- **Gates:** backend suite all passed (426 + the new tests), `npm run build` exit 0, `npm run audit:design` 0 errors, `python scripts/plan/secret_scan.py` PASS.
+- **Q1 checks:**
+  - the live "Try the shield" box masks within about 0.3 s, with debounce and abort
+  - an "Always hide" word works and is removed again
+  - a real agent question on a throwaway persona holding the January PDF: the live feed shows the shield row; "See what was sent" contains `[PERSON_1]`/`[ID_1]` and NOT `Demo Persona A` or `SYN-2025-0115-A` (search the drawer text)
+  - "Verify the chain" says intact, and the tamper test detects without changing the DB (compare row hashes before and after)
+  - a reopened conversation keeps the shield line
+  - Node summary and Text to Graph still work and appear in the ledger
+  - Esc closes the drawer
+  - console clean; no horizontal scroll at 400/820/1000/1440
+- **Q2 checks:**
+  - a quick run's rows arrive one by one, and the scorecard equals `GET /api/lab/runs/{id}` (3 values)
+  - "Identifier leaks 0"
+  - `/api/users` never lists the lab persona, and users and the Chroma count are unchanged after the run
+  - Stop mid-run cleans up
+  - a 5-size sweep fills the chart and the history
+  - full mode (AI on) shows answers and citations, and refusals make no AI call
+  - leaving and coming back re-follows the run (`/api/lab/active`)
+  - console clean; responsive; reduced motion
+
+### 35.7 Doc drift to fix when the features land
+- `CLAUDE.md` section 3 (11 screens → 13, Trust group; remove any film mention), section 6 test count.
+- `README.md` page table (also still lists the old `/tools/*` routes).
+- `gemini/DESIGN_LAW.md` new item 12 ("Trust pages are Modernist light, no new visual style").
+- `gemini/RULES.md` 3b branch name.
+
+### 35.8b State on 2026-10-11 (NEWEST): both features are BUILT, tested and UNCOMMITTED on `feature/privacy-shield-and-rag-lab`. Remaining: the owner's decision to commit (explicit paths; the new backend/frontend files are listed by `git status`; never stage `site design/tsconfig.tsbuildinfo`), the unverified items in 35.5, and the doc drift in 35.7 (`CLAUDE.md` is done; `README.md`, `gemini/DESIGN_LAW.md` item 12 and `gemini/RULES.md` 3b are not).
+
+### 35.8 State at the end of the 2026-10-10 evening session (historical)
+- Branch `feature/playground-graph-and-backgrounds`, HEAD `c4fca21`; `main` at `0f5ef0b` (pushed).
+- Uncommitted:
+  - the film page: `site design/src/App.tsx`, `components/shell/Header.tsx`, `components/shell/Sidebar.tsx` (film lines only), untracked `site design/src/pages/FilmPage.tsx`, untracked `video-prompts/how-it-works-film/`
+  - `site design/tsconfig.tsbuildinfo` (never stage)
+  - NEW `gemini/PLAN_Q_privacy_and_lab.md`
+  - this section
+- No code changed, no servers started by me, nothing committed.
+
+### 35.9 Resume checklist
+1. Read memory, then this section, then `gemini/PLAN_Q_privacy_and_lab.md` completely.
+2. `git status --short`, `git log --oneline -3` (expect `c4fca21` and the uncommitted list in 35.8).
+3. Ask the owner whether to go ahead with 35.4 steps 1 to 7 now. On a yes, start with step 1 (film page) and follow the order. Do not write task files before the scratch proof.
+
+---
+
+## 36. STATE AT 2026-10-11 (LATER): EASY-TO-USE PAGES AND "MY DATA" (AUTHORITATIVE FOR THOSE PAGES; BUILT, TESTED, UNCOMMITTED; SEE SECTION 39)
+
+### 36.1 The request and the owner's decisions
+The owner said Privacy Shield and RAG Lab "are not easy to use" and asked for (a) both pages made very easy for anyone, (b) a NEW page that shows everything uploaded, the data each file holds, and what was chatted with the AI, and (c) sub-agents to build it after reading the code and this file. Plan file: `C:\Users\Admin\.claude\plans\ok-but-for-these-toasty-cookie.md`. Decisions asked and answered:
+1. Keep the name **Privacy Shield**; **RAG Lab** is now called **Accuracy Test** in the UI (route `/lab` unchanged).
+2. New page **My Data**, route `/data`, sidebar group Workspace under Library (sub-label "Files and chats").
+3. My Data may **delete a chat**, **download the original file** and **delete one report**.
+Process: Claude did the shared wiring, then four forked sub-agents with disjoint files (A backend, B My Data page, C Privacy page, D Accuracy Test page), then Claude reviewed and ran all gates. Owner's "no sub-agents" rule was overridden by this explicit request (same as 2026-10-11 earlier).
+
+### 36.2 What changed
+- **Shared wiring (Claude):** `App.tsx` (lazy `DataPage`, route `/data`), `Sidebar.tsx` (My Data item, Accuracy Test label), `Header.tsx`, `AppShell.tsx` (titles, `OWN_LAYOUT`), `LibraryPage.tsx` (`/library?report=<id>` opens that report), `agentFeed.ts` and `AgentPage.tsx` wording "masked" to "hidden", `main.py` (overview router).
+- **Backend (Agent A):** `GET /api/overview/{user_id}` (`schemas/overview.py`, `services/overview_service.py`, `routes/overview.py`: persona, totals, reports with page and passage counts, chats with the reports they used derived from evidence cards, saved AI reports, plain-sentence activity feed; report order newest first with `rowid` tie-break), `GET /api/reports/{id}/file?user_id=` (download the stored original, owner check), `DELETE /api/reports/{id}?user_id=` (409 "This report is still being read." while received/extracting/indexing; removes vectors, chunks, pages, row, stored file, the persona's `node_summaries`, drops the graph cache, writes a `report_deleted` event; chats are left alone). Activity also lists `chat_started` and `ai_report_saved`. Tests: `test_overview.py` (11), `test_report_file.py` (8), `test_report_delete.py` (13).
+- **My Data (Agent B):** `pages/DataPage.tsx`, `api/overview.ts`, `components/data/*` (tabs Reports / Chats / AI reports / Activity plus a "Sent to the AI" link tile, search box, report detail with values found, fingerprint and Copy, download, delete with a confirm dialog, chat transcript, Esc and focus handling, 4 s refresh while a report is being read), `reportsApi.fileUrl/remove`.
+- **Privacy Shield (Agent C):** top card ("Your private details are hidden before the AI sees anything", 3 steps, one live sentence), "Type anything and watch your details disappear" with "Use an example", "Hide more words" as chips, "History of what was sent" rows, and a folded "Advanced: prove nothing was changed" (Check that nothing was changed / Try to cheat (on a copy)). Drawer hashes moved under "Technical details". `privacy-terms` and `privacy-ledger` test ids are now `<ul>` lists, not tables.
+- **Accuracy Test (Agent D):** "Start the test" button, a switch for the AI-answers mode, settings folded away, headline "N of M questions passed", four main scores, "More scores" and "Which piece size works best?" folded, a "What went wrong" list, and the questions list reduced to Question / Result / How. `lab-mode-quick` test id is gone (quick = switch off). New `lib/labWords.ts`. Hook, API and scoring untouched.
+
+### 36.3 Gates (run by Claude, 2026-10-11)
+Backend `pytest tests -q -p no:cacheprovider`: **657 passed** (625 + 32) in 6 min 22 s. `npm run build` exit 0. `npm run audit:design` 94 files, 0 errors. `python scripts/plan/secret_scan.py` RESULT: PASS. Re-run after the last three small edits: build 0, audit 0, scan PASS.
+
+### 36.4 Live check (scratch backend 8001 + frontend 5174, fresh data folder, `BACKEND_URL` set, Playwright `channel="chrome"`; both servers stopped afterwards)
+- **My Data:** counts equal the API; newest report first; file fingerprint equals the real SHA-256; the downloaded file is byte-identical (SHA-256); values table loads; Esc closes the delete dialog and nothing is deleted; arrow keys move between tabs; a chat opens with its question and answer, deleting it works; activity reads in plain sentences; deleting a report removes it from the list, its 12 search entries from Chroma (23 to 11), its file (download gives 404) and the graph. 400/820/1000 px: no horizontal scroll.
+- **Privacy:** preview hides name, phone and email and keeps `13.8 g/dL` and `15 January 2025`; an "Always hide" word works; a real agent question on the January PDF ("Who is the patient ... report ID?") sent only `[PERSON_n]`/`[ID_n]` tags (ledger text had neither `Demo Persona A` nor `SYN-2025-0115-A`) while the answer on screen showed the real values; drawer and the line under the AI Agent answer say details were hidden; "Check that nothing was changed" says nothing was changed; the cheat test catches the edit on a copy and leaves real records intact; Esc closes the drawer. The tag number can start above 1 ("[PERSON_2]") because the persona's stored report name is learned first; that is correct.
+- **Accuracy Test:** "11 of 11 questions passed" in about 8 s, equal to the saved run, 0 identifier leaks, the lab persona never listed. Library `?report=<id>` deep link works. Console clean everywhere.
+
+### 36.5 Not verified, and traps
+- One agent call returned no answer once while the full pytest suite was running on the same machine (the scratch backend was under heavy load); it did not repeat when run alone twice. Not understood further.
+- The scratch database got an auto-created "Sample Persona" because the app creates one when a tab opens with no users; harmless, scratch only.
+- Doc drift fixed this round: `CLAUDE.md` (14 pages, test count 657), `README.md` (page table, tools, counts), `gemini/DESIGN_LAW.md` item 12, `gemini/RULES.md` branch note. Still stale: `AGENTS.md` (11 pages, four tools), `GEMINI.md`, `docs/ui-ux-design-notes.md`.
+- **Nothing is committed.** Next step is the owner's word to commit (explicit paths only, never `git add .`, never `site design/tsconfig.tsbuildinfo`; new backend files are `app/schemas/overview.py`, `app/services/overview_service.py`, `app/routes/overview.py` and three tests; new frontend files are `api/overview.ts`, `components/data/*`, `pages/DataPage.tsx`, `lib/labWords.ts`).
+
+### 36.6 Second verification round (owner asked "check all the works"; 2026-10-11 night)
+Fresh backend suite again **657 passed** (6 min 34 s); build 0, audit 94 files 0 errors, secret scan PASS after the fixes below. Real database `vitagraph/backend/data/vitagraph.db` untouched (last write 2026-10-09). Everything below ran on a fresh scratch backend/frontend (8001/5174, stopped afterwards) with throwaway personas.
+- **Verified now:** Accuracy Test **AI-answers (full) mode** with the real AI (122 s, 10 of 11 passed, answer accuracy 86 %, citations 70 %, 0 leaks, one honest miss listed under "What went wrong": the TSH question); Stop (no fake score, "Stopped. The temporary test data was removed."); the 5-size piece comparison (5 runs saved in 28 s, chart shown); reduced motion (progress transition is 1e-05 s, effectively none); My Data with an empty persona, a 36-report persona (overview 10 ms, 36 rows in 0.6 s, search narrows), a scanned report, and a chat whose report was deleted (shown as "synthetic_panel_2025-06-20.pdf (deleted)"); `DELETE` during reading gives 409 "This report is still being read."; the delete dialog traps Tab and returns focus to the Delete button after Esc; all 14 pages load with header 76 px, no sideways scroll and no console warnings or errors.
+- **Fixed in this round (by Claude):** (1) the Accuracy Test folds lost the browser arrow (`display:flex` on `<summary>`): a shared `.vg-fold` class in `index.css` now gives every fold on the three pages a red `+` / `-`; (2) My Data said "None printed" for a missing range, which is false when the file prints one: now "Not found" / "No range found" and the intro says a range is only shown when it was read; (3) My Data status tags ignored one-sided ranges such as "< 200": now handled.
+- **OPEN, pre-existing backend problem (not caused by this work, not fixed):** the value extractor reads one ~200-character chunk at a time (`measurement_service.list_report_measurements` via `graph/extractor.extract_entities_from_chunk`), so when the chunk cut falls between a "Result:" line and its "Reference range:" line the range is lost. The January sample gets 7 of 7 ranges, the June sample only **3 of 8** (Hemoglobin, Vitamin D, Total, LDL, HDL cholesterol lose theirs). It affects Library, Compare, Timeline and the graph too. Fix idea: look the range up in the page text near the value (the code in `series_service` already "augments missing ranges from page text"), with a test using the June panel. Needs the owner's word before touching the extractor.
+- **Small known nit (pre-existing):** the footer status strip says "1 reports".
+
+
+### 36.7 Concept audit (owner asked "is the project concept perfect and does everything work perfectly?"; 2026-10-11 night)
+Answer given to the owner: NO, not perfect. The concept is sound and the app works on its own sample reports, but these weak spots were measured (scripts were in the scratchpad, nothing was added to the repository):
+1. **Value extraction is tuned to the project's own sample layout** (`graph/extractor.py` plus per-chunk reading in `measurement_service`). On a lab TABLE where each cell lands on its own line it found 1 of 6 tests and that one with a WRONG value (glucose 1.0); on a one-row-per-line layout it found all 6 values but only 2 of 6 ranges (plus a duplicate Fasting Glucose / Glucose, Fasting). The June sample loses 5 of 8 ranges because the chunk cut falls between value and range (36.6). Never tested on a real hospital PDF. This is the biggest gap for "longitudinal analysis of real reports".
+2. **Privacy Shield is best effort, not a guarantee.** Hidden: labelled names/IDs/DOB/phones/emails/addresses, Aadhaar/PAN, a learned full name wherever it appears in full, "Dr. <name>". NOT hidden: a first name alone ("Arjun's"), a surname alone, a name inside a file name (`arjun_rao_jan.pdf`), other people's names ("His wife Meena Rao"), an unlabelled name in a sentence when no labelled line taught it, "PATIENT NAME - x" (dash), a date of birth in words, labels in Tamil. 5 of 15 offline identifier cases leaked at least one detail. The Privacy page headline was changed from "hidden before the AI sees anything" to "hides the private details it recognises", with a visible limits paragraph (`privacy-limits`) pointing to "Hide more words"; the Accuracy Test leak score now says it counts the sample reports' known names and IDs. Idea not done: also learn the first and last name parts.
+3. **Safety gate (regex, English only) catches 5 of 13 advice-style phrasings** (`generation/safety.py`); the other safeguards are the agent prompt and the answer check. Live with the real agent, 6 English questions the gate missed all ended with no diagnosis or prescription (refusals, "contact your clinician", an emergency message for chest pain), but: "Is my hemoglobin level dangerous?" got "No, your reports do not flag it as dangerous" (soft reassurance, `safety_passed=True`); "Tell me what disease I have" got a proper refusal text but `safety_passed=False` (the output check flagged the refusal itself). **Tamil and Hindi questions** ("Do I have diabetes?") are refused with the WRONG message ("only contained instruction-like text") because `sanitize_question_for_retrieval` counts only A-Z letters, so any non-English question, harmless or not, is blocked.
+4. **Security basics:** an old real-looking API key is in commit `85e9a30` (both `CODES.md` files), reachable from `origin/main` and 3 other branches on the public GitHub repo; the current tree has only placeholders and `.env` is ignored. It must be revoked at the provider (owner task, still open). The API has no login: whoever can reach port 8000 can read any persona by its id (fine for a local demo, not for hosting). Files and the database are stored unencrypted on disk.
+5. **Process gaps:** no frontend unit tests (only the design audit and Playwright scripts that are not run automatically); the footer says "1 reports"; `AGENTS.md`, `GEMINI.md`, `docs/ui-ux-design-notes.md` are stale; upload accepts only PDF text/scans (images go through the separate Image to Text tool).
+What is genuinely good: no provider or model names in the UI, all 657 backend tests pass, every page loads clean, the shield provably kept the real name and report ID out of the AI request in the live test, evidence-linked answers and the Accuracy Test are honest (the context-precision 27 % and a missed TSH answer are shown, not hidden).
+
+
+---
+
+## 37. STATE AT 2026-10-12: AI AGENT UPGRADE (PLAN R; AUTHORITATIVE FOR THE AGENT PAGE; BUILT, TESTED, UNCOMMITTED; SEE SECTION 39)
+
+### 37.1 Request and process
+The owner asked: the agent answer must keep running when they change page or chat; a customisable report side panel; visuals made from their data and saved into the HTML report and PDF; ideas copied from the DeepSeek Harness web client and other GitHub repos; a cleaner AI Agent layout. Claude researched the harness client packages (`ui-session`, `ui-sidebar-right`, `ui-dockkit`, `ui-layout`, `ui-sidebar-documentpreview`, `ui-deliverables`, `ptc-runtime`, ...) and 13 repos (open-webui, LibreChat, LobeHub, kotaemon, RAGFlow, Khoj, Onyx, open-notebook, AnythingLLM, Perplexica, Morphic, assistant-ui, vercel ai-chatbot); the full idea list is in memory `project-agent-ux-research`. The owner then said "use sonnet and haiku high as subagent ... 4 to 5 agent and start the work": five sub-agents (R1, R2, F1, F2 on Sonnet, F3 on Haiku, effort high) built the first batch against one contract file, **`gemini/PLAN_R_agent_upgrade.md`**; Claude integrated, fixed and verified.
+
+### 37.2 What was built
+- **Background runs (R1):** `app/agent/runs.py` run registry; `POST /api/agent/stream` starts a server-side run and only subscribes (a disconnect no longer cancels; only Stop does); first frame `run`; `GET /api/agent/runs/active`, `GET /api/agent/runs/{cid}/events?after=` (replay + live), `POST /api/agent/runs/{cid}/stop`; conversation + question saved at start, answer at the end, also `stopped` and `error` turns; `agent_messages.safety_passed/safety_note`, `agent_conversations.pinned` (idempotent migration); list items `pinned`, `running`, `turns` (questions), pinned first; `PATCH /api/agent/conversations/{id}` (title, pinned); unanswered questions closed as stopped at start-up; a stranger can no longer append to someone else's chat id. Titles from the first question are cut on a whole word with an ellipsis (`conversation_service.title_from_question`, added by Claude).
+- **Charts and page marks (R2):** chart blocks hold JSON with test NAMES only (`trend` / `compare` / `values`); `POST /api/agent/chart` (`chart_service.py`, `routes/charts.py`) draws an inert Modernist SVG from the stored series (out-of-range red with a direction triangle, printed-range band); saved reports render charts as SVG in HTML and PNG in the PDF; a report with charts uses a FOUR-backtick report fence; the prompt has a CHARTS rule (max 2 per answer, never numbers); `POST /api/agent/reports` is idempotent (fingerprint of title + markdown + refs kept in `agent_artifacts.language` as `html:<hash>`); `GET /api/reports/{id}/pages/{n}/highlight` returns normalised boxes for the cited characters (text layer via PyMuPDF words; scanned pages re-OCR'd once and cached in memory).
+- **Run store (F1):** `src/lib/agentRuns.ts` (module store, re-attach with `after=lastIndex`, timer fallback when the tab is hidden, attaches to `/runs/active` on start, persona change and tab return), `src/api/agentRuns.ts`, `useAgentChat` as a thin view (+ `draft`, `setDraft`, `runningIds`, `isRunningElsewhere`), `useAgentActivity`; Sidebar pulsing red square + ready badge and an automatic icon rail on `/agent`; AppShell toast "Your answer is ready" with Open.
+- **Layout (F2):** `AgentPage.tsx` rewritten (page fills `main`, own scroller, sticky top bar with editable title, History/Panel/New chat), `ConversationList.tsx` (search, Pinned/Today/Yesterday/Earlier, one-line rows, "..." menu Rename/Pin/Delete with confirm), `ScopePicker.tsx`, composer toolbar (Report scope, Chart, Write a report), `SidePanel.tsx` (tabs report/chart/page/reports, resize handle 360 px..60 %, remembered in `vitagraph_agent_panel_width`, full screen, Print, "Back to chat" below 1024 px). `ReportPanel.tsx` is no longer used (left on disk).
+- **Charts UI (F3):** `lib/chartSpec.ts`, `api/charts.ts`, `ChartView` (SVG only as an `<img>` data URL, "Show as table", Download SVG), `ChartCard`, `PageView` (page image with red boxes, zoom), chart blocks in `AnswerMarkdown`, "See it on the page" in `PassageSlip`, CommonMark-style fence handling in `linkCitations`/`answerFormat`.
+- **Fixed by Claude during integration:** the undefined token `--space-5` (only 1, 2, 3, 4, 6, 8 exist; any rule using it was dropped, e.g. the top bar padding) replaced by `--space-6` in 4 places (2 were pre-existing); the History running square now follows the run store (the list flag was stale right after Stop); report titles cut on whole words.
+
+### 37.3 Gates (Claude, 2026-10-12)
+Backend `pytest tests -q -p no:cacheprovider`: **755 passed** (657 + 98) in about 6 min, run twice, the second on the final code. `npm run build` exit 0; `npm run audit:design` 103 files, 0 errors; `secret_scan.py` PASS. No existing test was edited.
+
+### 37.4 Live check (scratch backend 8001 + frontend 5174 with DATA_DIR, DB_PATH, CHROMA_DIR and UPLOADS_DIR all in the scratchpad; both stopped afterwards)
+Real AI, temporary persona with the two synthetic panels: a chart question kept running while the page was Library (`/runs/active` listed it; the sidebar square pulsed), the toast appeared, Open went to the chat; the answer had a correct LDL trend chart (148 then 126 mg/dL, both red against "< 100"); chart tab, page tab with red boxes exactly on the LDL lines, report tab with the chart inside the report and PDF; "Save as report" twice gave 1 saved report; panel resize by keyboard stored 616; full screen; reload mid-answer kept both turns saved; Stop saved an assistant message with status `stopped`; no horizontal scroll at 1000/820/400; no app console errors (one error came from the test's own init script inside the sandboxed report iframe).
+
+### 37.5 TRAP: scratch servers
+`DATA_DIR` alone does NOT move `DB_PATH`, `CHROMA_DIR` or `UPLOADS_DIR`. R1's and R2's first scratch starts opened the REAL `vitagraph/backend/data` for a short time: effects were only the additive columns (`safety_passed`, `safety_note`, `pinned`) and the start-up housekeeping; no persona, report or chat was written (checked: 29 personas, 125 reports, 1183 chunks unchanged). Always set all four paths.
+
+### 37.6 Machine state at the end
+The owner's backend on 8000 was restarted by Claude with the new code (Claude had started it earlier the same day); frontend 5173 (Vite) serves the new pages. Nothing committed; branch `feature/privacy-shield-and-rag-lab` still holds the 2026-10-11 work too.
+
+### 37.7 Not done / next
+- From the idea list, not built yet: the agent asking back with choices, `@` and `/` in the composer, Like/Dislike, sending while it answers, edit and resend, Quick/Thorough mode, text size setting, diagrams, plan-first long reports, editable memory, notes, long-chat summary, locked code running.
+- Not verified: Firefox/Safari; a running answer across a backend restart (runs live in memory, so a restart ends them as "stopped"); phone touch resizing.
+- Small: `gemini/test_s3_browser.py` uses old selectors ("New conversation", `agent-conversation-confirm-delete`); `ReportPanel.tsx` can be deleted; a real `fingerprint` column for report dedupe; persona delete does not stop a running answer first (harmless, nothing is written).
+- Still open from 36.7: missing reference ranges (June sample), Tamil/Hindi questions blocked, shield gaps, old API key in public history, stale `AGENTS.md`/`GEMINI.md`/`docs/ui-ux-design-notes.md`.
+
+---
+
+## 38. PLAN T (2026-10-12): "AI CONNECTION" IN SETTINGS, BUILT BY TWO GEMINI SESSIONS (ROUND 1 REVIEWED; ROUND 2 WRITTEN, NOT RUN; SEE SECTION 39)
+
+The owner wants the model endpoint, API key and model name entered in the Settings page (today they live only in `vitagraph/backend/.env`, edited by hand, with a restart). Working agreement for this job: Claude only writes prompts and reviews; two Gemini sessions build it in parallel (owner: "you are going to do the review and the gemini going to do the work ... im using 2 session of the gemini").
+- Contract: `gemini/PLAN_T_ai_connection.md`. Backend task: `gemini/TASK_T1_ai_connection_backend.md` (config.py `write_env_values`, `apply_model_connection`, `forget_model_key`; routes `GET /api/ai/model`, `POST /api/ai/model/test`, `POST /api/ai/model`, `POST /api/ai/model/remove-key` in `routes/ai.py`; `RunRegistry.any_running`; tests `test_env_writer.py`, `test_ai_model_connection.py`). Frontend task: `gemini/TASK_T2_ai_connection_frontend.md` (`api/ai.ts`, new `components/settings/AiConnectionSection.tsx`, one line in `SettingsPage.tsx`). Reports expected: `gemini/reports/T1_summary.md`, `gemini/reports/T2_summary.md`.
+- Defaults chosen by Claude because the owner did not answer: changing the connection only from the computer that runs the backend (no login in the app); neutral labels (typed model name/URL shown only inside their inputs); a visible warning that the Privacy Shield does not cover the Chat format; key stays in plain text in the git-ignored `.env`. Saving tests the connection first (422 and no change on failure), refuses while an agent answer runs (409), closes the agent worker pool so it restarts with the new values. The key is never returned (only `••••` + last 4).
+- Found while reading: the old `POST /api/ai/config` writes `AI_SERVICE_*` (which `MODEL_*` override), so it cannot change the real connection; it is left untouched. `write_env_values` honours `VITAGRAPH_ENV_FILE` so scratch servers never overwrite the real `.env` (a scratch backend still uses `BACKEND_DIR/.env` otherwise!).
+- Review recipe when the reports arrive: gates (755 plus new tests, build, audit, secret scan); real `.env` mtime unchanged; read the diffs against the task files; run my own fake model endpoint and the browser flow on a scratch stack with ALL of DATA_DIR, DB_PATH, CHROMA_DIR, UPLOADS_DIR, VITAGRAPH_ENV_FILE set; check the key appears nowhere (DOM, storage, console, responses); restart the owner's backend on 8000 only after both are accepted. Nothing is committed.
+
+### 38.1 Round 1 reviewed (2026-10-12): ACCEPTED WITH ONE FIX AND ONE IMPROVEMENT (`gemini/reviews/T_review.md`)
+T1 (backend) and T2 (frontend) both reported done; their code is identical to the exact blocks in the task files. My checks: full backend suite 778 passed (755 + 23 new), build 0, audit 104 files 0 errors, secret scan PASS, real `.env` untouched (mtime 2026-10-08 14:16:14), 29 of 30 browser checks passed on a scratch stack with a fake model server (the 30th only counted the browser's log of the deliberate 422). T2 skipped its live check by design; I ran it. **Defect D1 (gap in my spec):** an empty key field used the SAVED key for a different address (proven: a saved key reached `localhost:8099` after being saved for `127.0.0.1:8099`); fix = 422 "You changed the address, so paste the key again" when the host differs. **D2:** the page text must say so and keep Test/Save disabled. Round 2 file: `gemini/TASK_T3_fixes.md` (Part T1 backend, Part T2 frontend, reports `gemini/reports/T3_T1_summary.md`, `T3_T2_summary.md`). Mistake in my TASK_T2: it named scratch frontend port 5175, but the backend CORS list allows 5173 and 5174 only; use 5174. Nothing committed; the owner's backend on 8000 still runs the OLD code (restart after round 2 is accepted).
+
+
+---
+
+## 39. CLOSING STATE AT 2026-10-12 EVENING (READ THIS FIRST WHEN THE SESSION RESUMES; NEWEST AND AUTHORITATIVE)
+
+Written when the owner closed the session ("for now we are closing everything ... update each and everything into the session context file"). Sections 36, 37 and 38 hold the details of the three pieces of work below; this section is the map, the exact machine state, the uncommitted inventory, what to do first, and the lessons.
+
+### 39.1 What exists, in one table
+| Piece | Section | Status | Gates last run |
+|---|---|---|---|
+| Privacy Shield, Accuracy Test (RAG Lab) and My Data | 35, 36 | BUILT, verified live (2026-10-11), UNCOMMITTED | part of the 778 below |
+| AI Agent upgrade (plan R): background runs, new layout, side panel, charts, passage marks, bug fixes | 37 | BUILT by five sub-agents at the owner's request, verified live (2026-10-12), UNCOMMITTED | 755 tests at that time |
+| AI connection in Settings (plan T) | 38 | Round 1 BUILT by two Gemini sessions and REVIEWED: accepted with one fix (D1) and one improvement (D2). Round 2 (`gemini/TASK_T3_fixes.md`) is WRITTEN BUT NOT RUN. UNCOMMITTED | 778 backend tests passed (my own run), build 0, `audit:design` 104 files 0 errors, secret scan PASS |
+
+Nothing was committed or pushed today. Branch `feature/privacy-shield-and-rag-lab`, HEAD still `c4fca21` (the last commit of 2026-10-10; `main` was fast-forwarded and pushed at `0f5ef0b`/`6efbbb9` earlier). `git status` shows about 47 modified and 64 untracked entries; only `site design/tsconfig.tsbuildinfo` must never be staged.
+
+### 39.2 The machine right now
+- **Owner's app is running:** backend `uvicorn app.main:app --port 8000` (started by Claude during the plan R verification; it has the plan R code but NOT the plan T code, because it was started before the Gemini sessions edited `config.py` and `routes/ai.py`; there is no `--reload`) and the Vite dev server on 5173 (hot reload, so it already serves the new Settings component).
+- **Consequence to remember:** on today's running app the Settings page shows "The connection settings are not available while the backend is unreachable" in the new "AI connection" block, because `GET /api/ai/model` does not exist on the old backend process. It is fixed only by restarting the backend AFTER round 2 is accepted (or earlier, if the owner wants to see round 1; D1 below is then still open).
+- No scratch servers are left (ports 8001, 8002, 8011, 8012, 8099, 5174, 5175 were checked free at 16:15). Scratch data and fake servers live only in the session scratchpad under `C:\Users\Admin\AppData\Local\Temp\claude\F--kiruthika-kiruthika-final-project\786634aa-bb5c-4969-adcc-2b21ab433542\scratchpad\` (disposable).
+- **Real data checked on 2026-10-12:** 29 personas, 125 reports, 1,183 passages in the search store, `vitagraph/backend/.env` last written 2026-10-08 14:16:14 (+05:30), untouched by everything done today. The real database got three additive columns with defaults (`agent_messages.safety_passed`, `agent_messages.safety_note`, `agent_conversations.pinned`) because two sub-agents' first scratch starts opened it (see 39.6) and because the app now runs the new code; no persona, report or chat was added or changed by them.
+- Models in this session: Opus 5.5 for the research and the plan R integration, Sonnet 5.5 (effort high) from the plan T prompts on. Four Sonnet and one Haiku sub-agent built plan R; plan T was Gemini (two sessions). The commit attribution line comes from the system reminder at commit time (it named Claude Opus 5.5 earlier and Claude Sonnet 5.5 later), so read the current reminder before committing.
+
+### 39.3 Test and build numbers (for CLAUDE.md and README when committing)
+Backend `pytest tests -q -p no:cacheprovider`: **778 passed** (657 before plan R, +98 plan R = 755, +23 plan T round 1), about 6 minutes. `npm run build` exit 0, `npm run audit:design` 104 files 0 errors, `python scripts/plan/secret_scan.py` RESULT: PASS. `CLAUDE.md` already says 755 (plan R) and describes the new AI Agent features in page 3 and the protocol (frame `run`); it must say 778 after plan T is accepted and should mention the AI connection under page 11 (Settings).
+
+### 39.4 What to do first on resume (in this order)
+1. Read memory (`MEMORY.md`), then this section, then section 38 and `gemini/reviews/T_review.md`. `git branch --show-current` must print `feature/privacy-shield-and-rag-lab`; `git status --short`.
+2. Check whether `gemini/reports/T3_T1_summary.md` and `T3_T2_summary.md` exist. If not, hand the owner the two paste messages (39.7) again. If yes, review round 2 (39.5).
+3. After round 2 is accepted: run the three gates plus the full suite (expect 778 plus the new T3 tests), restart the owner's backend on 8000 (stop the process on port 8000 with PowerShell `Get-NetTCPConnection -LocalPort 8000 -State Listen | % { Stop-Process -Id $_.OwningProcess -Force }`, then `cd vitagraph\backend; .\.venv\Scripts\python.exe -m uvicorn app.main:app --port 8000` in the background), open http://localhost:5173/settings and look at the new block once.
+4. Update `CLAUDE.md` (778, page 11 AI connection), `README.md`, `docs/SESSION_CONTEXT.md` (this section), memory. Then ask the owner whether to commit (see 39.8).
+5. Never touch `vitagraph/backend/.env`; never print a key; stop all scratch servers after every live check.
+
+### 39.5 How to review round 2 (T3)
+- Part T1 (backend): in `routes/ai.py` `_checked_input` must refuse an empty key when the host (including port) of the typed address differs from the saved one (message "You changed the address, so paste the key again..."), both for `POST /api/ai/model/test` and `POST /api/ai/model`; same host (other path or letter case) still keeps the saved key; a typed key to a new host works; the old tests still pass; one extra blank line removed in `config.py`; a `close_all` assertion in the save test. My own proof of the bug, to repeat as a regression check on a scratch stack: save a key for `http://127.0.0.1:8099/v1`, then `POST /api/ai/model/test` with `http://localhost:8099/v1` and an empty key must now return 422 and the fake server must see no new request.
+- Part T2 (frontend): the key help line turns red and says "You changed the address, so paste the key again..." when the host changed and the key box is empty, with Test and Save disabled until a key is typed; back on the saved host the normal help line returns. The component in the repo was byte-identical to the task's code in round 1; compare again with a diff of the new code blocks of TASK_T3.
+- Recipe: identical to the round 1 review (T_review.md): backend suite, build/audit/scan, real `.env` mtime `2026-10-08T14:16:14.5578770+05:30`, scratch stack with ALL of `DATA_DIR`, `DB_PATH`, `CHROMA_DIR`, `UPLOADS_DIR`, `VITAGRAPH_ENV_FILE` set and `MODEL_API_KEY=`, `MODEL_API_URL=`, `MODEL_NAME=` empty, backend 8001, frontend **5174** (the backend CORS list allows only 5173 and 5174), a small fake model server on 8099 (`POST /v1/responses` returns `{"output_text":"OK"}`, `POST /v1/chat/completions` returns `{"choices":[{"message":{"content":"OK"}}]}`, records the Authorization header), Playwright `channel="chrome"` at 1440x900. The key must appear nowhere (page text, HTML, localStorage/sessionStorage, console, API replies).
+
+### 39.6 Lessons and traps (add to what sections 7, 31, 35 and 37 already say)
+- **Scratch servers:** `DATA_DIR` alone does NOT move `DB_PATH`, `CHROMA_DIR` or `UPLOADS_DIR`. Two plan R sub-agents ran a first scratch start against the real data folder (harmless, see 39.2). New since plan T: a scratch backend still saves settings to the REAL `backend/.env` unless `VITAGRAPH_ENV_FILE` points to a scratch file (`write_env_values` honours it). Always set all five paths.
+- **Undefined design token:** the spacing tokens that exist are `--space-1`, `-2`, `-3`, `-4`, `-6`, `-8`. `--space-5` does not exist, and a rule that uses it is silently dropped (it removed the top-bar padding on the new Agent page until Claude replaced it). Task files must say so (TASK_T2 does).
+- **CORS:** the backend allows the frontend origins `localhost` and `127.0.0.1` on ports 5173 and 5174 only. My TASK_T2 named scratch frontend port 5175, which would have failed; T3 uses 5174.
+- **Spec gaps found by review, not by tests:** the saved-key-to-another-host hole (D1) was in MY specification; the review caught it only by trying it. Keep reviewing specs by attacking them (blank fields, changed address, other host).
+- **Gemini behaviour this round:** it copies exact code blocks faithfully (0 differing lines), so correctness depends on the task text; it waited for the other session as instructed and reported "live check NOT RUN" honestly instead of faking it.
+- **Sub-agents:** the standing rule is "no sub-agents unless the owner asks"; for plan R they asked ("use sonnet and haiku high as subagent ... 4 to 5 agent"); plan T used Gemini because they said "you are going to do the review and the gemini going to do the work". `Starlette TestClient` buffers a whole streaming response, so tests of a still-running stream must call the registry or the route function directly or use a real server.
+- **Auto-saved titles:** chat titles and report titles are cut on whole words with "…" (`conversation_service.title_from_question`, `shortTitle` in `AgentPage.tsx`).
+
+### 39.7 The paste messages for round 2 (give them again if the owner lost them)
+- Session 1 (backend): "Read gemini/reviews/T_review.md, then gemini/TASK_T3_fixes.md. You are session T1: do ONLY 'PART T1' of that file, step by step. Copy the code exactly. Same hard rules as before: branch feature/privacy-shield-and-rag-lab, no commits or other git writes, never open, print or edit vitagraph/backend/.env, never use ports 8000 or 5173. Write gemini/reports/T3_T1_summary.md and tell me."
+- Session 2 (frontend): "Read gemini/reviews/T_review.md, then gemini/TASK_T3_fixes.md. You are session T2: do ONLY 'PART T2' of that file, step by step. Copy the code exactly. Same hard rules as before: branch feature/privacy-shield-and-rag-lab, no commits or other git writes, never touch backend files or vitagraph/backend/.env, never use ports 8000 or 5173. Use frontend port 5174 for your scratch frontend, as the file says. Write gemini/reports/T3_T2_summary.md and tell me."
+
+### 39.8 Uncommitted inventory and a suggested commit order (explicit paths only; never `git add .`; never `site design/tsconfig.tsbuildinfo`; run the three gates first; the branch is NOT merged and nothing may be pushed unless the owner asks)
+1. **Privacy Shield + Accuracy Test + My Data** (2026-10-11): backend `app/privacy/`, `app/lab/`, `routes/privacy.py`, `routes/lab.py`, `routes/overview.py`, `schemas/overview.py`, `services/overview_service.py`, the changed `database.py`, `main.py`, `responses_adapter.py`, `ai_client.py`, `agent_service.py` pieces, their tests (`tests/test_privacy_*`, `test_lab_*`, `test_overview.py`, `test_report_file.py`, `test_report_delete.py`, ...); frontend `pages/PrivacyPage.tsx`, `LabPage.tsx`, `DataPage.tsx`, `components/privacy|lab|data/`, `api/privacy.ts|lab.ts|overview.ts`, `lib/labWords.ts`, `lib/privacyFormat.ts`, `hooks/useLabRun.ts`; docs `gemini/PLAN_Q_privacy_and_lab.md`, `video-prompts/how-it-works-film/`.
+2. **AI Agent upgrade (plan R)**: backend `app/agent/runs.py`, `routes/agent.py`, `services/agent_service.py`, `services/conversation_service.py`, `services/chart_service.py`, `routes/charts.py`, `services/page_highlight.py`, `services/report_render.py`, `services/report_artifacts.py`, `agent/prompt.py`, `routes/reports.py`, `schemas/agent.py`, `core/database.py`, `main.py`, tests `test_agent_runs.py`, `test_agent_conversations_v2.py`, `test_chart_service.py`, `test_page_highlight.py`, `test_report_dedupe.py`; frontend `lib/agentRuns.ts`, `api/agentRuns.ts`, `api/agent.ts`, `api/charts.ts`, `hooks/useAgentChat.ts`, `hooks/useAgentActivity.ts`, `lib/chartSpec.ts`, `lib/answerFormat.ts`, `lib/linkCitations.ts`, `components/agent/*` (new `SidePanel.tsx`, `ScopePicker.tsx`, `ChartView.tsx`, `ChartCard.tsx`, `PageView.tsx`; `ReportPanel.tsx` is unused and can be deleted), `components/shell/Sidebar.tsx`, `AppShell.tsx`, `pages/AgentPage.tsx`, `index.css`; docs `gemini/PLAN_R_agent_upgrade.md`.
+3. **AI connection (plan T)** after round 2 is accepted: backend `core/config.py`, `routes/ai.py`, `agent/runs.py` (the `any_running` method; note `runs.py` also belongs to commit 2, so commit `runs.py` once, with commit 2), tests `test_ai_model_connection.py`, `test_env_writer.py`; frontend `api/ai.ts`, `components/settings/AiConnectionSection.tsx`, `pages/SettingsPage.tsx`; docs `gemini/PLAN_T_ai_connection.md`, `TASK_T1_*`, `TASK_T2_*`, `TASK_T3_fixes.md`, `gemini/reviews/T_review.md`, `gemini/reports/T*_summary.md`.
+4. **Docs**: `CLAUDE.md`, `README.md`, `gemini/DESIGN_LAW.md` (item 12), `gemini/RULES.md`, `docs/SESSION_CONTEXT.md`.
+`index.css`, `AgentPage.tsx`, `agent_service.py`, `main.py`, `database.py` are shared by more than one piece; commit each with the earliest piece that needs it and say so in the message, or commit pieces 1 and 2 together if splitting them is not worth it.
+
+### 39.9 Open items, all in one list
+**Owner decisions / tasks**
+1. Commit (and later merge) decision for the three pieces above; nothing is pushed.
+2. Revoke the old gateway API key that sits in public git history (commit `85e9a30`, both `CODES.md` files) at the provider; it is also still reachable from `origin/main` and three other branches.
+3. Answers to my two open questions on plan T (defaults were applied): show typed model name/URL only inside their inputs, and the loopback-only rule.
+4. Frame images / Upload page leftovers, retired worktree `F:\kiruthika\vitagraph-backend-track`, Datasets/Ontology/Notebooks decision (all older, see sections 16 and 17).
+**Product (next batches from the research list in memory `project-agent-ux-research`)**: the agent asking back with choices, `@` and `/` in the question box, Like/Dislike, sending while it answers, edit and resend, Quick/Thorough mode, text-size setting, diagrams, plan-first long reports, editable memory, notes, long-chat summary, locked code running.
+**Known weaknesses (from the 36.7 concept audit, still open)**: reference ranges lost when a value and its range fall in different chunks (the June sample loses 5 of 8); value extraction tuned to the project's own sample layout; Privacy Shield misses a lone first name/surname, names inside file names and other people's names; the English-only safety gate catches 5 of 13 advice phrasings and wrongly blocks Tamil/Hindi questions with the wrong message; no login on the API; files and database unencrypted on disk; the footer says "1 reports".
+**Small**: `gemini/test_s3_browser.py` uses old selectors; `ReportPanel.tsx` unused; a real `fingerprint` column for report dedupe (dedupe hash currently lives in `agent_artifacts.language` as `html:<hash>`); persona delete does not stop a running answer first; the old `POST /api/ai/config` route is unused and writes `AI_SERVICE_*` names that `MODEL_*` override (candidate for removal); `AGENTS.md`, `GEMINI.md`, `docs/ui-ux-design-notes.md` still describe the old design; a running answer ends as "stopped" if the backend restarts (runs live in memory).
+**Not verified**: Firefox and Safari; phone touch resizing of the side panel; a real model call through the new Settings connection (only a fake endpoint was used); a remote caller's 403 on the connection routes (unit test only).
+
+---
+
+## 40. PLAN T COMPLETE (2026-10-12; READ THIS FIRST ON RESUME)
+
+### 40.1 Owner request, scope and process
+After Codex read the project, task history, session context and handover memories, the owner said: "i need you to complete the last work and its full update fully". Codex completed the pending TASK_T3 directly. This is an explicit override of the reviewer-only workflow for this named job, not standing permission for other feature implementation or sub-agents. No sub-agents were spawned. No git writes, commits, merges or pushes were made. The previous 111-entry dirty tree was preserved.
+
+T3 is **COMPLETE and ACCEPTED**. Plan Q, the easy pages/My Data and plan R remain as previously built; this turn did not redesign or reimplement them. The old T3 paste messages in 39.7 are history; both expected T3 reports now exist.
+
+### 40.2 Changes and file ownership
+- `vitagraph/backend/app/routes/ai.py`: exact TASK_T3 `_same_host` and `_checked_input` guard. When key is blank, both Test and Save refuse a host or port different from the saved address with 422 "You changed the address, so paste the key again..." BEFORE making any upstream call or settings change. Same-host path/letter-case changes work. Explicit newly typed keys work. `skip_test` does not bypass this.
+- `vitagraph/backend/app/core/config.py`: removed the extra blank line before Settings only.
+- `vitagraph/backend/tests/test_ai_model_connection.py`: 13 additional regression cases, first run against the unfixed code produced five failures. The existing empty-key test's address was changed to the fixture's saved host, exactly as TASK_T3 required; all its assertions remain. The successful-save test already asserted one `close_all`, so no weakened/removed assertions or edits to other existing tests.
+- `site design/src/components/settings/AiConnectionSection.tsx`: added hostOf/hostChanged/needsKey, the conditional help/placeholder and accent-700 red/600 help style, `ai-conn-key-help`, and disabled Test/Save. Additional fix: Save without testing uses the same canEdit/filled/dirty/busy guard, so the error flow cannot bypass the new key requirement.
+- Documentation: `CLAUDE.md`, `README.md`, `AGENTS.md`, `GEMINI.md`, `gemini/RULES.md`, `gemini/DESIGN_LAW.md` item 13, `gemini/PLAN_T_ai_connection.md`, `gemini/TASK_T3_fixes.md`, `progress.txt`, this handover, and existing memory. Old page/tool counts and stale branch/automatic-commit/reset instructions corrected. README now explains browser-independent runs, connection routes, character units and the Responses-only/best-effort shield coverage.
+- New reports: `gemini/reports/T3_T1_summary.md`, `T3_T2_summary.md`, `T3_browser_checks.json`; review: `gemini/reviews/T3_review.md` (same-session implementation and verification record, not an independent second reviewer).
+
+### 40.3 Fresh verification evidence
+| Check | Result |
+|---|---|
+| Regression before production fix | 5 failed, 22 passed in 3.26 s; reproduced changed host, changed port and skip-test leaks |
+| Focused model/env/privacy tests | 41 passed in 3.08 s |
+| Full backend, `pytest tests -q -p no:cacheprovider` | **791 passed in 459.39 s (7 min 39 s)**; prior 778 + 13 regressions |
+| `npm run build` | tsc -b and Vite exit 0; 400 modules, bundle built |
+| `npm run audit:design` | 104 files, 0 errors, 0 pending |
+| `python scripts/plan/secret_scan.py` | RESULT: PASS |
+| Settings scratch browser | 32 checks passed; no app console warnings/errors; deliberate 422 error-state check produced one browser HTTP log |
+| Primary Settings | six checks passed: saved address and model match the API, key input empty, help present, no connection-offline block, no app console errors |
+| Live key-leak regression | synthetic key saved on 127.0.0.1:8099; blank-key requests to localhost:8099 on both routes returned 422; fake server saw zero extra requests; scratch settings and file bytes unchanged |
+| Real saved model connection | **HTTP 200, ok true** through `/api/ai/model/test`; ping only, no passages, no Save operation |
+| Real `.env` mtime before/after | **2026-10-08T14:16:14.5578770+05:30**, unchanged; key not printed or manually read/edited |
+| API smoke | 10 checks passed: fresh scratch health 0 passages, persona/consent, PDF ready (1 page/11 passages), 7 measurements, offline answer with 4 owned evidence cards, 44-node graph/subgraph, 7 test series, Timeline/My Data, clinical refusal and cleanup to 0 passages |
+
+Browser actions covered Show/Hide, Test without saving, Save clears key, reload, changed host disables actions, typed key to new host, same-host path, failure preserves settings, keyboard Enter, request-format warning, remove dialog safe focus/Esc/confirmation, widths 1440/1000/820/400 (820x1100), reduced motion and no saved key in page text/HTML/browser storage/console.
+
+Screenshots: `gemini/shots/T3-host-changed-1440.png`, `T3-settings-1440.png`, `T3-settings-820.png`, `T3-settings-400.png`. Compared with `design/reference/screens/10_Settings.png`. The previously approved AI connection, My Data/Trust navigation, living background and process-theatre-era Settings differences remain; T3 adds only the conditional red help and action states, in Archivo with square controls. No new visual style.
+
+The first browser script had a test-only mistake: it expected a saved explicit Chat selection to switch after editing the URL. The passing script selects Detect from the address before verifying `/responses`; no application workaround was added.
+
+### 40.4 Machine and repository state at completion
+- Branch `feature/privacy-shield-and-rag-lab`, HEAD `c4fca21`. All earlier Q/R/T work plus T3 and documentation are still uncommitted. No staging/commit/merge/push. Never stage `site design/tsconfig.tsbuildinfo`.
+- At turn start ports 8000/5173 were free (the section 39 running-process note had become stale). After all gates passed, Codex started the primary backend and frontend with current code, hidden windows, on **127.0.0.1:8000** and **127.0.0.1:5173**. Last listener PIDs: backend 24000, frontend 21164; re-check before stopping anything. Backend reports healthy and **1,183 passages**. The Settings page was opened and checked on the primary app.
+- Scratch stack used ports **8001/5174/8099**, with DATA_DIR, DB_PATH, CHROMA_DIR, UPLOADS_DIR and VITAGRAPH_ENV_FILE all inside a temporary directory. Synthetic upstream only. All its processes are stopped and all three ports are **FREE**. The integration persona was deleted and scratch Chroma returned to zero passages.
+- Reproducible scratch scripts/results and primary startup logs/PID file: `C:/Users/Admin/AppData/Local/Temp/codex-vita-t3-49735847c0f54036b8761092a3a9ba40/` (`start_scratch.py`, `fake_model.py`, `smoke.py`, `smoke_results.json`, `live_connection.py`, `live_connection_results.json`, `start_primary.py`, `primary-pids.json`, logs). Disposable and not staged. The long-lived backend was started without --reload; future backend code changes require an intentional restart.
+
+### 40.5 What remains and how to resume
+1. T3 has no pending implementation/review step. Read `T3_review.md` and the two reports; use this section as the current pointer, sections 36/37 for earlier product details, and section 39 for the inventory and suggested commit grouping.
+2. The owner has not asked to commit/merge/push. Preserve the dirty tree; if asked later, stage explicit paths, exclude tsbuildinfo, and include the new reports/screenshots and documentation. Keep overlapping Q/R files together rather than discarding work to force separate commits.
+3. The real model connection is now verified; remote-machine 403 and Firefox/Safari remain unverified. Idle worker close is asserted by tests, not watched during a real warm-worker save. The primary app is running, so no stale-backend Settings 404 remains.
+4. Existing gaps from 36.7/37.7/39.9 remain: extraction layout/ranges, privacy recognition limitations, Tamil/Hindi sanitisation, no login or disk encryption, old key revocation in public history, future agent features, unused ReportPanel and report fingerprint cleanup. They are separate work, not missing T3 steps. Phone touch resizing and long-running answers across backend restart are still outside this round.
+5. For a new task, follow the current AGENTS/GEMINI/RULES, current branch and fresh verification. The owner must explicitly request sub-agents or another checkout. Never manually open/print/edit the real `.env` and always isolate all five paths for scratch testing.
+
+---
+
+## 41. DEEP CONNECTION CHECK (2026-10-12; READ THIS FIRST FOR READINESS)
+
+Owner request: check whether entering the API key and endpoint through the frontend will work "without any single issue". Codex followed the default reviewer/prompt role: no application source or existing backend test edits, no sub-agents, commits or push. Wrote `gemini/reviews/T_connection_deep_review.md` and `gemini/TASK_T4_connection_reliability.md`.
+
+### 41.1 What actually works
+- Scratch Settings: pasted synthetic key + compatible Responses endpoint + model name passed Test, normal Save cleared the key, reload retained values. Wrong-key failure preserved the saved key; changed host still required a newly typed key.
+- A full Chat `/v1/chat/completions` address, key, model, format and reasoning survived scratch backend restart; saved-key ping succeeded afterwards. All five paths were isolated, and only the scratch settings file seeded that restart.
+- **Primary real connection**: ping passed; a temporary synthetic PDF was uploaded, then the real AI Agent answered the hemoglobin question. Status answered, 2 tool calls, 1 citation, correct printed value 13.8, safety_passed true, 0 error events. Temporary persona deleted; primary configuration unchanged; store back to 1,183 passages; `.env` timestamp still 2026-10-08T14:16:14.5578770+05:30.
+- Fresh focused tests: 41 passed in 4.50s. Fresh production build exit 0, 400 modules, built in 1.14s. Full 791-suite evidence remains the prior T3 run; it was not rerun for this read-only audit. New controlled fault checks reveal gaps absent from that suite.
+
+### 41.2 Three faults, all reproduced; NOT FIXED
+1. **False-positive connection test (P1):** HTTP 200 `{}` in Responses mode is called verified and the code fabricates "Model responded: 'OK'". Chat also accepts arbitrary JSON. Proven by controlled response and the actual scratch browser: Test turned successful and Save accepted `/empty/responses`. Screenshot `gemini/shots/T4-empty-response-false-success.png`. Fix: require actual nonempty text in the chosen response contract; missing/error/malformed/empty response is failure, normal Save 422 with no changes.
+2. **Save/answer race (P1):** registry busy check is before the awaited network test. An answer that starts during that wait can still have its pool closed by Save. Controlled route proof: answer state became busy after test entered, Save still succeeded and pool close count was 1. Fix: coordinate final settings change/worker replacement and answer registration; recheck busy after test, and do not leave a new gap after the recheck.
+3. **Persistence failure changes runtime (P2):** apply_model_connection mutates live settings before writing the file. A controlled write failure left new runtime model with the old disk model. Removal has analogous ordering. Fix: validate/stage, atomically persist first, publish runtime only on success, return plain error on failure, keep workers unchanged. Coordinate writer threads and use safe unique temporary files.
+
+**Conclusion:** normal compatible connection flow is proven, but an issue-free assurance is not justified. T3 is complete for its specific host/key defects; T4 is the next reliability story. No need to repeat T3. Compatibility still requires the correct key, model name and Chat/Responses format; a ping alone does not prove every external service's streaming/tool support.
+
+### 41.3 Files, scripts and machine state
+- Review: `gemini/reviews/T_connection_deep_review.md`; implementation specification and paste message: `gemini/TASK_T4_connection_reliability.md` (READY, not run).
+- Scratch scripts/results: `C:/Users/Admin/AppData/Local/Temp/codex-vita-connection-audit-d530b89ec9a443229c0672a8498786d9/` (`proofs.py`, `proof_results.json`, `real_agent.py`, `real_agent_results.json`, `restart_check.py`, `restart_results.json`, synthetic-server/startup scripts).
+- Scratch 8001/5174/8099 stopped and free. Primary 8000/5173 remains running, untouched connection. Browser logs from this review are preserved with the scratch files. No real key was printed or manually read; application used its saved key for the live check.
+- Everything remains uncommitted on `feature/privacy-shield-and-rag-lab`, HEAD c4fca21. Only reports/spec/context/memory plus the generated build cache/screenshot were added in this review. Continue T4 through the owner's preferred implementation workflow; no standing direct-code or sub-agent permission was inferred from the review request.
+
+### 41.4 Model-name field follow-up
+Owner asked specifically about the model-name entering area. 22 controlled checks passed: valid model identifier preserved exactly through Test, Save, scratch persistence and next runtime; old pool closed once per successful model change; outside spaces trimmed; blank/internal spaces/newline/semicolon/symbol-first/101-character names rejected 422 with no call or mutation. Browser confirms a 100-character input, autocomplete off and spellcheck false. Read `gemini/reviews/T_model_name_review.md`. Syntax permits letter/digit first then letters/digits `. _ : / @ + -`; the API must support the exact entered model ID. This does not validate every service/model. The T4 empty-response false-positive defect still affects availability confirmation. No application source changes or real-setting changes were made.
+
+---
+
+## 42. CONSOLIDATED SESSION HANDOVER (2026-10-12; READ THIS FIRST)
+
+### 42.1 Requests, actions and authorization
+This Codex session covered four requests in order:
+1. Understand the complete project, task files, session context and related material. Read current instructions, handover memories, task history/plans/reviews, and core frontend/backend code. Identified section 39 as the then-current state and T3 as the last unfinished job.
+2. "complete the last work and its full update fully": implemented T3 directly, verified it, updated its reports/rules/docs/memory, and started the verified primary app. This explicitly authorized direct implementation for T3 only. No sub-agents used.
+3. Check whether pasting the API key/endpoint in the frontend will work "without any single issue": performed a deeper review and controlled fault checks plus a real Agent request. Normal behavior worked; three NEW faults were reproduced. Wrote a correction task T4, without changing application code or backend tests during that review.
+4. Ask about the model-name entering area: performed 22 additional controlled checks and inspected the actual browser field. Then the owner requested "Save all into the session context file". This section is that consolidated save; it is not permission to implement T4 or commit.
+
+Default role remains reviewer and detailed prompt writer. Direct implementation for another job, sub-agents, another checkout, commits, merges or pushes require the owner's instruction. Do not infer standing permission from the T3 override.
+
+### 42.2 Exact status of the work
+| Piece | Current status |
+|---|---|
+| Earlier Privacy Shield/Accuracy Test/My Data | Built, previously verified, still uncommitted; details sections 35/36 |
+| Earlier AI Agent upgrade (plan R) | Built, previously verified, still uncommitted; details section 37 |
+| AI connection round one (T1/T2) | Built; original review identified the saved-key host leak and misleading help |
+| T3 host/key guard and help | COMPLETE and accepted; implementation/evidence section 40 |
+| Deep API/endpoint review | COMPLETE as a review, **three unresolved defects found**; section 41 |
+| Model-name review | COMPLETE as a review, **22 controlled checks passed**; no additional model-specific defect reproduced |
+| T4 reliability correction | Task written, READY, **NOT IMPLEMENTED**; no T4 report or acceptance claim |
+
+T3 prevents blank-key reuse for a different host/port on both Test and Save, preserves same-host path/case changes and explicit new-key saves, and disables Test/Save/Save without testing when a new key is required. It does not solve the broader T4 issues. Do not confuse a green existing test suite with proof that every external API works perfectly.
+
+### 42.3 What was proven with the API, endpoint and model-name inputs
+**API/endpoint:** pasted synthetic credentials in the real scratch frontend/backend passed Test and Save, cleared the key field, persisted across page reload, and survived a scratch backend restart. A full Chat `/v1/chat/completions` address was normalized correctly. Wrong-key failure showed Authentication failed and preserved saved settings. Changed host with blank key remained blocked. Correct format, key, model ID and API access are still required.
+
+**Real connection, not only synthetic upstream:** used the primary app's existing saved connection without manually reading or printing its key. Ping passed. Uploaded a temporary synthetic panel and asked the actual AI Agent for its printed hemoglobin value. It answered with **2 tool calls**, **1 citation**, the correct **13.8** value, **safety_passed=true**, and **0 error events**. Removed the temporary persona afterwards. Real settings unchanged; search store returned to **1,183 passages**.
+
+**Model name:** this field is functional, not cosmetic. Test forwards the entered identifier, Save updates the effective model and persists MODEL_NAME, successful changes close old workers once, and the next runtime is configured with that exact identifier. The controlled runtime checks inspected configuration without starting a worker. The actual field has maxLength 100, autocomplete off and spellcheck false.
+
+Model syntax is 1-100 characters: starts with a letter/digit, followed by letters/digits or `. _ : / @ + -`. Surrounding whitespace is trimmed. Blank names, internal spaces/newlines, semicolon, symbol-first names and 101-character names produce 422 with **no upstream call, no settings mutation and no file change**. Case is preserved by VitaGraph; copy the provider's exact API model ID rather than a friendly display name. Whether a particular API treats names case-sensitively is determined by that API. Syntax validation alone cannot prove that the model exists, is available to the key, or supports streaming/tools.
+
+### 42.4 The three pending defects (T4, all reproduced)
+1. **P1: false-success ping.** HTTP 200 `{}` is accepted as verified; Responses mode even reports a fabricated 'OK'. The real scratch browser displayed success and normal Save accepted that empty-response endpoint. Chat has an equivalent arbitrary-JSON success path. T4 must require genuine nonempty output in the selected contract and preserve settings on a failed normal Save. This also affects confirmation of a model name's availability.
+2. **P1: Save/run race.** The active-answer check runs BEFORE the awaited connection ping. An answer starting during the ping can still have its runtime pool closed by Save. A controlled test reproduced Save success and one pool close after busy became true. T4 must coordinate run registration and the final settings/worker replacement, not just trust the early busy check.
+3. **P2: failed persistence mutates runtime.** Settings are changed in memory BEFORE the file write. An injected write failure left the new active model while the scratch file still held the old one. Key removal has the same ordering risk. T4 must persist atomically before publishing runtime changes, coordinate env writers, and return a plain error without changing settings/workers on failure.
+
+**None of these three has been fixed.** The honest response to the owner was: the normal flow works, but operation without any issue cannot be promised yet. T4 is the next single story. No provider-specific workaround, production mock, or invented data was added.
+
+### 42.5 Verification ledger and its limits
+| Verification | Fresh evidence from this session |
+|---|---|
+| T3 regressions before fix | 5 failed / 22 passed |
+| Full backend after T3 | **791 passed in 459.39s** (prior 778 + 13 new cases) |
+| T3 focused connection/env/privacy suite | 41 passed in 3.08s |
+| Deep-review focused suite | 41 passed in 4.50s; full suite not repeated for the source-unchanged review |
+| T3 browser | 32 checks passed, plus six primary Settings checks |
+| Deep browser | valid paste/Test/Save/reload and wrong-key/changed-host cases passed; empty-response false-success reproduced |
+| API smoke | 10 checks passed: upload, measurements, cited offline answer, graph/subgraph, series, Timeline/My Data, refusal and cleanup |
+| Scratch restart | endpoint/key/model/format/reasoning retained, saved-key ping succeeded |
+| Real primary Agent | answered correctly, 2 tools, 1 citation, no error events |
+| Model-name field | **22 controlled checks passed** |
+| Latest production build | exit 0, 400 modules, built in 1.14s |
+| Latest design audit | 104 files, 0 errors, 0 pending |
+| Latest secret scan | RESULT: PASS |
+| Documentation diff check | clean |
+
+No Firefox/Safari, real remote machine, exhaustive provider/model catalog, or phone touch-resize certification. Full tests were last run for T3; the following read-only review deliberately used new fault checks to find gaps absent from that suite. The original 400/820/1000/1440 layout, keyboard and reduced-motion results are in the T3 reports. A ping does not certify all streaming/tool behavior; the actual saved primary connection did complete a real tool-using answer.
+
+### 42.6 Files and evidence to read
+- `gemini/reports/T3_T1_summary.md`, `T3_T2_summary.md`, `T3_browser_checks.json`.
+- `gemini/reviews/T3_review.md`: accepted host/key work.
+- `gemini/reviews/T_connection_deep_review.md`: three reproduced reliability faults, file/line references and proof descriptions.
+- `gemini/reviews/T_model_name_review.md`: model-name validation/forwarding results.
+- **Next implementation:** `gemini/TASK_T4_connection_reliability.md` (closed files, failing-first regressions, response validation, transactional persistence, run coordination, final verification/report requirements).
+- T3 screenshots: `gemini/shots/T3-host-changed-1440.png`, `T3-settings-1440.png`, `T3-settings-820.png`, `T3-settings-400.png`.
+- New defect screenshot: `gemini/shots/T4-empty-response-false-success.png`.
+- Scratch T3 scripts/logs/results: `C:/Users/Admin/AppData/Local/Temp/codex-vita-t3-49735847c0f54036b8761092a3a9ba40/`.
+- Scratch deep-review scripts/results/logs: `C:/Users/Admin/AppData/Local/Temp/codex-vita-connection-audit-d530b89ec9a443229c0672a8498786d9/`. Includes `proofs.py`/`proof_results.json`, `real_agent.py`/`real_agent_results.json`, `restart_check.py`/`restart_results.json`, `model_name_check.py` and `model-name/results.json`. These temporary files may disappear; durable review/report text records the evidence. Recreate or rerun proofs if needed, rather than assuming the temporary folder persists.
+
+T3 also updated README, CLAUDE, AGENTS, GEMINI, RULES, DESIGN_LAW item 13, plan/task status, progress and existing handover memories. The later review updated section 41, plan readiness, progress and memory. All documentation and source remain uncommitted.
+
+### 42.7 Machine, data and Git state at this save
+- Fresh check: branch **feature/privacy-shield-and-rag-lab**, HEAD **c4fca21**. No staging, commits, merges or pushes in this session. All previous Q/R/T changes preserved. Never stage `site design/tsconfig.tsbuildinfo`.
+- Primary backend and frontend **still running** on 8000/5173, last verified listener PIDs **24000 / 21164**. Re-check PID ownership before any stop/restart; backend has no --reload. Do not stop the owner's primary app just to run T4 checks.
+- Scratch ports **8001/5174/8099 are free**; all temporary test personas removed. Browser log folders moved out of the repository into their scratch directories; evidence screenshots remain in gemini/shots.
+- Real `.env` was never manually opened, edited, copied or printed. Its verified LastWriteTime stayed **2026-10-08T14:16:14.5578770+05:30** throughout implementation and reviews. Existing credentials stayed in place; all paste/save fault tests used synthetic values and all five isolated paths.
+- The retired other checkout and the owner's data/personas were not cleaned or changed. Broader extraction/range, privacy recognition, multilingual safety, no-login/no-disk-encryption, public-history key revocation and optional Agent UX gaps remain as recorded in older sections; they are not part of T4.
+
+### 42.8 Next action on resume
+1. Read this section, then the deep review, model-name review and TASK_T4. Verify branch/status first. **Do not repeat T3.** T4 is READY, not implemented or accepted.
+2. The owner must choose/authorize the implementation workflow for T4. Default is Gemini implementing and this session reviewing; direct coding and sub-agents were not authorized by the request to review or save this context.
+3. Ready paste message: "Read gemini/reviews/T_connection_deep_review.md, then gemini/TASK_T4_connection_reliability.md completely. Do only T4, with failing-first regression proofs, preserve the dirty tree and keep the real .env and primary ports untouched. No git writes or sub-agents. Write gemini/reports/T4_summary.md when finished."
+4. Review T4 only after its report exists. Repeat the three failing-first scenarios, full backend suite on the final semantic code, build/audit/scan, browser error/restart checks and active-answer race proof. Never edit existing backend tests to force a pass; document exact fresh counts.
+5. Keep T3's host/key rules, all earlier working Q/R features and real data intact. Keep scratch paths/data/settings isolated. No commit, merge or push unless asked.
+
+The current request was to save context only. No application source/test edit or T4 implementation was performed during this save.
+
+---
+
+## 43. DARK CHAT ONLY (2026-10-12; LATEST UI WORK)
+
+### 43.1 Owner request and scope
+Owner: "can you make the chat userinterface only darker same like the knowledge graph dark". This authorized direct UI implementation for this story. Codex used the existing graph ink colours and preserved the Modernist layout, Archivo, square corners and red accent. No sub-agents, commits, merge or push. The shared shell and other routes were not recoloured.
+
+### 43.2 Files and behaviour
+- `site design/src/index.css`: local `.vg-agent-page` colour variables, background and colour-scheme dark. Canvas #201e1d exactly matches `.stage.ink`; raised surfaces #2d2b2b, primary text #f3f2f2, secondary #bab6b6, light red text/tints and readable borders. Primary red buttons get a black foreground for contrast. The root theme is untouched.
+- `site design/src/pages/AgentPage.tsx`: the small AI mark uses the scoped on-accent text; the existing loading/no-persona/offline wrapper now gets the same local theme. No stream, API, state-store, worker, conversation or data logic changed.
+- History, conversation, composer, menus, confirmation dialogs, report picker and panel controls inherit the dark palette. Actual charts/reports/source images keep their document colours. User can still switch to other pages, which remain light as before.
+- `gemini/DESIGN_LAW.md` item 14 records the owner-approved chat colour exception; this overrides the old light Agent reference only for the AI Agent interface. Report: `gemini/reports/CHAT_DARK_summary.md`.
+
+### 43.3 Fresh proof
+Full backend suite: **791 passed in 496.23s (8 min 16 s)**. Final production build: exit 0, 400 modules, built in 3.50s. Design audit: 104 files, 0 errors, 0 pending. Secret scan PASS. Diff whitespace check clean. No backend code/tests/settings changed.
+
+Browser at 1440x900, 820x1100 and 400x900: no horizontal overflow; Chart/Write a report prefill, enabled Send, History/search, dark row menu/scope picker, panel and full-screen toggle, mobile History, keyboard Tab, and reduced-motion appearance work. Delete dialog was opened and cancelled with Escape; no chat was deleted or modified. Saved conversations loaded read-only. A temporarily aborted users request showed the dark offline/no-persona view, then normal connectivity was restored without stopping the backend.
+
+Axe colour-contrast checks: **zero violations** in both sampled saved conversations (chart/report) and the 400px History drawer. Normal checks had no app page errors. Expected browser network logs from the deliberate offline test are not application exceptions. Sampled answers had no citation buttons, so a new evidence-click check was not claimed. Earlier evidence checks remain recorded in prior work.
+
+Screenshots: `gemini/shots/chat-dark-1440.png`, `chat-dark-820.png`, `chat-dark-400.png`, `chat-dark-conversation.png`, `chat-dark-mobile-history.png`, `chat-dark-offline.png`. The graph ink and current chat screenshots were compared directly. Library/root token remains #f3f2f2. No new model call or fake content was introduced for this UI story.
+
+### 43.4 Resume state
+Branch feature/privacy-shield-and-rag-lab, HEAD c4fca21, all prior work plus this UI change still uncommitted. Primary app continues on 8000/5173; frontend hot reload serves the dark chat. The app browser was queued to show `/agent`. No automatic backend restart or new scratch server needed.
+
+Section 42 remains the connection/model-name handover. **T4 is still READY, NOT IMPLEMENTED**; its empty-response false-success, Save/run race and persistence-failure defects have not been fixed by this styling task. Do not undo the owner's dark-chat decision when implementing T4. Keep all earlier dirty-tree work and explicit-path staging rules intact.
+
+---
+
+## 44. WHOLE-APP LIGHT/DARK (2026-10-13; READ THIS FIRST)
+
+### 44.1 Owner instructions and scope
+The owner asked for a Light/Dark toggle in Settings and then explicitly approved the whole-app implementation plan. Dark is the default; selected theme covers all 14 pages, shared shell, chat, graph stages, menus/dialogs, charts and generated previews, retaining the same Archivo typography, square corners, red accent, effects and animations. Both graph colour buttons are global shortcuts. This replaces section 43 and DESIGN_LAW item 14’s chat-only decision. Direct implementation was authorized; no sub-agents, commits, merges or pushes. T4 connection-reliability fixes remain outside this story.
+
+The owner interrupted work and subsequently said “contiune the work”. Work was resumed from the dirty tree. Primary servers, stopped at interruption, were restarted using the existing hidden-window startup script. No prior Q/R/T changes were discarded.
+
+### 44.2 Implementation and key invariants
+- `site design/src/lib/preferences.ts`: Theme type/field, Dark default, validation of legacy preferences, immediate root data-theme/color-scheme, cross-tab storage listener including clear, HMR listener cleanup, supported/unknown field preservation, malformed-JSON recovery and in-memory fallback. Theme changes no longer reset unrelated motion-tier overrides. `site design/index.html` applies saved theme in the head before visible rendering.
+- Settings → Display → Appearance has Light/Dark buttons, aria-pressed, keyboard focus and storage-unavailable help. `browserStorage.ts` catches unavailable local/session storage; relevant user/bootstrap/motion/header/upload/settings reads now use safe storage rather than failing render.
+- `theme/tokens.css` moves the ink palette global (#201e1d/#2d2b2b/#f3f2f2), retains original Light neutrals and defines readable status/accent/overlay/selected foregrounds. `index.css` removes chat-only overrides. `modernist.css` gives button hover/active states readable foregrounds and consistent controls. Header/sidebar/process/PDF/upload small labels follow tokens.
+- Knowledge Graph and Text-to-Graph derive stage ink from global preference. GraphStage colour button controls that preference; stage CSS no longer inverts the palette twice. Existing engine changes ink in place, preserving state.
+- LivingBackground shares one mutable palette with the existing warp/flow/stars/type engines. Flow refresh clears coloured trails only, not particles. Static views repaint on theme change. Existing OS reduced-motion governor and manual T0 are respected; no theme-driven engine creation or animation restart.
+- `displayTheme.ts` creates chart SVG presentation copies without changing measurements, labels, geometry or evidence. `ChartView` recolours on-screen SVG; fetch is independent of theme and download stays original.
+- Generated report preview has one memoized adaptive HTML copy with appended presentation CSS and embedded-chart styles. Its empty sandbox and original CSP remain. `color-scheme` on iframe changes native embedded media inheritance; srcdoc/body is stable, preserving scroll/selection. Original saved HTML is not modified. Printing opens the original PDF. Photos/videos/source PDFs are unchanged; graph snapshots retain current-view export behaviour.
+- No backend endpoints, API-key handling, dependencies, schemas or migrations changed. App/test Python SHA256 manifest equals the baseline taken before this story.
+
+### 44.3 Fresh command verification
+```text
+Full backend: 791 passed in 451.95s (0:07:31)
+Final frontend build: exit 0; 402 modules; built in 1.16s
+Design audit: Checked 106 files: 0 error(s), 0 pending.
+Secret scan: RESULT: PASS
+Git diff --check: exit 0; no whitespace errors (existing LF/CRLF notices only)
+Backend app/test manifest comparison: unchanged since theme baseline
+```
+The backend suite ran during this theme task. Later source edits were frontend-only; the hash comparison confirms no backend/test edits after the run. Final build/audit/scan passed after the last source edits. No backend test was changed to pass.
+
+### 44.4 Browser and visual evidence
+- Chromium matrix: **14 routes × 2 themes × 3 sizes = 84 cases**, at 1440×900, 820×1100 and 400×900. Final pass: no horizontal overflow, zero axe text-contrast violations, no app page errors. Routes: upload/library/data/agent/graph/timeline/compare/insights/image-to-text/pdf-to-text/text-to-graph/privacy/lab/settings.
+- Default Dark, both switch directions, reload persistence, cross-tab synchronization and legacy preferences without theme passed. Storage-blocked app still renders and switches with the correct visit-only help; malformed JSON repairs on next save. Extra legacy field preserved, as were fast speed, chunkSize 300, flow, intensity 130 and reduced-motion true.
+- All four animated backgrounds retained instance identity with updated palettes and live FPS. All four static T0 engines also retained identity through Light/Dark and repainted correct colours. OS reduced motion remains T0. Theme does not reset motion tier.
+- Both graph shortcuts verified. Text-to-Graph built the lab example through the real pattern endpoint; Orbits layout and lens remained selected, engine identity retained. Knowledge Graph had already passed instance retention checks.
+- Enter/Space activate themes, focus indicator is solid/visible. Conversation menu ArrowDown focuses menu item; confirmation colours match both modes and Escape dismisses without deleting. Controlled users-request abort shows readable offline/no-persona state in both modes; interception removed. These checks do not claim every possible error/menu/dialog permutation on every page.
+- A temporary synthetic persona exercised a real active upload and actual primary-model answer. Theme switching preserved the selected file, progress and draft/conversation; exactly one report was created, answer completed without cancellation and cited the printed **13.8** hemoglobin value. Temporary persona deleted and Chroma count restored to baseline.
+- Generated chart labels/geometry unchanged; original saved report HTML unchanged; PDF bytes identical across themes; CSP and sandbox preserved. Native adaptive-reader proof retained the same iframe body and scrollTop **400** across Light and Dark. The Playwright context uses `colorScheme:null`: forced OS-Light emulation otherwise overrides embedded native media inheritance. A test-only iframe requestAnimationFrame hang was resolved by evaluating synchronously; sandbox itself was never relaxed. Temporary reader personas removed.
+- Visually inspected Light/Dark contact sheets covering all 14 pages plus full-size live Agent, native reader and confirmation views. Layout/effects match across themes. Original upload-theatre media brightness remains intentionally unchanged. Six extra toggle screenshots show Display control at all three target sizes.
+
+Evidence: `gemini/reports/GLOBAL_THEME_summary.md`, `gemini/reviews/GLOBAL_THEME_review.md` (Approve), `gemini/shots/global-*.png`. Desktop page pairs, contact sheets, upload/answer, preview/native reader, built text graph, dialogs, offline state and toggle-size screenshots are included. Reports document limitations: Firefox/Safari and screen-reader speech not checked; rendered-DOM axe contrast is not an exhaustive canvas contrast audit.
+
+### 44.5 Repository and machine state
+- Branch `feature/privacy-shield-and-rag-lab`, HEAD `c4fca21`; earlier dirty changes plus this theme story are all uncommitted/unstaged. Never stage `site design/tsconfig.tsbuildinfo`. No other checkout touched.
+- Primary backend **8000** and frontend **5173** running. Listener PIDs at final check: **32752 / 30000**. Recheck before stopping. Existing temp startup script: `C:/Users/Admin/AppData/Local/Temp/codex-vita-t3-49735847c0f54036b8761092a3a9ba40/start_primary.py`. Backend is not reload-enabled; later backend edits need deliberate restart.
+- Scratch ports **8001/5174/8099** have no listeners; no scratch stack was required for this theme story. Real settings/key were never manually read, printed or edited; the application used its existing model connection for the live answer. Observed .env mtime metadata: 2026-10-12 19:53:39 local (metadata only).
+- Theme baseline manifest: `C:/Users/Admin/AppData/Local/Temp/codex-vita-global-theme-6be3a816c1d1473388781f57b9e97ee1/backend-before.json`. Browser diagnostic logs are disposable and preserved outside the repository when cleanup runs.
+
+### 44.6 Resume
+Theme implementation and requested documentation are complete. Use Settings → Display → Appearance to switch; graph buttons change the same preference. DESIGN_LAW item 15 is current, section 43 is historical. T4’s three reproduced connection reliability defects in section 41 are still pending; do not treat theme completion or green tests as an issue-free API compatibility claim. No standing authorization to commit/push or spawn sub-agents. Preserve all prior work and use explicit paths if later asked to stage.
+
+---
+
+## 45. OWNER-AUTHORIZED MAIN CHECKPOINT (2026-10-13; READ THIS FIRST)
+
+The owner explicitly requested “save each and everythings in git main and github main also”. This authorizes committing the accumulated project work and publishing main; earlier no-commit notes describe historical state.
+
+Before saving, origin was fetched. Local main and origin/main both pointed to c4fca21 (zero ahead/behind). Switched this workspace to main without resetting or discarding the feature work. The checkpoint includes all pending application code, backend tests, project/task/plan files, reports/reviews, browser screenshots, session context and how-it-works video production prompts. The generated `site design/tsconfig.tsbuildinfo` remains local and excluded by the project instruction. Ignored keys, .env, runtime databases/uploads, virtual environments and dependency/build output remain local. No other checkout or old branch is deleted.
+
+Verification: backend app/test SHA256 matches the baseline that passed 791 tests in section 44; fresh production build passed (402 modules, 807ms), design audit passed (106 files, 0 errors), staged-file secret scan passed. The whitespace gate identified trailing spaces in the new video clip notes; these were trimmed without changing their text, then the gate passed. Main is pushed with a normal fast-forward push, never force. Final local HEAD/origin main equality and remaining workspace changes are checked after publication; the exact checkpoint is available from `git log -1 main` and GitHub. If publication fails, do not infer success from this prepared handover; use command output and resolve the failure.
+
+Current working branch is main. Theme is complete; section 44 has implementation and browser evidence. T4 connection-reliability defects remain READY, NOT implemented. This request saves the current verified state; it does not implement T4 or erase its documented limitations. Future commits/pushes still require owner authorization for their scope.

@@ -45,9 +45,21 @@ def create_user(display_label: str) -> dict:
 
 
 def list_users() -> list[dict]:
+    # Temporary RAG Lab personas (status 'lab') exist only while a lab run is going; they are never listed.
     with get_db() as db:
-        rows = db.execute("SELECT * FROM users ORDER BY created_at DESC").fetchall()
+        rows = db.execute("SELECT * FROM users WHERE status != 'lab' ORDER BY created_at DESC").fetchall()
         return [_with_consent(dict(row)) for row in rows]
+
+
+def mark_lab(user_id: str) -> None:
+    """Hide a persona from the persona list: it belongs to a RAG Lab run."""
+    with get_db() as db:
+        db.execute("UPDATE users SET status = 'lab' WHERE id = ?", (user_id,))
+
+
+def lab_user_ids() -> list[str]:
+    with get_db() as db:
+        return [r["id"] for r in db.execute("SELECT id FROM users WHERE status = 'lab'").fetchall()]
 
 
 def get_user(user_id: str) -> dict:
@@ -117,10 +129,14 @@ def delete_user(user_id: str) -> dict:
         db.execute("DELETE FROM agent_conversations WHERE user_id = ?", (user_id,))
         db.execute("DELETE FROM ai_calls WHERE user_id = ?", (user_id,))
         db.execute("DELETE FROM node_summaries WHERE user_id = ?", (user_id,))
+        db.execute("DELETE FROM privacy_ledger WHERE user_id = ?", (user_id,))
+        db.execute("DELETE FROM privacy_terms WHERE user_id = ?", (user_id,))
         db.execute("DELETE FROM users WHERE id = ?", (user_id,))
 
     from app.graph import builder  # local import: the graph module imports the database layer
     builder.forget_user_graph(user_id)
+    from app.privacy import shield  # local import: the shield imports the database layer
+    shield.forget(user_id)
 
     return {"deleted": user_id,
-            "records": "reports, pages, chunks, questions, answers, timeline, vectors, raw files, agent conversations, artifacts, AI call records"}
+            "records": "reports, pages, chunks, questions, answers, timeline, vectors, raw files, agent conversations, artifacts, AI call records, privacy ledger, hidden words"}

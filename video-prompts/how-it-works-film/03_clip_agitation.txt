@@ -1,0 +1,7 @@
+VOICE: this video MUST include a spoken English voiceover by one off-screen narrator, a calm, warm Indian-English woman in her early 30s, studio quality, speaking slowly and clearly. No one on screen speaks.
+Setting: a four-storey white modern hospital with rows of lit windows and a plain glowing red cross on the roof, at blue-hour dusk under a dark storm cloud, warm sodium street lamps along the road, fine rain haze. Photorealistic feature film, ARRI Alexa 35, anamorphic lens, Kodak film grain, realistic skin, clean frame without lettering.
+[00:00-00:03] Close-up from a low angle, static camera, 50mm, inside an office: glowing blue sheets of light rise out of an open laptop and drift toward the dark window. SFX: a thin electric whine.
+[00:03-00:06] Extreme wide shot from a low angle at street level, slow crane up, 24mm: thin streams of blue light pour from the hospital windows into the storm cloud. SFX: a low hum climbing.
+[00:06-00:08] Extreme wide shot from a high angle, static camera, 24mm: the cloud drifts away over the city, carrying the blue lights. SFX: distant thunder.
+VOICEOVER [00:00-00:08]: the off-screen narrator says seriously, "Most AI tools fix that by sending her private data... far outside the hospital."
+Emotion: rising dread. Ambient noise: wind. The narrator's voice sits clearly above the sound effects. No music.

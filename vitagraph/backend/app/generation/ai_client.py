@@ -20,6 +20,7 @@ from dataclasses import dataclass
 import httpx
 
 from app.core.config import settings
+from app.privacy import shield
 from app.services import responses_adapter
 
 CONFIG_VERSION = "neutral-openai-compatible-v2-med-edu"
@@ -100,15 +101,16 @@ def test_connection(url: str, key: str, model: str, timeout: int = 12) -> tuple[
     request_id = f"test_{uuid.uuid4().hex[:8]}"
     if url.strip().rstrip("/").endswith("/responses"):
         try:
-            resp = responses_adapter.complete_sync(
-                [{"role": "user", "content": "Hello. Please reply with the single word 'OK'."}],
-                model=model.strip(),
-                url=url,
-                api_key=key,
-                max_tokens=64,
-                timeout=timeout,
-                request_id=request_id,
-            )
+            with shield.scope(None, "connection_test"):
+                resp = responses_adapter.complete_sync(
+                    [{"role": "user", "content": "Hello. Please reply with the single word 'OK'."}],
+                    model=model.strip(),
+                    url=url,
+                    api_key=key,
+                    max_tokens=64,
+                    timeout=timeout,
+                    request_id=request_id,
+                )
             if resp.status_code == 401:
                 return False, "Authentication failed (HTTP 401): Invalid API key."
             if resp.status_code == 403:
@@ -194,13 +196,14 @@ def generate_answer(question: str, evidence_snippets: list[str]) -> GenerationRe
     try:
         with httpx.Client(timeout=settings.ai_service_timeout_seconds) as client:
             if use_responses:
-                response = responses_adapter.complete_sync(
-                    messages,
-                    model=settings.effective_model,
-                    api_key=api_key,
-                    request_id=request_id,
-                    timeout=settings.ai_service_timeout_seconds,
-                )
+                with shield.scope(None, "ask"):
+                    response = responses_adapter.complete_sync(
+                        messages,
+                        model=settings.effective_model,
+                        api_key=api_key,
+                        request_id=request_id,
+                        timeout=settings.ai_service_timeout_seconds,
+                    )
             else:
                 response = client.post(target_url, json=payload, headers=headers)
             status_code = getattr(response, "status_code", 200)
@@ -224,6 +227,7 @@ def generate_answer(question: str, evidence_snippets: list[str]) -> GenerationRe
             text = responses_adapter.text_from_response(data)
             if not text:
                 raise ValueError("The model returned no text.")
+            text = shield.restore(text, "")  # put masked details back locally
         else:
             text = data["choices"][0]["message"]["content"].strip()
         return GenerationResult(ok=True, text=text, request_id=request_id, status="ok")

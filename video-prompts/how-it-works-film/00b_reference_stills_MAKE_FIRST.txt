@@ -1,0 +1,22 @@
+REFERENCE STILLS ("ingredients"): make these FIRST with an image model (for example Gemini's image model), then attach them to the clips listed.
+Google's own Veo 3.1 workflow does exactly this: character and setting images first, then each shot prompt "using the provided images".
+Keep the files. Never regenerate them mid-project, because a new still means a new face.
+Attach 3 reference images at most per clip (more images make the references fight each other).
+
+STILL A · MEENA (attach to clips 1, 6 and 7)
+Photorealistic portrait, medium close-up at eye level, 85mm lens, f/2.8. Meena, a 68-year-old South Indian grandmother with silver hair in a low bun, round gold-rimmed glasses and a maroon saree, looking calmly into the camera with a gentle closed-mouth expression. Soft window light from camera-left, a plain mid-grey studio background, natural skin texture with fine wrinkles, no jewellery other than small gold studs.
+
+STILL B · DR. ARUN (attach to clips 2, 5 and 6)
+Photorealistic portrait, medium close-up at eye level, 85mm lens, f/2.8. Dr. Arun, a 40-year-old South Indian doctor with a trimmed beard, black-framed glasses and a white coat with a stethoscope, looking calmly into the camera with a kind, tired expression. Soft window light from camera-left, a plain mid-grey studio background, natural skin texture.
+
+STILL C · THE ROOM (attach to clips 1, 2, 4 and 5)
+Photorealistic wide interior photograph at eye level, 24mm lens. A small white hospital consultation room with a teak desk, a curtained window on the left and a silver laptop, two empty chairs at the desk, late-afternoon sunlight through the sheer curtains, a plain wall clock without numbers, clean surfaces, no people, no signs or posters.
+
+STILL D · THE HOSPITAL AT DUSK (attach to clip 3; clip 8 uses the best frame of clip 3 instead)
+Photorealistic extreme wide exterior photograph from street level, 24mm lens. A four-storey white modern hospital with rows of lit windows and a plain glowing red cross on the roof, blue-hour dusk, warm sodium street lamps along the road at the right, fine rain haze, a stormy grey sky, no people, no signs or lettering on the building.
+
+CHECK EACH STILL BEFORE USING IT:
+- the face is sharp and symmetric, with nothing covering the eyes;
+- there is no text anywhere in the image;
+- the wardrobe matches the words above;
+- in the hospital still, the red cross is a plain shape with no letters.

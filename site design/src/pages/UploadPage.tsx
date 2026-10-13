@@ -7,6 +7,7 @@ import type { ReportPage, Report } from "../types";
 import { transitionNavigate } from "../motion/navigation";
 import { useJobStream } from "../hooks/useJobStream";
 import { getPreferences } from "../lib/preferences";
+import { readStorage } from "../lib/browserStorage";
 import { rememberLoadedReport } from "../lib/loadedReport";
 import { agentApi } from "../api/agent";
 import { ProcessTheatre, type StageState } from "../components/upload/ProcessTheatre";
@@ -18,7 +19,7 @@ const tagStyle = (kind: "done" | "running" | "waiting" | "failed"): React.CSSPro
   kind === "done"
     ? { background: "var(--color-text)", color: "var(--color-bg)", fontWeight: 800 }
     : kind === "running"
-    ? { background: "var(--color-accent)", color: "var(--color-bg)", fontWeight: 800 }
+    ? { background: "var(--color-accent)", color: "var(--on-accent)", fontWeight: 800 }
     : kind === "failed"
     ? { background: "var(--color-accent-100)", color: "var(--color-accent-800)", fontWeight: 800 }
     : { background: "var(--color-neutral-200)", color: "var(--color-neutral-800)" };
@@ -26,7 +27,7 @@ const tagStyle = (kind: "done" | "running" | "waiting" | "failed"): React.CSSPro
 export const UploadPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, refreshUsers } = useActiveUser();
-  const userId = user?.id || (typeof localStorage !== "undefined" ? localStorage.getItem("vitagraph_user_id") : null) || "usr_51f14542d71a";
+  const userId = user?.id || readStorage("vitagraph_user_id") || "usr_51f14542d71a";
   const { addToast } = useToast();
 
   const [file, setFile] = useState<File | null>(null);
@@ -616,7 +617,7 @@ export const UploadPage: React.FC = () => {
                 const srcLabel = isNative ? "Native text" : isOcr ? "OCR" : isUncertain ? "Uncertain" : "No text";
                 const tagCss: React.CSSProperties = isNative
                   ? { background: "var(--color-neutral-200)", color: "var(--color-neutral-800)" }
-                  : { background: "var(--color-accent)", color: "var(--color-bg)", fontWeight: 800 };
+                  : { background: "var(--color-accent)", color: "var(--on-accent)", fontWeight: 800 };
                 return (
                   <tr key={p.page_number}>
                     <td style={{ fontWeight: 800 }}>p.{p.page_number}</td>

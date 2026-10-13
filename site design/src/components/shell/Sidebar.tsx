@@ -1,6 +1,34 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { flip, supportsViewTransitions, governor, setNavDirection, getNavDirection } from "../../motion";
+import { useAgentActivity } from "../../hooks/useAgentActivity";
+
+const RUN_SQUARE_CSS = `
+@keyframes vgRunPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.vg-run-square { display: inline-block; flex: none; background: var(--color-accent); animation: vgRunPulse 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .vg-run-square { animation: none; } }
+:root[data-reduce-motion="true"] .vg-run-square { animation: none; }
+`;
+
+/** Small red square that pulses gently while an AI Agent answer is being written. */
+export const RunningSquare: React.FC<{ size?: number }> = ({ size = 8 }) => (
+  <>
+    <style>{RUN_SQUARE_CSS}</style>
+    <span className="vg-run-square" aria-hidden="true" style={{ width: size, height: size }} />
+  </>
+);
+
+const ReadyBadge: React.FC<{ count: number }> = ({ count }) => (
+  <span
+    aria-hidden="true"
+    style={{
+      minWidth: 18, height: 18, padding: "0 5px", boxSizing: "border-box", display: "inline-flex", alignItems: "center", justifyContent: "center",
+      background: "var(--color-accent)", color: "var(--on-accent)", fontSize: "0.6875rem", fontWeight: 800, lineHeight: 1, flex: "none",
+    }}
+  >
+    {count}
+  </span>
+);
 
 export interface NavItem {
   id: string;
@@ -19,6 +47,10 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   const location = useLocation();
   const currentPath = location.pathname;
+  const { running, ready } = useAgentActivity();
+  const isRunning = running.length > 0;
+  // On the AI Agent page the chat needs the room: the sidebar shrinks to its narrow icon rail (the one used below 1024 px).
+  const rail = currentPath === "/agent";
 
   const navRef = useRef<HTMLElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
@@ -95,6 +127,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
           icon: <Icon d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" /> },
         { id: "library", path: "/library", label: "Library", sublabel: "Your reports", live: true,
           icon: <Icon d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /> },
+        { id: "data", path: "/data", label: "My Data", sublabel: "Files and chats", live: true,
+          icon: <Icon d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /> },
       ],
     },
     {
@@ -148,6 +182,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
       ],
     },
     {
+      label: "Trust",
+      items: [
+        { id: "privacy", path: "/privacy", label: "Privacy Shield", sublabel: "What left this computer", live: true,
+          icon: <Icon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /> },
+        { id: "lab", path: "/lab", label: "Accuracy Test", sublabel: "Does it find the right answers?", live: true,
+          icon: <Icon d="M9 3h6M10 3v6L4.5 19a2 2 0 0 0 1.7 3h11.6a2 2 0 0 0 1.7-3L14 9V3" /> },
+      ],
+    },
+    {
       label: "System",
       items: [
         { id: "settings", path: "/settings", label: "Settings", sublabel: "Ingestion, privacy", live: true,
@@ -161,12 +204,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   return (
     <aside
       aria-label="Primary navigation"
-      className={`w-[60px] lg:w-[244px] h-screen flex-shrink-0 flex flex-col select-none overflow-hidden ${className}`}
+      data-rail={rail ? "true" : "false"}
+      className={`${rail ? "w-[60px]" : "w-[60px] lg:w-[244px]"} h-screen flex-shrink-0 flex flex-col select-none overflow-hidden ${className}`}
       style={{ borderRight: "2px solid var(--color-divider)", background: "var(--color-bg)", boxSizing: "border-box" }}
     >
       {/* Brand row: 76px high, red 16px square + name */}
       <div
-        className="h-[76px] flex-shrink-0 flex items-center justify-center lg:justify-start lg:px-6"
+        className={`h-[76px] flex-shrink-0 flex items-center justify-center ${rail ? "" : "lg:justify-start lg:px-6"}`}
         style={{ borderBottom: "2px solid var(--color-divider)" }}
       >
         <Link
@@ -184,7 +228,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
               viewTransitionName: vtOn ? "sidebar-leaf" : "none",
             }}
           />
-          <span className="hidden lg:inline">VitaGraph</span>
+          <span className={rail ? "hidden" : "hidden lg:inline"}>VitaGraph</span>
         </Link>
       </div>
 
@@ -200,7 +244,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
         {navGroups.map((group, groupIdx) => (
           <React.Fragment key={group.label}>
             <div
-              className="hidden lg:block"
+              className={rail ? "hidden" : "hidden lg:block"}
               style={{
                 padding: "var(--space-4) var(--space-6) var(--space-2)", fontSize: "0.6875rem", fontWeight: 800,
                 letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-neutral-700)",
@@ -208,9 +252,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
             >
               {group.label}
             </div>
-            {groupIdx > 0 && <div className="lg:hidden mx-3 my-2" style={{ borderTop: "1px solid var(--color-divider)" }} aria-hidden="true" />}
+            {groupIdx > 0 && <div className={`${rail ? "" : "lg:hidden"} mx-3 my-2`} style={{ borderTop: "1px solid var(--color-divider)" }} aria-hidden="true" />}
             {group.items.map((item) => {
               const isActive = currentPath === item.path;
+              const isAgent = item.id === "agent";
+              const agentRunning = isAgent && isRunning;
+              const agentReady = isAgent ? ready.length : 0;
+              const spoken = isAgent
+                ? `${item.label}${agentRunning ? ", an answer is being written" : ""}${agentReady > 0 ? `, ${agentReady} ${agentReady === 1 ? "answer is" : "answers are"} ready` : ""}`
+                : item.label;
               return (
                 <Link
                   key={item.id}
@@ -219,10 +269,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
                   onClick={() => setNavDirection(getNavDirection(currentPath, item.path))}
                   data-active={isActive ? "true" : "false"}
                   data-boot-target="nav-item"
-                  title={item.label}
-                  aria-label={item.label}
+                  title={spoken}
+                  aria-label={spoken}
                   aria-current={isActive ? "page" : undefined}
-                  className={`relative flex items-center justify-center lg:justify-start gap-3 w-full px-2 lg:px-6 py-2 text-left ${isActive ? "" : "hover:bg-[var(--color-surface)]"}`}
+                  className={`relative flex items-center justify-center ${rail ? "" : "lg:justify-start"} gap-3 w-full px-2 ${rail ? "" : "lg:px-6"} py-2 text-left ${isActive ? "" : "hover:bg-[var(--color-surface)]"}`}
                   style={{
                     lineHeight: "normal",
                     textDecoration: "none",
@@ -231,14 +281,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
                   }}
                 >
                   <span style={{ color: isActive ? "var(--color-bg)" : "var(--color-neutral-700)", display: "flex" }}>{item.icon}</span>
-                  <span className="hidden lg:block min-w-0">
+                  <span className={rail ? "hidden" : "hidden lg:block min-w-0"}>
                     <span style={{ display: "block", fontSize: "0.9375rem", fontWeight: 800, lineHeight: 1.2 }}>{item.label}</span>
                     {item.sublabel && (
-                      <span style={{ display: "block", fontSize: "0.75rem", color: isActive ? "var(--color-neutral-400)" : "var(--color-neutral-700)" }}>
+                      <span style={{ display: "block", fontSize: "0.75rem", color: isActive ? "var(--muted-on-inverted)" : "var(--color-neutral-700)" }}>
                         {item.sublabel}
                       </span>
                     )}
                   </span>
+                  {agentRunning || agentReady > 0 ? (
+                    <>
+                      {/* Wide sidebar: beside the name. */}
+                      <span className={rail ? "hidden" : "hidden lg:flex"} style={{ marginLeft: "auto", alignItems: "center", gap: "var(--space-2)" }} data-testid="sidebar-agent-activity">
+                        {agentRunning ? <RunningSquare size={10} /> : null}
+                        {agentReady > 0 ? <ReadyBadge count={agentReady} /> : null}
+                      </span>
+                      {/* Icon rail: on the icon's corner. */}
+                      <span className={rail ? "flex" : "flex lg:hidden"} style={{ position: "absolute", top: 4, right: 6, alignItems: "center", gap: 2 }}>
+                        {agentRunning ? <RunningSquare size={8} /> : null}
+                        {agentReady > 0 ? <ReadyBadge count={agentReady} /> : null}
+                      </span>
+                    </>
+                  ) : null}
                 </Link>
               );
             })}
@@ -251,7 +315,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
             title="Component gallery"
             viewTransition={vtOn}
             onClick={() => setNavDirection(getNavDirection(currentPath, "/gallery"))}
-            className="hidden lg:block hover:bg-[var(--color-surface)]"
+            className={`${rail ? "hidden" : "hidden lg:block"} hover:bg-[var(--color-surface)]`}
             style={{ padding: "var(--space-2) var(--space-6)", fontSize: "0.75rem", color: "var(--color-neutral-700)", textDecoration: "none", marginTop: "var(--space-4)" }}
           >
             Component gallery (dev)
@@ -260,7 +324,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
       </nav>
 
       <div
-        className="hidden lg:block flex-shrink-0"
+        className={`${rail ? "hidden" : "hidden lg:block"} flex-shrink-0`}
         style={{ padding: "var(--space-4) var(--space-6)", borderTop: "2px solid var(--color-divider)", fontSize: "0.6875rem", lineHeight: 1.4, color: "var(--color-neutral-700)" }}
       >
         Educational tool. Not a diagnostic service.

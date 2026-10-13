@@ -57,7 +57,25 @@
   --faint: var(--color-neutral-700);
   --accent: var(--color-accent);       /* primary action fill: the brand red, as in the reference. Red TEXT uses --accent-ink / --color-accent-700 */
   --accent-hover: var(--color-accent-600);
-  --on-accent: var(--color-bg);
+  --on-accent: #000;
+  --on-accent-active: var(--color-bg);
+  --agent-on-accent: var(--on-accent);
+  --color-overlay: #201e1d;
+  --muted-on-inverted: var(--color-neutral-400);
+  /* Original server document colours, retained for presentation-only recolouring. */
+  --document-ink: #201e1d;
+  --document-bg: #f3f2f2;
+  --document-band: #eae9e9;
+  --document-grid: #cfcdcd;
+  --document-muted: #605d5d;
+  --document-accent: #ec3013;
+  --preview-dark-bg: #201e1d;
+  --preview-dark-text: #f3f2f2;
+  --preview-dark-surface: #2d2b2b;
+  --preview-dark-rule: #7d7979;
+  --preview-dark-muted: #bab6b6;
+  --preview-dark-accent: #ff9783;
+  --preview-light-accent: #ae1800;
   --focus: var(--color-accent);      /* focus ring uses the bright red */
   --link: var(--color-accent-700);
   --verdigris: #3B6A53;
@@ -71,7 +89,7 @@
   --paper-fold: var(--color-neutral-300);
   --text-main: var(--color-text);
   --text-muted: var(--color-neutral-700);
-  --text-on-primary: var(--color-bg);
+  --text-on-primary: var(--on-accent);
   --chrome: var(--color-surface);
   --chrome-line: var(--color-divider);
   --titanium-mist: var(--color-bg);
@@ -116,6 +134,45 @@
   --ease-ink: cubic-bezier(0, 0, 0.2, 1);
 }
 
+/* One global palette; aliases above resolve again when these root values change. */
+:root:not([data-theme="light"]) {
+  color-scheme: dark;
+  --color-bg: #201e1d;
+  --color-surface: #2d2b2b;
+  --color-text: #f3f2f2;
+  --color-divider: color-mix(in srgb, #f3f2f2 28%, transparent);
+  --color-neutral-100: #2d2b2b;
+  --color-neutral-200: #444141;
+  --color-neutral-300: #605d5d;
+  --color-neutral-400: #7d7979;
+  --color-neutral-500: #9b9797;
+  --color-neutral-600: #bab6b6;
+  --color-neutral-700: #bab6b6;
+  --color-neutral-800: #eae7e7;
+  --color-neutral-900: #f3f2f2;
+  --color-accent-100: color-mix(in srgb, #ec3013 12%, #201e1d);
+  --color-accent-200: color-mix(in srgb, #ec3013 24%, #201e1d);
+  --color-accent-300: #ffc4b8;
+  --color-accent-400: #ff9783;
+  --color-accent-600: #ff563c;
+  --color-accent-700: #ff9783;
+  --color-accent-800: #ffc4b8;
+  --color-accent-900: #ffe0d9;
+  --accent-ink: var(--color-accent-700);
+  --on-accent-active: #000;
+  --muted-on-inverted: #605d5d;
+  --line-faint: color-mix(in srgb, #f3f2f2 18%, transparent);
+  --verdigris: #79b8a6;
+  --ochre: #d9a441;
+  --ochre-ink: #d9a441;
+  --jade-slate: #79b8a6;
+  --solar-bronze: #d9a441;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 25%);
+  --shadow-md: 0 3px 10px rgb(0 0 0 / 30%);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 40%);
+}
+:root[data-theme="light"] { color-scheme: light; }
+
 /* Reduced motion token collapse (§M2.1) */
 @media (prefers-reduced-motion: reduce) {
   :root {
@@ -131,7 +188,7 @@
   }
 }
 
-/* Graphite frame: Modernist has no dark chrome; inherits light tokens. */
+/* Shared chrome follows the selected app theme. */
 .chrome-dark {
-  color-scheme: light;
+  color-scheme: inherit;
 }

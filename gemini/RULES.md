@@ -36,12 +36,13 @@ Hard rules:
 - Test files, `tasks/prd.json`, `skills/`, `legacy/`, everything under `design/` and `docs/`.
 - Do not delete files unless the task says so by name. Do not run `git push`, `git reset --hard`, `git checkout -- .` on files you did not edit, or `git clean`.
 
+> **Current phase (2026-10-12):** `redesign/modernist-app` is history. The current branch is `feature/privacy-shield-and-rag-lab` (created from `c4fca21`). Later task-specific file ownership and verification instructions override the older frontend-only restrictions above. Read the newest section of `docs/SESSION_CONTEXT.md` before resuming.
+
 ## 3b. Branch guard (mandatory, every task, before anything else)
-All work happens on ONE branch: `redesign/modernist-app`. You must never work on, commit to, merge into, rebase onto, or push `main` or any other branch.
+All current work happens on `feature/privacy-shield-and-rag-lab`. Do not work on or switch to `main`, the retired redesign branch, or another checkout unless the task explicitly names it.
 - First command of every task: `git branch --show-current`.
-  - Task 01 only: if the branch does not exist, create it from the current `main` with `git switch -c redesign/modernist-app`. If it already exists, `git switch redesign/modernist-app`.
-  - Every later task: the output MUST be `redesign/modernist-app`. If it is anything else, run `git switch redesign/modernist-app`. If that fails (for example because of conflicting local changes), STOP and report BLOCKED. Do not stash, reset, or force.
-- Last command of every task: `git branch --show-current` and `git log --oneline -3`, pasted in the report, proving the commit landed on `redesign/modernist-app`.
+  - The output must match the branch named in the current task. If it differs, report the mismatch; do not automatically switch, stash, reset or discard changes.
+- Last commands of every task: `git branch --show-current`, `git log --oneline -3` and `git status --short`, pasted in the report. Work remains uncommitted until the owner requests a commit.
 - Forbidden git commands: `git push` (any form), `git merge`, `git rebase`, `git reset --hard`, `git clean`, `git checkout main`, `git switch main`, `git branch -D`, `git commit --amend` on commits from earlier tasks, `--force` anywhere, `--no-verify`.
 - The reviewer, not you, decides when the branch is merged or pushed.
 
@@ -51,15 +52,15 @@ All work happens on ONE branch: `redesign/modernist-app`. You must never work on
 3. No placeholders, no TODO comments, no `lorem`, no stub components, no commented-out code left behind.
 4. Match surrounding code style (TypeScript strict, function components, Tailwind utilities + tokens).
 5. Run the verify commands in the task. They must print exit code 0. Frontend build: `cd "F:\kiruthika\kiruthika final project\site design"` then `npm run build`. Backend is never touched, so you do not run pytest unless the task says so.
-6. Commit only on the branch `redesign/modernist-app` (see 3b), one commit per task, message `feat(redesign): <task id> <short summary>`. Stage files by explicit path only (never `git add .` or `-A`, because untracked reference folders and zips sit in the repo). Never commit while the build is red.
-7. If a build fails and you cannot fix it in 3 attempts: STOP, do not commit, restore only the files you edited with `git checkout -- <those files>`, and report BLOCKED with the exact error.
+6. Do not commit during the work round. The reviewer reviews first; commits, merges and pushes require the owner's instruction. Stage explicit paths only when authorized, never `git add .` or `-A`, and never `site design/tsconfig.tsbuildinfo`. Never commit while red.
+7. If verification fails, fix the current task without discarding pre-existing changes. If it cannot be resolved, report the exact error and preserve the work; do not restore, reset or clean the checkout.
 8. If something in the task is ambiguous or contradicts these rules: STOP and ask in your report. Do not guess and do not invent.
 
 ## 5. Report format (end of every task, exactly this, nothing else)
 ```
 TASK: <id>
 STATUS: COMPLETE | BLOCKED | PARTIAL
-BRANCH: <output of git branch --show-current, must be redesign/modernist-app>
+BRANCH: <output of git branch --show-current, must match the current task>
 FILES CHANGED: <one per line, with +added/-removed line counts from git diff --stat>
 COMMANDS RUN: <each verify command and its final lines of output, verbatim>
 ACCEPTANCE: <each acceptance item, PASS or FAIL, with one line of evidence>
@@ -84,9 +85,9 @@ Besides the chat reply, you WRITE A FILE for every task: `gemini/reports/TASK_<i
 ## 9. How the reviewer can double-check (3 to 6 exact commands or URLs)
 ```
 Rules for the report file:
-- Write it BEFORE the final commit and stage it by explicit path together with the task files, so it lands in the same commit. Do not put the commit hash in it (the reviewer reads it from `git log`).
+- Write the report before handing work to the reviewer. Keep it uncommitted with the implementation until the owner requests a commit. Do not invent a commit hash.
 - Never write "should work" or "probably". Only what you ran and saw. If you did not run something, say "not run".
-- If you are BLOCKED, still write the report file, but do NOT commit code; commit only the report (`docs`-style message `chore(redesign): <id> blocked report`) so the reviewer can read it.
+- If you are BLOCKED, still write the report file and preserve the implementation. Do not commit either without owner instruction.
 - The reviewer answers in `gemini/reviews/TASK_<id>_review.md`. At the start of the next task, read the review of the previous task (if the file exists) and obey every "must fix" item in it before starting the new task.
 
 ## 5d. When the AI API does not work (user decision, 2026-10-04)

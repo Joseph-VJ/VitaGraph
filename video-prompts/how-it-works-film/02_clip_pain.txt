@@ -1,0 +1,7 @@
+VOICE: this video MUST include a spoken English voiceover by one off-screen narrator, a calm, warm Indian-English woman in her early 30s, studio quality, speaking slowly and clearly. No one on screen speaks.
+Cast and setting: Dr. Arun, a 40-year-old South Indian doctor with a trimmed beard, black-framed glasses and a white coat with a stethoscope, at the desk in a small white hospital consultation room with a teak desk, a curtained window on the left and a silver laptop, with a thick stack of yellowed lab reports tied with white string, each page printed with faint grey lines. Photorealistic feature film, ARRI Alexa 35, anamorphic lens, Kodak film grain, realistic skin, clean frame without lettering. Flat cool fluorescent light from above, warm late-afternoon window light rimming him from behind-left.
+[00:00-00:03] Close-up at eye level, slow push-in, 50mm: his eyes scan a page, the paper reflected in his glasses. SFX: a page turning.
+[00:03-00:05] Extreme close-up from a high angle, static camera, 100mm macro: his thumb flicks rapidly through the pages. SFX: rapid page flips.
+[00:05-00:08] Medium shot at eye level, slow pull-back, 35mm: he leans back from the pile and exhales. SFX: a tired exhale.
+VOICEOVER [00:00-00:08]: the off-screen narrator says with a tired sigh, "Every visit, her doctor searches the pile... page after page... for one old value."
+Emotion: mounting frustration. Ambient noise: a clock ticking, a distant corridor murmur. The narrator's voice sits clearly above the sound effects. No music.

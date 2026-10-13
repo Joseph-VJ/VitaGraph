@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { User } from "../types";
 import { usersApi } from "../api/users";
+import { readStorage, writeStorage, removeStorage } from "../lib/browserStorage";
 
 interface UserContextValue {
   user: User | null;
@@ -29,7 +30,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const list = await usersApi.list();
       setUsers(list);
       if (list.length > 0) {
-        const savedId = localStorage.getItem("vitagraph_user_id");
+        const savedId = readStorage("vitagraph_user_id");
         const matched = list.find((u) => u.id === savedId) || list[0];
         setUserState(matched);
       } else {
@@ -41,7 +42,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         }
         setUsers([initial]);
         setUserState(initial);
-        localStorage.setItem("vitagraph_user_id", initial.id);
+        writeStorage("vitagraph_user_id", initial.id);
       }
     } catch {
       // Backend may be offline
@@ -53,9 +54,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const setUser = (newUser: User | null) => {
     setUserState(newUser);
     if (newUser) {
-      localStorage.setItem("vitagraph_user_id", newUser.id);
+      writeStorage("vitagraph_user_id", newUser.id);
     } else {
-      localStorage.removeItem("vitagraph_user_id");
+      removeStorage("vitagraph_user_id");
     }
   };
 

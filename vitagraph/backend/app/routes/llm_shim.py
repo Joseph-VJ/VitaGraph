@@ -19,6 +19,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.core.config import settings
+from app.privacy import shield
 from app.services import live_bus, responses_adapter as adapter
 
 logger = logging.getLogger(__name__)
@@ -111,13 +112,14 @@ async def chat_completions(request: Request) -> Any:
     model = body.get("model") or settings.effective_model
     live_bus.publish(persona, {"kind": "model_start"})
     try:
-        client, response = await adapter.open_stream(
-            messages,
-            model=model,
-            tools=body.get("tools"),
-            tool_choice=body.get("tool_choice"),
-            max_tokens=body.get("max_tokens") or body.get("max_completion_tokens"),
-        )
+        with shield.scope(persona, "agent"):
+            client, response = await adapter.open_stream(
+                messages,
+                model=model,
+                tools=body.get("tools"),
+                tool_choice=body.get("tool_choice"),
+                max_tokens=body.get("max_tokens") or body.get("max_completion_tokens"),
+            )
     except openai.APIStatusError as exc:
         live_bus.publish(persona, {"kind": "model_error", "message": str(exc)[:300]})
         return _error(exc.status_code, str(exc))
@@ -126,7 +128,7 @@ async def chat_completions(request: Request) -> Any:
         live_bus.publish(persona, {"kind": "model_error", "message": "The model endpoint is unreachable."})
         return _error(502, f"Model endpoint unreachable: {exc}")
 
-    chunks = _observed(adapter.iter_chunks(client, response, model), persona)
+    chunks = _observed(adapter.iter_chunks(client, response, model, restore_for=persona or ""), persona)
     if body.get("stream"):
         return StreamingResponse(_sse(chunks), media_type="text/event-stream")
     try:

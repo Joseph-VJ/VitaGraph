@@ -31,7 +31,7 @@ import {
 } from "../components/graph/stage/GraphStageEngine";
 import { PageState, PersonaState } from "../components/ui";
 import { useActiveUser } from "../context/UserContext";
-import { usePreferences } from "../lib/preferences";
+import { setPreference, usePreferences } from "../lib/preferences";
 import { sortReports, formatReportDate, formatReportMonthYear } from "../lib/reportLabels";
 import { readLastAnswer } from "../lib/lastAnswer";
 import type { Report } from "../types";
@@ -81,7 +81,8 @@ export const KnowledgeGraphPage: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeLayout, setActiveLayout] = useState<string>("sphere");
   const [lensOn, setLensOn] = useState<boolean>(false);
-  const [themeInk, setThemeInk] = useState<boolean>(true);
+  const themeInk = prefs.theme === "dark";
+  const setThemeInk = (ink: boolean) => setPreference("theme", ink ? "dark" : "light");
   const [activeFocus, setActiveFocus] = useState<string>("all");
   const [barMessage, setBarMessage] = useState<React.ReactNode | null>(null);
 

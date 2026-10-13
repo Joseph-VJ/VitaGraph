@@ -28,8 +28,8 @@
 }
 
 .stage.ink {
-  --sfg: var(--color-bg);
-  --sbg: var(--color-text);
+  --sfg: var(--color-text);
+  --sbg: var(--color-bg);
 }
 
 .stage-canvas {
@@ -107,7 +107,7 @@
 .stage .tr .btn[aria-pressed="true"],
 .stage .layoutbar button[aria-pressed="true"] {
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--on-accent);
   border-color: var(--color-accent);
 }
 
@@ -682,7 +682,7 @@ details.fine .inner {
 
 .move-btn:active:not(:disabled) {
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--on-accent);
   border-color: var(--color-accent);
 }
 

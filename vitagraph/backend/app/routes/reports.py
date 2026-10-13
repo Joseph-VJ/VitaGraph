@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Response, UploadFile
+from fastapi.responses import FileResponse
 
 from app.schemas.report import ChunkOut, ComparisonOut, MeasurementOut, PageOut, ReportOut, ReportStatusOut, TrendOut
-from app.services import measurement_service, report_service, user_service
+from app.services import measurement_service, page_highlight, report_service, user_service
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -105,6 +106,21 @@ def report_chunk(report_id: str, chunk_id: str, user_id: str) -> dict:
     return report_service.get_chunk(report_id, chunk_id)
 
 
+@router.get("/{report_id}/file")
+def report_original_file(report_id: str, user_id: str) -> FileResponse:
+    """Send back the original uploaded file, exactly as it was stored, as a download."""
+    user_service.user_exists(user_id)
+    report, path = report_service.original_file(report_id, user_id)
+    return FileResponse(path, filename=report["original_filename"], content_disposition_type="attachment")
+
+
+@router.delete("/{report_id}")
+def delete_report(report_id: str, user_id: str) -> dict:
+    """Delete one report: its file, pages, passages and search entries. Chats keep their words."""
+    user_service.user_exists(user_id)
+    return report_service.delete_report(user_id, report_id)
+
+
 @router.get("/{report_id}/pages/{page_number}/image")
 def report_page_image(
     report_id: str,
@@ -118,6 +134,20 @@ def report_page_image(
         report_service.assert_report_owner(report_id, user_id)
     png = report_service.render_page_png(report_id, page_number, dpi)
     return Response(content=png, media_type="image/png", headers={"Cache-Control": "private, max-age=300"})
+
+
+@router.get("/{report_id}/pages/{page_number}/highlight")
+def report_page_highlight(
+    report_id: str,
+    page_number: int,
+    user_id: str,
+    char_start: int | None = Query(None, ge=0),
+    char_end: int | None = Query(None, ge=0),
+) -> dict:
+    """Boxes (0..1 of the page image) that cover characters char_start..char_end of this page's text, so the UI can mark the passage."""
+    user_service.user_exists(user_id)
+    report_service.assert_report_owner(report_id, user_id)
+    return page_highlight.highlight(report_id, page_number, char_start, char_end)
 
 
 @router.get("/{user_id}/trends", response_model=TrendOut)

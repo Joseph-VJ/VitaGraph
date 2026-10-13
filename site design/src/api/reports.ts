@@ -1,6 +1,6 @@
 // Report API calls: upload, listing, and page provenance.
 
-import { api } from "./client";
+import { api, BASE_URL } from "./client";
 import type { Report, ReportPage } from "../types";
 
 export interface ReportStatus {
@@ -133,4 +133,12 @@ export const reportsApi = {
     return api.get<ComparisonData>(url);
   },
   loadDemoCohort: () => api.post<DemoCohortResult>("/api/demo/cohort", {}),
+  /** Address of the original uploaded file; opening it downloads the file. */
+  fileUrl: (userId: string, reportId: string) =>
+    `${BASE_URL}/api/reports/${encodeURIComponent(reportId)}/file?user_id=${encodeURIComponent(userId)}`,
+  /** Delete one report with its pages, passages and search entries. Chats keep their words. */
+  remove: (userId: string, reportId: string) =>
+    api.del<{ deleted: string; filename: string; chunks_removed: number }>(
+      `/api/reports/${encodeURIComponent(reportId)}?user_id=${encodeURIComponent(userId)}`
+    ),
 };

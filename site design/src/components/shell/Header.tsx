@@ -4,6 +4,7 @@ import { useActiveUser } from "../../context/UserContext";
 import { supportsViewTransitions, governor } from "../../motion";
 import { transitionNavigate } from "../../motion/navigation";
 import { useHealth } from "../../lib/healthMonitor";
+import { readStorage } from "../../lib/browserStorage";
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
@@ -44,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [allowApi, setAllowApi] = useState<boolean | null>(() => {
     if (typeof sessionStorage !== "undefined") {
-      const cached = sessionStorage.getItem("vg_allow_api");
+      const cached = readStorage("vg_allow_api", "session");
       if (cached !== null) return cached === "true";
     }
     return null;
@@ -53,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
   // Check if in replay mode (§US-12: replay badge if replay mode)
   const isReplay =
     location.search.includes("replay=true") ||
-    localStorage.getItem("vitagraph_replay") === "true";
+    readStorage("vitagraph_replay") === "true";
 
   // The AI tag follows the shared backend health check (§US-12); one request serves the whole shell.
   const health = useHealth();
@@ -88,6 +89,9 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
       case "/image-to-text": return { title: "Image to Text", sub: "Read the text in a picture." };
       case "/pdf-to-text": return { title: "PDF to Text", sub: "Extract the text layer of a PDF, page by page." };
       case "/text-to-graph": return { title: "Text to Graph", sub: "Turn plain text into linked entities." };
+      case "/privacy": return { title: "Privacy Shield", sub: "What left this computer, and what was hidden first." };
+      case "/lab": return { title: "Accuracy Test", sub: "Check that VitaGraph finds the right answers." };
+      case "/data": return { title: "My Data", sub: "Everything you added and asked, in one place." };
       default: return { title: "VitaGraph", sub: "Your reports, evidence and insights in one place." };
     }
   };
@@ -155,7 +159,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, className = "", backen
           >
             <span
               style={{
-                width: 32, height: 32, background: "var(--color-accent)", color: "var(--color-bg)",
+                width: 32, height: 32, background: "var(--color-accent)", color: "var(--on-accent)",
                 display: "grid", placeItems: "center", fontWeight: 800,
               }}
             >

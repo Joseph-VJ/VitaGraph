@@ -47,6 +47,8 @@ def _get_report_hint(user_id: str, report_id: str | None) -> tuple[str, str] | N
 
 MAX_LISTED_REPORTS = 12
 
+BUSY_MESSAGE = "The AI Agent is still answering your previous message. Wait for it to finish or press Stop."
+
 
 def _report_index(user_id: str) -> list[tuple[str, str, str | None]]:
     """(report_id, filename, date) of the person's newest reports, so the agent need not list them first."""
@@ -139,6 +141,8 @@ class _TurnRecorder:
                 self.trajectory.append({"event": "model", **payload})
             elif payload.get("phase") == "error":
                 self.trajectory.append({"event": "model", **payload})
+        elif ev_type == "privacy":
+            self.trajectory.append({"event": "privacy", **payload})
         elif ev_type == "tool_call":
             self._note()  # chat-format fallback: no model events, so narration is closed here
             self.trajectory.append({"event": "tool_call", **payload})
@@ -205,6 +209,7 @@ def _persist_turn(
     *,
     trajectory: list[dict[str, Any]] | None = None,
     stats: dict[str, Any] | None = None,
+    pre_started: bool = False,
 ) -> str | None:
     try:
         question_id = f"qst_{uuid.uuid4().hex[:12]}"
@@ -256,14 +261,18 @@ def _persist_turn(
             safety_note=final.get("safety_note"),
             job_id=None,
         )
-        conversation_service.record_turn(
-            user_id=user_id,
-            conversation_id=conversation_id,
-            question=q_text,
-            final=final,
-            trajectory=trajectory or [],
-            stats=stats or {},
-        )
+        if pre_started:
+            # The run registry already stored the conversation and the question; only the answer is left.
+            conversation_service.finish_turn(user_id, conversation_id, final, trajectory or [], stats or {})
+        else:
+            conversation_service.record_turn(
+                user_id=user_id,
+                conversation_id=conversation_id,
+                question=q_text,
+                final=final,
+                trajectory=trajectory or [],
+                stats=stats or {},
+            )
         return question_id
     except Exception:
         logger.exception("Failed to persist turn")
@@ -277,8 +286,13 @@ async def stream_agent(
     pool: Any,
     conversation_id: str | None = None,
     report_id: str | None = None,
+    pre_started: bool = False,
 ) -> AsyncGenerator[tuple[str, dict], None]:
-    """Stream one agent turn yielding (event_type, payload) tuples."""
+    """Stream one agent turn yielding (event_type, payload) tuples.
+
+    pre_started: the caller (the run registry) already stored the conversation and the question, so only the
+    answer is stored here.
+    """
     # 1. Validation
     if not turns or turns[-1].get("role") != "user":
         yield (
@@ -317,7 +331,7 @@ async def stream_agent(
         yield ("text_delta", {"delta": safety.BOUNDARY_RESPONSE})
         final = completed("refused", safety.BOUNDARY_RESPONSE, safety_passed=True, ai_status="not_used")
         yield ("completed", final)
-        qid = await asyncio.to_thread(_persist_turn, user_id, turns, final, conv_id)
+        qid = await asyncio.to_thread(_persist_turn, user_id, turns, final, conv_id, pre_started=pre_started)
         yield (
             "done",
             {
@@ -341,7 +355,7 @@ async def stream_agent(
         yield ("text_delta", {"delta": refusal_text})
         final = completed("refused", refusal_text, safety_passed=True, ai_status="not_used")
         yield ("completed", final)
-        qid = await asyncio.to_thread(_persist_turn, user_id, turns, final, conv_id)
+        qid = await asyncio.to_thread(_persist_turn, user_id, turns, final, conv_id, pre_started=pre_started)
         yield (
             "done",
             {
@@ -384,7 +398,7 @@ async def stream_agent(
             )
             return
 
-        qid = await asyncio.to_thread(_persist_turn, user_id, turns, final_offline, conv_id)
+        qid = await asyncio.to_thread(_persist_turn, user_id, turns, final_offline, conv_id, pre_started=pre_started)
         yield (
             "done",
             {
@@ -427,7 +441,7 @@ async def stream_agent(
             "error",
             {
                 "status": "error",
-                "message": "The AI Agent is still answering your previous message. Wait for it to finish or press Stop.",
+                "message": BUSY_MESSAGE,
                 "diagnostic": "",
             },
         )
@@ -537,6 +551,7 @@ async def stream_agent(
         conv_id,
         trajectory=recorder.trajectory,
         stats=recorder.stats,
+        pre_started=pre_started,
     )
     yield (
         "done",

@@ -1,12 +1,14 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { usePreferences, setPreference } from "../../lib/preferences";
+import { useMotionGovernor } from "../../motion/quality";
 import { subscribe as subscribeActivity } from "../../lib/appActivity";
 import type {
   BackgroundEngineName,
   BackgroundForce,
   EngineContext,
   BackgroundEngineInstance,
+  BackgroundColors,
   FreeAreaRect,
   BackgroundState,
 } from "./types";
@@ -21,6 +23,9 @@ declare global {
       engine: BackgroundEngineName;
       strength: string;
       fps: number;
+      theme: string;
+      colors: BackgroundColors;
+      instances: Record<BackgroundEngineName, BackgroundEngineInstance | null>;
       events: Array<Record<string, unknown>>;
     };
   }
@@ -30,6 +35,8 @@ export const LivingBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const location = useLocation();
   const prefs = usePreferences();
+  const motion = useMotionGovernor();
+  const reducedMotion = prefs.reduceMotion || motion.reducedMotion || motion.tier === "T0";
 
   const [playing, setPlaying] = useState(false);
   const [force, setForce] = useState<BackgroundForce>("attract");
@@ -48,6 +55,7 @@ export const LivingBackground: React.FC = () => {
     stars: null,
     type: null,
   });
+  const paletteRef = useRef<ReturnType<typeof getColors> | null>(null);
 
   const bgStateRef = useRef<BackgroundState>({
     W: 0,
@@ -111,6 +119,9 @@ export const LivingBackground: React.FC = () => {
       n7: root.getPropertyValue("--color-neutral-700").trim() || "rgb(96, 93, 93)",
     };
   }, []);
+  if (paletteRef.current === null) paletteRef.current = getColors();
+
+
 
   // The chosen level (30 to 200 %): above 100 % the engines draw stronger, below 100 % the canvas fades (see opacity below).
   const levelRef = useRef(prefs.backgroundLevel / 100);
@@ -138,10 +149,22 @@ export const LivingBackground: React.FC = () => {
         engine: bgStateRef.current.engine,
         strength: bgStateRef.current.str,
         fps: bgStateRef.current.fps,
+        theme: document.documentElement.dataset.theme ?? "dark",
+        colors: { ...paletteRef.current! },
+        instances: enginesRef.current,
         events: eventsLogRef.current,
       };
     }
   }, []);
+
+  useLayoutEffect(() => {
+    Object.assign(paletteRef.current!, getColors());
+    Object.values(enginesRef.current).forEach((engine) => engine?.refreshPalette?.());
+    if (reducedMotion && prefs.background !== "off" && !isGraphRoute) {
+      enginesRef.current[prefs.backgroundEngine]?.still();
+    }
+    updateDevHook();
+  }, [prefs.theme, getColors, reducedMotion, prefs.background, prefs.backgroundEngine, isGraphRoute, updateDevHook]);
 
   // Initialize or retrieve current engine
   const getCurrentEngine = useCallback((): BackgroundEngineInstance | null => {
@@ -160,7 +183,7 @@ export const LivingBackground: React.FC = () => {
       ctx,
       bg: bgStateRef.current,
       ev: evStateRef.current,
-      colors: getColors(),
+      colors: paletteRef.current!,
       freeArea,
       strength,
       areaK,
@@ -194,10 +217,10 @@ export const LivingBackground: React.FC = () => {
     document.body.classList.add("playing");
     const eng = getCurrentEngine();
     if (eng?.setCount) eng.setCount();
-    if (prefs.reduceMotion) {
+    if (reducedMotion) {
       eng?.still();
     }
-  }, [getCurrentEngine, prefs.reduceMotion]);
+  }, [getCurrentEngine, reducedMotion]);
 
   const exitPlay = useCallback(() => {
     setPlaying(false);
@@ -205,10 +228,10 @@ export const LivingBackground: React.FC = () => {
     document.body.classList.remove("playing");
     const eng = getCurrentEngine();
     if (eng?.setCount) eng.setCount();
-    if (prefs.reduceMotion) {
+    if (reducedMotion) {
       eng?.still();
     }
-  }, [getCurrentEngine, prefs.reduceMotion]);
+  }, [getCurrentEngine, reducedMotion]);
 
   // Listen to custom enter-play event
   useEffect(() => {
@@ -269,7 +292,7 @@ export const LivingBackground: React.FC = () => {
       if (eng?.click) {
         eng.click(e.clientX, e.clientY);
       }
-      if (prefs.reduceMotion) {
+      if (reducedMotion) {
         eng?.still();
       }
     };
@@ -289,7 +312,7 @@ export const LivingBackground: React.FC = () => {
       window.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [getCurrentEngine, isGraphRoute, prefs.reduceMotion]);
+  }, [getCurrentEngine, isGraphRoute, reducedMotion]);
 
   // Resize handler
   useEffect(() => {
@@ -310,7 +333,7 @@ export const LivingBackground: React.FC = () => {
       });
 
       const currentEng = getCurrentEngine();
-      if (prefs.reduceMotion) {
+      if (reducedMotion) {
         currentEng?.still();
       }
     };
@@ -320,7 +343,7 @@ export const LivingBackground: React.FC = () => {
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, [getCurrentEngine, prefs.reduceMotion]);
+  }, [getCurrentEngine, reducedMotion]);
 
   // Visibility change listener
   useEffect(() => {
@@ -347,7 +370,7 @@ export const LivingBackground: React.FC = () => {
           timestamp: Date.now(),
         });
         if (eng?.event) eng.event("think");
-        if (prefs.reduceMotion) eng?.still();
+        if (reducedMotion) eng?.still();
       }
 
       // 2. Upload stage state
@@ -363,7 +386,7 @@ export const LivingBackground: React.FC = () => {
             timestamp: Date.now(),
           });
           if (eng?.event) eng.event("stage");
-          if (prefs.reduceMotion) eng?.still();
+          if (reducedMotion) eng?.still();
         }
       } else if (evStateRef.current.upload !== null) {
         // Upload cleared
@@ -380,7 +403,7 @@ export const LivingBackground: React.FC = () => {
           timestamp: Date.now(),
         });
         if (eng?.event) eng.event("done");
-        if (prefs.reduceMotion) eng?.still();
+        if (reducedMotion) eng?.still();
       }
 
       updateDevHook();
@@ -389,7 +412,7 @@ export const LivingBackground: React.FC = () => {
     return () => {
       unsubscribe();
     };
-  }, [getCurrentEngine, prefs.reduceMotion, updateDevHook]);
+  }, [getCurrentEngine, reducedMotion, updateDevHook]);
 
   // Main animation render loop
   useEffect(() => {
@@ -401,7 +424,7 @@ export const LivingBackground: React.FC = () => {
       setEngineCount(eng.count());
     }
 
-    if (prefs.reduceMotion) {
+    if (reducedMotion) {
       if (!shouldSkipDraw && eng) {
         eng.still();
       }
@@ -458,7 +481,7 @@ export const LivingBackground: React.FC = () => {
     prefs.background,
     prefs.backgroundEngine,
     prefs.backgroundLevel,
-    prefs.reduceMotion,
+    reducedMotion,
     playing,
     isGraphRoute,
     getCurrentEngine,

@@ -66,7 +66,7 @@ const tagStyle = (kind: StageState): React.CSSProperties =>
   kind === "done"
     ? { background: "var(--color-text)", color: "var(--color-bg)", fontWeight: 800 }
     : kind === "running"
-    ? { background: "var(--color-accent)", color: "var(--color-bg)", fontWeight: 800 }
+    ? { background: "var(--color-accent)", color: "var(--on-accent)", fontWeight: 800 }
     : kind === "failed"
     ? { background: "var(--color-accent-100)", color: "var(--color-accent-800)", fontWeight: 800 }
     : { background: "var(--color-neutral-200)", color: "var(--color-neutral-800)" };

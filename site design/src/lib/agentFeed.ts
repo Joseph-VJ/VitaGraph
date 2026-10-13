@@ -2,6 +2,7 @@
 // Pure functions: the live stream and a reopened conversation go through the same code.
 
 import type { AgentEvidence, TrajectoryItem, TrajectoryKind } from "../hooks/useAgentChat";
+import { toCounts } from "./privacyFormat";
 
 type Json = Record<string, unknown>;
 
@@ -196,6 +197,25 @@ export function applyFeedEvent(items: TrajectoryItem[], event: string, p: Json, 
       return items.map((i) =>
         i.id === callId ? { ...i, detail, result, durationMs, status: failedFlag ? ("failed" as const) : ("done" as const) } : i
       );
+    }
+
+    case "privacy": {
+      const ledgerId = String(p.ledger_id ?? "");
+      const rowId = `privacy_${ledgerId || ctx.id()}`;
+      if (items.some((i) => i.id === rowId)) return items;
+      const removed = numberOrNull(p.removed_total) ?? 0;
+      const charsSent = numberOrNull(p.chars_sent) ?? 0;
+      return [
+        ...items,
+        {
+          id: rowId,
+          kind: "privacy",
+          label: removed > 0 ? `Privacy Shield hid ${plural(removed, "detail", "details")}` : "Privacy Shield found nothing personal",
+          detail: `Sent ${charsSent.toLocaleString("en-US")} characters. Names, IDs and phone numbers stay on this computer.`,
+          status: "done",
+          privacy: { ledgerId, charsSent, removed, byType: toCounts(p.by_type) },
+        },
+      ];
     }
 
     default:

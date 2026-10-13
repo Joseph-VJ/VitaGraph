@@ -26,6 +26,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.generation import safety
 from app.graph.builder import build_user_graph
+from app.privacy import shield
 from app.services import llm_service, measurement_service, question_service
 
 logger = logging.getLogger(__name__)
@@ -1167,14 +1168,15 @@ async def stream(ev: NodeEvidence, *, refresh: bool = False) -> AsyncIterator[tu
         try:
             client = llm_service.get_client()
             extra: dict[str, Any] = {"reasoning_effort": "minimal"} if settings.api_format == "responses" else {}
-            reply = await client.chat.completions.create(
-                model=settings.effective_model,
-                messages=build_messages(ev),
-                stream=True,
-                temperature=0.2,
-                max_tokens=current_max_tokens,
-                **extra,
-            )
+            with shield.scope(ev.user_id, "node_summary"):
+                reply = await client.chat.completions.create(
+                    model=settings.effective_model,
+                    messages=build_messages(ev),
+                    stream=True,
+                    temperature=0.2,
+                    max_tokens=current_max_tokens,
+                    **extra,
+                )
             async for chunk in reply:
                 if chunk.choices:
                     choice = chunk.choices[0]

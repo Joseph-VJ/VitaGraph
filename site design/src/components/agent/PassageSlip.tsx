@@ -29,10 +29,12 @@ type SlipState = { kind: "loading" } | { kind: "ready"; text: string } | { kind:
 interface PassageSlipProps {
   card: AgentEvidence;
   getPages: (reportId: string) => Promise<ReportPage[]>;
+  /** Open the whole page with the passage boxed in the side panel. */
+  onOpenPage?: () => void;
 }
 
 /** The cited passage as it stands on the stored page, the cited characters marked. */
-export const PassageSlip: React.FC<PassageSlipProps> = ({ card, getPages }) => {
+export const PassageSlip: React.FC<PassageSlipProps> = ({ card, getPages, onOpenPage }) => {
   const [state, setState] = useState<SlipState>({ kind: "loading" });
 
   useEffect(() => {
@@ -97,6 +99,13 @@ export const PassageSlip: React.FC<PassageSlipProps> = ({ card, getPages }) => {
           </div>
         </>
       )}
+      {onOpenPage ? (
+        <div style={{ marginTop: "var(--space-3)", display: "flex", justifyContent: "flex-end" }}>
+          <button type="button" className="vg-action" onClick={onOpenPage} data-testid="agent-slip-open-page">
+            See it on the page
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 };

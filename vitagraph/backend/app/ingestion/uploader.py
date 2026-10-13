@@ -98,6 +98,24 @@ def set_report_date(report_id: str, report_date: str) -> None:
         )
 
 
+def stored_file_path(report: dict) -> Path | None:
+    """The stored original of a report, or None when it is gone or would lie outside the persona's own folder."""
+    user_dir = (settings.uploads_dir / report["user_id"]).resolve()
+    path = (user_dir / report["stored_filename"]).resolve()
+    if not path.is_relative_to(user_dir) or not path.is_file():
+        return None
+    return path
+
+
+def delete_report_file(report: dict) -> bool:
+    """Remove the stored original of one report. Returns whether a file was removed."""
+    path = stored_file_path(report)
+    if path is None:
+        return False
+    path.unlink()
+    return True
+
+
 def delete_user_files(user_id: str) -> None:
     user_dir = settings.uploads_dir / user_id
     if user_dir.exists():

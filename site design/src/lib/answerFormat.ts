@@ -30,13 +30,38 @@ export function splitFollowUps(text: string): { body: string; followUps: string[
 
 // --------------------------------------------------------- streaming stability
 
+/**
+ * The start of a fenced block that is still open at the end of the text when its language is `chart`
+ * (the answer is still streaming it), else null. Fences follow the CommonMark rule: a closing line has
+ * at least as many backticks as the opening one and nothing else on it.
+ */
+export function openChartStart(text: string): number | null {
+  let open: { index: number; lang: string; ticks: number } | null = null;
+  let lineStart = 0;
+  for (const line of text.split("\n")) {
+    const match = /^ {0,3}(`{3,})(.*)$/.exec(line);
+    if (match) {
+      const ticks = match[1].length;
+      const info = match[2].trim();
+      if (!open) {
+        open = { index: lineStart + line.indexOf("`"), lang: info.split(/\s+/)[0].toLowerCase(), ticks };
+      } else if (info === "" && ticks >= open.ticks) {
+        open = null;
+      }
+    }
+    lineStart += line.length + 1;
+  }
+  return open && open.lang === "chart" ? open.index : null;
+}
+
 /** Hides a half-typed `**`, backtick or `[1` so raw marks never flicker while the answer streams. */
 export function stabilizeMarkdown(text: string): string {
   let out = text;
   const bold = out.match(/\*\*/g)?.length ?? 0;
   if (bold % 2 === 1) out = out.slice(0, out.lastIndexOf("**"));
   const ticks = out.match(/`/g)?.length ?? 0;
-  if (ticks % 2 === 1) out = out.slice(0, out.lastIndexOf("`"));
+  // An open ```chart fence is kept whole: AnswerMarkdown waits for it to close and shows "Drawing a chart…".
+  if (ticks % 2 === 1 && openChartStart(out) === null) out = out.slice(0, out.lastIndexOf("`"));
   out = out.replace(/\[\d{0,2}$/, "");
   return out;
 }
@@ -115,11 +140,14 @@ export function markVerified(text: string, facts: readonly Fact[]): Segment[] {
 
 // --------------------------------------------------------------------- reports
 
-const REPORT_BLOCK = /```report[ \t]*\n([\s\S]*?)\n```/i;
+// A report may hold ```chart blocks, so its own fence is longer (````report); the closing fence must have
+// at least as many backticks as the opening one.
+const REPORT_BLOCK = /(?:^|\n)[ \t]{0,3}(`{3,})report[ \t]*\n([\s\S]*?)\n[ \t]{0,3}\1`*[ \t]*(?=\n|$)/i;
 
 /** The Markdown of a report the agent wrote inside a ```report block (complete blocks only), else null. */
 export function extractReport(text: string): string | null {
-  const match = REPORT_BLOCK.exec(text);
+  const found = REPORT_BLOCK.exec(text);
+  const match = found ? [found[0], found[2]] : null;
   return match && match[1].trim().length > 0 ? match[1].trim() : null;
 }
 
